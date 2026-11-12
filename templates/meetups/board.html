@@ -1,0 +1,11 @@
+{% load i18n %}{% if not empty %}<div class="meetups">
+{% if board.upcoming %}{{ open }}{% translate "Next meetups" %}{{ close }}
+<ul class="meetup-list">{% for m in board.upcoming %}{% include "meetups/item.html" %}{% endfor %}</ul>
+{% elif full %}{{ open }}{% translate "Next meetups" %}{{ close }}
+<p class="notice">{% translate "No meetup is announced yet." %}</p>
+{% endif %}{% if board.past %}{{ open }}{% translate "Latest meetups" %}{{ close }}
+<ul class="meetup-list">{% for m in board.past %}{% include "meetups/item.html" %}{% endfor %}</ul>
+{% endif %}{% if full %}<p class="meetups-calendar"><a class="button button-quiet" href="{{ feed }}">{% translate "Add the meetups to your calendar" %}</a></p>
+<p class="muted meetups-note">{% translate "Dates and places are given by the organisers and can change: check the group before you go." %}{% if board.updated %} {% blocktranslate with date=board.updated|date:"DATE_FORMAT" %}Last change: {{ date }}.{% endblocktranslate %}{% endif %}</p>
+{% elif board.more_upcoming or board.more_past or not board.upcoming and not board.past %}<p><a href="{{ page }}">{% translate "All the meetups" %}</a></p>{% endif %}
+</div>{% endif %}

@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+# Fake docker for deploy/tests/test_release.sh: writes the calls it receives to $FAKE_CALLS and answers with what it
+# finds in $FAKE_DIR (one file for each thing the scenario wants to decide; without the file, it answers «all well»).
+set -u
+F=$FAKE_DIR
+# tag_di <image>: the version of an image; for <repo>@<digest> it is the version the digest has in $F/digests
+# («<digest> <version>» per line)
+tag_di() {
+  case "$1" in
+    *@*) awk -v d="${1##*@}" '$1 == d { print $2 }' "$F/digests" 2>/dev/null ;;
+    *) echo "${1##*:}" ;;
+  esac
+}
+image_web=${WEB_IMAGE:-}
+
+case "${1:-}" in
+  pull)  # pull -q <image>: fails if the image is in $F/pull_ko
+    echo "docker $*" | sed 's/ -q / /' >> "$FAKE_CALLS"
+    image=${!#}
+    if grep -qxF "$image" "$F/pull_ko" 2>/dev/null; then echo "Error: registry unreachable" >&2; exit 1; fi
+    case "$image" in *@*) [ -n "$(tag_di "$image")" ] || { echo "Error: manifest unknown" >&2; exit 1; } ;; esac
+    ;;
+  tag) echo "docker $*" >> "$FAKE_CALLS" ;;
+  image)
+    case "$2" in
+      inspect)
+        echo "docker image inspect ${!#}" >> "$FAKE_CALLS"
+        case "$*" in
+          *RepoDigests*)  # the digest it really has: another one if the digest is in $F/mismatch
+            image=${!#}
+            if grep -qxF "${image##*@}" "$F/mismatch" 2>/dev/null; then echo "${image%@*}@sha256:$(printf 'e%.0s' {1..64})"; else echo "$image"; fi
+            ;;
+          *)  # the version label: of the digest, or the one carrying the tag
+            case "${!#}" in *@*) tag_di "${!#}" ;; *) cat "$F/registry_version" ;; esac ;;
+        esac
+        ;;
+      ls)      echo "docker image ls $3" >> "$FAKE_CALLS"; cat "$F/tag" 2>/dev/null || true ;;     # one tag per line
+      rm)      echo "docker $*" >> "$FAKE_CALLS" ;;
+    esac
+    ;;
+  rmi) echo "docker $*" >> "$FAKE_CALLS" ;;
+  create)
+    echo "docker $*" >> "$FAKE_CALLS"
+    echo "$2" > "$F/last_image"
+    echo "container-fake"
+    ;;
+  cp)  # cp container-fake:/app/<file> <destination>: the files have the version written in them, the scripts are the real ones
+    echo "docker cp ${2#*:} $(basename "$3")" >> "$FAKE_CALLS"
+    version=$(tag_di "$(cat "$F/last_image")")
+    source=${2#*:}
+    if [ -e "$F/cp_ko" ] && grep -qxF "$source" "$F/cp_ko"; then echo "Error: no such file" >&2; exit 1; fi  # a file the image does not have
+    case "$source" in
+      /app/deploy)
+        mkdir -p "$3"
+        for script in release.sh check.sh mode.sh; do
+          cp "$DEPLOY_DIR/$script" "$3/$script"
+          printf '\n# version %s\n' "$version" >> "$3/$script"
+        done
+        ;;
+      /app/*) echo "# $(basename "$source") $version" > "$3" ;;
+      *)  # the community's compose, if the image has one
+        if [ -e "$F/community" ]; then echo "# community $version" > "$3"; else echo "Error: no such file" >&2; exit 1; fi
+        ;;
+    esac
+    ;;
+  rm) echo "docker $*" >> "$FAKE_CALLS" ;;
+  ps)  # docker ps -a --filter ...service=<service>: «<State> <Status>» of the container, from $F/container/<service>
+    service=$(printf '%s\n' "$@" | sed -n 's/^label=com.docker.compose.service=//p')
+    echo "docker ps $service" >> "$FAKE_CALLS"
+    cat "$F/container/$service" 2>/dev/null || true
+    ;;
+  compose)
+    shift
+    envfile=
+    echo "$*" >> "$FAKE_COMPOSE"  # the whole arguments, to see the compose files
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --env-file) envfile=$2; shift 2 ;;
+        -p|--project-directory|-f) shift 2 ;;
+        *) break ;;
+      esac
+    done
+    version=$(tag_di "$image_web")
+    case "$1" in
+      up)  echo "compose $version $*" >> "$FAKE_CALLS" ;;
+      exec)
+        case "$4" in
+          python)  # the site answers if its version is in $F/healthy
+            echo "compose $version exec web" >> "$FAKE_CALLS"
+            grep -qxF "$version" "$F/healthy" 2>/dev/null || exit 1
+            ;;
+          pg_dump) echo "compose $version $*" >> "$FAKE_CALLS"; echo "database dump with the site $version" ;;
+          *)       echo "compose $version $*" >> "$FAKE_CALLS" ;;
+        esac
+        ;;
+      ps)
+        echo "compose $version $*" >> "$FAKE_CALLS"
+        case "$*" in
+          *--services*) cat "$F/services" 2>/dev/null || printf 'web\ncaddy\npostgres\n' ;;
+          *) [ -e "$F/caddy_stopped" ] || echo "caddy-fake" ;;
+        esac
+        ;;
+      run)
+        echo "compose $version $*" >> "$FAKE_CALLS"
+        case "$*" in
+          *caddy\ validate*)
+            if [ -e "$F/caddy_ko" ]; then echo "Error: adapting config using caddyfile: parsing"; exit 1; fi
+            echo "Valid configuration"
+            ;;
+          *manage.py\ check*)  # as settings.py: production needs NETWORK=mainnet
+            if grep -qx 'SITE_MODE=production' "$envfile" && ! grep -qx 'NETWORK=mainnet' "$envfile"; then
+              echo "django.core.exceptions.ImproperlyConfigured: SITE_MODE production needs NETWORK=mainnet"
+              exit 1
+            fi
+            echo "System check identified no issues"
+            ;;
+        esac
+        ;;
+      *) echo "compose $version $*" >> "$FAKE_CALLS" ;;
+    esac
+    ;;
+  *) echo "docker $*" >> "$FAKE_CALLS" ;;
+esac
+exit 0

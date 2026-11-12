@@ -1,0 +1,75 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{% translate "Your shop on OpenStreetMap" %} · {{ shop.name }} · {{ community.name }}{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a></nav>
+<header class="page-head"><h1>{% translate "Your shop on OpenStreetMap" %}</h1><p>{{ shop.name }}</p></header>
+{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+<p>{% translate "OpenStreetMap is a free map that anyone can improve, like a shared notebook. Many apps show on it where to pay in bitcoin: if your shop is there with the right information, more people find you." %}</p>
+<p>{% translate "A place on OpenStreetMap is described by tags: lines of information like name=Bar Aurora. Your shop needs a few of them to say that it takes bitcoin." %}</p>
+
+{% if asked.open %}<p class="notice osm-open" role="status"><strong>{% blocktranslate with when=asked.when %}You asked the association {{ when }}.{% endblocktranslate %}</strong>
+  {% translate "A person does it by hand, with their own account: it can take a few days. You will see here when it is done." %}
+  {% if not asked.delivered %}<span class="muted">{% translate "The message to the association did not go out, but the request is saved." %}</span>{% endif %}</p>
+{% elif asked.done %}<p class="notice" role="status"><strong>{% blocktranslate with when=asked.done_when %}Done {{ when }}.{% endblocktranslate %}</strong> {% translate "Your shop's entry on OpenStreetMap was updated by the association. Thank you." %}{% if asked.request.answer %} {{ asked.request.answer }}{% endif %}</p>
+{% elif asked.declined %}<p class="notice" role="status"><strong>{% translate "The association could not do it." %}</strong>{% if asked.request.answer %} {{ asked.request.answer }}{% endif %} {% blocktranslate with email=community_email %}Write to {{ email }} and we look at it together.{% endblocktranslate %}</p>{% endif %}
+
+{% if osm.ref %}
+<section aria-labelledby="there">
+<h2 id="there">{% translate "Your shop is on OpenStreetMap" %}</h2>
+<p><a href="{{ osm.url }}" rel="noopener noreferrer" target="_blank">{% translate "See your shop on OpenStreetMap" %}</a> <span class="muted">({{ osm.ref }})</span></p>
+{% if osm.not_found %}<p class="notice">{% blocktranslate with email=community_email %}The last check did not find it there: it may have been moved or deleted. Write to {{ email }} and we look at it together.{% endblocktranslate %}</p>
+{% elif osm.says_no %}<p class="notice"><strong>{% translate "OpenStreetMap says that your shop does not take bitcoin any more." %}</strong> {% translate "If that is not true, ask the association below: we look at it with you." %}</p>
+{% elif osm.changes %}<p>{% translate "Compared with what we know about your shop, these lines are missing or different there:" %}</p>
+<ul class="osm-changes">{% for change in osm.changes %}
+  <li><code>{{ change.tag }}</code>: {% if change.old is None %}<em>{% translate "missing" %}</em>{% else %}{{ change.old }}{% endif %} → {% if change.new is None %}<strong>{% translate "take it away" %}</strong>{% else %}<strong>{{ change.new }}</strong>{% endif %}</li>{% endfor %}
+</ul>
+{% elif osm.up_to_date %}<p class="notice"><strong>{% translate "Nothing to do." %}</strong> {% translate "Everything we know about your shop is already there." %}</p>
+{% elif osm.review or osm.unreliable %}<p class="notice">{% translate "Something on OpenStreetMap is not like on this site, and a person of the association has to look at it. You do not need to do anything." %}</p>
+{% elif osm.stale %}<p>{% translate "We have not compared it for a while. These are the lines it should have:" %}</p>
+{% elif osm.wanted %}<p>{% translate "We have not compared it yet: it happens once a month. These are the lines it should have:" %}</p>{% endif %}
+{% if osm.read %}<p class="muted">{% blocktranslate with date=osm.read|date:"DATE_FORMAT" %}As of the check of {{ date }}.{% endblocktranslate %}</p>{% endif %}
+</section>
+{% else %}
+<section aria-labelledby="not-there">
+<h2 id="not-there">{% translate "Your shop is not on OpenStreetMap, or we have not found it" %}</h2>
+{% if osm.wanted %}<p>{% translate "To add it you need the name of the shop, its place on the map, and what kind of place it is (a bar, a bakery, a clothes shop…), which you choose in the editor. Then these lines about bitcoin:" %}</p>
+{% else %}<p class="notice">{% translate "Nothing to write on OpenStreetMap for this shop now: it is not on the map or in the lists of this site." %}</p>{% endif %}
+<p class="muted">{% blocktranslate with email=community_email %}If your shop is already there, write to {{ email }} with the address of its page on OpenStreetMap and we link it.{% endblocktranslate %}</p>
+</section>
+{% endif %}
+
+{% if osm.lines %}
+<section aria-labelledby="alone">
+<h2 id="alone">{% translate "Do it yourself, step by step" %}</h2>
+<ol class="help-steps">
+  <li><span>{% translate "Open the editor on your shop." %} <a class="button button-quiet" href="{{ osm.editor }}" rel="noopener noreferrer" target="_blank">{% translate "Open the editor" %}</a></span></li>
+  <li><span>{% if osm.ref %}{% translate "Click on your shop on the map: its details open on the left." %}{% else %}{% translate "Press «Point» at the top and click on your shop on the map. Choose what kind of place it is." %}{% endif %}</span></li>
+  <li><span>{% translate "Look for the tags box. In the editor it is called «Tags»: choose the text view, where each tag is a line." %}</span></li>
+  <li><span>{% translate "Write these lines, one for each tag. If a tag is already there with another value, change the value." %}
+    <label class="osm-label" for="osm-lines">{% translate "The lines to write" %}</label>
+    <textarea class="osm-lines" id="osm-lines" readonly rows="{{ osm.rows }}" spellcheck="false">{{ osm.lines }}</textarea>
+    <button type="button" class="button button-quiet needs-js" data-copy-text="#osm-lines" data-copied="{% translate 'Copied' %}">{% translate "Copy the lines" %}</button></span></li>
+  <li><span>{% translate "Press «Save», write a few words about what you changed (for example «bitcoin payments») and send it. You need a free OpenStreetMap account: the editor guides you." %}</span></li>
+</ol>
+<p class="muted" role="status" id="osm-copy-status"></p>
+</section>
+{% endif %}
+
+{% if osm.can_ask %}
+<section aria-labelledby="ask">
+<h2 id="ask">{% translate "Or let the association do it" %}</h2>
+{% if asked.open %}<p>{% translate "You have asked already: the request is waiting for a person of the association." %}</p>
+{% else %}
+<p>{% translate "A person of the association does it by hand, with their own account. You do not need an account on OpenStreetMap." %}</p>
+<form method="post" action="{% url 'osm_ask' shop.id %}" class="shop-form osm-form">{% csrf_token %}
+  {% if form.errors %}<p class="notice form-alert" role="alert">{% translate "Please look at what is marked below." %}</p>{% endif %}
+  {{ form.association.errors }}
+  <label class="osm-tick" for="{{ form.association.id_for_label }}"><input type="checkbox" name="association" id="{{ form.association.id_for_label }}"{% if form.association.errors %} aria-invalid="true"{% endif %}> <span>{{ form.association.label }}</span></label>
+  <p><button class="button" type="submit">{% translate "Send the request" %}</button></p>
+</form>
+{% endif %}
+</section>
+{% endif %}
+<p class="muted">{% translate "OpenStreetMap is public: everything you write there can be read by everybody. We never ask you for a password of yours, and we never write there without a person who looks at it." %}</p>
+<script src="{% static 'osm.js' %}" defer></script>
+{% endblock %}

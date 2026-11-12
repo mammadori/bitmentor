@@ -1,0 +1,87 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{% if number == 1 %}{% translate "Choose a wallet" %}{% elif number == 2 %}{% translate "Install your wallet" %}{% else %}{% translate "Get ready to pay" %}{% endif %} · {{ shop.name }} · {{ community.name }}{% endblock %}
+{% block description %}{% translate "No wallet yet? Three short steps." %}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'customer.css' %}">{% endblock %}
+{% block body_class %}page-customer{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'customer' shop.id %}">{% blocktranslate with name=shop.name %}Paying at {{ name }}{% endblocktranslate %}</a></nav>
+<ol class="customer-progress" aria-label="{% translate 'The three steps' %}">
+  {% for item in progress %}<li{% if item.current %} aria-current="step"{% endif %}{% if item.done %} class="done"{% endif %}><span>{% if item.number == 1 %}{% translate "Choose" %}{% elif item.number == 2 %}{% translate "Install" %}{% else %}{% translate "Get ready" %}{% endif %}</span>{% if item.done %}<span class="visually-hidden"> ({% translate "done" %})</span>{% endif %}</li>{% endfor %}
+</ol>
+
+{% if number == 1 %}
+<h1>{% translate "Choose a wallet" %}</h1>
+<p>{% translate "A wallet is an app on your phone. You keep your bitcoin in it and you pay with it. It is free, and the money stays yours: nobody else can move it, not even us." %}</p>
+<figure class="art-box">{{ art.store }}</figure>
+{% if wallets %}
+<p>{% translate "Any of these is fine. Pick one." %}</p>
+<p class="customer-filter" id="customer-filter">{% translate "Show the wallets for:" %}
+  {% for code, name in filters %}<a href="?on={{ code }}"{% if code == phone %} aria-current="true"{% endif %}>{{ name }}</a>{% endfor %}</p>
+{% if shown %}<ul class="customer-wallets">{% for wallet in shown %}
+  <li><div><strong>{{ wallet.name }}</strong>{% if wallet.platform_names %}<span class="wallet-platforms">{{ wallet.platform_names }}</span>{% endif %}{% if wallet.description %}<p>{{ wallet.description }}</p>{% endif %}</div>
+    <a class="button" href="{% url 'customer_step' shop.id 2 %}?w={{ wallet.key }}">{% blocktranslate with name=wallet.name %}Choose <span class="visually-hidden">{{ name }}</span>{% endblocktranslate %}</a></li>{% endfor %}
+</ul>
+{% else %}<p class="notice">{% translate "None of the wallets on our list is for this phone. Show all of them, or ask us." %}</p>{% endif %}
+{% elif wallet_page %}
+<p>{% translate "Pick one from our page: they are free, and the money stays yours." %}</p>
+<p><a class="button" href="{{ wallet_page }}">{% translate "The wallets we suggest" %}</a></p>
+<p><a href="{% url 'customer_step' shop.id 2 %}">{% translate "I have chosen: next" %}</a></p>
+{% else %}
+<p>{% blocktranslate with email=community_email %}Ask us which wallet to use: write to <a href="mailto:{{ email }}">{{ email }}</a>.{% endblocktranslate %}</p>
+<p><a href="{% url 'customer_step' shop.id 2 %}">{% translate "I have chosen: next" %}</a></p>
+{% endif %}
+{% if wallets and wallet_page %}<p><a href="{{ wallet_page }}">{% translate "More about wallets, from our community" %}</a></p>{% endif %}
+<p class="customer-other"><a href="{% url 'customer_help' shop.id %}">{% translate "I already have a wallet" %}</a></p>
+
+{% elif number == 2 %}
+<h1>{% if chosen %}{% blocktranslate with name=chosen.name %}Install {{ name }} and make your wallet{% endblocktranslate %}{% else %}{% translate "Install your wallet and make it" %}{% endif %}</h1>
+<ol class="customer-steps">
+  <li><h2>{% translate "Install it" %}</h2>
+    <p>{% translate "Open the app store of your phone, look for the wallet by its name and install it, as you do with any app." %}</p>
+    {% if chosen %}<p><a class="button button-quiet" href="{{ chosen.link }}" rel="noopener noreferrer">{% blocktranslate with name=chosen.name %}The page of {{ name }}{% endblocktranslate %}</a></p>{% endif %}
+    <p>{% translate "Check the name of whoever makes it: it must be the same as on the wallet's page. There are fake copies." %}</p></li>
+  <li><h2>{% translate "Make your wallet" %}</h2>
+    <p>{% translate "Open the app and choose to create a new wallet. It shows you some words, 12 or 24." %}</p></li>
+  <li><h2>{% translate "Write the words on paper" %}</h2>
+    <figure class="art-box">{{ art.paper }}</figure>
+    <p>{% translate "Write them in order, on paper, and keep the paper somewhere safe. With them you get your money back if you lose the phone." %}</p>
+    <p class="notice">{% translate "Never type those words anywhere else, and never photograph them or send them. Nobody will ever ask you for them: not the shop, not us, not the makers of the wallet. Whoever has the words has your money." %}</p></li>
+</ol>
+<p class="customer-buttons"><a class="button" href="{% url 'customer_step' shop.id 3 %}{{ query }}">{% translate "My wallet is ready: next" %}</a>
+  <a class="button button-quiet" href="{% url 'customer_step' shop.id 1 %}">{% translate "Choose another wallet" %}</a></p>
+
+{% else %}
+<h1>{% if test_network %}{% translate "Get your first sats" %}{% else %}{% translate "Put some bitcoin in it" %}{% endif %}</h1>
+{% if test_network %}
+<p class="notice">{% blocktranslate with network=network %}This site works on a test network, called {{ network }}. Its sats are for trying: they are not worth anything. Your wallet has to be set to {{ network }} too: look for “network” in its settings.{% endblocktranslate %}</p>
+<ol class="customer-steps">
+  <li><h2>{% translate "Copy your address" %}</h2>
+    <figure class="art-box">{{ art.receive }}</figure>
+    <p>{% blocktranslate with start=address_start %}In the wallet, press Receive. It shows a code and an address under it. Copy the address: on a test network it starts with {{ start }}.{% endblocktranslate %}</p></li>
+  <li><h2>{% translate "Ask for a few sats" %}</h2>
+    <p>{% blocktranslate with email=community_email %}This site has no faucet. Write to <a href="mailto:{{ email }}">{{ email }}</a> and ask for a few test sats.{% endblocktranslate %}</p></li>
+  <li><h2>{% translate "Wait for them" %}</h2>
+    <p>{% translate "When the sats show in your wallet, you are ready." %}</p></li>
+</ol>
+{% else %}
+<p>{% translate "Your wallet is ready, and it is empty. To pay you need a little bitcoin in it: the price of a coffee is enough to try." %}</p>
+<figure class="art-box">{{ art.receive }}</figure>
+<ol class="customer-steps">
+  <li><h2>{% translate "Ask someone who has some" %}</h2>
+    <p>{% translate "The simplest way: ask a friend who has bitcoin to send you a small amount. In your wallet press Receive and show them the code." %}</p></li>
+  <li><h2>{% translate "Or find your own way" %}</h2>
+    <p>{% translate "Where to get bitcoin is up to you: we do not sell it and we do not suggest any company." %}</p>
+    {% if first_bitcoin %}<p><a href="{{ first_bitcoin }}">{% translate "What our community can tell you about it" %}</a></p>
+    {% elif community_email %}<p>{% blocktranslate with email=community_email %}Not sure? Write to <a href="mailto:{{ email }}">{{ email }}</a>.{% endblocktranslate %}</p>{% endif %}</li>
+</ol>
+{% endif %}
+<section class="customer-ready" aria-labelledby="customer-ready-title">
+  <h2 id="customer-ready-title">{% translate "Then you can pay here" %}</h2>
+  {% if deal %}<p class="deal">-{{ deal.percent }}% <span>{% translate "if you pay in bitcoin" %}</span></p>{% endif %}
+  <p>{% blocktranslate with name=shop.name %}At the till of {{ name }}, ask to pay in bitcoin. The till shows a code: you scan it with your wallet and confirm.{% endblocktranslate %}</p>
+  <p class="customer-buttons"><a class="button" href="{% url 'shop_detail' shop.id %}#shop-pay-title">{% blocktranslate with name=shop.name %}Back to {{ name }}{% endblocktranslate %}</a>
+    <a class="button button-quiet" href="{% url 'customer_help' shop.id %}">{% translate "How to pay, step by step" %}</a></p>
+</section>
+<p><a href="{% url 'customer_step' shop.id 2 %}{{ query }}">{% translate "Back to the previous step" %}</a></p>
+{% endif %}
+{% endblock %}

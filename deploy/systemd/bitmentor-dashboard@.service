@@ -1,0 +1,20 @@
+[Unit]
+Description=bitmentor: what to do today about the shops of /opt/%i, a summary only if something changed
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+# A summary not delivered (Telegram and the email both down) is tried again every 10 minutes, four times; then the unit
+# stays failed, and check.sh says so
+StartLimitIntervalSec=1h
+StartLimitBurst=4
+
+[Service]
+Type=oneshot
+Nice=10
+# 10: a summary was sent
+SuccessExitStatus=10
+Restart=on-failure
+RestartSec=10min
+TimeoutStartSec=20min
+# The script comes with the installed release, in current/deploy
+ExecStart=/opt/%i/current/deploy/dashboard.sh /opt/%i

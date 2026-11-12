@@ -1,0 +1,20 @@
+# Example compose.locale.yml, for the local changes of one installation. deploy/install.sh copies it to
+# /opt/<project>/compose.locale.yml (docs/installation.md).
+# Entry point: as it is, Caddy publishes ports 80 and 443 itself. Behind a shared entry point (another Caddy on the
+# Docker network bitmentor-entry, which forwards each name to the alias caddy-<project>), the lines that start with
+# "#@shared " are uncommented: install.sh does it with --entry shared. Two installations on the same machine need it,
+# since only one Caddy can hold ports 80 and 443. The lines that start with "#@direct " are for the other case.
+
+#@direct services: {}
+#@shared services:
+  #@shared caddy:
+  #@shared   ports: !reset []
+  #@shared   networks:
+  #@shared     default: {}
+  #@shared     entry:
+  #@shared       aliases: [caddy-<project>]
+
+#@shared networks:
+#@shared   entry:
+#@shared     external: true
+#@shared     name: bitmentor-entry

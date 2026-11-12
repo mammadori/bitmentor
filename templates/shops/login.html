@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block content %}
+{% if staff_apart %}<div class="notice" role="status" id="staff-apart">
+  <p>{% translate "You are signed in to the site's administration. Staff accounts do not open the pages of a shop, not even their own: to use a shop, sign out of the administration and sign in here as the shop." %}</p>
+  <form method="post" action="{% url 'admin:logout' %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'shops' %}"><button class="button button-quiet" type="submit">{% translate "Sign out of the administration" %}</button></form>
+</div>{% endif %}
+<div class="login">
+  <div>
+    <p class="eyebrow">{% translate "For shops" %}</p>
+    <h1>{% translate "Enter the shops area" %}</h1>
+    <p>{% translate "No password: we send you a link by email." %}</p>
+    <p><a class="button" href="{{ recovery_url }}">{% translate "Sign in with email" %}</a></p>
+    {% if returning %}<p>{% translate "Once you are in, you go straight back to where you were." %}</p>{% endif %}
+    <h2 class="login-other">{% translate "Or with your wallet" %}</h2>
+    {% if lnurl %}<p>{% translate "If your Lightning wallet supports login, scan the code or tap it: this page opens by itself." %}</p>
+    {% else %}<p class="notice" role="status">{% translate "Too many sign-in codes from your connection in a short time: in a few minutes the wallet code is back. The email works now." %}</p>{% endif %}
+  </div>
+  {% if lnurl %}<a class="qr-box" href="lightning:{{ lnurl }}"><img class="qr" src="{{ qr }}" alt="{% translate 'Code to sign in with the wallet' %}"></a>{% endif %}
+</div>
+{% if lnurl %}<script src="{% static 'login.js' %}" data-status="{% url 'login_status' %}"></script>{% endif %}
+{% endblock %}

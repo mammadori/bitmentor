@@ -1,0 +1,35 @@
+{% extends "base.html" %}{% load static i18n l10n %}
+{% block title %}{% translate "Map" %} · {{ community.name }}{% endblock %}
+{% block head %}<link rel="preconnect" href="https://tile.openstreetmap.org">
+<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">
+<link rel="stylesheet" href="{% static 'vendor/leaflet/MarkerCluster.css' %}">{% endblock %}
+{% block body_class %}wide page-map{% endblock %}
+{% block content %}
+<header class="page-head">
+  {% block map_kicker %}{% endblock %}<h1>{% translate "Where to pay in bitcoin" %}</h1>
+  <p id="shop-head"><span id="shop-count">{{ places }}</span> {% translate "places on the map." %}{% block map_note %}{% endblock %}</p>
+</header>
+<div class="map-tools">
+  {% block map_lead %}{% endblock %}<label class="search"><span class="visually-hidden">{% translate "Search" %}</span>
+    <input id="shop-search" type="search" placeholder="{% translate 'Name, town or what they sell' %}"></label>
+  <label class="check"><input id="shop-discount" type="checkbox"> {% translate "Only with a discount" %}</label>
+  <label class="check"><input id="shop-lightning" type="checkbox"> {% translate "Only Lightning" %}</label>
+  {% block map_filters %}{% endblock %}
+  <button id="shop-near" type="button" class="button button-quiet">{% translate "Near me" %}</button>
+  <span class="muted" role="status"><span id="shop-results"></span> <span id="shop-shown" data-one="{% translate "shown" context "one place" %}" data-many="{% translate "shown" %}">{% translate "shown" %}</span></span>
+</div>
+<p id="shop-status" class="muted" role="status"></p>
+<div class="map-layout">
+  <a class="skip" href="#shop-list">{% translate "Skip the map: go to the list" %}</a>
+  <div id="map" data-label="{% translate 'Map of the places' %}" data-zoom-in="{% translate 'Zoom in' %}" data-zoom-out="{% translate 'Zoom out' %}" data-close="{% translate 'Close' %}" data-library="{% translate 'A JavaScript library for interactive maps' %}" data-discount="{% blocktranslate with discount='{n}' %}{{ discount }}% discount{% endblocktranslate %}" data-group="{% blocktranslate with number='{n}' %}{{ number }} places: zoom in{% endblocktranslate %}" data-failed="{% translate 'The list of shops did not load: reload the page.' %}" data-searching="{% translate 'Looking for your position...' %}" data-denied="{% translate 'I cannot read your position: move the map by hand.' %}" data-near="{% translate 'The nearest shops are now first in the list.' %}" data-closes="{% blocktranslate with date='{date}' %}Historic · closes on {{ date }}{% endblocktranslate %}" data-closed="{% blocktranslate with date='{date}' %}Historic · closed on {{ date }}{% endblocktranslate %}" data-url="{% url 'shops_json' %}" data-lat="{{ community.map.latitude|unlocalize }}" data-lon="{{ community.map.longitude|unlocalize }}" data-zoom="{{ community.map.zoom }}"></div>
+  {% block map_side %}{% endblock %}
+  {{ shop_list }}
+</div>
+<button id="shop-more" type="button" class="button button-quiet" data-label="{% translate 'Show all the places' %}" hidden></button>
+<p id="shop-empty" class="notice" hidden>{% translate "No shops match your search." %}</p>
+{% block map_end %}{% endblock %}
+{{ paid_texts|json_script:"paid-texts" }}
+<script src="{% static 'vendor/leaflet/leaflet.js' %}" defer></script>
+<script src="{% static 'vendor/leaflet/leaflet.markercluster.js' %}" defer></script>
+<script src="{% static 'map.js' %}" defer></script>
+{% endblock %}

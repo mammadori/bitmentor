@@ -1,0 +1,18 @@
+[Unit]
+Description=bitmentor: reading of the community's meetups of /opt/%i from the Nostr relays, read only
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+# A reading with no relay answering is tried again every 30 minutes, three times; then the unit stays failed until the next
+# day's run, and check.sh says so
+StartLimitIntervalSec=4h
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+Nice=10
+Restart=on-failure
+RestartSec=30min
+TimeoutStartSec=15min
+# The script comes with the installed release, in current/deploy
+ExecStart=/opt/%i/current/deploy/meetups.sh /opt/%i

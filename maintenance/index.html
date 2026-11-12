@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Under construction · In costruzione · Im Aufbau</title>
+<style>
+  /* The default under-construction page: a community puts its own in place with MAINTENANCE_DIR. */
+  html, body { margin: 0; height: 100%; }
+  body { display: grid; place-items: center; background: #f6f3ec; color: #1c1b2e; font: 18px/1.5 system-ui, sans-serif; text-align: center; }
+  p { margin: 0 16px; }
+  strong { display: block; margin-bottom: .4em; font-size: clamp(28px, 6vw, 56px); letter-spacing: .02em; }
+  #team img { display: block; margin: 0 auto 12px; padding: 8px; background: #fff; border-radius: 8px; }
+  @media (prefers-color-scheme: dark) { body { background: #16152a; color: #f6f3ec; } }
+</style>
+</head>
+<body>
+<p id="words"><strong>Under construction</strong>The site will be back soon. · <span lang="it">In costruzione: torna presto.</span> · <span lang="de">Im Aufbau: bald wieder da.</span></p>
+<div id="team" hidden><a><img alt="Team sign-in code" width="240" height="240"></a><p></p></div>
+<script>
+/* Team access (TEAM_ACCESS=on, docs/features/team-access.md): five quick taps on the title, or #team at the end of the
+   address, ask the site for a sign-in code, and the page reloads once a team wallet has signed it. With the feature off
+   the answer to that request is this same page, and nothing happens: the page needs nothing but itself. */
+(() => {
+  const words = document.getElementById("words"), box = document.getElementById("team");
+  const link = box.querySelector("a"), image = box.querySelector("img"), line = box.querySelector("p");
+  const asked = { credentials: "same-origin", cache: "no-store" };
+  let taps = 0, since = 0, busy = false;
+  const close = (text) => { link.hidden = true; line.textContent = text; busy = false; };
+  async function signIn() {
+    if (busy) return;
+    busy = true;
+    let code;
+    try { code = await (await fetch("/team/login/", asked)).json(); } catch { busy = false; return; }
+    if (!code.svg) { box.hidden = words.hidden = false; return close(code.error || ""); }
+    image.src = "data:image/svg+xml," + encodeURIComponent(code.svg);
+    link.href = "lightning:" + code.lnurl;
+    line.textContent = "Team: scan the code with your wallet. · Squadra: inquadra il codice con il wallet. · Team: Code mit der Wallet scannen.";
+    link.hidden = box.hidden = false;
+    words.hidden = true;
+    const timer = setInterval(async () => {
+      let state;
+      try { state = (await (await fetch(code.poll, asked)).json()).state; } catch { return; }
+      if (!state || state === "pending") return;
+      clearInterval(timer);
+      if (state === "ok") { history.replaceState(null, "", location.pathname + location.search); return location.reload(); }
+      words.hidden = false;
+      close(state === "denied" ? "This wallet is not in the team. · Questo wallet non è della squadra. · Diese Wallet gehört nicht zum Team." : "");
+    }, 2000);
+  }
+  document.querySelector("strong").addEventListener("click", () => {
+    const now = Date.now();
+    if (now - since > 3000) { since = now; taps = 0; }
+    if (++taps >= 5) { taps = 0; signIn(); }
+  });
+  if (location.hash === "#team") signIn();
+})();
+</script>
+</body>
+</html>

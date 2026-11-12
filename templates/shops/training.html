@@ -1,0 +1,42 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{% translate "Your merchant pass" %} · {{ community.name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'training.css' %}">{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a></nav>
+<header class="page-head"><h1>{% translate "Your merchant pass" %}</h1>
+  <p>{% translate "A few short modules, a little game, and you know what to do. Your shop is yours: so are the wallet and the recovery words. A wrong answer is never a problem: you read the line under it and try again." %}</p></header>
+{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+{% if shops|length > 1 %}<form method="get" class="training-shop"><label for="training-shop">{% translate "Steps and days for the shop" %}</label>
+  <select id="training-shop" name="shop">{% for other in shops %}<option value="{{ other.pk }}"{% if other.pk == shop.pk %} selected{% endif %}>{{ other.name }}</option>{% endfor %}</select>
+  <button class="button button-quiet" type="submit">{% translate "Show" %}</button></form>{% endif %}
+{% include "shops/training_bar.html" %}
+{% if state.base %}<p class="training-ok" role="status">{% blocktranslate with date=state.trainee.base_earned|date:"DATE_FORMAT" %}You have the basic pass since {{ date }}.{% endblocktranslate %}
+  {% if state.formed %}{% translate "Your shop shows the «Trained merchant» sign." %}{% endif %}
+  {% if state.modules_done < state.modules|length %}<span class="training-note">{% translate "The modules stay open: read them again whenever you like." %}</span>{% endif %}</p>
+{% elif real_money %}<p class="notice">{% if state.cfg.gate == "unlock" %}{% translate "The register that takes real money opens with the basic pass. The practice register always works." %}{% else %}{% translate "The basic pass is not required to take payments, but we ask you to get it." %}{% endif %}</p>{% endif %}
+
+<section aria-labelledby="path-title"><h2 id="path-title">{% translate "The path to the basic pass" %}</h2>
+<ol class="training-modules">{% for item in modules %}
+  <li class="state-{{ item.state }}"><div><span class="training-number" aria-hidden="true">{{ forloop.counter }}.</span><strong><a href="{% url 'training_module' item.id %}{% if shop %}?shop={{ shop.pk }}{% endif %}">{{ item.title }}</a></strong>
+    <span class="training-state">{% if item.state == "done" %}{% translate "Done" %}{% elif item.state == "update" %}{% translate "To read again" %}{% elif item.state == "declare" %}{% translate "To confirm" %}{% elif item.attempts %}{% translate "To finish" %}{% elif state.base %}{% translate "Optional" %}{% else %}{% translate "To do" %}{% endif %}</span></div>
+    <p class="muted">{% if item.questions %}{% blocktranslate count counter=item.questions %}{{ counter }} question{% plural %}{{ counter }} questions{% endblocktranslate %}{% endif %}{% if item.questions and item.statements_total %} · {% endif %}{% if item.statements_total %}{% blocktranslate count counter=item.statements_total with done=item.statements_done %}{{ done }} of {{ counter }} statement{% plural %}{{ done }} of {{ counter }} statements{% endblocktranslate %}{% endif %}</p></li>{% endfor %}
+</ol></section>
+
+<section aria-labelledby="steps-title"><h2 id="steps-title">{% translate "Steps with a guide" %}</h2>
+{% if not shop %}<p class="muted">{% translate "These steps are about a shop. Add your shop first." %}</p>
+{% else %}<p class="muted">{% blocktranslate with name=shop.name %}For «{{ name }}». You do each one by yourself, following a guide, then you say so here.{% endblocktranslate %}</p>
+<ul class="training-steps">{% for step in steps %}
+  <li><strong>{{ step.name }}</strong>
+    {% if step.earned %}<p class="training-ok">{% translate "Done" %} ✓</p>
+    {% else %}<p>{{ step.hint }}{% if step.guide %} <a href="{{ step.guide }}">{% translate "Open the guide" %}</a>{% endif %}</p>
+    <form method="post" action="{% url 'training_step' %}" class="training-step-form">{% csrf_token %}<input type="hidden" name="step" value="{{ step.key }}"><input type="hidden" name="shop" value="{{ shop.pk }}">
+      <p><label><input type="checkbox" name="agree" value="1" required> {% if step.key == "practice" %}{% translate "I did the exercises of the practice register." %}{% elif step.key == "backup" %}{% translate "I checked my wallet's backup." %}{% else %}{% translate "I tried a withdrawal." %}{% endif %}</label></p>
+      <p class="training-step-save"><button class="button button-quiet" type="submit">{% translate "Save" %}</button></p></form>{% endif %}</li>{% endfor %}
+</ul>
+{% endif %}</section>
+
+{% if state.base %}<section aria-labelledby="review-title"><h2 id="review-title">{% translate "The yearly review" %}</h2>
+  <p>{% blocktranslate with date=state.review.due|date:"DATE_FORMAT" %}A short review, one question for each module, every year. The next is due on {{ date }}. Nothing is locked if you are late: we only remind you.{% endblocktranslate %}</p>
+  <p><a class="button button-quiet" href="{% url 'training_review' %}">{% translate "Do the review now" %}</a></p></section>{% endif %}
+<script src="{% static 'training.js' %}"></script>
+{% endblock %}

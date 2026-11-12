@@ -1,0 +1,38 @@
+{% extends "admin/base_site.html" %}{% load i18n static %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'dashboard.css' %}">{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">{% translate 'Home' %}</a> › {{ title }}</div>{% endblock %}
+{% block content %}<div id="content-main" class="dashboard">
+<p class="dashboard-lead">{% blocktranslate count shops=shops %}{{ shops }} register in this site, as the database knows it now: nothing here asks the wallets.{% plural %}{{ shops }} registers in this site, as the database knows them now: nothing here asks the wallets.{% endblocktranslate %}</p>
+<ul class="dashboard-counts">
+  <li><strong>{{ counts.working }}</strong> <span>{% translate "with a Lightning address that works" %}</span></li>
+  <li><strong>{{ counts.to_look }}</strong> <span>{% translate "shops to look at" %}</span></li>
+  {% if closed %}<li><strong>{{ closed }}</strong> <span>{% translate "closed for a while: no alarms" %}</span></li>{% endif %}
+</ul>
+{% if items %}
+<h2>{% blocktranslate count count=items|length %}{{ count }} thing to do, the most urgent first{% plural %}{{ count }} things to do, the most urgent first{% endblocktranslate %}</h2>
+<ol class="dashboard-items">
+{% for item in items %}<li class="dashboard-item dashboard-{{ item.level }}" id="{{ item.code }}-{{ forloop.counter }}">
+  <p class="dashboard-head"><span class="dashboard-level">{% if item.level == "problem" %}{% translate "Problem" %}{% elif item.level == "warning" %}{% translate "To look at" %}{% else %}{% translate "To know" %}{% endif %}</span>
+    {% if item.shop %}<strong>{{ item.shop.name }}</strong>{% else %}<strong>{% translate "The whole site" %}</strong>{% endif %}</p>
+  <p>{{ item.what }}{% if item.since %} <span class="dashboard-since">{% with days=item.days when=item.when %}{% if item.last %}{% if days %}{% blocktranslate count days=days %}Last time {{ when }}, {{ days }} day ago.{% plural %}Last time {{ when }}, {{ days }} days ago.{% endblocktranslate %}{% else %}{% blocktranslate %}Last time {{ when }}.{% endblocktranslate %}{% endif %}{% elif days %}{% blocktranslate count days=days %}Started {{ when }}, {{ days }} day ago.{% plural %}Started {{ when }}, {{ days }} days ago.{% endblocktranslate %}{% else %}{% blocktranslate %}Started {{ when }}.{% endblocktranslate %}{% endif %}{% endwith %}</span>{% endif %}</p>
+  {% if item.wrote %}<p><span class="dashboard-label">{% translate "The merchant wrote:" %}</span> <q>{{ item.wrote }}</q></p>
+  {% endif %}  <p><span class="dashboard-label">{% translate "Now:" %}</span> {{ item.do }}</p>
+  {% if item.say %}<p><span class="dashboard-label">{% translate "To the merchant:" %}</span> <q>{{ item.say }}</q></p>{% endif %}
+  {% if item.command %}<p class="dashboard-command"><code>{{ item.command }}</code></p>{% endif %}
+  {% if item.links %}<p class="dashboard-links">{% for link in item.links %}{% if not link.perm or link.perm in perms %}<a href="{{ link.url }}">{{ link.text }}</a>{% if not forloop.last %} · {% endif %}{% endif %}{% endfor %}</p>{% endif %}
+</li>
+{% endfor %}</ol>
+{% else %}
+<p class="dashboard-none">{% translate "Nothing to do: every register is fine, as far as the database knows." %}</p>
+{% endif %}
+{% if account_changes %}<p class="dashboard-account-changes">{% blocktranslate count count=account_changes %}{{ count }} change to the account of a shop's owner in the last two weeks:{% plural %}{{ count }} changes to the accounts of shops' owners in the last two weeks:{% endblocktranslate %} <a href="{% url 'admin:shops_accountchange_changelist' %}">{% translate "see the register" %}</a></p>{% endif %}
+<h2>{% translate "Limits" %}</h2>
+<p>{% translate "What the site keeps, against its limit. At the limit it refuses what would add one more and deletes nothing. The limits are the ones in community.yml (limits), or the defaults." %}</p>
+<table class="dashboard-limits">
+{% for row in limits %}<tr class="dashboard-limit-{{ row.level|default:'ok' }}"><td>{{ row.what|capfirst }}</td><td>{{ row.used }}{% if row.limit %}/{{ row.limit }}{% else %} ({% translate "no limit" %}){% endif %}</td><td>{% if row.default %}{% translate "default" %}{% else %}{% translate "set in community.yml" %}{% endif %}</td></tr>
+{% endfor %}</table>
+<h2>{% translate "What this page does not see" %}</h2>
+<p>{% translate "The sales stay on the registers' phones and never reach the site, and the wallets are asked only by the diagnosis. When a merchant calls, ask it one shop at a time:" %}</p>
+<p class="dashboard-command"><code>docker compose exec web python manage.py diagnose_shop "&lt;shop&gt;"</code></p>
+<p>{% translate "The same list in text, for a daily message:" %} <code>docker compose exec web python manage.py dashboard</code></p>
+</div>{% endblock %}

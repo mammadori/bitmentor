@@ -1,0 +1,65 @@
+from django.urls import path
+
+from config.features import ONCHAIN, PRACTICE, VACATION, gated
+
+from . import address_change, chain_count, customer, help_views, osm_views, practice, staff, training_views, vacation_views, views
+
+urlpatterns = [
+    path("", views.index, name="shops"),
+    path("map/", views.shop_map, name="shop_map"),
+    path("s/<uuid:shop>/", views.shop_detail, name="shop_detail"),
+    path("e/<str:external>/", views.shop_by_external, name="shop_by_external"),
+    path("sign/<uuid:shop>/", views.shop_sign, name="shop_sign"),
+    path("customer/<uuid:shop>/", customer.hub, name="customer"),
+    path("customer/<uuid:shop>/help/", customer.help_page, name="customer_help"),
+    path("customer/<uuid:shop>/<int:number>/", customer.step, name="customer_step"),
+    path("customer-card/<uuid:shop>/", customer.card, name="customer_card"),
+    path("card/<uuid:shop>/", views.till_card, name="till_card"),
+    path("first-day/<uuid:shop>/", views.first_day_tick, name="first_day"),
+    path("lightning/<uuid:shop>/", views.lightning_retry, name="lightning_retry"),
+    path("edit/<uuid:shop>/", views.edit_shop, name="edit_shop"),
+    path("lightning-address/<uuid:shop>/", address_change.change, name="change_address"),
+    path("preview/<uuid:shop>/", views.shop_display, name="shop_display"),
+    path("connect/<uuid:shop>/", views.wallet_steps, name="connect_wallet"),
+    path("claim/", views.claim_shop, name="claim_shop"),
+    path("remove/<uuid:shop>/", views.delete_shop, name="delete_shop"),
+    path("new/", views.new_shop, name="new_shop"),
+    path("new/lightning-address/", views.lightning_check, name="lightning_check"),
+    path("wallet/<uuid:shop>/", views.wallet_steps, name="wallet_steps"),
+    path("sign-out/", views.sign_out, name="sign_out"),
+    path("recovery/", views.recovery, name="recovery"),
+    path("recovery/sign-in/", views.recovery_login, name="recovery_login"),
+    path("email/confirm/", views.confirm_email, name="confirm_email"),
+    path("register/<uuid:shop>/", views.register, name="register"),
+    path("register/<uuid:shop>/sw.js", views.register_worker, name="register_worker"),
+    # On-chain at the register is experimental (config/features.py): off, the count and the owner's explorer do not exist
+    path("register/<uuid:shop>/chain/", gated(ONCHAIN, chain_count.owner_claim), name="register_chain"),
+    path("register/<uuid:shop>/explorer/", gated(ONCHAIN, chain_count.owner_explorer), name="register_explorer"),
+    path("break/<uuid:shop>/", gated(VACATION, vacation_views.shop_break), name="shop_break"),
+    path("break/<uuid:shop>/now/", gated(VACATION, vacation_views.break_now), name="break_now"),
+    path("break/<uuid:shop>/reopen/", gated(VACATION, vacation_views.break_over), name="break_over"),
+    path("break/<uuid:shop>/seen/", gated(VACATION, vacation_views.break_seen), name="break_seen"),
+    path("practice/<uuid:shop>/", gated(PRACTICE, practice.practice), name="practice"),
+    path("registers/<uuid:shop>/", staff.manage, name="staff_registers"),
+    path("registers/<uuid:shop>/<uuid:register>/", staff.code, name="staff_code"),
+    path("registers/<uuid:shop>/<uuid:register>/retire/", staff.retire, name="staff_retire"),
+    path("register/open/", staff.open_register, name="staff_open"),
+    path("register/p/<uuid:register>/", staff.register, name="staff_register"),
+    path("register/p/<uuid:register>/sw.js", staff.worker, name="staff_worker"),
+    path("register/p/<uuid:register>/chain/", gated(ONCHAIN, chain_count.staff_claim), name="staff_chain"),
+    path("register/p/<uuid:register>/practice/", gated(PRACTICE, practice.staff_practice), name="staff_practice"),
+    # «Something wrong?» (shops/helpdesk.py): the symptoms, what the site knows, and the request to the association
+    path("help/<uuid:shop>/", help_views.home, name="help_home"),
+    path("help/<uuid:shop>/ask/", help_views.ask, name="help_ask"),
+    path("help/<uuid:shop>/<slug:slug>/", help_views.symptom, name="help_symptom"),
+    path("help/<uuid:shop>/<slug:slug>/again/", help_views.again, name="help_again"),
+    # Your shop on OpenStreetMap (shops/osm.py): what the site knows, the steps, and the request to the association
+    path("openstreetmap/<uuid:shop>/", osm_views.home, name="osm_home"),
+    path("openstreetmap/<uuid:shop>/ask/", osm_views.ask, name="osm_ask"),
+    # The merchant's training (shops/training.py): the path, a module with its quiz, the review, the steps, the staff's rules
+    path("training/", training_views.home, name="training"),
+    path("training/review/", training_views.review, name="training_review"),
+    path("training/declaration/", training_views.step, name="training_step"),
+    path("training/<slug:slug>/", training_views.module, name="training_module"),
+    path("register/p/<uuid:register>/rules/", training_views.staff_rules, name="staff_rules"),
+]

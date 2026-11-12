@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{% translate "The yearly review" %} · {{ community.name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'training.css' %}">{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'training' %}{% if shop %}?shop={{ shop.pk }}{% endif %}">{% translate "Your merchant pass" %}</a></nav>
+<header class="page-head"><h1>{% translate "The yearly review" %}</h1><p>{% translate "One question for each module. No penalty: a wrong answer comes with a line to read, and you try again." %}</p></header>
+{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+<form method="post" class="training-quiz">{% csrf_token %}{% if shop %}<input type="hidden" name="shop" value="{{ shop.pk }}">{% endif %}
+  {% for question in items %}<fieldset class="quiz-{{ question.state|default:'open' }}"><legend>{{ question.title }}: {{ question.text }}</legend>
+    <input type="hidden" name="pick-{{ question.module.id }}" value="{{ question.index }}">
+    {% for option in question.options %}<p><label><input type="radio" name="{{ question.name }}" value="{{ option.value }}"{% if option.checked %} checked{% endif %}{% if forloop.first %} required{% endif %}> {{ option.text }}</label></p>{% endfor %}
+    {% if question.state == "wrong" %}<p class="quiz-explain" role="status"><strong>{% translate "Not this one." %}</strong> {{ question.explain }}</p>{% elif question.state == "right" %}<p class="training-ok">{% translate "Right" %} ✓</p>{% endif %}
+  </fieldset>{% endfor %}
+  <p><button class="button" type="submit">{% translate "Check my answers" %}</button></p>
+</form>
+{% endblock %}

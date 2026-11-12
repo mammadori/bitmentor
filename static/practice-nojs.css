@@ -1,0 +1,3 @@
+/* Without JavaScript the register cannot move: the practice page keeps the band and the exercises, which say what each
+   screen shows and what to do */
+.practising main { display: none; }

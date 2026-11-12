@@ -1,0 +1,264 @@
+# Behind a proxy that holds TLS: SITE_SCHEME=http and the proxy in TRUSTED_PROXIES, which passes on the visitor's address.
+{
+	servers {
+		trusted_proxies static {$TRUSTED_PROXIES:127.0.0.1/32}
+		trusted_proxies_strict
+		# A slow client cannot hold a request open for ever: headers within 15 seconds, the body within a minute.
+		# Responses have no limit: a long video on a slow line must be able to finish.
+		timeouts {
+			read_header 15s
+			read_body 1m
+		}
+	}
+	# The error log (a 502 during a release, for one) writes the request: without the key of a staff register (?k= on its
+	# page, or in an X-Register-Key header) and its one-time code (?c=); without the code that takes an
+	# imported shop (?code=); the token of the links in the emails, to sign in and to confirm the recovery address
+	# (?token=); and ?next=, the page to go back to after signing in, which carries the others inside it (the claim link
+	# becomes next=/…/claim/?code=…): whoever reads the log must not be able to open an account with them. The access
+	# log (access-on) drops query and headers. Of the addresses only the network stays, as in the access log.
+	log default {
+		format filter {
+			# Team access (TEAM_ACCESS) has two secrets in a path: the token of an invite (/team/join/<token>/) and the
+			# challenge a sign-in page polls (/team/login/<k1>/). A field takes one filter, and request>uri has the one of
+			# the query: the path is cut by a second filter around the JSON. Caddy 2.10 hands that inner filter the fields
+			# of an object by their own name (`uri`), not by their path: both are written, so the cut holds whichever way
+			# Caddy names it. Capitals, doubled slashes and a prefix before /team/ are cut too, as in config/quiet.py.
+			# Checked by a real run: docs/features/team-access.md
+			wrap filter {
+				wrap json
+				fields {
+					uri regexp (?i)(/+team/+(?:join|login)/+)[^/?]+ ${1}-
+					request>uri regexp (?i)(/+team/+(?:join|login)/+)[^/?]+ ${1}-
+				}
+			}
+			fields {
+				request>uri query {
+					delete k
+					delete k1
+					delete pr
+					delete c
+					delete code
+					delete token
+					delete next
+				}
+				request>headers>Referer delete
+				request>headers>X-Register-Key delete
+				# Behind the entry proxy the visitor's full address is in these headers: they go, only the masked one stays
+				request>headers>X-Forwarded-For delete
+				request>headers>Forwarded delete
+				request>headers>X-Real-Ip delete
+				request>client_ip ip_mask {
+					ipv4 {$LOG_IPV4_MASK:24}
+					ipv6 {$LOG_IPV6_MASK:48}
+				}
+				request>remote_ip ip_mask {
+					ipv4 {$LOG_IPV4_MASK:24}
+					ipv6 {$LOG_IPV6_MASK:48}
+				}
+				request>remote_port delete
+			}
+		}
+	}
+}
+
+# SITE_MODE (development, maintenance, production) chooses who sees what: the rules are in caddy/<mode>.caddy.
+(maintenance) {
+	root * /srv/maintenance
+	header X-Robots-Tag "noindex, nofollow"
+	# no-cache, not no-store: the browser keeps the images and rechecks them every time (304 without a body);
+	# when the site opens, the same request reaches the real site and the new page comes back
+	header Cache-Control "no-cache"
+	try_files {path} /index.html
+	file_server
+}
+
+(closed) {
+	header X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"
+	@robots path /robots.txt
+	respond @robots "User-agent: *
+Disallow: /
+" 200
+	# monitoring robots on /health/ get through
+	@crawlers {
+		header_regexp User-Agent "(?i)(bot|crawl|spider|slurp|scrapy|semrush|ahrefs|gptbot|claudebot|ccbot|bytespider|petalbot|python-requests|wget|go-http-client|zgrab|masscan|nmap)"
+		not path /health/
+		import team-wallet-{$TEAM_ACCESS:off}
+	}
+	respond @crawlers 403
+}
+
+# /admin/ has no second factor: with ADMIN_ALLOWED_IPS only whoever is in those addresses or networks reaches it.
+# Without it, it stays open to everybody as before. The onion arrives from the internal network: with the variable, /admin/ is closed there.
+(admin) {
+	@admin_outside {
+		path /admin /admin/*
+		not client_ip {$ADMIN_ALLOWED_IPS:0.0.0.0/0 ::/0}
+	}
+	respond @admin_outside 403
+}
+
+# ACCESS_LOG=on: the access log, to understand what happened after an incident. It lives in Caddy's volume,
+# in /data/access: a new file every MiB, old ones compressed and removed after 7 days. Of the addresses only the network
+# stays, /24 or /48, never the whole address. No query string, where tokens and signatures live, and no headers.
+(access-on) {
+	log {
+		output file /data/access/access.log {
+			roll_size 1MiB
+			roll_keep 10
+			roll_keep_for {$ACCESS_LOG_KEEP:168h}
+		}
+		format filter {
+			fields {
+				request>client_ip ip_mask {
+					ipv4 {$LOG_IPV4_MASK:24}
+					ipv6 {$LOG_IPV6_MASK:48}
+				}
+				request>remote_ip ip_mask {
+					ipv4 {$LOG_IPV4_MASK:24}
+					ipv6 {$LOG_IPV6_MASK:48}
+				}
+				request>remote_port delete
+				# No query (all of it but the question mark), and nothing after /team/join/ or /team/login/ (TEAM_ACCESS:
+				# the token of an invite and the challenge of a sign-in are in the path, written /team/join//): one filter
+				# for a field, so one expression. The same cut as the error log's and config/quiet.py's
+				request>uri regexp (?i)(/+team/+(?:join|login)/+)[^/?]+|([?]).* ${1}${2}
+				request>headers delete
+				resp_headers delete
+			}
+		}
+	}
+}
+# The default: no access log, as before
+(access-off) {
+	log {
+		output discard
+	}
+}
+
+# TEAM_ACCESS=on (docs/features/team-access.md): the team of a site under construction signs in with a Lightning wallet
+# and its browser gets a pass, the team_pass cookie. caddy/development.caddy and the rule of the robots import these by
+# the variable; off, the default, they are empty and the rules are the ones without them.
+# - What reaches Django from outside: the addresses team/urls.py has, each written exactly as it is (no capitals, no
+#   doubled slash, nothing percent-encoded: the expression reads the address as it was sent), only with GET, the one
+#   method they take, and only on the site's entrance. Anything else under /team/ is a path like any other.
+(team-open) {
+	method GET
+	header X-Entrance site
+	expression `{http.request.uri}.matches("^/team/(login/([0-9a-f]{64}/)?|poll/|auth/|check/|join[.]js|join/[A-Za-z0-9_-]{20,100}/)([?].*)?$")`
+}
+(team-paths-on) {
+	not {
+		import team-open
+	}
+}
+(team-paths-off) {
+}
+# - A request from outside with a pass is asked to Django (/team/check/, 204 or 401) before anything else: valid, it goes
+#   on to the site as from an allowed address (the rules of /admin/ and of the robots still apply); refused, the browser
+#   loses the cookie and gets the under-construction page; any other answer, the page alone. Without the cookie, or with
+#   one that cannot be a pass, nothing is asked: the under-construction page costs what it always did.
+#   Django decides from the cookie, from X-Entrance, which every site block writes itself before this, and from
+#   X-Forwarded-For, written here: nothing else a visitor sends counts, and nothing of Django's answer is copied.
+(team-pass-on) {
+	@team_pass {
+		not client_ip {$DEV_ALLOWED_IPS:127.0.0.1}
+		not path /health/ {$OPEN_PATHS}
+		not {
+			import team-open
+		}
+		header X-Entrance site
+		header_regexp Cookie "(^|; *)team_pass=[A-Za-z0-9_:-]{40,400}(;|$)"
+	}
+	handle @team_pass {
+		forward_auth web:8000 {
+			uri /team/check/
+			header_up X-Forwarded-For {client_ip}
+			@refused status 401
+			handle_response @refused {
+				header Set-Cookie "team_pass=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax"
+				import maintenance
+			}
+			@failed status 3xx 4xx 5xx
+			handle_response @failed {
+				import maintenance
+			}
+		}
+	}
+}
+(team-pass-off) {
+}
+# - The wallet calls /team/auth/ with whatever its software says it is (Go-http-client, python-requests…): the rule that
+#   refuses robots by their name lets that one address through, as it does /health/.
+(team-wallet-on) {
+	not path /team/auth/
+}
+(team-wallet-off) {
+}
+
+# Server and Via say which software answers and how many proxies are in front: visitors do not need them
+(anonymous) {
+	header {
+		-Server
+		-Via
+	}
+}
+
+# Towards Django, from the site and from the onion.
+# - At most 1 MiB of body: the site receives no files, and a form fits in a few KiB.
+# - The body reaches gunicorn only whole: a slow client keeps Caddy busy, not a thread of the site.
+# - Connections stay open 60 seconds, less than gunicorn's 75 (config/gunicorn.py): so it does not close them while
+#   Caddy is sending it a request.
+(web-common) {
+	header_up X-Forwarded-For {client_ip}
+	request_buffers 1MiB
+	transport http {
+		keepalive 60s
+	}
+}
+# - While web restarts, for a release or for a new community, reads wait up to 15 seconds instead of
+#   getting a 502. Other methods do not: on the second try Caddy would send an empty body. Better a 502 at once.
+(to-web) {
+	request_body {
+		max_size 1MiB
+	}
+	@web_reads method GET HEAD
+	reverse_proxy @web_reads web:8000 {
+		import web-common
+		lb_try_duration 15s
+		lb_try_interval 250ms
+	}
+	reverse_proxy web:8000 {
+		import web-common
+	}
+}
+
+{$SITE_SCHEME:https}://{$SITE_HOST} {
+	# Which entrance the request came from, always written here: an address in DEV_ALLOWED_IPS counts only on the site
+	request_header X-Entrance site
+	# ONION_LOCATION, the onion's address (http://<name>.onion): Tor Browser offers the onion to whoever opens the site.
+	# Unset, no header, as before
+	@onion_location expression `{env.ONION_LOCATION} != ""`
+	header @onion_location Onion-Location "{env.ONION_LOCATION}{uri}"
+	import /etc/caddy/mode/{$SITE_MODE:development}.caddy
+	import /etc/caddy/local/*.caddy
+	import admin
+	import access-{$ACCESS_LOG:off}
+	import anonymous
+	encode zstd gzip
+	import to-web
+}
+
+# Entry of the onion service: only from the internal network, the port is not published.
+http://:8081 {
+	# The onion's visitors arrive from the internal network, and TRUSTED_PROXIES may cover it: never an allowed address
+	request_header X-Entrance onion
+	import /etc/caddy/mode/{$SITE_MODE:development}.caddy
+	import /etc/caddy/local/*.caddy
+	import admin
+	import access-{$ACCESS_LOG:off}
+	import anonymous
+	encode zstd gzip
+	import to-web
+}
+
+import /etc/caddy/local/sites/*.caddy

@@ -1,0 +1,38 @@
+{% load i18n l10n %}{% with email=community.email card=path.card %}
+<details class="journey" id="journey-{{ shop.id }}"{% if not path.complete or shop.lightning_notes %} open{% endif %} data-count="{% blocktranslate with done='{done}' total='{total}' %}Setting up the shop: {{ done }} of {{ total }} done{% endblocktranslate %}" data-complete="{% translate 'Setting up the shop: all done. Well done!' %}" data-done="{% translate 'Done' %}" data-next="{% translate 'Next step' %}">
+  <summary>{% if path.complete %}{% translate "Setting up the shop: all done. Well done!" %}{% else %}{% blocktranslate with done=path.done total=path.total %}Setting up the shop: {{ done }} of {{ total }} done{% endblocktranslate %}{% endif %}</summary>
+  <figure class="journey-card">
+    <figcaption>{% translate "Your card on the map, now" %}</figcaption>
+    {% if card.on_map %}<div class="journey-card-box">
+      {% if shop.discount %}<span class="pin pin-discount" aria-hidden="true">-{{ shop.discount }}%</span>{% else %}<span class="pin" aria-hidden="true"></span>{% endif %}
+      <div><p class="journey-card-name"><strong>{{ shop.name }}</strong>{% if shop.discount %} <span class="journey-card-deal">{% blocktranslate with discount=shop.discount %}{{ discount }}% discount{% endblocktranslate %}</span>{% endif %}</p>
+        {% if shop.public_place %}<p class="journey-card-place">{{ shop.public_place }}</p>{% endif %}
+        {% if card.template %}<p class="marks">{% include card.template %}</p>{% endif %}</div>
+    </div>
+    {% else %}<p class="journey-card-off">{% if card.why == "suspended" %}{% translate "Not on the map for now: the community has taken the shop off it." %}{% elif card.why == "unlisted" %}{% translate "Not on the map: the shop stays off it, as agreed with the community." %}{% else %}{% translate "Not on the map yet: the position is missing." %} <a href="{% url 'edit_shop' shop.id %}">{% translate "Add it" %}</a>{% endif %}</p>{% endif %}
+  </figure>
+  <ol class="journey-steps">
+  {% for step in path.steps %}<li data-milestone="{{ step.key }}" data-state="{{ step.state }}"{% if step.state != "off" and step.state != "optional" %} data-counted{% endif %}{% if step.next %} class="journey-next"{% endif %}{% if step.key == "lightning" and not shop.lightning_watch.broken %} id="lightning-{{ shop.id }}"{% endif %}>
+    <span class="step-mark" aria-hidden="true"></span>
+    <div class="step-body">
+      <p class="step-head"><strong id="milestone-{{ shop.id }}-{{ step.key }}">{% if step.key == "lightning" %}{% translate "Lightning address that works" %}{% elif step.key == "first_day" %}{% translate "The first day" %}{% else %}{% translate "The badge of a certified shop" %}{% endif %}</strong>
+        <span class="step-state">{% if step.next %}{% translate "Next step" %}{% elif step.state == "done" %}{% translate "Done" %}{% elif step.state == "optional" %}{% translate "Optional" %}{% elif step.state == "waiting" %}{% translate "Checked soon" %}{% elif step.state == "off" %}{% translate "Not up to you" %}{% else %}{% translate "To do" %}{% endif %}</span></p>
+      {% if step.key == "lightning" %}
+      <p class="step-text">{% if step.state == "done" %}{% blocktranslate with when=step.checked %}Your Lightning address works: checked {{ when }}.{% endblocktranslate %}{% elif step.state == "todo" %}{% translate "Your Lightning address is not working: the message above says what to do." %}{% elif step.state == "waiting" %}{% translate "The site tries your Lightning address within a few hours, the way the register uses it. Nothing to do." %}{% elif step.state == "off" %}{% translate "The shop is off the map for now: its Lightning address is not checked." %}{% endif %}</p>
+      {% for note in shop.lightning_notes %}{% if not shop.lightning_watch.broken %}<p class="step-text" role="status">{{ note }}</p>{% endif %}{% endfor %}
+      {% elif step.key == "first_day" %}
+      <p class="step-text">{% if step.state == "done" %}{% translate "The register works, the sign is up and whoever works with you has the register." %}{% else %}{% translate "Try the register, print the sign, give the register to whoever works with you: the steps are here below." %}{% endif %}</p>
+      {% if shop.first_day %}{% include "shops/first_day.html" with day=shop.first_day %}{% endif %}
+      {% else %}
+      {% if step.state == "done" %}<p class="step-text">{% blocktranslate with month=step.since|date:"F Y" %}Certified since {{ month }}: the badge is on your card.{% endblocktranslate %}</p>
+      {% elif step.state == "off" %}<p class="step-text">{% blocktranslate %}The community has taken the badge off. To know why, write to <a href="mailto:{{ email }}">{{ email }}</a>.{% endblocktranslate %}</p>
+      {% else %}<p class="step-text">{{ step.rule_text }} {% translate "Then the badge “Certified shop” goes on your card by itself." %}</p>
+      {% if step.needs_lightning %}<p class="step-text">{% translate "Your Lightning address has not passed the site's check yet: the first milestone says how it stands." %}</p>{% endif %}
+      {% if step.needs_pass %}<p class="step-text" role="note"><strong>{% translate "One more thing:" %}</strong> {% translate "the badge also needs your basic pass. It takes a few minutes." %} <a href="{% url 'training' %}">{% translate "Start the path" %}</a></p>{% endif %}
+      {% endif %}
+      {% endif %}
+    </div>
+  </li>
+  {% endfor %}</ol>
+</details>
+{% endwith %}

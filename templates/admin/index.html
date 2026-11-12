@@ -1,0 +1,2 @@
+{% extends "admin/index.html" %}{% load i18n %}
+{% block content %}{% if perms.shops.view_shop %}<p class="dashboard-entry"><a href="{% url 'admin_dashboard' %}">{% translate "To do today: the state of every register" %}</a></p>{% endif %}{{ block.super }}{% endblock %}

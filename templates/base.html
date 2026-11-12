@@ -1,0 +1,26 @@
+{% load static i18n head %}<!doctype html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{% capture as head_title %}{% block title %}{% if page_title %}{{ page_title }} · {% endif %}{{ community.name }}{% endblock %}{% endcapture %}{% capture as head_description %}{% block description %}{{ page_description|default:tagline }}{% endblock %}{% endcapture %}<title>{{ head_title }}</title>
+<meta name="description" content="{{ head_description }}">
+{% block page_meta %}{% page_meta %}{% endblock %}<meta name="theme-color" content="{{ community.theme_color|default:'#333333' }}">
+{% if community.theme_color_dark %}<meta name="theme-color" media="(prefers-color-scheme: dark)" content="{{ community.theme_color_dark }}"><meta name="color-scheme" content="light dark">
+{% endif %}<link rel="icon" href="/theme/{{ community.logo }}">
+{% for font in community.preload_fonts %}<link rel="preload" href="/theme/{{ font }}" as="font" type="font/woff2" crossorigin>
+{% endfor %}<link rel="stylesheet" href="{% static 'base.css' %}">
+{% block head %}{% endblock %}
+<link rel="stylesheet" href="/theme/theme.css">
+<noscript><style>.map-tools, #map, #route-map, .needs-js { display: none; }</style></noscript>
+</head>
+<body class="{% block body_class %}{% if wide %}wide{% endif %} page-{{ slug|default:'app' }}{% endblock %}">
+<a class="skip" href="#main">{% translate "Skip to content" %}</a>
+{% include "partials/view_notice.html" %}
+{% include "partials/header.html" %}
+<main id="main">{% block content %}{% endblock %}</main>
+{% include "partials/footer.html" %}
+<script src="{% static 'site.js' %}" defer></script>
+</body>
+</html>

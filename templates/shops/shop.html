@@ -1,0 +1,57 @@
+{% extends "base.html" %}{% load static i18n l10n %}
+{% block title %}{{ shop.name }} · {{ community.name }}{% endblock %}
+{% block description %}{% if reduced %}{{ shop.name }}{% else %}{{ shop.description|default:shop.name|truncatechars:150 }}{% endif %}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">{% endblock %}
+{% block body_class %}page-shop{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'shop_map' %}">{% translate "Map" %}</a></nav>
+{% if shop.closed_on %}<p class="notice shop-historic" role="note">{{ shop.historic_note }}</p>{% endif %}
+{% if break_note and not shop.closed_on %}<p class="notice shop-break" role="note">{{ break_note }}</p>{% endif %}
+<div class="shop-card">
+  <div>
+    <h1>{{ shop.name }}</h1>
+    {% if shop.certified or shop.trained %}{% if not reduced %}<p class="marks">{% include "shops/shop_marks.html" with shop=shop only %}</p>
+    {% if certified_rule %}<p class="muted certified-rule">{{ certified_rule }}</p>{% endif %}{% endif %}{% endif %}
+    {% if shop.city %}<p class="muted">{{ shop.city }}</p>{% endif %}
+    {% if waiting %}<p class="notice" role="note">{% translate "This shop does not take bitcoin yet: it will soon." %}</p>{% endif %}
+    {% if shop.discount and not shop.closed_on and not waiting %}<p class="deal">-{{ shop.discount }}% <span>{% translate "if you pay in bitcoin" %}</span></p>{% endif %}
+    {% if payment %}<section class="shop-pay" aria-labelledby="shop-pay-title">
+      <h2 id="shop-pay-title">{% translate "How to pay here" %}</h2>
+      <ol class="pay-steps">
+        <li>{% if payment == "lightning" %}{% translate "Ask to pay in bitcoin, with Lightning." %}{% elif payment == "onchain" %}{% translate "Ask to pay in bitcoin. Here it is on-chain: your wallet has to send on-chain, not with Lightning." %}{% elif payment == "bitcoin" %}{% translate "Ask to pay in bitcoin." %}{% else %}{% translate "Ask to pay in bitcoin: Lightning or on-chain, whichever your wallet uses." %}{% endif %}</li>
+        <li>{% translate "The till shows a QR code with the amount." %}</li>
+        <li>{% if payment == "onchain" or payment == "bitcoin" %}{% translate "Scan it with your wallet, check the amount and confirm." %}{% else %}{% translate "Scan it with your wallet and confirm. With Lightning it takes a few seconds." %}{% endif %}</li>
+      </ol>
+      <button type="button" class="button needs-js" id="show-counter" aria-haspopup="dialog" aria-controls="counter-card">{% translate "Show at the till" %}</button>
+      <div class="pay-help"><p>{% translate "Never paid with bitcoin?" %}</p>
+        <ul><li><a href="{% url 'customer_step' shop.id 1 %}">{% translate "I don't have a wallet" %}</a></li>
+          <li><a href="{% url 'customer_help' shop.id %}">{% translate "I have a wallet, but I'm not sure how to pay" %}</a></li></ul></div>
+    </section>{% endif %}
+    {% if shop.description and not reduced %}<p>{{ shop.description|linebreaksbr }}</p>{% endif %}
+    <ul class="facts">
+      {% if shop.lightning and not shop.closed_on %}<li>{% translate "Accepts Lightning payments" %}</li>{% endif %}
+      {% include "shops/shop_facts.html" with rows=facts %}
+    </ul>
+    {% if shop.external_id and not shop.owner_id %}<p class="muted owner-note">{% blocktranslate with email=community.email %}Is this your shop? To update these details, write to <a href="mailto:{{ email }}">{{ email }}</a>.{% endblocktranslate %}</p>{% endif %}
+    {% if shop.latitude is not None and shop.longitude is not None %}<a class="button" id="shop-route" href="https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&amp;to={{ shop.latitude|unlocalize }}%2C{{ shop.longitude|unlocalize }}" rel="noopener">{% translate "Get directions" %}</a>{% endif %}
+  </div>
+  {% if shop.latitude is not None and shop.longitude is not None %}<div id="map" class="map-small" data-lat="{{ shop.latitude|unlocalize }}" data-lon="{{ shop.longitude|unlocalize }}"{% if shop.closed_on %} data-historic="{{ shop.historic_note }}"{% endif %}></div>{% endif %}
+</div>
+{% if stories %}<section class="shop-more" aria-labelledby="shop-stories-title">
+  <h2 id="shop-stories-title">{% translate "In our story" %}</h2>
+  <ul class="shop-stories">{% for story in stories %}<li><a href="{{ story.href }}">{{ story.text }}</a></li>{% endfor %}</ul>
+</section>{% endif %}
+{% if nearby %}<section class="shop-more" aria-labelledby="shop-nearby-title">
+  <h2 id="shop-nearby-title">{% translate "Nearby" %}</h2>
+  <ul class="nearby">{% for near in nearby %}<li><a href="{% url 'shop_detail' near.shop.id %}"><strong>{{ near.shop.name }}</strong> <span>{% blocktranslate with distance=near.distance minutes=near.shop.minutes %}{{ distance }}, {{ minutes }} min on foot{% endblocktranslate %}</span></a>{% if near.shop.discount %}<b class="discount">-{{ near.shop.discount }}%</b>{% endif %}</li>{% endfor %}</ul>
+</section>{% endif %}
+{% if payment %}<dialog id="counter-card" class="counter-card" aria-labelledby="counter-title">
+  <h2 id="counter-title" class="visually-hidden">{% translate "Show at the till" %}</h2>
+  <img class="counter-logo" src="{% static 'bitcoin.svg' %}" alt="" width="80" height="80" loading="lazy">
+  {% language main_language %}<p class="counter-say" lang="{{ main_language }}">{% include "shops/counter_phrase.html" %}</p>{% endlanguage %}
+  {% if language != main_language %}<p class="counter-own" lang="{{ language }}">{% include "shops/counter_phrase.html" %}</p>{% endif %}
+  <button type="button" class="button counter-close" autofocus>{% translate "Close" %}</button>
+</dialog>{% endif %}
+{% if shop.latitude is not None and shop.longitude is not None %}<script src="{% static 'vendor/leaflet/leaflet.js' %}"></script>{% endif %}
+{% if payment or shop.latitude is not None and shop.longitude is not None %}<script src="{% static 'shop.js' %}"></script>{% endif %}
+{% endblock %}

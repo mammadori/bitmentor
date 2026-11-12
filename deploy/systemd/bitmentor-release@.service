@@ -1,0 +1,8 @@
+[Unit]
+Description=bitmentor: installs the latest published version of /opt/%i
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/%i/bin/release.sh /opt/%i

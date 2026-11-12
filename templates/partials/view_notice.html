@@ -1,0 +1,9 @@
+{% load i18n %}{% if visibility %}<aside class="view-notice" aria-label="{% translate 'Page view' %}">
+  <form method="post" action="{% url 'switch_view' %}">{% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <input type="hidden" name="private" value="{{ visibility.private|yesno:'off,on' }}">
+    <span>{% if visibility.private %}{% translate "Private view" %}{% else %}{% translate "Public view" %}{% endif %}{% if visibility.mode %} · {% blocktranslate with mode=visibility.mode %}site mode: {{ mode }}{% endblocktranslate %}{% endif %}</span>
+    <button type="submit" class="linklike">{% if visibility.private %}{% translate "Hide the private part" %}{% else %}{% translate "Show the private part" %}{% endif %}</button>
+  </form>
+</aside>
+{% endif %}

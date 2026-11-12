@@ -1,0 +1,28 @@
+{% load i18n %}{% translate "Payment received" as paid %}{% translate "Register for whoever works with you" as handover %}
+<details class="first-day" id="first-day-{{ shop.id }}"{% if not day.complete %} open{% endif %} data-count="{{ first_day_count }}" data-complete="{% translate 'The first day: all done' %}">
+  <summary>{{ day.title }}</summary>
+  <ol class="first-steps">
+  {% for step in day.steps %}<li data-step="{{ step.key }}" data-state="{{ step.state }}">
+    <span class="step-mark" aria-hidden="true"></span>
+    <div class="step-body">
+      <p class="step-head"><strong id="step-{{ shop.id }}-{{ step.key }}">{% if step.key == "sale" %}{% translate "Try the register" %}{% elif step.key == "map" %}{% translate "On the map" %}{% elif step.key == "sign" %}{% translate "The sign and the card for the till" %}{% else %}{% translate "Whoever works with you has the register" %}{% endif %}</strong>
+        <span class="step-state">{% if step.state == "done" %}{% translate "Done" %}{% elif step.state == "todo" %}{% translate "To do" %}{% else %}{% translate "Not up to you" %}{% endif %}</span></p>
+      {% if step.key == "sale" %}
+      <p class="step-text">{% if step.state == "done" %}{% translate "A sale has been paid: the register works." %}{% else %}{% blocktranslate %}Open the register and pay yourself a small amount from another phone, as a customer would. When it says “{{ paid }}”, the register works.{% endblocktranslate %}{% endif %}</p>
+      <div class="step-actions">{% if step.state != "done" %}<a href="{% url 'register' shop.id %}">{% translate "Open register" %}</a> {% if features.practice %}<a href="{% url 'practice' shop.id %}">{% translate "Practise first, without money" %}</a>{% endif %}{% endif %}
+        {% include "shops/first_day_tick.html" %}</div>
+      {% elif step.key == "map" %}
+      <p class="step-text">{% if step.state == "done" %}{% translate "Customers find the shop on the map." %}{% elif step.state == "todo" %}{% translate "The position is missing: add it, and customers find the shop on the map." %}{% elif step.why == "suspended" %}{% blocktranslate with email=community.email %}The community has taken the shop off the map for now. To know why, write to <a href="mailto:{{ email }}">{{ email }}</a>.{% endblocktranslate %}{% else %}{% translate "The shop stays off the map and the lists, as agreed with the community." %}{% endif %}</p>
+      {% if step.state == "todo" %}<p class="step-actions"><a href="{% url 'edit_shop' shop.id %}">{% translate "Add it" %}</a></p>{% endif %}
+      {% elif step.key == "sign" %}
+      <p class="step-text">{% if step.state == "done" %}{% translate "Printed. You can print them again whenever you like." %}{% else %}{% translate "Print the sign for the door or the counter, and the card for whoever stands at the till." %}{% endif %}</p>
+      <div class="step-actions"><a href="{% url 'shop_sign' shop.id %}">{% translate "Printable sign" %}</a> <a href="{% url 'till_card' shop.id %}">{% translate "Card for the till" %}</a>
+        {% include "shops/first_day_tick.html" %}</div>
+      {% else %}
+      <p class="step-text">{% if step.state == "done" %}{% translate "Done. When someone new starts, give them the register and the card." %}{% else %}{% blocktranslate %}Whoever works with you opens the register on their phone: use “{{ handover }}” here below. Nobody works with you? Mark it done anyway.{% endblocktranslate %}{% endif %}</p>
+      <div class="step-actions">{% include "shops/first_day_tick.html" %}</div>
+      {% endif %}
+    </div>
+  </li>
+  {% endfor %}</ol>
+</details>

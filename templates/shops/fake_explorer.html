@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-head"><h1>Fake explorer</h1><p>Test network only: nothing here moves any money.</p></header>
+<p>The register asks this site whether an on-chain payment arrived. Pretend one here, with the address and the sats on the
+register's screen.</p>
+<form method="post" class="shop-form">{% csrf_token %}
+  <p><label for="id_address">Address</label> <input id="id_address" name="address" value="{{ address }}" required></p>
+  <p><label for="id_sats">Sats</label> <input id="id_sats" name="sats" type="number" min="1"></p>
+  <p><button class="button" name="action" value="mempool">Pay, in the mempool</button>
+    <button class="button" name="action" value="confirmed">Pay, confirmed</button>
+    <button class="button button-quiet" name="action" value="confirm">Confirm the payments already made</button></p>
+</form>
+{% if address %}<h2>{{ address }}</h2>
+<ul>{% for tx in txs %}<li class="mono">{{ tx.txid|truncatechars:20 }} · {% for out in tx.vout %}{% if out.scriptpubkey_address == address %}{{ out.value }} sat {% endif %}{% endfor %}· {% if tx.status.confirmed %}confirmed{% else %}mempool{% endif %}</li>
+{% empty %}<li>No transactions.</li>{% endfor %}</ul>{% endif %}
+{% endblock %}

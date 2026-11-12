@@ -1,0 +1,12 @@
+# SITE_MODE=development: only whoever is in DEV_ALLOWED_IPS sees the site; everybody else sees the construction page.
+# Open to everybody: /health/ for monitoring, and OPEN_PATHS. No indexing.
+@outside {
+	not client_ip {$DEV_ALLOWED_IPS:127.0.0.1}
+	not path /health/ {$OPEN_PATHS}
+	import team-paths-{$TEAM_ACCESS:off}
+}
+import team-pass-{$TEAM_ACCESS:off}
+handle @outside {
+	import maintenance
+}
+import closed

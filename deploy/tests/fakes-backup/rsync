@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Fake rsync: copies the files to $FAKE_DIR/remote, without rewriting the ones that are already there (--ignore-existing).
+# In $FAKE_DIR: rsync_ko (it fails, like an ssh that does not connect). It logs its arguments in $FAKE_CALLS.
+set -u
+F=$FAKE_DIR
+echo "rsync $*" >> "$FAKE_CALLS"
+# The locks of the run (descriptors 8 and 9) must not reach rsync, and so not the ssh it starts
+echo "rsync fd8=$([ -e /proc/$$/fd/8 ] && echo open || echo closed) fd9=$([ -e /proc/$$/fd/9 ] && echo open || echo closed)" >> "$FAKE_CALLS"
+[ -e "$F/rsync_ko" ] && { echo "rsync: connection unexpectedly closed" >&2; exit 12; }
+positional=()
+while [ $# -gt 0 ]; do
+  case "$1" in -e) shift 2 ;; -*) shift ;; *) positional+=("$1"); shift ;; esac
+done
+mkdir -p "$F/remote"
+for file in "${positional[@]:0:${#positional[@]}-1}"; do
+  [ -e "$F/remote/${file##*/}" ] || cp -p "$file" "$F/remote/"
+done

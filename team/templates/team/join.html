@@ -1,0 +1,53 @@
+{% load i18n %}<!doctype html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>{% translate "Team access" %} · {{ community.name }}</title>
+{# The page stands alone: on a site under construction /static/ and /theme/ are closed to whoever is outside #}
+<style>
+  html, body { margin: 0; }
+  body { background: #f6f3ec; color: #1c1b2e; font: 17px/1.5 system-ui, sans-serif; }
+  main { max-width: 34em; margin: 0 auto; padding: 32px 20px; }
+  h1 { font-size: 1.6em; line-height: 1.2; margin: 0 0 .6em; }
+  .qr-box { display: inline-block; margin: 8px 0; padding: 8px; background: #fff; border-radius: 8px; }
+  .qr-box img { display: block; width: min(264px, 70vw); height: auto; }
+  .status { font-weight: 600; }
+  .careful { margin-top: 2em; font-size: .9em; opacity: .85; }
+  a { color: inherit; }
+  @media (prefers-color-scheme: dark) { body { background: #16152a; color: #f6f3ec; } }
+</style>
+</head>
+<body>
+<main>
+{% if state == "waiting" or state == "signed" %}
+<h1>{% blocktranslate with site=community.name %}Join the team of {{ site }}{% endblocktranslate %}</h1>
+{% if state == "waiting" %}<p>{% blocktranslate with name=invite.name role=invite.get_role_display %}This invitation is for {{ name }} ({{ role }}).{% endblocktranslate %}</p>{% endif %}
+<div data-state="waiting">
+  {# state "signed": the page came back (a phone that reloaded it on the way back from the wallet) after its code was signed #}
+  {% if state == "waiting" %}<p>{% translate "Scan the code with your Lightning wallet, or tap it if the wallet is on this phone. The wallet makes a key for this site only: from then on, that wallet opens the site under construction for you, from any connection." %}</p>
+  <a class="qr-box" href="lightning:{{ lnurl }}"><img src="{{ qr }}" width="264" height="264" alt="{% translate 'Code to join the team with the wallet' %}"></a>
+  <p>{% translate "The invitation works once: use the wallet you will keep." %}</p>{% endif %}
+  <p class="status" role="status">{% translate "Waiting for your wallet…" %}</p>
+  <noscript><p>{% translate "This page needs JavaScript to notice your wallet's signature." %}</p></noscript>
+</div>
+<p class="status" role="status" data-state="ok" hidden>{% translate "Done: this browser now sees the site. Opening it…" %}</p>
+<p class="status" role="alert" data-state="denied" hidden>{% translate "This wallet was not accepted: the invitation was used by another one, or this wallet already has a key here. Ask whoever invited you." %}</p>
+<p class="status" role="alert" data-state="expired" hidden>{% translate "The code expired." %} <a href="">{% translate "Get a new one" %}</a></p>
+<p class="careful">{% translate "From now on, never scan a sign-in code somebody else sends you, whatever they say: your wallet would open the site for them." %}</p>
+<script src="{{ script }}" data-poll="{{ poll }}" data-done="/"></script>
+{% elif state == "busy" %}
+<h1>{% translate "Team access" %}</h1>
+<p class="status" role="alert">{% translate "Too many requests from your connection: try again in a few minutes." %}</p>
+{% else %}
+<h1>{% translate "Team access" %}</h1>
+<p class="status" role="alert">{% translate "This invitation is not valid: it was used already, or it expired. Ask for a new one." %}</p>
+{% endif %}
+{# Not built on base.html: the link to the source of the version the site runs is here (AGPLv3, section 13) #}
+<p class="careful">{% include "partials/source_link.html" %}</p>
+</main>
+</body>
+</html>

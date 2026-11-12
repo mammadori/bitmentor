@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<article class="page meetups-page">
+<header class="page-head"><h1>{% translate "Meetups" %}</h1>
+<p>{% translate "Where and when the community meets. Everybody is welcome." %}</p></header>
+{% if static_copy %}<p class="notice">{% translate "The dates change: the list is on the live site." %}</p>
+{% else %}{% meetup_board level=2 full=True %}{% endif %}
+</article>
+{% endblock %}

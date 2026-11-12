@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<header class="page-head"><h1>{% translate "Delete this shop?" %}</h1></header>
+<p>{{ shop.name }}</p>
+<p class="notice">{% translate "The register, the shop page and the sales list stop working. The printed sign leads nowhere. Money already received stays in your wallet." %}</p>
+<form method="post">{% csrf_token %}<button class="button">{% translate "Delete" %}</button> <a class="button button-quiet" href="{% url 'shops' %}">{% translate "Keep it" %}</a></form>
+{% endblock %}

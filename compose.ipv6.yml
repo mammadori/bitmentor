@@ -1,0 +1,15 @@
+# Optional: IPv6 on the stack's Docker network, so that Caddy sees each IPv6 visitor's real address.
+# Without it Docker hands IPv6 connections to docker-proxy, and every IPv6 visitor arrives from the network's gateway:
+# they share the request limits, and DEV_ALLOWED_IPS and ADMIN_ALLOWED_IPS cannot tell them apart.
+# Turn it on with IPV6_SUBNET in the .env, a ULA /64 of its own for each installation on the machine, and:
+#   from the sources: COMPOSE_FILE=docker-compose.yml:compose.ipv6.yml in the .env too
+#   from the release images: deploy/release.sh adds this file by itself when IPV6_SUBNET is set
+# The network changes only when it is created again: docker compose down, then up -d. The Docker daemon must translate
+# IPv6 with ip6tables (the default from Docker 27; on Docker 26 "ip6tables": true and "experimental": true). See the
+# README, "IPv6".
+networks:
+  default:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: "${IPV6_SUBNET:?IPV6_SUBNET is missing, a ULA /64 such as fd12:3456:789a:1::/64}"

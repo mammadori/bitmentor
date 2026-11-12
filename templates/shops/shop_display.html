@@ -1,0 +1,36 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{% translate "What customers see" %} · {{ shop.name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'details.css' %}">{% endblock %}
+{% block body_class %}page-display{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a></nav>
+<header class="page-head"><h1>{% translate "What customers see" %}</h1><p>{{ shop.name }}</p></header>
+{% for message in notices %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+<p>{% translate "Choose what customers read about your shop. The name of your shop is always there." %}</p>
+{% if missing %}<p class="notice display-missing">{% blocktranslate count counter=missing %}One detail is not written yet.{% plural %}{{ counter }} details are not written yet.{% endblocktranslate %} <a href="{% url 'edit_shop' shop.id %}">{% translate "Add them" %}</a></p>{% endif %}
+<div class="display-layout">
+  <aside class="display-preview" aria-labelledby="preview-title">
+    <h2 id="preview-title">{% translate "Your shop page" %}</h2>
+    <p class="muted"><span class="needs-js">{% translate "It changes as you tick the boxes. Press Save to keep it." %}</span><noscript>{% translate "Press Save to see the change." %}</noscript></p>
+    <div class="display-card">
+      <p class="display-name">{{ shop.name }}</p>
+      {% if shop.city %}<p class="muted">{{ shop.city }}</p>{% endif %}
+      <ul class="facts" id="preview-facts">{% include "shops/shop_facts.html" with rows=facts preview=True %}</ul>
+      <p class="muted" id="preview-empty"{% if shop.public_details %} hidden{% endif %}>{% translate "Only the name and the town." %}</p>
+    </div>
+    <p><a href="{% url 'shop_detail' shop.id %}">{% translate "See the page as customers see it" %}</a></p>
+  </aside>
+  <form method="post" class="shop-form display-form" data-display>{% csrf_token %}
+    <fieldset><legend>{% translate "Show to customers" %}</legend>
+      {% for row in rows %}<div class="display-row">
+        <label class="check" for="{{ row.field.id_for_label }}">{{ row.field }} <span><strong>{{ row.label }}</strong>{% if row.value %} <span class="display-value">{{ row.value }}</span>{% else %} <span class="muted">({% translate "not written yet" %})</span>{% endif %}</span></label>
+        {% if row.doubt %}<p class="display-doubt" role="note">{{ row.doubt }} <a href="{% url 'edit_shop' shop.id %}">{% translate "Edit the details" %}</a></p>{% endif %}
+      </div>{% endfor %}
+    </fieldset>
+    <p class="muted">{% translate "A ticked box stays on for a detail you write later: customers see it as soon as it is there." %}</p>
+    <p class="muted">{% translate "The website and the address are also on the map. The phone, the email, the business name and the VAT number are only on your shop page. The pin stays on the map where you put it." %}</p>
+    <button class="button" type="submit">{% translate "Save" %}</button>
+  </form>
+</div>
+<script src="{% static 'details.js' %}"></script>
+{% endblock %}

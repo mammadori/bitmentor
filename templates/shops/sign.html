@@ -1,0 +1,29 @@
+{% load static i18n %}<!doctype html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ shop.name }}</title>
+<link rel="stylesheet" href="{% static 'base.css' %}">
+<link rel="stylesheet" href="/theme/theme.css">
+</head>
+<body class="sign">
+<nav class="crumbs no-print"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a></nav>
+<main>
+<div class="sign-sheet">
+  <img src="/theme/{{ community.logo }}" alt="" class="sign-logo">
+  <img src="{% static 'bitcoin.svg' %}" alt="Bitcoin" class="sign-logo">
+  <h1>{% translate "Bitcoin accepted here" %}</h1>
+  {% if shop.discount %}<p class="deal">-{{ shop.discount }}% <span>{% translate "if you pay in bitcoin" %}</span></p>{% endif %}
+  <img class="sign-qr" src="{{ qr }}" alt="{% translate 'Code that opens the shop page' %}">
+  <p class="sign-hint">{% translate "Scan it to see the shop page. To pay, ask for the code at the till." %}</p>
+  <p class="sign-name">{{ shop.name }}</p>
+  <p>{{ community.name }}</p>
+</div>
+<button id="print" class="button no-print">{% translate "Print" %}</button>
+<p class="muted no-print">{% include "partials/source_link.html" %}</p>
+</main>
+<script src="{% static 'sign.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+{
+ "_comment": "Answers of mempool.space's API (GET /api/address/<address>/txs), recorded and trimmed: the register's on-chain tests and the fake explorer (shops/explorer.py) read them. Not only test data: the fake explorer of the practice and test sites serves it, so it ships with the site. Addresses of BIP84's test vector.",
+ "addresses": {
+  "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu": [
+   {
+    "txid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "version": 2,
+    "locktime": 0,
+    "vin": [
+     {
+      "txid": "9999999999999999999999999999999999999999999999999999999999999999",
+      "vout": 0,
+      "prevout": {
+       "scriptpubkey_type": "v0_p2wpkh",
+       "scriptpubkey_address": "bc1qsender0000000000000000000000000000000",
+       "value": 50500
+      },
+      "scriptsig": "",
+      "witness": [
+       "30",
+       "02"
+      ],
+      "is_coinbase": false,
+      "sequence": 4294967293
+     }
+    ],
+    "vout": [
+     {
+      "scriptpubkey": "00140000000000000000000000000000000000000000",
+      "scriptpubkey_asm": "OP_0 OP_PUSHBYTES_20 ...",
+      "scriptpubkey_type": "v0_p2wpkh",
+      "scriptpubkey_address": "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu",
+      "value": 9000
+     },
+     {
+      "scriptpubkey": "00140000000000000000000000000000000000000000",
+      "scriptpubkey_asm": "OP_0 OP_PUSHBYTES_20 ...",
+      "scriptpubkey_type": "v0_p2wpkh",
+      "scriptpubkey_address": "bc1qchange000000000000000000000000000000",
+      "value": 41000
+     }
+    ],
+    "size": 222,
+    "weight": 561,
+    "sigops": 1,
+    "fee": 500,
+    "status": {
+     "confirmed": false
+    }
+   }
+  ],
+  "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g": [
+   {
+    "txid": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "version": 2,
+    "locktime": 0,
+    "vin": [
+     {
+      "txid": "9999999999999999999999999999999999999999999999999999999999999999",
+      "vout": 0,
+      "prevout": {
+       "scriptpubkey_type": "v0_p2wpkh",
+       "scriptpubkey_address": "bc1qsender0000000000000000000000000000000",
+       "value": 9500
+      },
+      "scriptsig": "",
+      "witness": [
+       "30",
+       "02"
+      ],
+      "is_coinbase": false,
+      "sequence": 4294967293
+     }
+    ],
+    "vout": [
+     {
+      "scriptpubkey": "00140000000000000000000000000000000000000000",
+      "scriptpubkey_asm": "OP_0 OP_PUSHBYTES_20 ...",
+      "scriptpubkey_type": "v0_p2wpkh",
+      "scriptpubkey_address": "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g",
+      "value": 9000
+     }
+    ],
+    "size": 222,
+    "weight": 561,
+    "sigops": 1,
+    "fee": 500,
+    "status": {
+     "confirmed": true,
+     "block_height": 923456,
+     "block_hash": "00000000abababababababababababababababababababababababababababab",
+     "block_time": 1762700000
+    }
+   }
+  ],
+  "bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el": [
+   {
+    "txid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "version": 2,
+    "locktime": 0,
+    "vin": [
+     {
+      "txid": "9999999999999999999999999999999999999999999999999999999999999999",
+      "vout": 0,
+      "prevout": {
+       "scriptpubkey_type": "v0_p2wpkh",
+       "scriptpubkey_address": "bc1qsender0000000000000000000000000000000",
+       "value": 6500
+      },
+      "scriptsig": "",
+      "witness": [
+       "30",
+       "02"
+      ],
+      "is_coinbase": false,
+      "sequence": 4294967293
+     }
+    ],
+    "vout": [
+     {
+      "scriptpubkey": "00140000000000000000000000000000000000000000",
+      "scriptpubkey_asm": "OP_0 OP_PUSHBYTES_20 ...",
+      "scriptpubkey_type": "v0_p2wpkh",
+      "scriptpubkey_address": "bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el",
+      "value": 5000
+     },
+     {
+      "scriptpubkey": "00140000000000000000000000000000000000000000",
+      "scriptpubkey_asm": "OP_0 OP_PUSHBYTES_20 ...",
+      "scriptpubkey_type": "v0_p2wpkh",
+      "scriptpubkey_address": "bc1qchange000000000000000000000000000000",
+      "value": 1000
+     }
+    ],
+    "size": 222,
+    "weight": 561,
+    "sigops": 1,
+    "fee": 500,
+    "status": {
+     "confirmed": false
+    }
+   }
+  ]
+ }
+}

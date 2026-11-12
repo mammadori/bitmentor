@@ -1,0 +1,48 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a></nav>
+<header class="page-head"><h1>{% blocktranslate with name=shop.name %}Last step: the wallet for {{ name }}{% endblocktranslate %}</h1>
+<p class="notice">{% translate "Never enter your seed phrase or a private key here." %}</p></header>
+{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+{% if saved %}<p class="notice" role="status"><strong>{% translate "Your shop is saved." %}</strong> {% translate "It goes on the map, with its register, as soon as you add the wallet." %}</p>{% endif %}
+<p>{% translate "The wallet is the app on your phone where the money arrives. Getting one is free and takes about ten minutes. You can stop and come back: this page is in your shops." %}</p>
+<p><a href="#step-address">{% translate "Already have a wallet? Go to step 4." %}</a></p>
+<ol class="wallet-steps">
+  <li id="step-choose"><h2>{% translate "Choose a wallet" %}</h2>
+    {% if wallets %}<p>{% translate "These wallets are free and the money stays yours: nobody else can move it, not even us. Any of them is fine." %}</p>
+    <ul class="wallet-list">{% for wallet in wallets %}
+      <li><a href="{{ wallet.link }}">{{ wallet.name }}</a>{% if wallet.platform_names %}<span class="wallet-platforms">{{ wallet.platform_names }}</span>{% endif %}{% if wallet.description %}<p>{{ wallet.description }}</p>{% endif %}</li>{% endfor %}
+    </ul>
+    {% elif wallet_page %}<p>{% translate "Pick one from our page: they are free, and the money stays yours." %}</p>
+    <p><a href="{{ wallet_page }}">{% translate "The wallets that work with the register" %}</a></p>
+    {% else %}<p>{% blocktranslate with email=community_email %}Ask us which wallet to use: write to <a href="mailto:{{ email }}">{{ email }}</a>.{% endblocktranslate %}</p>{% endif %}
+  </li>
+  <li id="step-install"><h2>{% translate "Install it" %}</h2>
+    <p>{% translate "Open the app store of your phone, look for the wallet by its name and install it, as you do with any app." %}</p>
+    <p>{% translate "Check the name of whoever makes it: it must be the same as on the wallet's page. There are fake copies." %}</p>
+  </li>
+  <li id="step-create"><h2>{% translate "Create your wallet" %}</h2>
+    <p>{% translate "Open the app and choose to create a new wallet. It shows you some words, 12 or 24: write them on paper, in order, and keep the paper somewhere safe. With them you get your money back if you lose the phone." %}</p>
+    <p class="notice">{% translate "Never write those words here, nor in a photo, a message or an email. Nobody from us will ever ask you for them." %}</p>
+  </li>
+  <li id="step-address"><h2>{% translate "Copy your Lightning address" %}</h2>
+    <p>{% translate "In the wallet, look under Receive, or in the settings or in your profile: the Lightning address looks like an email, name@provider. Copy it." %}</p>
+    <p>{% translate "Not the long code that starts with lnbc: that one is good for a single payment." %}</p>
+  </li>
+  <li id="step-paste"><h2>{% translate "Paste it here: we try it" %}</h2>
+    <form method="post" class="shop-form" data-saving="{% translate 'Making your register...' %}">{% csrf_token %}
+      {% if form.errors %}<p class="notice form-alert" role="alert">{% translate "Something needs fixing: look at the messages in red." %}</p>{% endif %}
+      {{ form.non_field_errors }}
+      {{ form.lightning_address.as_field_group }}
+      <p id="lightning-check" class="field-check" role="status" aria-live="polite" hidden data-url="{% url 'lightning_check' %}" data-checking="{% translate 'Trying the address...' %}" data-tidied="{% translate 'Written as {address}.' %}" data-slow="{% translate 'The check is taking too long. You can go on: the address is checked again when you make the register.' %}" data-failed="{% translate 'I could not check the address now. You can go on: it is checked again when you make the register.' %}" data-suggest="{% translate 'Did you mean {address}?' %}"></p>
+      <p>{% translate "As soon as you paste it, we try the address and tell you here if it works. Not all wallets tell the register when a payment arrives: if yours does not, we say so, and you can pick another one from step 1." %}</p>
+      <h2 id="step-register">{% translate "Make the register" %}</h2>
+      <p>{% translate "When the address works, press the button: we try it once more and make your register. Then try it: pay yourself a small amount from another phone." %}</p>
+      <p class="muted">{% translate "To use another wallet later, you change the address from the shop's page in your panel: the shop and its sign stay the same." %}</p>
+      <button class="button" type="submit">{% translate "Make my register" %}</button>
+    </form>
+  </li>
+</ol>
+{% if guide %}<p><a href="{{ guide }}">{% translate "Not sure? Read the guide." %}</a></p>{% endif %}
+<script src="{% static 'shop_form.js' %}"></script>
+{% endblock %}

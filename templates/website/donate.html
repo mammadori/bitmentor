@@ -1,0 +1,4 @@
+{% load i18n %}
+{% if donations %}<div class="cards">{% for donation in donations %}
+  <div class="card"><h3>{{ donation.label }}</h3><div class="qr-box"><img class="qr" src="{{ donation.qr }}" alt=""></div><p class="mono">{{ donation.value }}</p></div>
+{% endfor %}</div>{% endif %}

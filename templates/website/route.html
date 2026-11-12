@@ -1,0 +1,12 @@
+{% load static i18n l10n %}
+<link rel="preconnect" href="https://tile.openstreetmap.org">
+<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">
+<div class="map-tools"><button type="button" class="button button-quiet" data-route-view="all" aria-pressed="true" hidden>{% translate "All stops" %}</button><button type="button" class="button button-quiet" data-route-view="main" aria-pressed="false" hidden>{% translate "Centre" %}</button></div>
+<div class="map-layout route">
+  <div id="route-map" class="map-small" data-stops="{{ route_json }}"></div>
+  <ol class="route-list">{% for stop in route %}
+    <li class="route-stop"><b>{{ forloop.counter }}</b><div><h3>{{ stop.name }}</h3><small>{{ stop.place }}</small><p>{{ stop.text }}</p></div></li>
+  {% endfor %}</ol>
+</div>
+<script src="{% static 'vendor/leaflet/leaflet.js' %}" defer></script>
+<script src="{% static 'route.js' %}" defer></script>

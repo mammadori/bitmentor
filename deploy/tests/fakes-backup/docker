@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Fake docker for deploy/tests/test_backup.sh: the postgres container of deploy/backup.sh and backup.sh.
+# It logs its calls in $FAKE_CALLS and answers as the files in $FAKE_DIR ask (no file: all well):
+#   pg_dump_ko (pg_dump fails), dump_empty (an empty dump), dump_truncated (a dump cut near its end, whose table of
+#   contents still reads), pg_isready_ko, pg_isready_attempts (postgres not ready).
+set -u
+F=$FAKE_DIR
+HERE=$(dirname "${BASH_SOURCE[0]}")
+echo "docker $*" >> "$FAKE_CALLS"
+
+dump() {
+  [ -e "$F/dump_empty" ] && return 0
+  printf 'PGDMP\n; table of contents\n1; 1259 1 TABLE public shops_shop owner\n2; 1259 2 TABLE public other owner\n'
+  if [ -e "$F/dump_truncated" ]; then printf 'data cut he'; else printf 'DATA\nEND\n'; fi
+}
+service() {  # service <command...>: what runs inside the postgres container
+  case "$1" in
+    pg_isready)  # pg_isready_ko: never ready; pg_isready_attempts: fails as many times as the number in the file
+      [ -e "$F/pg_isready_ko" ] && exit 2
+      if [ -s "$F/pg_isready_attempts" ]; then
+        n=$(cat "$F/pg_isready_attempts")
+        if [ "$n" -gt 0 ]; then echo $((n - 1)) > "$F/pg_isready_attempts"; exit 2; fi
+      fi
+      ;;
+    pg_dump) [ -e "$F/pg_dump_ko" ] && exit 1; dump ;;
+    pg_dumpall) printf 'CREATE ROLE postgres;\nALTER ROLE postgres WITH SUPERUSER;\n' ;;
+    pg_restore) shift; exec "$HERE/pg_restore" "$@" ;;
+  esac
+}
+
+case "${1:-}" in
+  ps) case "$*" in *service=postgres*) echo pg1 ;; esac ;;
+  exec)  # exec [-i] <container> <command...>
+    shift; [ "${1:-}" = -i ] && shift; shift
+    service "$@"
+    ;;
+  compose)  # compose exec -T postgres <command...>, as the root backup.sh uses it
+    shift
+    [ "${1:-}" = exec ] || exit 0
+    shift; [ "${1:-}" = -T ] && shift; shift
+    service "$@"
+    ;;
+esac

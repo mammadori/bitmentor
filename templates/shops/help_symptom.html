@@ -1,0 +1,46 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{{ kind.label }} · {{ shop.name }} · {{ community.name }}{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a> › <a href="{% url 'help_home' shop.id %}">{% translate "Something wrong?" %}</a></nav>
+<header class="page-head"><h1>{{ kind.label }}</h1><p>{{ shop.name }}</p></header>
+{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+{% if open_request %}<p class="notice help-open" role="status"><strong>{% blocktranslate with when=open_request.when %}You asked for help {{ when }}.{% endblocktranslate %}</strong> {% if open_request.delivered %}{% translate "The association has been told." %}{% else %}{% translate "The request is saved and the association will see it." %}{% endif %}</p>{% endif %}
+
+<section aria-labelledby="know">
+<h2 id="know">{% translate "What the site knows about your shop" %}</h2>
+{% if look.problems %}<ul class="help-facts">{% for item in look.problems %}
+  <li class="help-fact help-{{ item.level }}"><span class="help-tag">{% if item.level == "problem" %}{% translate "Problem" %}{% else %}{% translate "To look at" %}{% endif %}</span> {{ item.say }}</li>{% endfor %}
+</ul>
+{% if look.worst == "problem" %}<p><a class="button" href="#ask">{% translate "Ask the association for help" %}</a></p>{% endif %}
+{% elif look.fine %}<p class="help-fine">{% if look.deep %}<strong>{% translate "Nothing wrong from here." %}</strong> {% translate "The site also asked your Lightning wallet just now." %}{% elif can_look %}<strong>{% translate "Nothing wrong on file." %}</strong> {% translate "This is only what the site already knows: to ask your Lightning wallet too, press «Look again»." %}{% else %}<strong>{% translate "Nothing wrong from here." %}</strong> {% translate "This is what the site already has on file for your shop." %}{% endif %}</p>{% endif %}
+{% if look.fine %}<details class="help-works"><summary>{% blocktranslate count counter=look.fine|length %}What works: {{ counter }} thing{% plural %}What works: {{ counter }} things{% endblocktranslate %}</summary>
+  <ul class="help-facts">{% for item in look.fine %}<li class="help-fact help-ok"><span class="help-tag">{% translate "Fine" %}</span> {{ item.say }}</li>{% endfor %}</ul>
+</details>{% endif %}
+{% if can_look %}{% if look.deep %}<p class="muted">{% translate "Checked just now, with your Lightning wallet." %}</p>{% else %}
+<form method="post" action="{% url 'help_again' shop.id kind.key %}" class="help-again">{% csrf_token %}
+  <p class="muted">{% translate "This page shows only what the site already has. To ask your Lightning wallet now, it takes up to 20 seconds." %}</p>
+  <button class="button button-quiet" type="submit">{% translate "Look again, asking your Lightning wallet" %}</button>
+</form>{% endif %}{% endif %}
+</section>
+
+<section aria-labelledby="now">
+<h2 id="now">{% translate "What to do now" %}</h2>
+<ol class="help-steps">{% for step in look.steps %}<li>{{ step }}</li>{% endfor %}</ol>
+</section>
+
+<section aria-labelledby="ask">
+<h2 id="ask">{% translate "Ask the association for help" %}</h2>
+<p>{% translate "One tap and the association receives your request together with what you see above. We never ask for the secret words of your wallet, for a key or for a password." %}</p>
+<form method="post" action="{% url 'help_ask' shop.id %}" class="shop-form help-form">{% csrf_token %}
+  <input type="hidden" name="symptom" value="{{ kind.key }}">
+  {% if form.errors %}<p class="notice form-alert" role="alert">{% translate "Please look at what is marked below." %}</p>{% endif %}
+  <div class="help-field">{{ form.note.errors }}<label for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
+    <input type="text" name="note" id="{{ form.note.id_for_label }}" maxlength="{{ form.note.field.max_length }}" autocomplete="off" value="{{ form.note.value|default_if_none:'' }}"{% if form.note.errors %} aria-invalid="true"{% endif %} aria-describedby="help-note">
+    <span class="helptext" id="help-note">{% translate "Optional. A few words are enough: what you see and since when." %}</span></div>
+  <fieldset class="help-channels"><legend>{{ form.channel.label }}</legend>{{ form.channel.errors }}
+    {% for radio in form.channel %}<label class="help-channel" for="{{ radio.id_for_label }}">{{ radio.tag }} <span>{{ radio.choice_label }}</span></label>{% endfor %}
+  </fieldset>
+  <p><button class="button" type="submit">{% translate "Ask for help" %}</button> <span class="muted">{% translate "It can take a few seconds." %}</span></p>
+</form>
+</section>
+{% endblock %}

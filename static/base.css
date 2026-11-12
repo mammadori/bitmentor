@@ -1,0 +1,486 @@
+:root {
+  --primary: #333; --accent: #777; --highlight: #ccc; --background: #fff; --surface: #f4f4f4; --text: #222; --muted: #666; --line: #e4e4e4;
+  --error: #b00020; --historic: #8a8a8a; --on-primary: #fff; --on-highlight: var(--primary); --font: system-ui, sans-serif; --font-display: var(--font); --radius: 12px; --shadow: 0 10px 30px rgba(0, 0, 0, .08); --width: 1120px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--background); color: var(--text); font-family: var(--font); font-size: 17px; line-height: 1.65; }
+img { max-width: 100%; height: auto; }
+a { color: var(--primary); text-underline-offset: 3px; }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; color: var(--primary); }
+h1 { font-size: clamp(32px, 5vw, 52px); margin: 0 0 16px; }
+h2 { font-size: clamp(26px, 3.4vw, 38px); margin: 56px 0 16px; }
+h3 { font-size: 21px; margin: 0 0 8px; }
+:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; box-shadow: 0 0 0 2px var(--background); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.skip { position: absolute; left: -999px; top: 8px; z-index: 2000; padding: 8px 12px; background: var(--background); }
+.skip:focus { left: 8px; }
+.muted { color: var(--muted); }
+.view-notice { padding: 0 clamp(16px, 3vw, 32px); background: var(--surface); color: var(--text); font-size: 14px; }
+.view-notice form { display: flex; flex-wrap: wrap; align-items: center; column-gap: 12px; max-width: var(--width); margin: 0 auto; }
+.view-notice .linklike { min-height: 32px; color: var(--text); font-size: 14px; }
+.eyebrow { margin: 0 0 8px; color: var(--accent); font-size: 14px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+
+.top { position: sticky; top: 0; z-index: 1000; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px clamp(16px, 3vw, 32px); background: var(--primary); }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--on-primary); font-weight: 700; text-decoration: none; white-space: nowrap; }
+.brand img { width: 40px; height: 40px; }
+.top nav { display: flex; align-items: center; gap: 2px; }
+.top nav a { padding: 6px 10px; border-radius: 8px; color: var(--on-primary); font-size: 15px; text-decoration: none; }
+.top nav a:hover, .top nav a[aria-current="page"] { background: color-mix(in srgb, var(--on-primary) 14%, transparent); }
+.top .nav-cta { margin-left: 6px; background: var(--highlight); color: var(--on-highlight); font-weight: 700; }
+.top .nav-cta:hover { background: var(--highlight); filter: brightness(1.06); }
+.langs { display: flex; margin-left: 6px; }
+.langs a { text-transform: uppercase; font-size: 13px; opacity: .7; }
+.langs a[aria-current] { opacity: 1; font-weight: 700; background: none; }
+.menu-toggle { display: none; width: 44px; height: 44px; padding: 10px; border: 0; background: none; cursor: pointer; }
+.menu-toggle span { display: block; height: 2px; margin: 5px 0; background: var(--on-primary); transition: transform .2s, opacity .2s; }
+@media (max-width: 1020px) {
+  .menu-toggle { display: block; }
+  .top { flex-wrap: wrap; }
+  .top nav { display: none; flex: 1 0 100%; flex-direction: column; align-items: stretch; padding: 8px 0; }
+  .menu-open .top nav { display: flex; }
+  .top nav a { padding: 12px; font-size: 17px; }
+  .top .nav-cta { margin: 8px 0 0; text-align: center; }
+  .langs { margin: 8px 0 0; justify-content: center; }
+  .menu-open .menu-toggle span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .menu-open .menu-toggle span:nth-child(2) { opacity: 0; }
+  .menu-open .menu-toggle span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+}
+
+main { max-width: var(--width); margin: 0 auto; padding: 32px 16px 64px; }
+.wide main { max-width: 1320px; }
+.page-head { margin-bottom: 24px; }
+.page-head p { margin: 0; color: var(--muted); }
+
+.button { display: inline-block; padding: 12px 22px; border: 0; border-radius: 10px; background: var(--primary); color: var(--on-primary); font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; transition: transform .12s, box-shadow .2s; }
+.button:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+.button-quiet { background: var(--surface); color: var(--primary); }
+a.button-quiet:hover, button.button-quiet:hover { color: var(--primary); text-decoration: underline; }
+.button:disabled { opacity: .6; cursor: wait; }
+.linklike { min-width: 44px; min-height: 44px; border: 0; padding: 0; background: none; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; }
+.notice { padding: 10px 14px; border-left: 4px solid var(--highlight); background: var(--surface); }
+.empty { padding: 72px 0; text-align: center; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin: 24px 0; }
+.card { display: block; padding: 24px; border-radius: var(--radius); background: var(--surface); color: inherit; text-decoration: none; }
+.card p:last-child { margin-bottom: 0; }
+a.card { transition: transform .15s, box-shadow .2s; }
+a.card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 5vw, 64px); align-items: center; margin: 56px 0; }
+.split img { display: block; width: 100%; border-radius: var(--radius); }
+@media (max-width: 760px) { .split { grid-template-columns: 1fr; } }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }
+.stat strong { display: block; font-family: var(--font-display); font-size: clamp(36px, 5vw, 56px); line-height: 1; color: var(--primary); }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 24px; margin: 24px 0; padding: 0; list-style: none; counter-reset: step; }
+.steps li { counter-increment: step; }
+.steps li::before { content: counter(step); display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-bottom: 12px; border-radius: 50%; background: var(--primary); color: var(--on-primary); font-weight: 700; }
+.steps-plain { padding-left: 20px; }
+.timeline > div { display: grid; grid-template-columns: 84px 1fr; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.timeline strong { font-family: var(--font-display); font-size: 24px; color: var(--accent); }
+.timeline p { margin: 0; }
+.gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 24px 0; }
+.gallery img { width: 100%; height: 280px; object-fit: contain; border-radius: var(--radius); background: var(--surface); }
+details { padding: 14px 0; border-bottom: 1px solid var(--line); }
+summary { padding: 8px 0; cursor: pointer; font-weight: 600; color: var(--primary); }
+details p { margin: 10px 0 0; }
+blockquote { margin: 32px 0; padding: 0 0 0 20px; border-left: 4px solid var(--highlight); font-family: var(--font-display); font-size: 22px; line-height: 1.4; color: var(--primary); }
+
+.deal { margin: 12px 0; font-family: var(--font-display); font-size: 40px; font-weight: 700; line-height: 1; color: var(--primary); }
+.deal span { font-family: var(--font); font-size: 17px; font-weight: 400; color: var(--muted); }
+.discount { flex: none; padding: 2px 8px; border-radius: 6px; background: var(--highlight); color: var(--on-highlight); font-size: 14px; font-weight: 700; }
+.shops { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin: 20px 0; }
+.shops a { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: var(--radius); background: var(--surface); color: inherit; text-decoration: none; transition: transform .15s; }
+.shops a:hover { transform: translateY(-2px); }
+.shops small { display: block; color: var(--muted); }
+
+.map-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; }
+.map-tools .search { flex: 1 1 240px; }
+.map-tools .check { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
+.map-tools .check input { width: 24px; height: 24px; margin: 0; accent-color: var(--primary); }
+#shop-status:empty { display: none; }
+.map-tools input[type="search"] { width: 100%; padding: 11px 14px; border: 1px solid var(--muted); border-radius: 10px; font: inherit; background: var(--background); color: var(--text); }
+.map-tools .button { padding: 9px 16px; }
+.map-tools .button[hidden] { display: none; }
+.map-tools .button[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); }
+/* relative: the «Skip the map» link shows above the map, not at the top of the page */
+.map-layout { position: relative; display: grid; grid-template-columns: 1fr 340px; gap: 16px; }
+#map { position: relative; z-index: 0; height: 70vh; min-height: 420px; border-radius: var(--radius); }
+.shop-list { height: 70vh; min-height: 420px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.shop-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+.shop-list a { flex: 1; min-width: 0; padding: 4px 0; color: inherit; text-decoration: none; }
+.shop-list strong { display: block; font-weight: 600; }
+.shop-list span { color: var(--muted); font-size: 16px; }
+#shop-more { display: block; width: 100%; margin-top: 12px; }
+#shop-more[hidden] { display: none; }
+.leaflet-popup-content a { font-size: 17px; }
+/* On a phone the map comes right under the title, the search and the filters after it */
+@media (max-width: 860px) { .page-map main { display: flex; flex-direction: column; } .page-map .page-head { order: -2; } .page-map .map-layout { order: -1; margin-bottom: 12px; } }
+@media (max-width: 860px) { .map-layout { grid-template-columns: 1fr; } #map { height: 50vh; min-height: 300px; max-height: 420px; } .shop-list { height: auto; min-height: 0; } }
+.pin { border: 3px solid #fff; border-radius: 50%; background: var(--accent); box-shadow: 0 2px 6px rgba(0, 0, 0, .35); }
+.pin.pin-discount { display: flex; align-items: center; justify-content: center; background: var(--primary); color: var(--on-primary); font-size: 12px; font-weight: 700; }
+/* History: grey, square and with a clock, so it can be told apart even without colours */
+.pin.pin-historic { display: flex; align-items: center; justify-content: center; border-radius: 5px; background: var(--historic); opacity: .9; }
+.pin-historic svg { width: 12px; height: 12px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+/* Certified shop and how recent the payments are: a small badge with words, and icons that fade with time */
+.marks { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 0; }
+.marks .certified { display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--background); color: var(--text); font-size: 14px; line-height: 1.6; }
+.marks svg { flex: none; width: 14px; height: 14px; }
+.marks .certified svg, .marks .paid .line { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.marks .paid { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--primary); color: var(--on-primary); }
+.marks .paid svg { fill: currentColor; }
+/* Paler with time, always readable: full, softened, grey, then only an outline (3:1 at least on the page) */
+.marks .paid-month { background: color-mix(in srgb, var(--primary) 70%, var(--background)); }
+.marks .paid-year { background: var(--muted); color: var(--background); }
+.marks .paid-older { border: 1px solid var(--muted); background: transparent; color: var(--muted); }
+.marks .paid-line { display: inline-flex; align-items: center; gap: 6px; flex-basis: 100%; color: var(--text); font-size: 14px; }
+.historic-note { display: block; margin: 2px 0 0; color: var(--muted); font-size: 15px; }
+/* A shop closed for a while (holidays, works…): kind, in the list and in the card of the map, and still on the map */
+.break-note { display: block; margin: 2px 0 0; color: var(--muted); font-size: 15px; }
+.shop-break { margin: 0 0 16px; }
+.shop-list .historic strong { font-weight: 400; }
+.marker-cluster div { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin: 0; border: 3px solid #fff; border-radius: 50%; background: var(--primary); color: var(--on-primary); font-weight: 700; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); }
+.marker-cluster { background: none !important; }
+.marker-cluster span { line-height: 1; }
+
+.crumbs { margin-bottom: 16px; font-size: 15px; }
+.crumbs a::before { content: "\2190\00a0"; }
+.shop-card { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+.map-small { height: 420px !important; min-height: 280px !important; }
+.facts { padding: 0; list-style: none; }
+/* The business name and the VAT number on a shop page and in the owner's preview (shops/shop_facts.html) */
+.fact-label { color: var(--muted); }
+.fact-label::after { content: ":"; }
+@media (max-width: 760px) { .shop-card { grid-template-columns: 1fr; } }
+/* How to pay here: three steps for whoever stands at the till with the phone in hand */
+.shop-pay { margin: 20px 0 24px; padding: 20px; border-radius: var(--radius); background: var(--surface); }
+.shop-pay h2 { margin: 0 0 12px; font-size: 24px; }
+.pay-steps { margin: 0 0 16px; padding: 0; list-style: none; counter-reset: pay; }
+.pay-steps li { display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: start; padding: 4px 0; counter-increment: pay; }
+.pay-steps li::before { content: counter(pay); display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: var(--on-primary); font-weight: 700; line-height: 1; }
+/* Under the steps: the two ways in for whoever has no wallet or does not know how to pay (shops/customer.py) */
+.pay-help { margin: 16px 0 0; font-size: 16px; }
+.pay-help p { margin: 0 0 4px; font-weight: 700; }
+.pay-help ul { margin: 0; padding: 0; list-style: none; }
+.pay-help a { display: inline-flex; align-items: center; min-height: 44px; }
+.shop-more { margin-top: 48px; }
+.shop-more h2 { margin: 0 0 16px; font-size: clamp(24px, 3vw, 30px); }
+.shop-stories { margin: 0; padding-left: 20px; }
+.shop-stories li { padding: 4px 0; }
+.nearby { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.nearby li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: var(--radius); background: var(--surface); }
+.nearby a { flex: 1; min-width: 0; color: inherit; text-decoration: none; }
+.nearby a:hover strong { text-decoration: underline; }
+.nearby strong { display: block; }
+.nearby span { color: var(--muted); font-size: 15px; }
+/* The card for the till: the whole screen, big type, the community's main language first */
+.counter-card { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 24px; border: 0; overflow-y: auto; background: var(--background); color: var(--primary); text-align: center; cursor: pointer; }
+/* Centred with auto margins, not justify-content: on a phone held sideways the card is taller than the screen, and
+   centring would cut the top off where scrolling does not reach */
+.counter-card[open] { display: flex; flex-direction: column; align-items: center; gap: clamp(12px, 4vh, 36px); }
+.counter-card::backdrop { background: var(--background); }
+/* A browser without <dialog> sees an unknown element and a button that does nothing: shop.js hides the button, and
+   .button would otherwise win over [hidden] */
+.counter-card:not([open]), #show-counter[hidden] { display: none; }
+.counter-logo { flex: none; width: clamp(40px, 12vh, 80px); height: auto; margin-top: auto; }
+.counter-close { margin-bottom: auto; }
+.counter-say { max-width: 16ch; margin: 0; font-family: var(--font-display); font-size: clamp(28px, min(8.5vw, 9vh), 72px); font-weight: 800; line-height: 1.12; }
+.counter-say .counter-deal { display: block; margin-top: .45em; font-size: .55em; font-weight: 700; }
+.counter-own { max-width: 34ch; margin: 0; color: var(--text); font-size: clamp(16px, min(4.6vw, 4.6vh), 26px); line-height: 1.35; }
+@media (prefers-reduced-motion: no-preference) { .counter-card[open] { animation: counter-in .18s ease-out; } }
+@keyframes counter-in { from { opacity: 0; transform: scale(.98); } }
+
+.login-other { margin-top: 32px; font-size: 24px; }
+.login { display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center; padding: 32px 0; }
+.qr-box { display: inline-block; padding: 12px; border-radius: var(--radius); background: #fff; box-shadow: var(--shadow); }
+.qr { display: block; width: 280px; max-width: 100%; }
+@media (max-width: 760px) { .login { grid-template-columns: 1fr; justify-items: center; } }
+.panel-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.panel-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+/* The register first: as wide as the screen on a phone; the other buttons in small groups with a title */
+.panel-row > div:first-child { flex: 1 1 100%; }
+/* The new shop's form: numbered sections, and the last button as wide as a phone's screen */
+.shop-new { counter-reset: section; }
+.shop-new fieldset legend::before { counter-increment: section; content: counter(section) ". "; }
+.shop-later { margin: 20px 0 8px; font-weight: 600; }
+@media (max-width: 600px) { .button-wide { display: block; width: 100%; text-align: center; } }
+.panel-open-line { margin: 12px 0; }
+.panel-groups { display: flex; flex-wrap: wrap; gap: 8px 28px; width: 100%; }
+.panel-group h3 { margin: 0 0 6px; color: var(--muted); font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.panel-group .panel-actions { margin: 0; }
+@media (max-width: 600px) { .panel-open { display: block; width: 100%; text-align: center; font-size: 1.15rem; } }
+.handover { flex: 1 0 100%; padding: 0; border: 0; }
+.handover .qr { width: 220px; }
+/* The first day: one card per shop with a register, folded into its summary line once every step is done */
+.first-day { flex: 1 0 100%; padding: 0 16px; border: 0; border-radius: var(--radius); background: var(--surface); }
+.first-steps { margin: 0 0 8px; padding: 0; list-style: none; }
+.first-steps li { display: grid; grid-template-columns: 26px 1fr; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.step-mark { box-sizing: border-box; width: 24px; height: 24px; margin-top: 3px; border: 2px solid var(--muted); border-radius: 50%; }
+[data-state="done"] > .step-mark { border-color: var(--primary); background: var(--primary); }
+[data-state="done"] > .step-mark::after { content: ""; display: block; box-sizing: border-box; width: 7px; height: 12px; margin: 3px auto 0; border: solid var(--on-primary); border-width: 0 3px 3px 0; transform: rotate(45deg); }
+[data-state="unknown"] > .step-mark { border-style: dashed; }
+[data-state="off"] > .step-mark { border-style: dotted; }
+.step-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 0; }
+.step-state { color: var(--muted); font-size: 15px; }
+[data-state="done"] .step-state { color: var(--primary); font-weight: 700; }
+.step-text { margin: 4px 0 0; font-size: 16px; line-height: 1.5; }
+.step-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; margin: 6px 0 0; }
+.step-actions > a { display: inline-flex; align-items: center; min-height: 44px; }
+.step-tick { margin: 0; }
+.step-tick .button { padding: 9px 16px; background: var(--background); }
+/* A shop moved from another site, waiting for its wallet */
+.moved { flex: 1 0 100%; }
+.moved h2 { margin: 4px 0 8px; font-size: 1.15rem; }
+.moved-steps { margin: 8px 0; padding-left: 1.4em; }
+.moved-steps > li { margin: 8px 0; }
+/* The merchant's path: a few milestones and the shop's card on the map as it is now; the first day sits inside one */
+.journey { flex: 1 0 100%; padding: 0 16px; border-radius: var(--radius); background: var(--surface); }
+.journey-steps { margin: 0 0 8px; padding: 0; list-style: none; }
+.journey-steps > li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.journey-next > .step-mark { border-width: 4px; border-color: var(--primary); }
+.journey-next .step-state { color: var(--primary); font-weight: 700; }
+[data-state="waiting"] > .step-mark { border-style: dashed; }
+[data-state="optional"] > .step-mark { border-style: dotted; }
+.journey .first-day { margin-top: 8px; padding: 0 12px; background: var(--background); }
+.journey-card { margin: 0 0 12px; }
+.journey-card figcaption { color: var(--muted); font-size: 15px; }
+.journey-card-box { display: flex; align-items: flex-start; gap: 12px; max-width: 440px; margin-top: 6px; padding: 12px 14px; border-radius: var(--radius); background: var(--background); box-shadow: var(--shadow); }
+.journey-card-box .pin { flex: none; box-sizing: border-box; width: 18px; height: 18px; margin-top: 4px; }
+.journey-card-box .pin-discount { width: 40px; height: 40px; margin-top: 0; }
+.journey-card-box p { margin: 0; }
+.journey-card-deal, .journey-card-place { color: var(--muted); font-size: 15px; }
+.journey-card-off { margin: 6px 0 0; }
+.account { margin-top: 24px; }
+.account .shop-form { margin-top: 8px; }
+.sign-out { margin-top: 8px; }
+.account-who { margin: 4px 0 0; font-size: 14px; }
+.shop-form { max-width: 620px; }
+.shop-form label { display: block; font-weight: 600; }
+.shop-form input, .shop-form textarea, .shop-form select { width: 100%; padding: 10px; border: 1px solid var(--muted); border-radius: 8px; font: inherit; }
+.shop-form fieldset { margin: 0 0 28px; padding: 0; border: 0; }
+.shop-form fieldset > p { margin: 8px 0 0; }
+.shop-form [aria-invalid="true"] { border: 2px solid var(--error); }
+.form-alert { border-left-color: var(--error); font-weight: 600; }
+.shop-form legend { padding: 0; font-size: 20px; font-weight: 700; }
+.shop-form fieldset > div:not(.pick-map), .shop-form details > div { margin-top: 12px; }
+.helptext { display: block; color: var(--muted); font-size: 16px; line-height: 1.4; }
+/* The live check of the Lightning address: one line kept free, so that "Trying the address" moves nothing below it */
+.shop-form .field-check { min-height: 1.4em; margin: 6px 0 0; font-size: 16px; line-height: 1.4; overflow-wrap: anywhere; }
+.field-check[data-state="checking"] { color: var(--muted); }
+.field-check[data-state="ok"] .check-result { color: var(--primary); font-weight: 600; }
+.field-check[data-state="ok"] .check-result::before { content: "\2713\00a0" / ""; }
+.field-check.problem .check-result { color: var(--error); font-weight: 600; }
+.field-check .check-suggest { min-height: 44px; color: var(--primary); font-weight: 600; text-align: left; overflow-wrap: anywhere; }
+.shop-form .field-help { padding: 4px 0 0; border: 0; }
+/* "I do not have a wallet yet", in the new shop form: a large box, the sentence beside it */
+.shop-form .no-wallet { margin: 12px 0 4px; padding: 8px 12px; border-left: 4px solid var(--highlight); background: var(--surface); }
+.shop-form .no-wallet .check { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding-top: 8px; cursor: pointer; }
+.shop-form .no-wallet input { flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--primary); }
+.shop-form .no-wallet .helptext { margin: 4px 0 0 34px; }
+/* The wallet guide: numbered steps, one card each */
+.wallet-steps { margin: 16px 0; padding: 0; list-style: none; counter-reset: step; max-width: 620px; }
+.wallet-steps > li { counter-increment: step; position: relative; margin: 0 0 16px; padding: 4px 16px 12px 56px; border-radius: var(--radius); background: var(--surface); }
+.wallet-steps > li::before { content: counter(step); position: absolute; left: 12px; top: 14px; width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: var(--on-primary); font-weight: 700; line-height: 32px; text-align: center; }
+.wallet-steps h2 { margin: 12px 0 4px; font-size: 20px; }
+.wallet-steps p { margin: 8px 0 0; font-size: 16px; line-height: 1.5; }
+.wallet-list { margin: 8px 0 0; padding: 0; list-style: none; }
+.wallet-list li { padding: 10px 0; border-top: 1px solid var(--line); }
+.wallet-list a { font-weight: 700; font-size: 18px; }
+.wallet-list .wallet-platforms { display: block; color: var(--muted); font-size: 15px; }
+.wallet-steps .shop-form { margin-top: 8px; }
+.wallet-missing { flex: 1 0 100%; box-sizing: border-box; border-radius: var(--radius); }
+.wallet-missing p { margin: 6px 0; }
+.wallet-steps .wallet-picture { display: block; width: 120px; height: auto; margin: 8px 0 0; }
+.field-help p { font-size: 16px; line-height: 1.5; }
+.mono { font-family: ui-monospace, monospace; font-size: 14px; word-break: break-all; }
+.pick-tools { margin: 12px 0 0; }
+.pick-map { height: 300px; margin-top: 12px; border-radius: var(--radius); }
+/* In the credits text links are recognisable even without colour (WCAG 1.4.1) */
+.pick-map .leaflet-control-attribution a { text-decoration: underline; }
+.panel-status { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+/* The guardian of the Lightning address: a fault the merchant has to see, with what to do and a button to try again */
+.lightning-alert { flex: 1 0 100%; box-sizing: border-box; padding: 4px 16px 12px; border-left: 4px solid var(--error); border-radius: var(--radius); background: var(--surface); }
+.lightning-alert p { margin: 8px 0 0; font-size: 16px; line-height: 1.5; }
+.lightning-alert .lightning-head { font-size: 18px; }
+.lightning-retry { margin: 12px 0 0; }
+.lightning-alert .lightning-note { font-weight: 700; }
+.debts-alert { flex: 1 0 100%; box-sizing: border-box; padding: 4px 16px 12px; border-left: 4px solid var(--highlight); border-radius: var(--radius); background: var(--surface); }
+.debts-alert p { margin: 8px 0 0; font-size: 16px; line-height: 1.5; }
+.debts-alert .debts-head { font-size: 18px; }
+.debts-list { margin: 8px 0 0; padding-left: 20px; font-size: 16px; line-height: 1.5; }
+.debts-list li { margin: 6px 0; }
+/* Closed for a while, in the panel: a calm card, and the welcome back after it */
+.break-wrap { flex: 1 0 100%; display: grid; gap: 12px; }
+.break-card { box-sizing: border-box; padding: 4px 16px 12px; border-left: 4px solid var(--highlight); border-radius: var(--radius); background: var(--surface); }
+.break-card p, .break-card form { margin: 8px 0 0; font-size: 16px; line-height: 1.5; }
+.break-card .break-head { font-size: 18px; }
+.break-card .panel-actions { align-items: center; margin-top: 8px; }
+.break-card .panel-actions form { margin: 0; }
+.break-card summary { min-height: 44px; padding: 10px 0; cursor: pointer; font-weight: 600; }
+.break-celebrate { border-left-width: 8px; background: color-mix(in srgb, var(--highlight) 24%, var(--surface)); }
+.break-until { margin: 12px 0; }
+.break-until .check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.break-until .check input { width: 24px; height: 24px; margin: 0; accent-color: var(--primary); }
+.break-form .helptext, .break-form .errorlist { font-size: 16px; }
+.break-form .errorlist { margin: 4px 0; padding-left: 0; list-style: none; color: var(--error); font-weight: 600; }
+.break-end { margin: 16px 0; }
+.debts-list a { display: inline-block; min-height: 24px; }
+.sale-alert { border-left: 4px solid var(--highlight); padding-left: 10px; }
+.errorlist { margin: 4px 0; padding: 0; color: var(--error); font-weight: 600; list-style: none; }
+
+.sign-sheet { max-width: 620px; margin: 24px auto; padding: 40px; text-align: center; border: 2px solid var(--primary); border-radius: var(--radius); }
+.sign-logo { width: 96px; }
+.sign-qr { width: 340px; max-width: 100%; }
+.sign-name { font-size: 24px; font-weight: 700; margin-bottom: 0; }
+.sign { padding: 0 16px; text-align: center; }
+.sign main { max-width: none; margin: 0; padding: 0; }
+.sign .crumbs { margin: 16px auto 0; max-width: 620px; text-align: left; }
+.sign-hint { max-width: 420px; margin: 8px auto; font-size: 18px; }
+@media print { .no-print { display: none !important; } .sign-sheet { border: 0; } }
+/* The card for whoever stands at the till: readable on a phone, one A4 sheet on paper */
+.till-card { padding: 0 16px; }
+.till-card main { max-width: 760px; margin: 0 auto; padding: 0 0 48px; }
+.till-card .crumbs { margin: 16px 0 0; }
+.till-tools { margin: 16px 0 24px; padding: 16px; border-radius: var(--radius); background: var(--surface); }
+.till-tools p { margin: 0 0 10px; }
+.till-tools p:last-child { margin: 0; }
+.till-languages { display: flex; flex-wrap: wrap; align-items: center; gap: 0 14px; }
+.till-languages a, .till-tools p > a { display: inline-flex; align-items: center; min-height: 44px; }
+.till-languages a[aria-current] { font-weight: 700; text-decoration: none; }
+.till-sheet { padding: 20px; border: 2px solid var(--primary); border-radius: var(--radius); }
+.till-head { display: flex; align-items: center; gap: 14px; }
+.till-head h1 { margin: 0; font-size: clamp(28px, 7vw, 40px); }
+.till-logo { flex: none; width: 56px; height: 56px; }
+.till-shop { margin: 4px 0 0; font-size: 20px; font-weight: 700; }
+.till-intro { margin: 14px 0 0; font-size: 18px; }
+/* Where the money goes (shops/guard.py, paying_to) */
+.till-to { margin: 10px 0 0; font-size: 16px; overflow-wrap: anywhere; }
+.till-to .mono { font-size: 14px; word-break: normal; }
+.till-to .paying-to-item { display: inline-block; }
+.till-columns section { break-inside: avoid; }
+.till-columns h2 { margin: 22px 0 6px; font-size: 21px; }
+.till-columns ol { margin: 0; padding-left: 1.4em; }
+.till-columns li { margin-bottom: 4px; }
+.till-columns p { margin: 0 0 8px; }
+.till-fill { display: flex; align-items: flex-end; gap: 8px; }
+.till-line { flex: 1; min-height: 1.6em; border-bottom: 1px solid currentColor; }
+.till-url { overflow-wrap: anywhere; font-size: 15px; }
+.till-qr { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 18px; }
+.till-qr .qr { flex: none; width: 150px; }
+.till-qr div { flex: 1 1 220px; }
+.till-qr h2 { margin: 0 0 6px; font-size: 21px; }
+.till-qr p { margin: 0 0 8px; }
+.till-foot { margin: 16px 0 0; color: var(--muted); font-size: 14px; text-align: right; }
+/* A named page: the A4 sheet and its margins are for the card only, every other page prints as before */
+@page till-card { size: A4; margin: 11mm 12mm; }
+@media print {
+  body.till-card { padding: 0; background: #fff; color: #000; }
+  .till-card main { max-width: none; padding: 0; page: till-card; }
+  .till-sheet { padding: 0; border: 0; font-size: 9.8pt; line-height: 1.32; }
+  .till-head h1 { font-size: 22pt; }
+  .till-logo { width: 40px; height: 40px; }
+  .till-shop { font-size: 13pt; }
+  .till-intro { margin-top: 6pt; font-size: 10.5pt; }
+  .till-to { margin-top: 5pt; font-size: 10pt; }
+  .till-to .mono { font-size: 9pt; }
+  .till-columns { columns: 2; column-gap: 9mm; }
+  .till-columns h2 { margin: 8pt 0 2pt; font-size: 12pt; }
+  .till-columns p, .till-columns li { margin: 0 0 3pt; }
+  .till-url { font-size: 9pt; }
+  .till-qr { flex-wrap: nowrap; margin-top: 6pt; break-inside: avoid; }
+  .till-qr .qr { width: 28mm; }
+  .till-qr h2 { margin: 0 0 2pt; font-size: 12pt; }
+  .till-qr p { margin: 0 0 2pt; }
+  .till-foot { margin-top: 8pt; font-size: 9pt; }
+}
+
+.bottom { padding: 48px 16px 32px; background: var(--primary); color: color-mix(in srgb, var(--on-primary) 85%, transparent); font-size: 15px; }
+.bottom a { display: block; padding: 3px 0; color: inherit; text-decoration: none; }
+.bottom a:hover { color: var(--on-primary); text-decoration: underline; }
+.bottom-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 32px; max-width: var(--width); margin: 0 auto; }
+.bottom-name { margin: 0 0 8px; font-family: var(--font-display); font-size: 22px; color: var(--on-primary); }
+@media (max-width: 760px) { .bottom-grid { grid-template-columns: 1fr; } }
+
+.reveal-ready { opacity: 0; transform: translateY(16px); transition: opacity .55s ease, transform .55s ease; }
+.reveal-ready.visible { opacity: 1; transform: none; }
+/* A section that Tab reaches in the last stretch of the screen, before the observer, does not stay transparent */
+.reveal-ready:focus-within { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .reveal-ready { opacity: 1; transform: none; transition: none; } }
+@media print { .reveal-ready { opacity: 1 !important; transform: none !important; transition: none; } }
+
+.route { grid-template-columns: 1fr 1fr; }
+.route-list { margin: 0; padding: 0; list-style: none; }
+#route-map { position: relative; z-index: 0; height: 560px; border-radius: var(--radius); }
+@media (max-width: 860px) { .route { grid-template-columns: 1fr; } #route-map { height: 340px; } }
+
+/* The certificate's milestone: this month against the rule, a bar for each number, and why a sale did not count */
+.step-figure { font-weight: 700; }
+.step-checks { margin: 4px 0 0; padding-left: 20px; font-size: 16px; line-height: 1.5; }
+.step-progress { display: grid; gap: 6px; max-width: 560px; margin: 6px 0 0; padding: 0; list-style: none; font-size: 16px; line-height: 1.4; }
+.step-progress > li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(80px, 140px); align-items: center; gap: 4px 12px; }
+.step-progress meter { width: 100%; height: 12px; }
+.step-progress > li[data-ok] > span::after { content: " ✓"; color: var(--primary); font-weight: 700; }
+.certified-rule { margin: 4px 0 0; font-size: 15px; }
+/* The staff registers of a shop, and the card that puts one on a phone */
+.staff-list form { display: inline; }
+.staff-card .qr-box { margin: 16px 0; }
+.staff-card .qr { width: min(280px, 100%); height: auto; }
+.staff-steps { padding-left: 22px; }
+.staff-steps li { margin: 6px 0; }
+.pair-summary { padding-left: 22px; overflow-wrap: anywhere; }
+.staff-until { font-weight: 600; }
+.staff-retired-list { margin: 24px 0; }
+@media print { .staff-card { color: #000; } .staff-card .qr { width: 60mm; } }
+/* «Something wrong?»: a card in the panel, the symptoms as large buttons, what the site knows, the steps and the request */
+.help-card { box-sizing: border-box; max-width: 36em; margin: 10px 0 0; padding: 4px 16px 12px; border-left: 4px solid var(--highlight); border-radius: var(--radius); background: var(--surface); }
+.help-card.help-open { border-left-width: 8px; }
+.help-card p { margin: 8px 0 0; font-size: 16px; line-height: 1.5; }
+.help-card .help-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.help-symptoms, .help-history, .help-facts, .help-steps { margin: 12px 0; padding: 0; list-style: none; }
+.help-symptom { display: block; box-sizing: border-box; min-height: 64px; padding: 14px 18px; border-radius: var(--radius); background: var(--surface); color: var(--text); text-decoration: none; }
+.help-symptom strong { display: block; color: var(--primary); font-size: 19px; line-height: 1.3; }
+.help-symptom span { display: block; margin-top: 2px; color: var(--muted); font-size: 16px; line-height: 1.4; }
+.help-symptom:hover { box-shadow: var(--shadow); }
+.help-symptoms li { margin: 10px 0; }
+.help-history li { margin: 8px 0; padding: 10px 14px; border-left: 4px solid var(--line); background: var(--surface); }
+.help-history li.help-open, .notice.help-open { border-left-color: var(--primary); }
+.help-fact { margin: 8px 0; padding: 10px 14px; border-left: 4px solid var(--line); background: var(--surface); }
+.help-fact.help-problem { border-left-color: var(--error); }
+.help-fact.help-warning { border-left-color: var(--primary); }
+.help-tag { display: inline-block; margin-right: 6px; padding: 0 8px; border: 1px solid currentColor; border-radius: 999px; font-size: 14px; font-weight: 700; }
+.help-problem .help-tag { color: var(--error); }
+.help-steps { counter-reset: help; }
+.help-steps li { counter-increment: help; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; margin: 10px 0; }
+.help-steps li::before { content: counter(help); display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: var(--primary); color: var(--on-primary); font-weight: 700; }
+.help-again { margin: 12px 0; }
+.help-channels { margin: 0 0 16px; padding: 0; border: 0; }
+.help-channels legend { padding: 0; font-weight: 600; }
+.shop-form .help-channel { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 8px 0; font-weight: 400; cursor: pointer; }
+.shop-form .help-channel input { flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--primary); }
+.help-form .errorlist { margin: 4px 0; padding-left: 0; list-style: none; color: var(--error); font-weight: 600; }
+/* Your shop on OpenStreetMap (shops/osm_views.py) */
+.osm-card .help-line { margin-top: 8px; }
+.osm-changes { margin: 12px 0; padding: 0; list-style: none; }
+.osm-changes li { margin: 8px 0; padding: 10px 14px; border-left: 4px solid var(--line); background: var(--surface); overflow-wrap: anywhere; }
+.osm-label { display: block; margin: 10px 0 4px; font-weight: 600; }
+.osm-lines { box-sizing: border-box; display: block; width: 100%; max-width: 36em; margin: 0 0 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--text); font-family: ui-monospace, monospace; font-size: 15px; line-height: 1.5; resize: vertical; }
+.osm-tick { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 8px 0; font-weight: 600; cursor: pointer; }
+.osm-tick input { flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--primary); }
+.osm-form .errorlist { margin: 4px 0; padding-left: 0; list-style: none; color: var(--error); font-weight: 600; }
+.osm-open { border-left-color: var(--primary); }
+
+/* The meetup board (meetups/): a card for each meeting, the day in a badge, the state said in words */
+.meetup-list { display: grid; gap: 12px; margin: 0 0 32px; padding: 0; list-style: none; }
+.meetup { display: grid; grid-template-columns: 64px 1fr; gap: 16px; padding: 16px; border-radius: var(--radius); background: var(--surface); }
+.meetup-date { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 64px; height: 64px; border: 2px solid var(--text); border-radius: 10px; background: var(--background); color: var(--text); line-height: 1.1; }
+.meetup-day { font-family: var(--font-display); font-size: 26px; font-weight: 700; }
+.meetup-month { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+.meetup-body p { margin: 0 0 4px; }
+.meetup-body p:last-child { margin-bottom: 0; }
+.meetup-title { font-weight: 700; }
+.meetup-off .meetup-when, .meetup-off .meetup-title { text-decoration: line-through; }
+.meetup-badge { display: inline-block; padding: 1px 10px; border: 2px solid var(--text); border-radius: 999px; font-size: 14px; font-weight: 700; }
+.meetup-gone { background: none; border: 1px solid var(--line); }
+.meetup-gone .meetup-date { border-color: var(--line); background: var(--surface); }
+.meetup-next { margin: 0; }
+.meetups-note { font-size: 15px; }
+@media (max-width: 480px) { .meetup { grid-template-columns: 56px 1fr; gap: 12px; padding: 12px; } .meetup-date { width: 56px; height: 56px; } .meetup-day { font-size: 22px; } }

@@ -1,0 +1,12 @@
+[Unit]
+Description=bitmentor: OpenStreetMap and the shops of /opt/%i, once a month
+
+[Timer]
+# Once a month, early on the first, outside the hours of the shops and of the other timers; a gentle load for Overpass
+OnCalendar=*-*-01 03:30:00 UTC
+RandomizedDelaySec=2h
+# If the machine was off at that time, the reading comes at boot
+Persistent=true
+
+[Install]
+WantedBy=timers.target

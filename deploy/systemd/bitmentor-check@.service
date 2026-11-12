@@ -1,0 +1,8 @@
+[Unit]
+Description=bitmentor: light check of /opt/%i, alerts on Telegram
+After=docker.service
+
+[Service]
+Type=oneshot
+Nice=10
+ExecStart=/opt/%i/bin/check.sh /opt/%i

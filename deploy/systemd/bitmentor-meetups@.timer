@@ -1,0 +1,12 @@
+[Unit]
+Description=bitmentor: reading of the meetups of /opt/%i from Nostr, every day
+
+[Timer]
+# Every day, early: the board is fresh when the morning summary and the first visitors come
+OnCalendar=*-*-* 05:40:00 UTC
+RandomizedDelaySec=20min
+# If the machine was off at that time, the reading comes at boot
+Persistent=true
+
+[Install]
+WantedBy=timers.target

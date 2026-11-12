@@ -1,0 +1,1 @@
+{% load i18n %}{% if next %}<p class="meetup-next">{% translate "Next meetup:" %} <a href="{{ page }}"><time datetime="{{ next.iso }}"><strong>{{ next.weekday }} {{ next.date }}</strong>{% if next.time %}, {{ next.time }}{% endif %}</time></a>{% if next.city or next.place %} · {{ next.city }}{% if next.city and next.place %}, {% endif %}{{ next.place }}{% endif %}</p>{% endif %}

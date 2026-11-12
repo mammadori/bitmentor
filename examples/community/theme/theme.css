@@ -1,0 +1,21 @@
+/* The community's colours. --on-primary is the text on top of --primary, --on-highlight the one on top of --highlight.
+   Everything else in the theme is in the software, in static/base.css: here you can rewrite any rule. */
+:root {
+  --primary: #224455; --on-primary: #ffffff; --accent: #8a5a00; --highlight: #ffd166; --on-highlight: #224455;
+  --background: #fdfcf9; --surface: #f1f3f2; --text: #1d2226; --muted: #566067; --line: #d7dcdc;
+}
+.showcase { display: flex; align-items: center; gap: clamp(16px, 4vw, 36px); margin-bottom: 32px; padding: clamp(20px, 5vw, 48px); border-radius: var(--radius); background: var(--primary); color: var(--on-primary); }
+.showcase img { flex: none; width: clamp(84px, 16vw, 140px); height: auto; }
+.showcase h1 { margin: 0 0 8px; color: inherit; font-size: clamp(32px, 6.5vw, 60px); overflow-wrap: anywhere; }
+.showcase p { margin: 0; }
+.showcase .eyebrow { color: inherit; }
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --primary: #8cc4dc; --on-primary: #10181c; --accent: #ffd166; --highlight: #ffd166; --on-highlight: #10181c;
+    --background: #10181c; --surface: #1b262c; --text: #eef1f2; --muted: #aab4ba; --line: #36444c;
+    /* The errors of forms and of the register: base.css's red on the dark background cannot be read */
+    --error: #ff8a80;
+  }
+  .top, .bottom, .showcase { --on-primary: var(--text); background: var(--surface); }
+}

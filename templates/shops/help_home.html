@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{% translate "Something wrong?" %} · {{ shop.name }} · {{ community.name }}{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a></nav>
+<header class="page-head"><h1>{% translate "Something wrong?" %}</h1><p>{{ shop.name }}</p></header>
+{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+<p>{% translate "Tell us what is happening. We show you what the site already knows about your shop and what to do now. If it is not enough, you ask the association for help with one tap." %}</p>
+<h2 id="symptoms">{% translate "What is happening?" %}</h2>
+<ul class="help-symptoms" aria-labelledby="symptoms">{% for kind in kinds %}
+  <li><a class="help-symptom" href="{% url 'help_symptom' shop.id kind.key %}"><strong>{{ kind.label }}</strong><span>{{ kind.hint }}</span></a></li>{% endfor %}
+</ul>
+{% if requests %}<h2 id="asked">{% translate "Your requests" %}</h2>
+<ul class="help-history" aria-labelledby="asked">{% for item in requests %}
+  <li{% if item.open %} class="help-open"{% endif %}><strong>{{ item.symptom }}</strong>
+    {% if item.open %}{% blocktranslate with when=item.when %}You asked {{ when }}. Waiting for the association.{% endblocktranslate %}{% else %}{% blocktranslate with when=item.when solved=item.solved_when %}You asked {{ when }}. Solved {{ solved }}.{% endblocktranslate %}{% endif %}
+    {% if item.request.note %}<q>{{ item.request.note }}</q>{% endif %}
+    {% if item.open and not item.delivered %}<span class="muted">{% translate "The message to the association did not go out, but the request is saved." %}</span>{% endif %}</li>{% endfor %}
+</ul>{% endif %}
+<p class="muted">{% translate "We never ask for the secret words of your wallet, for a key or for a password. If someone asks you, it is not us." %}</p>
+{% endblock %}

@@ -1,0 +1,323 @@
+# Everything that sets one community apart from the others is in this folder: the software need not be touched.
+name: Example community
+# The place: pages read it as {{ community.city }}
+city: Example
+email: info@example.org
+logo: logo.svg
+theme_color: "#224455"
+theme_color_dark: "#10181c"
+timezone: Europe/Rome
+# The register's currency
+currency: EUR
+# The register. All optional (`confirm_above` and `explorers` are read only with on-chain turned on: `experimental` below,
+# docs/features/onchain.md):
+# - `price_sources`: the public sources of the exchange rate, two of which must agree (kraken, coinbase, bitstamp, mempool,
+#   coingecko, blockchain); `tolerance` in % (1, at most 20) and `max_rate_age` in minutes (120); `manage.py check` warns
+#   about a value it cannot use (`shops.W008`).
+# - `discount`: the discount for paying in bitcoin, in %, that the register suggests to a shop that has none (0).
+# - `confirm_above`: an on-chain sale above this amount, in the currency, waits for a confirmation; 0 (the default) is
+#   every sale. Each merchant changes it on the phone.
+# - `explorers`: where the register sees on-chain payments: mempool.space's API or an instance of it, one list or one
+#   per network. Only these hosts are opened in the register's CSP. Without it, mempool.space.
+# - `relays`: the community's Nostr relays (wss://), where every register keeps its encrypted copy and the staff registers
+#   send their sales to the owner (docs/features/nostr-copies.md, with what the relay must limit). Without it, no copy on
+#   Nostr. `public_relays`: public relays an owner may add on the phone. Only these hosts are opened in the CSP.
+# register:
+#   discount: 10
+#   confirm_above: 0
+#   explorers:
+#     mainnet: [https://mempool.space/api]
+#     signet: [https://mempool.space/signet/api]
+#   relays: [wss://relay.example.org]
+#   public_relays: [wss://nos.lol, wss://relay.damus.io]
+#   price_sources: [kraken, coinbase, mempool]
+tagline:
+  it: Dove pagare in bitcoin, vicino a casa.
+  en: Where to pay in bitcoin, close to home.
+# The preview image when someone shares a link to the site: 1200×630, JPEG or PNG, inside theme/.
+# It can be one per language, {it: …, en: …}. A page picks another with `image:` in its metadata.
+# share_image: /theme/preview.jpg
+# The first language is the default. Each language needs its own folder in pages/
+languages:
+  en: English
+  it: Italiano
+# Where the shop map starts. zoom: 6 a country, 13 a city, 16 a street
+map:
+  latitude: 41.9
+  longitude: 12.5
+  zoom: 13
+  # featured_city: Example   # optional: the home page features only the shops of this town
+menu:
+  - slug: map
+    path: shops/map/
+    labels: {it: Mappa, en: Map}
+  - slug: about
+    labels: {it: Chi siamo, en: About}
+# Pages other sites may show in a frame (an <iframe>), by slug, with shell patterns: a game, a lesson. Only public pages of the
+# community; the panel and the registers never. `embed_from`: only these https sites (every site when missing).
+# embeddable: [game-*]
+# embed_from: [https://blog.example.org]
+footer_menu:
+  - slug: contact
+    labels: {it: Contatti, en: Contacts}
+  - slug: privacy
+    labels: {it: Privacy, en: Privacy}
+# The community's profiles: links in the footer and, in the home page's structured data, `sameAs` for search engines
+# links:
+#   - label: Mastodon
+#     url: https://mastodon.example/@example
+# Donations to the association, shown on the home page with a QR code each: a label and what the code holds.
+# donations:
+#   Lightning: donate@example.org
+# A read-only Blossom server for the theme's files (docs/features/blossom.md).
+# blossom: true
+# Optional features (docs/features/README.md, "Turning features off"): all on unless you write `false`. Off, a feature leaves
+# the merchant's panel, the public pages, the messages and the commands, its addresses answer 404, and nothing is deleted:
+# turned on again, everything is back. The names are these three; `manage.py check` warns about anything else.
+# features:
+#   certified: false        # the badge of certified shops: on the map and the shop page, `certified` in /shops.json, the private part of
+#                           # the pages for their owners, the certificate in the merchant's path and /admin/. The icons of
+#                           # how recently the Lightning address worked stay
+#   vacation: false         # shops closed for a while: the card and pages, "Closed for holidays · back on…" on the map and the page,
+#                           # `break` in /shops.json and Nostr, the welcome back. A closure running with a day to open again still
+#                           # keeps the alarms quiet until that day (at most 92 days), and /admin/ keeps the Closures table
+#   practice: false         # the practice register: the buttons, the links and the two addresses
+# Experimental features (docs/features/README.md, "Experimental features"): all off unless you write `true`. They work and are
+# tested, but had less review and less real use, and may change or go: not what a community starts with. Off, one is as quiet
+# as a feature turned off, and nothing is deleted. The names are these two; `manage.py check` warns about anything else.
+# experimental:
+#   onchain: true           # on-chain payments at the register, for special cases (docs/features/onchain.md)
+#   osm_upload: true        # `manage.py osm_upload`, which writes to OpenStreetMap (docs/features/openstreetmap.md)
+# Certified shops (docs/features/certified-shops.md): a shop whose Lightning address works and whose owner has the basic pass of
+# the training. Nothing to set here.
+# The merchant's training, the «pass» (docs/features/merchant-training.md). Off unless this
+# block exists. A path of modules the community writes: for each one an `id` (letters, digits and dashes), a `title`, the
+# `page` to read (a page of the site, as in `shop_page`), 2 to 4 `questions` (`text`, `options`, `answer` = the number of the
+# right option, from 1, `explain` = the line that explains) and the `declarations` the merchant ticks (`id` and `text`, in
+# the first person). Every text can be written for each language, and is at most 600 characters. Each declaration is kept
+# as the written proof of the information: the hash of its text is its version, so a changed text is asked again.
+# - `gate`: `unlock` (the real till, NETWORK=mainnet, opens with the basic pass) or `reminder` (only reminders).
+# - `quick_start`: an amount in the community's currency (20; 0 or missing: off). Until the owner has the basic pass, the
+#   owner's register takes payments up to this total, counted on the owner's phone; staff registers wait for the pass. Once
+#   the total is reached, the register asks for the pass (`gate: unlock` only).
+# - `since`: the day the training starts to count (2026-12-01). With `gate: unlock` on a real-money site, the register of an
+#   owner without the basic pass is locked from that day, or at once when `since` is missing: a community that turns the
+#   training on for shops that already sell writes a `since` ahead and tells its merchants first.
+# - `review_months`: the short review comes every this many months (12); `refresh_days`: days after it is due before the
+#   «Trained merchant» sign goes (30). Nothing is ever locked by a review or by a changed text.
+# - `public_sign`: the «Trained merchant» sign on the shop page, the map and /shops.json; true by default. The certificate
+#   of a shop always needs the basic pass.
+# - `guides`: the pages of the three steps declared after a guide: `practice` (the practice register has its own page),
+#   `backup` and `withdrawal`. `staff_rules`: the three rules of the counter, read at the first opening of a staff register
+#   (the software has them in English when the key is missing).
+# `help_terms` (or `merchant_terms`), a page of the community, is added as the first module with its own declaration.
+# help_terms: {path: about/}
+# training:
+#   gate: unlock
+#   quick_start: 20
+#   review_months: 12
+#   refresh_days: 30
+#   public_sign: true
+#   guides:
+#     backup: about/
+#     withdrawal: about/
+#   modules:
+#     - id: wallet
+#       title: {en: "Your wallet and your recovery words", it: "Il tuo wallet e le parole di recupero"}
+#       page: about/
+#       questions:
+#         - text: {en: "Who must know the recovery words of your wallet?", it: "Chi deve conoscere le parole di recupero del tuo wallet?"}
+#           options:
+#             - {en: "Only you", it: "Solo tu"}
+#             - {en: "The volunteers who help you", it: "I volontari che ti aiutano"}
+#             - {en: "Whoever asks for them kindly", it: "Chi te le chiede con gentilezza"}
+#             - {en: "The customer, to check a payment", it: "Il cliente, per controllare un pagamento"}
+#           answer: 1
+#           explain: {en: "Only you. The words are the key to your money: whoever has them can take it, and nobody can give it back.", it: "Solo tu. Le parole sono la chiave dei tuoi soldi: chi le ha può prenderli, e nessuno può restituirli."}
+#         - text: {en: "Your phone falls in the sea. What brings your money back?", it: "Il telefono cade in mare. Che cosa ti ridà i soldi?"}
+#           options:
+#             - {en: "The recovery words on paper", it: "Le parole di recupero su carta"}
+#             - {en: "A call to the association", it: "Una telefonata all'associazione"}
+#             - {en: "The register's link", it: "Il link della cassa"}
+#             - {en: "Nothing: it is saved on the site", it: "Niente: è salvato sul sito"}
+#           answer: 1
+#           explain: {en: "The words on paper. The site holds no funds and no keys: it cannot restore your wallet.", it: "Le parole su carta. Il sito non tiene né soldi né chiavi: non può ripristinare il tuo wallet."}
+#       declarations:
+#         - id: words-mine
+#           text: {en: "The recovery words of my wallet stay with me only. I wrote them on paper and I know where it is.", it: "Le parole di recupero del mio wallet le tengo solo io. Le ho scritte su carta e so dov'è."}
+#         - id: nobody-restores
+#           text: {en: "I know that the site and the association hold no funds and no keys: if I lose my words, nobody can get my money back.", it: "So che il sito e l'associazione non tengono né soldi né chiavi: se perdo le parole, nessuno può restituirmi i soldi."}
+#     - id: paid
+#       title: {en: "When a sale is paid", it: "Quando una vendita è pagata"}
+#       page: about/
+#       questions:
+#         - text: {en: "When is a sale paid?", it: "Quando una vendita è pagata?"}
+#           options:
+#             - {en: "When the customer shows the payment on their phone", it: "Quando il cliente mostra il pagamento sul suo telefono"}
+#             - {en: "When the register says so and the money is in my wallet", it: "Quando la cassa lo dice e i soldi sono nel mio wallet"}
+#             - {en: "When the customer says they paid", it: "Quando il cliente dice di aver pagato"}
+#           answer: 2
+#           explain: {en: "Only when the register says so and you see it in your wallet. A customer's screen can show anything.", it: "Solo quando la cassa lo dice e lo vedi nel tuo wallet. Lo schermo di un cliente può mostrare qualsiasi cosa."}
+#         - text: {en: "A customer paid too much. What do you do?", it: "Un cliente ha pagato troppo. Che cosa fai?"}
+#           options:
+#             - {en: "Keep the difference", it: "Tieni la differenza"}
+#             - {en: "Give it back from your wallet: the register's history shows how much", it: "La restituisci dal tuo wallet: lo storico della cassa dice quanto"}
+#             - {en: "Tell them to ask the association", it: "Gli dici di chiedere all'associazione"}
+#           answer: 2
+#           explain: {en: "The money is yours to give back: the association holds none. The register's history shows how much.", it: "I soldi li hai tu, quindi li restituisci tu: l'associazione non ne tiene. Lo storico della cassa dice quanto."}
+#       declarations:
+#         - id: paid-in-wallet
+#           text: {en: "I know that «paid» counts only when I see it in my wallet.", it: "So che «pagato» vale solo quando lo vedo nel mio wallet."}
+#     - id: problems
+#       title: {en: "When something goes wrong", it: "Quando qualcosa va storto"}
+#       page: about/
+#       questions:
+#         - text: {en: "Someone asks you to scan a code to «fix» your register. What do you do?", it: "Qualcuno ti chiede di inquadrare un codice per «sistemare» la cassa. Che cosa fai?"}
+#           options:
+#             - {en: "Scan it", it: "Lo inquadri"}
+#             - {en: "Refuse: only the codes you printed yourself are good", it: "Rifiuti: valgono solo i codici che hai stampato tu"}
+#             - {en: "Send them your recovery words first", it: "Prima mandi le parole di recupero"}
+#           answer: 2
+#           explain: {en: "A code you did not print can send the money elsewhere. Look at the sign at your till often.", it: "Un codice che non hai stampato tu può mandare i soldi altrove. Guarda spesso il cartello alla cassa."}
+#         - text: {en: "Your wallet keeps its own keys. What do you do with the recovery words?", it: "Il tuo wallet tiene le sue chiavi. Che cosa fai con le parole di recupero?"}
+#           options:
+#             - {en: "Send them to the association, to be safe", it: "Le mandi all'associazione, per sicurezza"}
+#             - {en: "Write them on paper and keep them where only you find them", it: "Le scrivi su carta e le tieni dove le trovi solo tu"}
+#             - {en: "Skip them: the phone is enough", it: "Le salti: basta il telefono"}
+#           answer: 2
+#           explain: {en: "With a self-custodial wallet the money is yours alone: if the phone is lost, the words bring it back. Nobody else may ever see them.", it: "Con un wallet che tiene le tue chiavi i soldi sono solo tuoi: se perdi il telefono, le parole li riportano indietro. Nessun altro deve mai vederle."}
+#       declarations:
+#         - id: recovery-words
+#           text: {en: "I know that my wallet's recovery words are the money: I keep them on paper, and I never give them to anyone, the association included.", it: "So che le parole di recupero del mio wallet sono i soldi: le tengo su carta e non le do mai a nessuno, associazione compresa."}
+#         - id: daily-check
+#           text: {en: "I check my sales against my wallet every day, with «Close the day».", it: "Controllo ogni giorno le vendite con il mio wallet, con «Chiudi la giornata»."}
+#         - id: qr-watch
+#           text: {en: "I know that the printed code at my till can be replaced by someone else: I look at it often.", it: "So che il codice stampato alla mia cassa può essere sostituito da qualcun altro: lo guardo spesso."}
+#   staff_rules:
+#     - {en: "A sale is paid only when the register says so. The customer's phone and a screenshot do not count.", it: "Pagato solo quando la cassa lo dice: il telefono del cliente e una schermata non contano."}
+#     - {en: "Never give the recovery words of a wallet to anyone.", it: "Mai le parole di recupero a nessuno."}
+#     - {en: "If in doubt, call the owner.", it: "Nel dubbio chiama il titolare."}
+#
+# How long the site keeps what it knows about a person (docs/features/help.md, "How long a request is kept"). A request for help
+# that was solved `help_requests_days` ago loses the merchant's line, the copy of the diagnosis and the account, and stays as a row
+# for the counts. A whole number from 30 to 3650; 0 or false: the timer never forgets (by hand, `manage.py forget_old_requests
+# --days N` still can). This is the number the timer uses; without the block it is 365. The messages in the moderators' Telegram chat
+# are not reached: turn on the automatic deletion of messages there. `email_prints_days` (32 to 3650, default 62): the prints of the
+# recipients the email budget counts. These are defaults, not a law: set what fits your community; 0 or false keeps them for good.
+# privacy:
+#   help_requests_days: 365
+#   email_prints_days: 62
+# The stops appear where a page writes {% include "website/route.html" %}. You find the coordinates by clicking on openstreetmap.org
+route:
+  - name: {it: Il primo bar, en: The first bar}
+    place: Example
+    latitude: 41.9022
+    longitude: 12.4970
+    text:
+      it: "Da riempire: chi c'è al banco, cosa si paga, da quando."
+      en: "To fill in: who is behind the bar, what you can pay for, since when."
+  - name: {it: Il negozio dove chiedere, en: The shop where you can ask}
+    place: Example
+    latitude: 41.8985
+    longitude: 12.5030
+    text:
+      it: "Da riempire: chi risponde alle domande, e in quali giorni."
+      en: "To fill in: who answers questions, and on which days."
+  - name: {it: Dove ci si trova, en: Where we meet}
+    place: Example
+    latitude: 41.9006
+    longitude: 12.5075
+    text:
+      it: "Da riempire: il giorno del mese, l'ora, a chi chiedere."
+      en: "To fill in: the day of the month, the time, who to ask for."
+# The shop page, the one the QR code on the sign opens. `wallet` is the page for whoever has no wallet yet; `stories`
+# are the community's pages about a shop, under its external_id. `wallets` (same rules as `shop_form.wallets`, plus `methods`)
+# and `first_bitcoin` are for the customer's pages, docs/features/customer-path.md: wallets to offer to whoever
+# has none, and a page on a first bitcoin. A link is a page path after /<lang>/, as in `menu`,
+# or a full https:// address. Texts and external_ids between quotes. Format and rules in docs/features/shop-page.md.
+# shop_page:
+#   wallet: about/
+#   first_bitcoin: about/#first-bitcoin
+#   wallets:
+#     - name: Example Wallet
+#       link: https://wallet.example.org/
+#       platforms: [android, ios]
+#       methods: [lightning, onchain]
+#       description: {it: "Gratis, e le chiavi restano a te.", en: "Free, and the keys stay with you."}
+#       open_source: true
+#       self_custody: true
+#       free: true
+#   stories:
+#     "12":
+#       - path: about/#history
+#         text: {it: "Qui è nata la comunità", en: "Where the community was born"}
+# The new shop form: under the Lightning address, "Where do I find it?" links to `wallet`, the community's page on the
+# wallets that work with the register (open source, non-custodial, free). Same kind of link as in `shop_page`.
+# `wallets` are the wallets the step-by-step guide offers to a merchant who has none yet: name, link (a page or an
+# https:// address), platforms (android, ios, windows, macos, linux, web) and a line of description. Only open source,
+# non-custodial and free wallets, never an exchange: the community states it with the three `true`, and a wallet
+# without them is not shown. Without `wallets` the guide links to `wallet`.
+# shop_form:
+#   wallet: about/#wallet
+#   wallets:
+#     - name: Example Wallet
+#       link: https://wallet.example.org/
+#       platforms: [android, ios]
+#       description: {it: "Gratis, e le chiavi restano a te.", en: "Free, and the keys stay with you."}
+#       open_source: true
+#       self_custody: true
+#       free: true
+# The meetup board (docs/features/meetups.md): the next meetups and the last ones, kept in /admin/ and, if you like, read every
+# day from the calendar events (NIP-52) that trusted Nostr authors publish. It turns on with the block and is off without it.
+# The page is /<lang>/meetups/, the calendar /meetups.ics; in a page of the community write {% include "website/meetup_board.html" %}
+# (all of it), {% meetup_board upcoming=3 past=3 level=3 %} (a short list) or {% meetup_next %} (one line).
+# `link` stands in for the link of a meetup that has none; `past_months` is how far back the last ones go (1-36);
+# `relays` are wss:// addresses (without them, the site's NOSTR_RELAYS); each `trusted` author needs a `note` on who certified it
+# (the staff adds more in /admin/); with `cities` an event is kept only if it is near one of them, and the city is shown;
+# `event_links: true` shows the link inside a Nostr event (off by default). Example values.
+# meetups:
+#   link: https://t.me/example
+#   past_months: 12
+#   relays: [wss://relay.example.org]
+#   trusted:
+#     - npub: npub1…
+#       note: Certified by the staff on 2026-11-05
+#   cities:
+#     - {name: Example, latitude: 41.9022, longitude: 12.4970, radius_km: 15}
+#   event_links: false
+# The Nostr profile image; without it, the logo if it is not SVG
+# nostr:
+#   picture: /theme/logo.png
+# OpenStreetMap, in both directions (docs/features/openstreetmap.md): off without this section. Once a month the site reads the
+# elements of the area that carry bitcoin tags, proposes a link for the shops that are beyond doubt the same place (the
+# association confirms it in /admin/), fills the address, town and position of the confirmed ones, offers their website and
+# phone, and prepares the tags OpenStreetMap should have. It never writes there by itself: a person changes them by hand, or
+# runs `manage.py osm_upload`, which asks first and is an experimental feature, off unless turned on (`experimental` above).
+# `bbox` is south, west, north, east; the rest are the defaults or optional.
+# osm:
+#   bbox: [41.8, 12.4, 42.0, 12.6]
+#   discount_tag: "currency:XBT:discount"
+#   operator: {tag: "payment:bitcoin:operator", value: "operator.example"}
+#   name_similarity: 0.85
+#   distance_metres: 100
+#   auto_link: true
+#   comment: {en: "Update bitcoin payment tags"}
+# Limits on how much the site keeps or how often a visitor can ask (docs/configuration.md#limits), so that an open site nobody
+# watches every day does not fill up with spam or with data nobody asked for. All optional: what is not written has the default
+# below. A whole number; 0 means no limit. At the limit the site refuses politely whatever would add one more, deletes nothing,
+# writes it in the log, and says so in /admin/today/ (a warning from 80%) and in `manage.py preflight`.
+# limits:
+#   shops: 500                       # shops on the site (the demo shops do not count)
+#   shops_waiting_wallet: 100        # shops saved without a wallet yet: sign-ups not finished
+#   accounts: 2000                   # accounts of merchants and visitors who signed in (staff left out)
+#   help_requests: 5000              # requests for help kept, solved ones too
+#   nostr_meetups: 5000              # meetups copied from Nostr and kept
+#   emails_per_month: 1000           # emails sent this month: the mail provider's quota (0 = no limit)
+#   emails_per_day: 100              # emails sent today; if missing, a tenth of emails_per_month
+#   emails_per_address_day: 5        # emails a visitor can make the site send to the same address in a day
+#   emails_per_sender_day: 10        # emails one network address can make the site send in a day, whoever they are for
+#   emails_staff_factor: 3           # times more emails per address and per network address for the staff and the allowed addresses
+#   staff_registers_per_shop: 30     # staff registers turned on at the same time in one shop
+#   accounts_per_address_hour: 20    # new accounts from one network address in an hour
+#   shops_per_address_hour: 30       # new shops or wallets connected from one network address in an hour
+#   help_requests_per_shop_day: 3    # requests for help from one shop in a day

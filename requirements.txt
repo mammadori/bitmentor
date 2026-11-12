@@ -1,0 +1,16 @@
+Django==5.2.*
+gunicorn==23.*
+psycopg[binary]==3.2.*
+requests==2.33.*
+PyYAML==6.*
+Markdown==3.*
+whitenoise==6.*
+# coincurve 22.0.0, the first with Python 3.14 wheels, is not on PyPI yet: until it is, upstream commit 2d11b11, as a
+# wheel attached to the GitHub release deps/coincurve-2d11b11 (x86_64 Linux), or built from source elsewhere (needs
+# git, a C compiler, cmake, make, pkg-config and Python's headers). The wheel's build: deploy/coincurve-wheel.sh
+coincurve @ https://github.com/mammadori/bitmentor/releases/download/deps/coincurve-2d11b11/coincurve-22.0.0.dev0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64"
+coincurve @ git+https://github.com/ofek/coincurve@2d11b1160c75ae8fd94fe8fe3f226aec176bf9bf ; sys_platform != "linux" or platform_machine != "x86_64"
+segno==1.*
+bech32==1.*
+websockets==15.*
+cryptography==44.*

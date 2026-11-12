@@ -1,0 +1,43 @@
+{% load static i18n %}<!doctype html>
+{% get_current_language as LANGUAGE_CODE %}{% get_available_languages as LANGUAGES %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% translate "No wallet? Scan here" %} · {{ shop.name }}</title>
+{% for font in community.preload_fonts %}<link rel="preload" href="/theme/{{ font }}" as="font" type="font/woff2" crossorigin>
+{% endfor %}<link rel="stylesheet" href="{% static 'base.css' %}">
+<link rel="stylesheet" href="{% static 'customer.css' %}">
+<link rel="stylesheet" href="/theme/theme.css">
+</head>
+<body class="customer-card">
+<nav class="crumbs no-print"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a></nav>
+<main>
+<div class="customer-tools no-print">
+  <p>{% translate "Print it on an A4 sheet and keep it at the till, where the customer can see it. When someone says they have no wallet, point at it: they scan the code and the phone takes them through, step by step. You do not need to explain anything." %}</p>
+  <p class="till-languages">{% translate "Language of the card:" %} {% for code, name in LANGUAGES %}{% language code %}<a href="{% url 'customer_card' shop.id %}" hreflang="{{ code }}" lang="{{ code }}"{% if code == LANGUAGE_CODE %} aria-current="page"{% endif %}>{{ name }}</a>{% endlanguage %}{% endfor %}</p>
+  <p><a href="{{ url }}">{% translate "See what your customer sees" %}</a></p>
+  <p><button id="print" class="button">{% translate "Print" %}</button></p>
+  <p class="muted">{% include "partials/source_link.html" %}</p>
+</div>
+<article class="customer-sheet">
+  <header class="customer-sheet-head">
+    <img src="{% static 'bitcoin.svg' %}" alt="" width="64" height="64">
+    <div><h1>{% translate "No wallet yet?" %}</h1>
+      <p class="customer-lead">{% translate "Scan this code with your phone. In a few minutes you can pay here in bitcoin." %}</p></div>
+  </header>
+  <div class="customer-sheet-body">
+    <img class="customer-qr" src="{{ qr }}" alt="{% translate 'Code that opens the guide for customers' %}" width="260" height="260">
+    <ol class="customer-sheet-steps">
+      <li><span class="art-box">{{ art.store }}</span><span>{% translate "Choose a free wallet and install it" %}</span></li>
+      <li><span class="art-box">{{ art.receive }}</span><span>{% translate "Get your first bitcoin in it" %}</span></li>
+      <li><span class="art-box">{{ art.scan }}</span><span>{% translate "Scan the code at the till and pay" %}</span></li>
+    </ol>
+  </div>
+  {% if deal %}<p class="deal customer-sheet-deal">-{{ deal.percent }}% <span>{% translate "if you pay in bitcoin" %}</span></p>{% endif %}
+  <p class="customer-sheet-foot"><strong>{{ shop.name }}</strong> · {{ community.name }}</p>
+</article>
+</main>
+<script src="{% static 'sign.js' %}"></script>
+</body>
+</html>

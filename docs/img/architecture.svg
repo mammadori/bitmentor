@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" height="600" role="img" aria-labelledby="t d">
+  <title id="t">How bitmentor works</title>
+  <desc id="d">Customers pay shops directly into the shops' own Lightning wallets. bitmentor, run by a community association, shows the map and gives each shop a register that runs in the phone and talks to the shop's wallet. It holds no funds, no keys and no sales.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1d1d1b"/>
+    </marker>
+    <marker id="o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#f7931a"/>
+    </marker>
+    <style>
+      text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #1d1d1b; }
+      .h { font-size: 26px; font-weight: 700; letter-spacing: -0.3px; }
+      .k { font-size: 12px; font-weight: 700; letter-spacing: 1.6px; fill: #b8650a; }
+      .t { font-size: 16px; font-weight: 700; }
+      .s { font-size: 13px; fill: #4a4a46; }
+      .m { font-size: 12.5px; fill: #4a4a46; font-style: italic; }
+      .box { fill: #ffffff; stroke: #d9d4ca; stroke-width: 1.5; }
+      .core { fill: #fff6ea; stroke: #f7931a; stroke-width: 2; }
+      .tech { fill: #f3f1ec; stroke: #d9d4ca; stroke-width: 1.2; }
+      .line { stroke: #1d1d1b; stroke-width: 1.6; fill: none; }
+      .bar1 { font-size: 15px; font-weight: 700; fill: #f7931a; }
+      .bar2 { font-size: 13px; fill: #eceae4; }
+      .pay { stroke: #f7931a; stroke-width: 3.5; fill: none; }
+    </style>
+  </defs>
+
+  <rect width="960" height="600" rx="18" fill="#faf7f2"/>
+
+  <text x="40" y="52" class="k">HOW IT WORKS</text>
+  <text x="40" y="84" class="h">Pay in bitcoin in your town. Only the shops hold the money.</text>
+
+  <!-- People -->
+  <rect x="40" y="128" width="190" height="96" rx="12" class="box"/>
+  <text x="58" y="158" class="t">Customers</text>
+  <text x="58" y="180" class="s">find shops on the map,</text>
+  <text x="58" y="198" class="s">scan the QR at the till</text>
+
+  <rect x="40" y="252" width="190" height="96" rx="12" class="box"/>
+  <text x="58" y="282" class="t">Shops</text>
+  <text x="58" y="304" class="s">a register on any phone,</text>
+  <text x="58" y="322" class="s">sales and day closing on it</text>
+
+  <rect x="40" y="376" width="190" height="96" rx="12" class="box"/>
+  <text x="58" y="406" class="t">The association</text>
+  <text x="58" y="428" class="s">volunteers: what to do</text>
+  <text x="58" y="446" class="s">today, help, training</text>
+
+  <!-- Core -->
+  <rect x="320" y="128" width="300" height="344" rx="16" class="core"/>
+  <text x="344" y="162" class="k">BITMENTOR</text>
+  <text x="344" y="188" class="t">The community's site</text>
+  <text x="344" y="216" class="s">• map and page of every shop</text>
+  <text x="344" y="238" class="s">• a register in the phone, no app</text>
+  <text x="344" y="260" class="s">• customers with no wallet yet: a path</text>
+  <text x="344" y="282" class="s">• guardian of the Lightning addresses</text>
+  <text x="344" y="304" class="s">• the board of the meetups</text>
+  <text x="344" y="326" class="s">• the merchants' training</text>
+  <text x="344" y="348" class="s">• pages, theme and languages of the</text>
+  <text x="356" y="366" class="s">community, in a folder of its own</text>
+  <rect x="336" y="394" width="272" height="56" rx="10" fill="#ffffff" stroke="#f7931a" stroke-width="1.2"/>
+  <text x="360" y="417" class="t" font-size="13">No funds. No keys. No sales.</text>
+  <text x="360" y="437" class="s">The till's history stays in the phone.</text>
+
+  <!-- Tech -->
+  <text x="684" y="122" class="k">UNDERNEATH</text>
+  <rect x="684" y="134" width="246" height="58" rx="10" class="tech"/>
+  <text x="700" y="159" class="t" font-size="14">The shop's wallet</text>
+  <text x="700" y="178" class="s">Spark, or the shop's own node</text>
+  <rect x="684" y="204" width="246" height="58" rx="10" class="tech"/>
+  <text x="700" y="229" class="t" font-size="14">Lightning address</text>
+  <text x="700" y="248" class="s">the invoice and the LUD-21 check</text>
+  <rect x="684" y="274" width="246" height="58" rx="10" class="tech"/>
+  <text x="700" y="299" class="t" font-size="14">Nostr · O<tspan font-weight="400">pen</tspan> S<tspan font-weight="400">treet</tspan> M<tspan font-weight="400">ap</tspan></text>
+  <text x="700" y="318" class="s">events out, map in sync</text>
+  <rect x="684" y="344" width="246" height="58" rx="10" class="tech"/>
+  <text x="700" y="369" class="t" font-size="14">Caddy · Postgres</text>
+  <text x="700" y="388" class="s">three containers, a 2 GB server</text>
+  <rect x="684" y="414" width="246" height="58" rx="10" class="tech"/>
+  <text x="700" y="439" class="t" font-size="14">Telegram · email</text>
+  <text x="700" y="458" class="s">alerts and sign-in links</text>
+
+  <!-- Links people <-> core -->
+  <path d="M230 176 H320" class="line" marker-end="url(#a)" marker-start="url(#a)"/>
+  <path d="M230 300 H320" class="line" marker-end="url(#a)" marker-start="url(#a)"/>
+  <path d="M230 424 H320" class="line" marker-end="url(#a)" marker-start="url(#a)"/>
+  <!-- core <-> tech -->
+  <path d="M620 163 H684" class="line" marker-end="url(#a)" marker-start="url(#a)"/>
+  <path d="M620 303 H684" class="line" marker-end="url(#a)" marker-start="url(#a)"/>
+  <path d="M620 443 H684" class="line" marker-end="url(#a)"/>
+
+  <!-- The payment -->
+  <path d="M135 224 C135 238 135 238 135 252" class="pay" marker-end="url(#o)"/>
+  <text x="150" y="243" font-size="12" font-weight="700" style="fill:#b8650a">pays the shop directly</text>
+  <rect x="40" y="504" width="880" height="64" rx="12" fill="#1d1d1b"/>
+  <text x="62" y="531" class="bar1">The register asks the shop's wallet for the invoice; the customer pays it directly</text>
+  <text x="62" y="552" class="bar2">No server in between: no payment server, no node, no sales kept. Spark receives with the phone off, no liquidity to manage.</text>
+</svg>

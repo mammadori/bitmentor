@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<header class="page-head"><h1>{% translate "Sign in with email" %}</h1>
+{% if not sent %}<p>{% translate "We send you a link: open it and you are in. No password." %}</p>{% endif %}</header>
+{% if expired %}<p class="notice">{% translate "This link has expired or was already used: ask for a new one." %}</p>{% endif %}
+{% if failed %}<p class="notice" role="alert">{% translate "The email could not be sent: try again in a few minutes." %}</p>{% endif %}
+{% if taken %}<p class="notice">{% translate "This email is already used by another account." %}</p>{% endif %}
+{% if busy %}<p class="notice" role="alert">{% translate "Too many requests from your connection in a short time: wait a few minutes and try again." %}</p>{% endif %}
+{% if recent %}<p class="notice" role="alert">{% blocktranslate %}A link was already sent to {{ email }} a few minutes ago. Look in your mail, and in the spam folder: each link lasts 15 minutes. To ask for a new one, wait a few minutes.{% endblocktranslate %}</p>{% endif %}
+{% if staff %}<p class="notice">{% translate "This account signs in from the administration, with its password: not by email." %}</p>{% endif %}
+{% if budget %}<p class="notice" role="alert">{{ budget }}</p>{% endif %}
+{% if daily %}<p class="notice" role="alert">{{ daily }}</p>{% endif %}
+{% if full %}<p class="notice">{{ full }}</p>{% endif %}
+{% if sent %}<p class="notice" role="status">{% blocktranslate %}Email sent to {{ email }}. Open your mail and tap the link: it lasts 15 minutes. Not there? Look in the spam folder.{% endblocktranslate %}</p>
+<p><a href="{% url 'recovery' %}{% if next %}?next={{ next|urlencode:'' }}{% endif %}">{% translate "Nothing arrived? Ask again" %}</a></p>
+{% else %}<form method="post" action="{% url 'recovery' %}" class="shop-form">{% csrf_token %}{{ form.as_p }}{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}<button class="button">{% translate "Send link" %}</button></form>{% endif %}
+{% endblock %}

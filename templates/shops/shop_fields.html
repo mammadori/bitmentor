@@ -1,0 +1,40 @@
+{% load i18n l10n %}
+{% if form.errors %}<p class="notice form-alert" role="alert">{% translate "Something needs fixing: look at the messages in red." %}</p>{% endif %}
+{{ form.non_field_errors }}
+<fieldset><legend>{% translate "Your shop" %}</legend>
+  {{ form.name.as_field_group }}
+</fieldset>
+{% if form.lightning_address %}<fieldset><legend>{% translate "How you want to get paid" %}</legend>
+  <p class="muted">{% translate "Customers pay into your Lightning address." %}{% if guide %} <a href="{{ guide }}">{% translate "Not sure? Read the guide." %}</a>{% endif %}</p>
+  {% if form.later %}<div class="no-wallet"><label class="check" for="{{ form.later.id_for_label }}">{{ form.later }} {{ form.later.label }}</label>
+    <p class="helptext" id="later-help">{% translate "No problem: leave the address empty. Your shop is saved, and a guide shows you how to get a free wallet in a few minutes. Your shop goes on the map, with its register, when the wallet is added." %}</p></div>{% endif %}
+  {% if new_shop %}<p class="notice seed-warning">{% translate "Never enter your seed phrase or a private key here." %}</p>{% endif %}
+  {{ form.lightning_address.as_field_group }}
+  <p id="lightning-check" class="field-check" role="status" aria-live="polite" hidden data-url="{% url 'lightning_check' %}" data-checking="{% translate 'Trying the address...' %}" data-tidied="{% translate 'Written as {address}.' %}" data-slow="{% translate 'The check is taking too long. You can go on: the address is checked again when you create the shop.' %}" data-failed="{% translate 'I could not check the address now. You can go on: it is checked again when you create the shop.' %}" data-suggest="{% translate 'Did you mean {address}?' %}"></p>
+  <details class="field-help"><summary>{% translate "Where do I find it?" %}</summary>
+    <p>{% translate "Open your wallet and look under Receive: the Lightning address looks like an email, name@provider. Some wallets show it in the settings or in your profile." %}</p>
+    <p>{% translate "Not the long code that starts with lnbc: that one is good for a single payment." %}</p>
+    <p>{% translate "The wallet must tell the register when a payment arrives, and not all of them do. Paste the address here: we try it before creating the shop, and tell you if it does not work." %}</p>
+    {% if wallet_page %}<p><a href="{{ wallet_page }}">{% translate "The wallets that work with the register" %}</a></p>{% endif %}
+  </details>
+</fieldset>{% endif %}
+<fieldset><legend>{% translate "Where to find you" %}</legend>
+  {{ form.address.as_field_group }}{{ form.city.as_field_group }}
+  <p class="pick-tools"><button type="button" id="pick-here" class="button button-quiet" data-denied="{% translate 'I cannot read your position: touch the place on the map.' %}" data-searching="{% translate 'Looking for your position...' %}">{% translate "I am in the shop: use my position" %}</button></p>
+  <div id="pick-map" class="pick-map" aria-describedby="pick-status" data-label="{% translate 'Map' %}" data-zoom-in="{% translate 'Zoom in' %}" data-zoom-out="{% translate 'Zoom out' %}" data-library="{% translate 'A JavaScript library for interactive maps' %}" data-lat="{{ community.map.latitude|unlocalize }}" data-lon="{{ community.map.longitude|unlocalize }}" data-zoom="{{ community.map.zoom }}" data-chosen="{% translate 'Position chosen. Touch the map to move it.' %}"></div>
+  <p id="pick-status" class="muted" role="status">{% translate "Or touch the place on the map." %}</p>
+  <details{% if form.latitude.errors or form.longitude.errors %} open{% endif %}><summary>{% translate "Type the coordinates" %}</summary>
+    {{ form.latitude.as_field_group }}{{ form.longitude.as_field_group }}
+  </details>
+</fieldset>
+{% if new_shop %}<p class="shop-later">{% translate "The rest you can add whenever you want: you need none of it to create the shop." %}</p>{% endif %}
+<details{% if prefilled.description or prefilled.discount or form.description.errors or form.website.errors or form.email.errors or form.phone.errors or form.discount.errors %} open{% endif %}><summary>{% translate "More details: discount, description, contacts" %}</summary>
+  {{ form.discount.as_field_group }}{% if form.onchain %}{{ form.onchain.as_field_group }}{% endif %}{{ form.description.as_field_group }}{{ form.website.as_field_group }}{{ form.email.as_field_group }}{{ form.phone.as_field_group }}
+</details>
+<details{% if form.legal_name.errors or form.vat_number.errors %} open{% endif %}><summary>{% translate "Business details: name on the invoices, VAT number" %}</summary>
+  <p class="muted">{% translate "The association keeps them. Customers do not see them unless you choose so." %}</p>
+  {{ form.legal_name.as_field_group }}{{ form.vat_number.as_field_group }}
+</details>
+<details{% if form.nostr_pubkey.errors or form.nip05_name.errors or form.telegram_chat.errors %} open{% endif %}><summary>{% translate "Advanced options" %}</summary>
+  {{ form.telegram_chat.as_field_group }}{{ form.nostr_pubkey.as_field_group }}{{ form.nip05_name.as_field_group }}
+</details>

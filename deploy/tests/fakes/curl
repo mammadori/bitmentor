@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Fake curl for deploy/tests/test_release.sh. Telegram (-K -): writes chat, text and token to $FAKE_TELEGRAM and answers with
+# the code in $F/telegram_code (200), or in $F/telegram_code_<chat>. /health/: writes $F/health_body to the -o file and
+# answers with the code in $F/health_code (200); 000 means nobody answers. The arguments received go to
+# $FAKE_ARGS: the test checks that the token is not there.
+set -u
+F=$FAKE_DIR
+echo "curl $*" >> "$FAKE_ARGS"
+output='' format='' chat='' text='' config=''
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -o) output=$2; shift 2 ;;
+    -w) format=$2; shift 2 ;;
+    -K) config=$2; shift 2 ;;
+    -m|--resolve) shift 2 ;;
+    --data-urlencode)
+      case "$2" in chat_id=*) chat=${2#chat_id=} ;; text=*) text=${2#text=} ;; esac
+      shift 2
+      ;;
+    *) shift ;;
+  esac
+done
+if [ -n "$config" ]; then
+  token=$(sed -n 's|^url = "https://api.telegram.org/bot\(.*\)/sendMessage"$|\1|p')
+  code=200
+  [ -e "$F/telegram_code" ] && code=$(cat "$F/telegram_code")
+  [ -e "$F/telegram_code_$chat" ] && code=$(cat "$F/telegram_code_$chat")
+  # one message per log line: the newlines of the text become «|»
+  printf 'chat=%s token=%s text=%s\n' "$chat" "$token" "$(printf '%s' "$text" | tr '\n' '|')" >> "$FAKE_TELEGRAM"
+else
+  code=200
+  [ -e "$F/health_code" ] && code=$(cat "$F/health_code")
+  if [ -n "$output" ]; then
+    if [ -e "$F/health_body" ]; then cp "$F/health_body" "$output"; else : > "$output"; fi
+  fi
+fi
+[ -z "$format" ] || printf '%s\n' "$code"
+[ "$code" != 000 ] || exit 7
+exit 0

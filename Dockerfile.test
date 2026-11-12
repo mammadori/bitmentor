@@ -1,0 +1,13 @@
+# The image of the checks (internal/ci-checks.sh): the site image just built (`website`) with node, so the register's
+# scripts run in the suite instead of being skipped. Production images never get node.
+# Also tblib (requirements-test.lock), for readable failures in parallel.
+# node pinned by digest (24.22.2); it needs libstdc++6.
+FROM node:24.22.2-trixie-slim@sha256:0820eaa85e07d0490446dd01d14707e17e6108a36988cf374899cd057eb3812d AS node
+FROM website
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends libstdc++6 && rm -rf /var/lib/apt/lists/*
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+# tblib: with --parallel, a failing test shows its traceback instead of «cannot pickle traceback»
+RUN pip install --no-cache-dir --require-hashes --no-deps -r requirements-test.lock
+USER app
+RUN node --version

@@ -1,0 +1,97 @@
+/* The customers' path (shops/customer.py): two ways in, three screens for whoever has no wallet, a page for whoever has
+   one, and the sheet the merchant prints. The pictures are drawn by the server (shops/customer_art.py) with these
+   classes, so they take the community's colours, dark mode included. On --primary the text is --background, not
+   --on-primary: a theme may leave --on-primary at its default, white, which on a light --primary in dark mode is lost. */
+.art { display: block; width: 100%; max-width: 220px; height: auto; margin: 0 auto; }
+.art-box { display: block; max-width: 280px; margin: 12px 0; padding: 12px; border-radius: var(--radius); background: var(--surface); }
+.art-small { max-width: 160px; }
+figure.art-box { margin-left: 0; margin-right: 0; }
+.art-line { fill: none; stroke: var(--primary); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.art-thin { stroke-width: 1.8; }
+.art-body { fill: var(--background); stroke: var(--primary); stroke-width: 3; }
+.art-screen { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.art-paper { fill: var(--background); }
+.art-outline { stroke: var(--primary); stroke-width: 2.5; stroke-linejoin: round; }
+.art-ink { fill: var(--primary); }
+.art-soft { fill: var(--line); }
+.art-hi { fill: var(--highlight); }
+.art-counter { fill: var(--primary); }
+.art-good { fill: var(--primary); }
+.art-on-good { stroke: var(--background); stroke-width: 3.5; }
+.art-focus { stroke: var(--accent); }
+
+.customer-ask { margin: 32px 0 12px; font-size: clamp(22px, 3vw, 28px); }
+.customer-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 0 0 24px; padding: 0; list-style: none; }
+.customer-choice { display: block; height: 100%; padding: 16px; border: 2px solid var(--primary); border-radius: var(--radius); color: var(--text); text-decoration: none; }
+.customer-choice:hover { background: var(--surface); }
+.customer-choice strong { display: block; margin: 8px 0 4px; color: var(--primary); font-size: 20px; line-height: 1.25; }
+.customer-choice .art-box { margin: 0; }
+
+/* Three steps, the one you are at marked: a number and a word, which a screen reader hears as "step" */
+.customer-progress { display: flex; gap: 8px; margin: 0 0 24px; padding: 0; list-style: none; counter-reset: customer; }
+.customer-progress li { flex: 1; min-width: 0; padding: 8px 6px; border-bottom: 4px solid var(--line); font-size: 15px; text-align: center; counter-increment: customer; color: var(--muted); }
+.customer-progress li::before { content: counter(customer) ". "; }
+.customer-progress li.done { border-bottom-color: var(--accent); }
+.customer-progress li[aria-current="step"] { border-bottom-color: var(--primary); color: var(--text); font-weight: 700; }
+
+.customer-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 16px 0 8px; }
+.customer-filter a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; }
+.customer-filter a[aria-current] { font-weight: 700; text-decoration: none; }
+.customer-wallets { margin: 8px 0 24px; padding: 0; list-style: none; }
+.customer-wallets li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+.customer-wallets li div { flex: 1 1 220px; min-width: 0; }
+.customer-wallets strong { font-size: 20px; }
+.customer-wallets .wallet-platforms { display: block; color: var(--muted); font-size: 15px; }
+.customer-wallets p { margin: 4px 0 0; }
+.customer-other { margin-top: 24px; }
+.customer-other a { display: inline-flex; align-items: center; min-height: 44px; }
+
+.customer-steps { margin: 16px 0; padding: 0; list-style: none; max-width: 620px; counter-reset: customer-step; }
+.customer-steps > li { counter-increment: customer-step; position: relative; margin: 0 0 16px; padding: 4px 16px 12px 56px; border-radius: var(--radius); background: var(--surface); }
+.customer-steps > li::before { content: counter(customer-step); position: absolute; left: 12px; top: 14px; width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: var(--background); font-weight: 700; line-height: 32px; text-align: center; }
+.customer-steps h2 { margin: 12px 0 4px; font-size: 20px; }
+.customer-steps p { margin: 8px 0 0; font-size: 17px; line-height: 1.5; }
+.customer-steps .art-box { background: var(--background); }
+.customer-steps .button { margin-top: 4px; }
+.customer-steps .button-quiet { border: 2px solid var(--primary); background: var(--background); }
+
+.customer-ready { margin-top: 32px; padding: 20px; border-radius: var(--radius); background: var(--surface); }
+.customer-ready h2 { margin: 0 0 8px; font-size: 24px; }
+.customer-buttons { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; }
+.customer-buttons .button { text-align: center; }
+
+.customer-problems { max-width: 620px; margin: 8px 0 24px; }
+.customer-problems details { border-top: 1px solid var(--line); }
+.customer-problems details:last-child { border-bottom: 1px solid var(--line); }
+.customer-problems summary { display: flex; align-items: center; min-height: 48px; padding: 6px 0; font-weight: 700; cursor: pointer; }
+.customer-problems details p { margin: 0 0 10px; }
+
+/* The sheet for the till */
+.customer-card { padding: 0 16px; }
+.customer-card main { max-width: 760px; margin: 0 auto; padding: 0 0 48px; }
+.customer-card .crumbs { margin: 16px 0 0; }
+.customer-tools { margin: 16px 0 24px; padding: 16px; border-radius: var(--radius); background: var(--surface); }
+.customer-tools p { margin: 0 0 10px; }
+.customer-tools p:last-child { margin: 0; }
+.customer-tools a { display: inline-flex; align-items: center; min-height: 44px; }
+.customer-sheet { padding: 24px; border: 3px solid var(--primary); border-radius: var(--radius); text-align: center; }
+.customer-sheet-head { display: flex; align-items: center; justify-content: center; gap: 16px; text-align: left; }
+.customer-sheet-head img { flex: none; }
+.customer-sheet-head h1 { margin: 0; font-size: clamp(34px, 8vw, 56px); }
+.customer-lead { margin: 6px 0 0; font-size: clamp(18px, 3vw, 24px); line-height: 1.3; }
+.customer-sheet-body { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 20px 32px; margin: 20px 0; }
+.customer-qr { flex: none; width: 260px; max-width: 100%; height: auto; }
+.customer-sheet-steps { flex: 1 1 240px; margin: 0; padding: 0; list-style: none; text-align: left; }
+.customer-sheet-steps li { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; font-size: 19px; font-weight: 600; line-height: 1.25; }
+.customer-sheet-steps .art-box { flex: none; width: 96px; margin: 0; padding: 4px; }
+.customer-sheet-deal { margin: 8px 0; }
+.customer-sheet-foot { margin: 12px 0 0; color: var(--muted); }
+@page customer-card { size: A4; margin: 12mm; }
+@media print {
+  body.customer-card { padding: 0; background: #fff; color: #000; }
+  .customer-card main { max-width: none; padding: 0; page: customer-card; }
+  .customer-sheet { padding: 12mm; border-width: 2px; }
+  .customer-qr { width: 80mm; }
+  .customer-sheet-steps li { font-size: 14pt; }
+  .customer-sheet-steps .art-box { width: 30mm; }
+}

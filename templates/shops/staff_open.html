@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% load static i18n %}
+{% block content %}
+{% if busy %}<header class="page-head"><h1>{% translate "Too many tries" %}</h1></header>
+<p>{% translate "Wait ten minutes and try again." %}</p>
+{% elif register %}<header class="page-head"><h1>{{ register.shop.name }}</h1></header>
+<p>{% blocktranslate with name=register.name %}The shop's register for {{ name }}. With it you take payments for the shop: the money goes to the owner.{% endblocktranslate %}</p>
+<form method="post" action="{% url 'staff_open' %}" data-register="{{ register.id }}">{% csrf_token %}<input type="hidden" name="code" value="{{ code }}"><button class="button">{% translate "Open the register on this phone" %}</button></form>
+<p class="muted">{% translate "The code works only once: then the register stays on this phone. Add it to the home screen from the browser menu." %}</p>
+<script src="{% static 'staff-open.js' %}"></script>
+{% else %}<header class="page-head"><h1>{% translate "This code opens nothing" %}</h1></header>
+<p>{% translate "It was already used, it expired, or the register was turned off. Ask the owner of the shop for a new code." %}</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,15 @@
+/* «What customers see» (shops/details.py): the ticks on the left, the shop page as it will be on the right */
+.display-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+@media (max-width: 760px) { .display-layout { grid-template-columns: 1fr; } }
+.display-row { margin-top: 0; border-bottom: 1px solid var(--line); }
+.display-row .check { display: flex; align-items: flex-start; gap: 12px; min-height: 44px; padding: 10px 0; cursor: pointer; }
+.display-row .check input { flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--primary); }
+.display-value { display: block; color: var(--muted); overflow-wrap: anywhere; }
+.display-empty, .display-doubt { margin: 0 0 10px 36px; }
+.display-doubt { padding: 8px 12px; border-left: 4px solid var(--accent); background: var(--surface); }
+.display-preview h2 { margin: 0 0 8px; font-size: 22px; }
+.display-card { padding: 20px; border-radius: var(--radius); background: var(--surface); }
+.display-card p { margin: 0 0 6px; }
+.display-name { font-size: 24px; font-weight: 700; }
+.display-card .facts { margin: 12px 0 0; }
+.display-card .facts li { padding: 2px 0; overflow-wrap: anywhere; }

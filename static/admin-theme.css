@@ -1,0 +1,49 @@
+/* Cyberpunk theme of the Django admin: the community's fonts when it hosts them (/theme/fonts), neon accents,
+   dark by default even when the system is light. Same-origin only (CSP). Contrast of text on its background >= 4.5:1. */
+@font-face { font-family: "Plex Mono"; src: url("/theme/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Plex Mono"; src: url("/theme/fonts/ibm-plex-mono-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Plex Cond"; src: url("/theme/fonts/ibm-plex-sans-condensed-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Plex Cond"; src: url("/theme/fonts/ibm-plex-sans-condensed-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+:root, html[data-theme="light"], html[data-theme="dark"] {
+  color-scheme: dark;
+  --neon-orange: #ff9a1f; --neon-cyan: #22e6f2; --neon-magenta: #ff3ddb;
+  --primary: #12162a; --secondary: #1a2040; --accent: var(--neon-cyan);
+  --primary-fg: #e8ebf7;
+  --body-fg: #e8ebf7; --body-bg: #0a0c16; --body-quiet-color: #a9b0cf; --body-medium-color: #c4c9e2; --body-loud-color: #ffffff;
+  --header-color: #e8ebf7; --header-branding-color: var(--neon-orange); --header-bg: #0f1224; --header-link-color: #e8ebf7;
+  --breadcrumbs-fg: #c4c9e2; --breadcrumbs-link-fg: var(--neon-cyan); --breadcrumbs-bg: #151a33;
+  --link-fg: var(--neon-cyan); --link-hover-color: #8ff6fc; --link-selected-fg: var(--neon-orange);
+  --hairline-color: #2b3360; --border-color: #394279;
+  --error-fg: #ff7a8a; --message-success-bg: #0d2f26; --message-warning-bg: #3a2c0a; --message-error-bg: #3b0f1d;
+  --darkened-bg: #11152b; --selected-bg: #1d2550; --selected-row: #24204f;
+  --button-fg: #0a0c16; --button-bg: var(--neon-orange); --button-hover-bg: #ffb457;
+  --default-button-bg: var(--neon-cyan); --default-button-hover-bg: #8ff6fc;
+  --close-button-bg: #394279; --close-button-hover-bg: #4b57a0;
+  --delete-button-bg: #ff3d6b; --delete-button-hover-bg: #ff7a95;
+  --object-tools-fg: #0a0c16; --object-tools-bg: var(--neon-magenta); --object-tools-hover-bg: #ff7aea;
+  --font-family-primary: "Plex Cond", "Arial Narrow", system-ui, sans-serif;
+  --font-family-monospace: "Plex Mono", ui-monospace, monospace;
+}
+body { font-family: var(--font-family-primary); background: var(--body-bg); color: var(--body-fg); }
+h1, h2, h3, caption, thead th, #site-name, .module h2, .module caption { font-family: var(--font-family-monospace); letter-spacing: .04em; }
+h1, h2 { text-transform: uppercase; color: var(--body-loud-color); }
+table, td, th, code, input, textarea, select { font-family: var(--font-family-monospace); }
+a:link, a:visited { color: var(--link-fg); }
+a:hover { color: var(--link-hover-color); }
+#header { border-bottom: 1px solid var(--neon-cyan); box-shadow: 0 1px 12px rgba(34, 230, 242, .35); }
+#site-name a:link, #site-name a:visited { color: var(--neon-orange); }
+.staff-zone { flex-basis: 100%; margin: -10px -40px 8px; padding: 3px 40px; background: repeating-linear-gradient(135deg, #ff9a1f 0 14px, #e08a14 14px 28px); color: #0a0c16; font: 700 13px/1.6 var(--font-family-monospace); letter-spacing: .3em; text-transform: uppercase; }
+.staff-zone::before { content: "// "; } .staff-zone::after { content: " //"; }
+.module, #changelist-filter, fieldset.module, .inline-group { border: 1px solid var(--border-color); box-shadow: 0 0 8px rgba(255, 61, 219, .15); background: var(--darkened-bg); }
+.module h2, .module caption, .inline-group h2 { background: #151a33; color: var(--neon-orange); border-bottom: 1px solid var(--neon-orange); }
+thead th, thead th a:link, thead th a:visited { background: #151a33; color: var(--body-fg); }
+tr:nth-child(even) td, tr:nth-child(even) th { background: #0f1326; }
+input, textarea, select { background: #0e1224; color: var(--body-fg); border: 1px solid var(--border-color); }
+:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--neon-cyan); outline-offset: 2px; box-shadow: 0 0 0 4px rgba(34, 230, 242, .3); }
+.button, input[type=submit], input[type=button], .submit-row input, a.button { border: 1px solid transparent; }
+.button:hover, input[type=submit]:hover { box-shadow: 0 0 10px var(--neon-orange); }
+.submit-row input.default { box-shadow: 0 0 8px rgba(34, 230, 242, .5); }
+#footer, .dashboard-entry a { font-family: var(--font-family-monospace); }
+#footer .source-link { margin: 0; padding: 8px 40px 16px; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

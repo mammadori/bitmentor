@@ -1,0 +1,4 @@
+{% load i18n %}<div class="wallet-missing notice" id="wallet-{{ shop.id }}">
+  <p><strong>{% translate "Last step: the wallet." %}</strong> {% translate "Your shop's page is ready. It goes on the map, with its register, as soon as you add the wallet where the money arrives." %}</p>
+  <p><a class="button" href="{% url 'wallet_steps' shop.id %}">{% translate "Add the wallet" %}</a></p>
+</div>

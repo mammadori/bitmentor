@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Fake age. Encrypting: a three-line header like age's first line, then the standard input as it is. Decrypting (-d -i key):
+# only with a key file that holds the word "right". In $FAKE_DIR: age_no_header (it writes no header),
+# age_truncated (it writes only the first 100 bytes). It logs its arguments in $FAKE_CALLS.
+set -u
+F=$FAKE_DIR
+echo "age $*" >> "$FAKE_CALLS"
+if [ "${1:-}" = -d ]; then
+  key=
+  while [ $# -gt 0 ]; do case "$1" in -i) key=$2; shift 2 ;; *) shift ;; esac; done
+  [ "$(cat "$key" 2>/dev/null)" = right ] || { echo "age: error: no identity matched any of the recipients" >&2; exit 1; }
+  tail -n +4
+  exit 0
+fi
+# Like the real age, it refuses a recipient that is not a key: the example keys of backup.env
+for arg in "$@"; do
+  case "$arg" in *example*) echo "age: error: invalid recipient" >&2; exit 1 ;; esac
+done
+if [ -e "$F/age_no_header" ]; then cat; exit 0; fi
+printf 'age-encryption.org/v1\n-> fake\n---\n'
+if [ -e "$F/age_truncated" ]; then head -c 100; cat > /dev/null; else cat; fi

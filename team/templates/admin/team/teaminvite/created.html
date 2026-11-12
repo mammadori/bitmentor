@@ -1,0 +1,10 @@
+{% extends "admin/base_site.html" %}{% load i18n %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">{% translate "Home" %}</a> &rsaquo; <a href="{% url 'admin:team_teaminvite_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo; {{ invite.name }}</div>{% endblock %}
+{% block content %}
+<h1>{% blocktranslate with name=invite.name role=invite.get_role_display %}The invite for {{ name }} ({{ role }}){% endblocktranslate %}</h1>
+<p>{% blocktranslate with expires=invite.expires %}Send this link, or the code, to that person by a channel you trust. Whoever opens it first and signs with a Lightning wallet becomes a team key: it works once, and until {{ expires }}.{% endblocktranslate %}</p>
+<p><input type="text" readonly size="90" value="{{ link }}" aria-label="{% translate 'The link of the invite' %}"></p>
+<p><img src="{{ qr }}" width="264" height="264" alt="{% translate 'The link of the invite as a QR code' %}"></p>
+<p><strong>{% translate "It is shown only now: the site keeps a hash of it, not the link. If it gets lost, delete the invite and make another." %}</strong></p>
+<p><a class="button" href="{% url 'admin:team_teaminvite_changelist' %}">{% translate "Back to the invites" %}</a></p>
+{% endblock %}

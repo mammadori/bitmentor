@@ -1,0 +1,19 @@
+/* The association's dashboard in /admin/ (templates/admin/shops/dashboard.html): the admin's own colours, light and dark */
+.dashboard { max-width: 60rem; }
+.dashboard p { margin: 0 0 .5rem; overflow-wrap: anywhere; }
+.dashboard h2 { margin: 1.5rem 0 .75rem; }
+.dashboard-counts { display: flex; flex-wrap: wrap; gap: .75rem; list-style: none; margin: 1rem 0; padding: 0; }
+.dashboard-counts li { flex: 1 1 8rem; list-style: none; padding: .75rem; border: 1px solid var(--hairline-color); border-radius: 4px; background: var(--darkened-bg); }
+.dashboard-counts strong { display: block; font-size: 1.75rem; line-height: 1.2; }
+.dashboard-items { list-style: none; margin: 0; padding: 0; }
+.dashboard-items li.dashboard-item { list-style: none; margin: 0 0 .75rem; padding: .75rem; border: 1px solid var(--hairline-color); border-left-width: 6px; border-radius: 4px; }
+.dashboard-problem { border-left-color: var(--error-fg) !important; }
+.dashboard-warning { border-left-color: #b8860b !important; }
+.dashboard-info { border-left-color: var(--hairline-color); }
+.dashboard-level { display: inline-block; margin-right: .5rem; padding: 0 .4rem; border-radius: 3px; font-size: .75rem; font-weight: bold; text-transform: uppercase; border: 1px solid currentColor; }
+.dashboard-problem .dashboard-level { color: var(--error-fg); }
+.dashboard-since, .dashboard-label { color: var(--body-quiet-color); }
+.dashboard-command code { display: inline-block; max-width: 100%; white-space: pre-wrap; word-break: break-all; }
+.dashboard-entry { font-size: 1rem; margin: 0 0 1rem; }
+/* Only on this page: the link home is told apart from the title by more than its colour */
+.breadcrumbs a { text-decoration: underline; }

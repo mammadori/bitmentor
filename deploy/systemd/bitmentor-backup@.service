@@ -1,0 +1,21 @@
+[Unit]
+Description=bitmentor: encrypted copy of /opt/%i, also off the machine
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+# A copy that fails (the destination does not answer for a minute, the containers are not up after a boot) is tried again
+# in 10 minutes, three times at most in an hour (the first start counts too, so the limit is 4); then it waits for the
+# next night. Each failed try alerts through check.sh, and check.sh alerts after 26 hours without a copy
+StartLimitIntervalSec=1h
+StartLimitBurst=4
+
+[Service]
+Type=oneshot
+Nice=10
+# A copy is small (one database), but one that hangs on a slow line must not stop the next nights
+TimeoutStartSec=3h
+Restart=on-failure
+RestartSec=10min
+IOSchedulingClass=idle
+# The script comes with the installed release, in current/deploy
+ExecStart=/opt/%i/current/deploy/backup.sh /opt/%i

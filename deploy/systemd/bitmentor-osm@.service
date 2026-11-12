@@ -1,0 +1,21 @@
+[Unit]
+Description=bitmentor: reads OpenStreetMap for the shops of /opt/%i and prepares the changes to propose (never writes)
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+# A reading that failed (Overpass busy or slow) is tried again every hour; the fifth start within twelve hours is refused,
+# the unit becomes failed, and check.sh says so. These two belong here, in [Unit]: in [Service] systemd ignores them,
+# and the reading would be tried again every hour for ever without the unit ever failing
+StartLimitIntervalSec=12h
+StartLimitBurst=4
+
+[Service]
+Type=oneshot
+Nice=10
+# 10: a summary was sent
+SuccessExitStatus=10
+Restart=on-failure
+RestartSec=1h
+TimeoutStartSec=30min
+# The script comes with the installed release, in current/deploy
+ExecStart=/opt/%i/current/deploy/osm.sh /opt/%i

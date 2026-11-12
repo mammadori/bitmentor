@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Fake pg_restore: reads a fake dump on the standard input. --list reads only the table of contents (it fails only on
+# something that is not a dump, like the real one: a dump cut near its end still passes it); -f - reads to the end.
+set -u
+data=$(cat)
+[ "${data%%$'\n'*}" = PGDMP ] || { echo "pg_restore: error: input file does not appear to be a valid archive" >&2; exit 1; }
+case "${1:-}" in
+  --list) grep -E '^[0-9]+;' <<< "$data" || true ;;
+  -f) [[ $data == *$'\nEND' ]] || { echo "pg_restore: error: could not read from input file: end of file" >&2; exit 1; } ;;
+  *) echo "pg_restore: error: one of -d/--dbname and -f/--file must be specified" >&2; exit 1 ;;
+esac

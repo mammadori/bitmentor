@@ -1,0 +1,49 @@
+/* The practice register (shops/practice.py): the real register's screens, with a band that says on every screen that
+   nothing is real, the pretend customer at hand and the exercises after it */
+/* Whatever the focus or a link brings into view stays below the band */
+html:has(body.practising) { scroll-padding-top: 96px; }
+.practice-band { position: sticky; top: 0; z-index: 10; margin: 0 12px 8px; padding: 8px 12px; border: 3px dashed var(--background); border-radius: var(--radius); background: var(--text); color: var(--background); font-weight: 600; line-height: 1.35; outline: 2px solid var(--text); }
+.practice-band h1 { margin: 0; color: inherit; font: inherit; }
+.practice-band strong { margin-right: 6px; letter-spacing: .08em; text-transform: uppercase; }
+/* The code is a sentence, not a payment: it looks different from the real one too */
+.practising .qr-box { padding: 6px; border: 4px dashed var(--text); border-radius: var(--radius); }
+.practice-link { margin: 0; }
+.exercise-now { margin: 0; padding: 8px 12px; border-left: 4px solid var(--highlight); background: var(--surface); font-weight: 700; text-align: left; }
+/* On a phone the register takes its height, not the whole screen: no empty space before the exercises */
+.practising main, .practising .register-screen { flex: none; }
+.customer { position: sticky; bottom: 0; z-index: 10; max-height: 48dvh; overflow-y: auto; margin: 12px 0 0; padding: 10px 16px 14px; border-top: 3px dashed var(--text); background: var(--background); text-align: left; }
+.customer[hidden] { display: none; }
+.customer h2 { margin: 0 0 4px; font-size: 18px; }
+.customer-say { margin: 0 0 10px; font-size: 15px; line-height: 1.45; }
+.customer-say:empty { display: none; }
+.moves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.moves .button { min-height: 44px; padding: 8px 10px; font-size: 15px; line-height: 1.25; }
+.moves [hidden] { display: none; }
+.practice { margin-top: 24px; padding: 0 16px 16px; text-align: left; }
+.practice h2 { margin: 0 0 8px; font-size: 22px; }
+.exercise-list { margin: 0; padding-left: 22px; }
+.exercise-list li { margin: 0 0 16px; }
+.exercise-list p { margin: 4px 0; }
+/* The state always under the title, whatever its length */
+.exercise-head { display: grid; justify-items: start; gap: 4px; }
+.exercise-state { padding: 0 8px; border-radius: var(--radius); background: var(--surface); font-size: 14px; }
+.exercise-done .exercise-state { background: var(--text); color: var(--background); }
+.exercise-done .exercise-state::before { content: "✓ "; }
+.exercise-list summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+.exercise-real { padding: 10px 12px; border-left: 4px solid var(--highlight); background: var(--surface); }
+.exercise-ready { border-left-color: var(--text); }
+#practice-again { color: var(--text); }
+/* A short phone keeps most of the screen for the register */
+@media (max-height: 700px) { .customer { max-height: 36dvh; } .moves .button { padding: 6px 8px; } }
+/* No receipt from the practice register; and on paper the band is black on white, never lost with the background */
+.practising #print { display: none !important; }
+@media print { .practice-band { position: static; border-color: #000; outline-color: #000; background: #fff; color: #000; } .customer, .practice { display: none; } }
+@media (min-width: 960px) {
+  .register.practising { display: grid; grid-template-columns: 460px minmax(0, 1fr); grid-template-areas: "top top" "band band" "main customer" "main practice"; grid-template-rows: auto auto auto 1fr; column-gap: 40px; max-width: 1060px; }
+  .practising .register-top { grid-area: top; }
+  .practising .practice-band { grid-area: band; }
+  .practising main { grid-area: main; align-self: start; }
+  .practising .register-screen { justify-content: flex-start; }
+  .customer { grid-area: customer; position: static; max-height: none; margin: 0; padding: 12px 16px; border: 3px dashed var(--text); border-radius: var(--radius); }
+  .practice { grid-area: practice; }
+}

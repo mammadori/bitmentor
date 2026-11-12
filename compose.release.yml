@@ -1,0 +1,13 @@
+# To install from the release images instead of the sources, with Caddy's rules inside the image:
+#   docker compose -f docker-compose.yml -f compose.release.yml up -d --no-build
+# WEB_IMAGE and CADDY_IMAGE are the images with the version; the community is inside WEB_IMAGE, in /community.
+services:
+  web:
+    image: ${WEB_IMAGE:?WEB_IMAGE is missing}
+    build: !reset null
+    volumes: !reset []
+
+  caddy:
+    image: ${CADDY_IMAGE:?CADDY_IMAGE is missing}
+    volumes: !override
+      - caddy_data:/data

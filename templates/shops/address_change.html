@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a> › <a href="{% url 'edit_shop' shop.id %}">{{ shop.name }}</a></nav>
+<header class="page-head"><h1>{% translate "Change the Lightning address" %}</h1>
+<p>{% translate "Payments go now to:" %} <span class="mono">{{ before }}</span></p>
+<p class="notice">{% translate "Never enter your seed phrase or a private key here." %}</p></header>
+{% if wait %}<p class="notice" role="status">{% blocktranslate with when=wait|date:"DATE_FORMAT" count days=days %}The address can be changed once a day.{% plural %}The address can be changed once every {{ days }} days: next time from {{ when }}.{% endblocktranslate %} {% translate "The same wait follows a change of your account's recovery email." %}</p>
+<p>{% blocktranslate with email=community_email %}If you need it sooner, write to <a href="mailto:{{ email }}">{{ email }}</a>.{% endblocktranslate %}</p>
+{% elif not fresh %}<p>{% blocktranslate with minutes=minutes %}To keep your money safe, the address changes only after a sign-in of the last {{ minutes }} minutes. Sign out and sign in again, with your wallet or with the email link, then come back here.{% endblocktranslate %}</p>
+<form method="post" action="{% url 'sign_out' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ sign_in }}"><button class="button">{% translate "Sign in again" %}</button></form>
+{% else %}<form method="post" class="shop-form" data-saving="{% translate 'Trying the address...' %}">{% csrf_token %}
+  {% if form.errors %}<p class="notice form-alert" role="alert">{% translate "Something needs fixing: look at the messages in red." %}</p>{% endif %}
+  {{ form.non_field_errors }}
+  {{ form.lightning_address.as_field_group }}
+  <p id="lightning-check" class="field-check" role="status" aria-live="polite" hidden data-url="{% url 'lightning_check' %}" data-checking="{% translate 'Trying the address...' %}" data-tidied="{% translate 'Written as {address}.' %}" data-slow="{% translate 'The check is taking too long. You can go on: the address is checked again when you save.' %}" data-failed="{% translate 'I could not check the address now. You can go on: it is checked again when you save.' %}" data-suggest="{% translate 'Did you mean {address}?' %}"></p>
+  <h2>{% translate "What happens" %}</h2>
+  <ul>
+    <li>{% translate "We try the new address, as the first time. Your shop, its page and its sign stay the same: the sign's code leads to the shop's page, so you do not need to print it again." %}</li>
+    <li>{% translate "Open your register again and confirm the new address. The registers of your staff stop until you give each one a new pairing code." %}</li>
+    <li>{% translate "Sales already started on the old address are still recognised for a few days: keep the old wallet until they are settled." %}</li>
+    <li>{% blocktranslate count days=days %}We send you a confirmation and tell the association. The address can be changed again after a day.{% plural %}We send you a confirmation and tell the association. The address can be changed again after {{ days }} days.{% endblocktranslate %}</li>
+    <li>{% translate "If your shop is certified, the badge comes back as soon as we see the new address work, usually within the hour." %}</li>
+  </ul>
+  <button class="button" type="submit">{% translate "Change the address" %}</button>
+</form>
+<script src="{% static 'shop_form.js' %}"></script>{% endif %}
+{% endblock %}

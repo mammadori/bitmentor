@@ -1,0 +1,25 @@
+# One block per installation: the site's name, to the alias caddy-<project> that
+# deploy/install.sh --entry shared writes in its compose.locale.yml. Caddy gets the certificates by itself, and
+# passes the visitor's address in X-Forwarded-For, which the installation's Caddy trusts from this network.
+{
+	# email admin@example.org
+}
+
+# reverse_proxy adds Via, and Caddy its Server: visitors do not need to know which software answers, nor how many
+# proxies are in front (the installation's Caddy drops its own the same way)
+(anonymous) {
+	header {
+		-Server
+		-Via
+	}
+}
+
+shops.example.org {
+	import anonymous
+	reverse_proxy caddy-shops:80
+}
+
+test.shops.example.org {
+	import anonymous
+	reverse_proxy caddy-shops-signet:80
+}

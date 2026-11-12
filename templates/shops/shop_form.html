@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block head %}<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">{% endblock %}
+{% block content %}
+<header class="page-head"><h1>{% translate "Add a shop" %}</h1></header>
+{% if prefilled %}<p class="notice" role="status">{% translate "What you already told us is written in: check it and change anything you like." %}</p>{% endif %}
+<p class="muted">{% blocktranslate with email=community.email %}Is your shop already on the map? Do not add it again: write to <a href="mailto:{{ email }}">{{ email }}</a>.{% endblocktranslate %}</p>
+<form method="post" class="shop-form shop-new" data-draft="new-shop" data-saving="{% translate 'Creating your shop...' %}">{% csrf_token %}{% include "shops/shop_fields.html" with new_shop=True %}<button class="button button-wide" type="submit">{% translate "Create the shop" %}</button></form>
+<script src="{% static 'vendor/leaflet/leaflet.js' %}"></script>
+<script src="{% static 'shop_form.js' %}"></script>
+{% endblock %}

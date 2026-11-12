@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a></nav>
+{% if busy %}<header class="page-head"><h1>{% translate "Take back your shop" %}</h1></header>
+<p class="notice" role="alert">{% translate "Too many tries in a short time: wait an hour and open the link again." %}</p>
+{% elif gone %}<header class="page-head"><h1>{% translate "Take back your shop" %}</h1></header>
+<p class="notice" role="alert">{% blocktranslate with email=community.email %}This link does not work: it was already used, or it is not complete. Write to <a href="mailto:{{ email }}">{{ email }}</a>.{% endblocktranslate %}</p>
+{% else %}<header class="page-head"><h1>{% blocktranslate with name=shop.name %}Take back {{ name }}{% endblocktranslate %}</h1></header>
+<p>{% translate "Your shop has moved to this site. Confirm, and it goes into the account you are signed in with now: then connect your wallet to take payments." %}</p>
+{% if taken %}<p class="notice" role="alert">{{ taken }}</p>{% endif %}
+<p class="muted">{% translate "The link works once. If this is not your shop, do not confirm." %}</p>
+<form method="post" action="{% url 'claim_shop' %}">{% csrf_token %}<input type="hidden" name="code" value="{{ code }}"><button class="button" type="submit">{% translate "Yes, it is my shop" %}</button></form>
+{% endif %}
+{% endblock %}

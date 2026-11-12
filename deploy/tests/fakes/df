@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Fake df: 40% used, or the percentage written in $FAKE_DIR/root_disk and docker_disk
+case "${!#}" in /) file=root_disk ;; *) file=docker_disk ;; esac
+used=$(cat "$FAKE_DIR/$file" 2>/dev/null || echo 40)
+printf 'Filesystem 1024-blocks Used Available Capacity Mounted on\nfake 100 %s %s %s%% %s\n' "$used" "$((100 - used))" "$used" "${!#}"

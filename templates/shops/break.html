@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{% translate "Closed for a while" %} · {{ shop.name }} · {{ community.name }}{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a></nav>
+<header class="page-head"><h1>{% translate "Closed for a while" %}</h1><p>{{ shop.name }}</p></header>
+{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+<p>{% translate "Closing for holidays, for works or for any other reason? Say it here. The map and your shop page tell your customers, kindly, and the shop stays on the map. Nobody is worried: the icons on your card do not fade for the days you are away." %}</p>
+<p>{% translate "Your register keeps working: if someone pays you while you are closed, it is paid as always. Your wallet and the way you get paid do not change." %}</p>
+{% if state %}<p class="notice break-now" role="status"><strong>{{ state.text }}</strong></p>{% endif %}
+<form method="post" class="shop-form break-form">{% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}{% if field.name == "first_day" and started %}<p>{% blocktranslate with date=editing.first_day|date:"j F Y" %}Closed since {{ date }}.{% endblocktranslate %}</p>{% elif field.name == "until_told" %}<p class="break-until">{{ field.errors }}<label class="check">{{ field }} {{ field.label }}</label></p>{% else %}{{ field.as_field_group }}{% endif %}{% endfor %}
+  <p class="muted">{% blocktranslate %}If you do not know yet, tick «I will say when I open again»: the shop says it is closed for now, and you open it again from your panel when you are back.{% endblocktranslate %}</p>
+  <p><button class="button" type="submit">{% if editing %}{% translate "Save the changes" %}{% else %}{% translate "Save" %}{% endif %}</button></p>
+</form>
+{% if editing %}
+<form method="post" action="{% url 'break_over' shop.id %}" class="break-end">{% csrf_token %}
+  <button class="button button-quiet" type="submit">{% if started %}{% translate "I am back: open the shop today" %}{% else %}{% translate "Cancel this closure" %}{% endif %}</button>
+</form>
+{% endif %}
+<p class="muted">{% translate "The days are those of the shop's town. Whoever looks at the map sees the reason you choose and the day you open again, nothing else." %}</p>
+{% endblock %}

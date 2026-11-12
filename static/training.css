@@ -1,0 +1,40 @@
+/* The merchant's training (templates/shops/training*.html, the panel's card): the path, the bar, the badges, the quiz. */
+.training-card { margin: 0 0 28px; padding: 16px 18px; border: 2px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.training-card h2, .training-quiz h2 { margin: 0; font-size: 22px; }
+.training-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin: 0 0 8px; }
+.training-sign { display: inline-block; padding: 0 10px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-size: 14px; font-weight: 700; line-height: 1.8; }
+.training-bar { display: grid; gap: 4px; margin: 12px 0; }
+.training-bar progress { width: 100%; max-width: 560px; height: 14px; accent-color: var(--primary); }
+.training-badges { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 8px 0; padding: 0; list-style: none; }
+.training-badges li { padding: 0 10px; border: 1px dashed var(--muted); border-radius: 999px; background: var(--background); color: var(--muted); font-size: 15px; line-height: 1.8; }
+.training-badges li.earned { border: 1px solid var(--primary); color: var(--text); font-weight: 700; }
+.training-ok { color: var(--text); font-weight: 600; }
+.training-modules { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; counter-reset: module; }
+.training-modules li { counter-increment: module; padding: 12px 14px 8px; border-left: 4px solid var(--line); background: var(--surface); }
+.training-modules li.state-done { border-left-color: var(--primary); }
+/* Number, title and status in one grid: a long title wraps in its own column, the status stays on the right */
+.training-modules li > div { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 4px 8px; }
+.training-number { font-weight: 700; }
+.training-modules li > div .training-state { text-align: right; }
+.training-note { display: block; color: var(--muted); font-weight: 400; }
+.training-status { margin: 0 0 8px; font-weight: 600; }
+.training-modules a { display: inline-flex; align-items: center; min-height: 44px; }
+.training-modules p { margin: 0 0 4px; }
+.training-state { color: var(--muted); font-size: 15px; }
+.training-steps { display: grid; gap: 12px; margin: 0 0 12px; padding: 0; list-style: none; }
+.training-steps li { padding: 10px 14px; border-left: 4px solid var(--line); background: var(--surface); }
+.training-steps p { margin: 4px 0; }
+.training-shop { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 16px; }
+.training-shop select { min-height: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--background); color: var(--text); font: inherit; }
+.training-quiz fieldset, .training-declare { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
+.training-quiz fieldset.quiz-wrong { border-color: var(--text); border-width: 2px; }
+.training-quiz legend { padding: 0 6px; font-weight: 700; }
+.training-quiz label, .training-declare label, .training-steps label, .training-close label { display: inline-flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 6px 0; }
+.training-quiz input[type="radio"], .training-declare input[type="checkbox"], .training-steps input[type="checkbox"], .training-close input[type="checkbox"] { flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--primary); }
+.quiz-explain { margin: 8px 0 0; padding: 8px 10px; border-left: 4px solid var(--primary); background: var(--surface); }
+.training-statements { margin: 0 0 12px; padding: 0; list-style: none; }
+.training-statements li { margin: 0 0 6px; }
+.training-rules { display: grid; gap: 12px; margin: 0 0 20px; padding-left: 1.4em; font-size: 20px; }
+.training-close { max-width: 34rem; margin: 0 0 24px; padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--radius); }
+.training-close h2 { margin: 0 0 6px; font-size: 20px; }
+.training-actions { display: flex; flex-wrap: wrap; gap: 10px; }

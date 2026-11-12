@@ -1,0 +1,254 @@
+{% load static i18n %}<!doctype html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ shop.name }}{% endblock %}</title>
+{% block manifest %}<link rel="manifest" href="{{ urls.manifest }}">{% endblock %}
+<link rel="stylesheet" href="{% static 'base.css' %}">
+<link rel="stylesheet" href="{% static 'register.css' %}">
+<link rel="stylesheet" href="/theme/theme.css">
+{% block head %}{% endblock %}
+</head>
+<body class="register{% block body_class %}{% endblock %}" data-ledger="{{ ledger }}" data-shop="{{ shop.id }}"{% if staff %} data-staff="{{ staff.id }}"{% endif %}{% if practice %} data-practice="1"{% endif %} data-file="{{ shop.name|slugify|default:'register' }}"{% if staff %} data-till-name="{{ staff.name }}"{% endif %}{% if urls.worker %} data-worker="{{ urls.worker }}"{% endif %} data-no-amount="{% translate 'Type the amount first.' %}" data-cancel-warning="{% if staff %}{% translate 'Cancel this sale? If the customer has already paid, tell the owner: they give the money back.' %}{% else %}{% translate 'Cancel this sale? If the customer has already paid, you will have to refund them.' %}{% endif %}">
+{% csrf_token %}
+{% if staff %}{% translate "Sales stay only on this phone and in the copies you download. The site does not see or keep them: if you lose the phone without a copy, you lose the history (not the money, which is in the shop's wallet)." as keep_note %}{% else %}{% translate "Sales stay only on this phone and in the copies you download. The site does not see or keep them: if you lose the phone without a copy, you lose the history (not the money, which is in your wallet)." as keep_note %}{% endif %}
+<header class="register-top"><img src="/theme/{{ community.logo }}" alt="">
+  <div class="register-id"><p class="register-name"><span id="shop-name">{{ shop.name }}</span><span id="shop-town" class="shop-town" hidden></span>{% if staff %} <span class="staff-name">{{ staff.name }}</span>{% endif %}</p>
+  {% if paying_to %}{% include "shops/paying_to.html" with class="paying-to no-print" %}{% endif %}</div>
+  <button type="button" id="menu-open" class="menu-button no-print" aria-haspopup="dialog" aria-controls="menu" aria-expanded="false" aria-label="{% translate 'Menu' %}"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></button></header>
+{% block band %}{% endblock %}
+<main>
+{% if staff.retired %}<p class="notice staff-retired" role="status">{% translate "The owner turned off this register: it takes no more payments, and within a day this page stops opening. Today, download the encrypted copy of its sales (History and end of shift) and give it to the owner." %}</p>{% endif %}
+<section id="keypad" class="register-screen keypad">
+  <h1 class="visually-hidden">{{ shop.name }}{% if staff %} · {{ staff.name }}{% endif %}</h1>
+  <div id="blocked" class="notice blocked" role="alert" hidden><p id="blocked-text"></p>
+    <button type="button" id="pin-ok" class="button button-quiet" hidden>{% translate "I changed it: use the new address" %}</button></div>
+  <p id="note" class="register-note" hidden></p>
+  {% block exercise_now %}{% endblock %}
+  <div class="amount-box">
+    <output id="amount" tabindex="-1">0.00 {{ currency }}</output>
+    <p id="hint" class="hint">{% translate "Type the cents too: 1, 5, 0 makes 1.50." %}</p>
+    <p class="discount-line"><button type="button" id="discount" class="linklike discount" aria-pressed="true" hidden></button><span id="discount-fixed" class="discount" hidden></span></p>
+  </div>
+  <div class="keys">
+    <button>1</button><button>2</button><button>3</button>
+    <button>4</button><button>5</button><button>6</button>
+    <button>7</button><button>8</button><button>9</button>
+    <button class="clear" aria-label="{% translate 'Clear' %}"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M9 5h11v14H9l-6-7zM12.5 9.5l5 5m0-5l-5 5" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none"/></svg></button><button>0</button><button class="ok">OK</button>
+  </div>
+  {# On-chain is an experimental feature (config/features.py): off, the page has none of it (register.chain_on, shops/register.py) #}
+  {% if register.chain_on %}<p class="chain-ok-line"><button type="button" id="chain-ok" class="linklike" hidden>{% translate "OK, on-chain" %}</button></p>{% endif %}
+</section>
+<dialog id="menu" class="menu-sheet" aria-labelledby="menu-title">
+  <div class="sheet-head"><h2 id="menu-title">{{ shop.name }}{% if staff %} · {{ staff.name }}{% endif %}</h2>
+    <button type="button" id="menu-close" class="menu-button" aria-label="{% translate 'Close' %}"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></button></div>
+  <div id="keep-first" class="notice keep-first" hidden><p>{% translate "Sales stay only on this phone: download a copy now and then." %}</p>
+    <button type="button" id="keep-ok" class="button button-quiet">{% translate "Understood" %}</button></div>
+  <p id="copy-reminder" class="notice copy-reminder" hidden><button type="button" class="linklike" data-history>{% translate "Time to download a copy of your sales." %}</button></p>
+  {% if not staff and not practice and register.chain_on %}<p id="chain-gap" class="notice" role="status" hidden></p>{% endif %}
+  {% if register.quick_start %}<p id="quick-start" class="notice quick-start" role="status" hidden><span id="quick-text"></span> <a href="{% url 'training' %}">{% translate "Start the training" %}</a></p>{% endif %}
+  <nav class="sheet-list register-tools" aria-labelledby="menu-title">
+    <label class="sheet-item sheet-check"><input type="checkbox" id="sound-on"> {% translate "Sound when a payment arrives" %}</label>
+    <button type="button" class="sheet-item" data-history>{% if staff %}{% translate "History and end of shift" %}{% else %}{% translate "History and day closing" %}{% endif %}</button>
+    {% if not staff and not practice %}<button type="button" class="sheet-item" id="settings-open">{% translate "Settings" %}</button>{% endif %}
+    {% block practice_link %}{% if urls.practice %}<a class="sheet-item practice-link" href="{{ urls.practice }}">{% translate "Practise without money" %}</a>{% endif %}{% endblock %}
+    {% block owner_links %}{% if owner %}<a class="sheet-item" href="{% url 'training' %}">{% translate "Training" %}</a>
+    <a class="sheet-item" href="{% url 'help_home' shop.id %}">{% translate "Something wrong?" %}</a>
+    <a class="sheet-item" href="{% url 'shops' %}">{% translate "Your shops" %}</a>
+    <form method="post" action="{% url 'sign_out' %}"><input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"><input type="hidden" name="next" value="{{ request.path }}"><button class="sheet-item">{% translate "Leave the panel (the register stays open)" %}</button></form>{% endif %}{% endblock %}
+  </nav>
+  {% if staff %}<p id="paired" class="muted" hidden></p>
+  <details class="staff-help"><summary>{% translate "Something is not right?" %}</summary>
+    <dl>
+      <dt>{% translate "Did the customer pay?" %}</dt>
+      <dd>{% translate "Only when this screen shows the green tick and «Payment received». «Sent» on the customer's phone is not enough." %}</dd>
+      <dt>{% translate "I typed the wrong amount" %}</dt>
+      <dd>{% translate "If the customer has not paid yet: press Cancel and type it again. If they already paid: tell the owner the time and the amount, they give the difference back." %}</dd>
+      <dt>{% translate "The phone switched off, or I closed the page" %}</dt>
+      <dd>{% translate "Open the register again on the same phone: the sale comes back, or its line below says how it ended. On another phone it does not: tell the owner the time and the amount." %}</dd>
+      <dt>{% translate "The customer paid twice" %}</dt>
+      <dd>{% translate "Do not give money back yourself: tell the owner the time and the amount." %}</dd>
+    </dl>
+    <p class="muted">{% translate "This register only takes payments for the shop. The money goes to the owner, never to this phone." %}</p>
+  </details>{% endif %}
+  <details id="ledger" class="ledger" hidden><summary></summary><ul></ul></details>
+  <p class="muted">{% include "partials/source_link.html" %}</p>
+</dialog>
+<section id="history" class="register-screen history" hidden>
+  <h1 id="history-title" tabindex="-1">{% translate "Sales on this phone" %}</h1>
+  <p id="copy-state" class="copy-state"></p>
+  <p class="muted">{{ keep_note }}</p>
+  <p id="not-kept" class="muted" hidden>{% translate "This browser may delete the sales when it needs room: keep your copies up to date." %}</p>
+  <h2>{% if staff %}{% translate "End of shift" %}{% else %}{% translate "Day closing" %}{% endif %}</h2>
+  <p><label for="day">{% translate "Day" %}</label> <select id="day"></select></p>
+  <p id="day-closed" class="muted"></p>
+  <ul id="day-totals" class="day-totals"></ul>
+  <details class="ledger" hidden><summary>{% translate "Sales of the day" %}</summary><ul id="day-sales"></ul></details>
+  <button type="button" id="close-day" class="button">{% if staff %}{% translate "End the shift" %}{% else %}{% translate "Close the day" %}{% endif %}</button>
+  <h2>{% translate "Copies" %}</h2>
+  <p><label for="copy-every">{% translate "Remind me to download a copy" %}</label>
+    <select id="copy-every">
+      <option value="manual">{% translate "Never: I do it when I want" %}</option>
+      <option value="daily">{% translate "Every day" %}</option>
+      <option value="weekly">{% translate "Every week" %}</option>
+      <option value="monthly">{% translate "Every month" %}</option>
+      <option value="closing">{% if staff %}{% translate "At the end of every shift" %}{% else %}{% translate "At every day closing" %}{% endif %}</option>
+    </select></p>
+  <form id="csv-form" class="history-form">
+    <p><label for="csv-month">{% translate "Month" %}</label> <select id="csv-month"><option value="">{% translate "All the sales" %}</option></select></p>
+    <button class="button button-quiet">{% translate "Download the CSV for the accountant" %}</button>
+  </form>
+  <form id="export-form" class="history-form">
+    <p class="muted">{% translate "The full copy is encrypted with a passphrase you choose: without it nobody can open the copy, not even you. Write it down somewhere safe." %}</p>
+    <p><label for="export-pass">{% translate "Passphrase (at least 10 characters)" %}</label> <input id="export-pass" type="password" autocomplete="new-password" minlength="10" required></p>
+    <p><label for="export-again">{% translate "The passphrase again" %}</label> <input id="export-again" type="password" autocomplete="new-password" required></p>
+    <button class="button">{% translate "Download the encrypted copy" %}</button>
+  </form>
+  <form id="import-form" class="history-form">
+    <p class="muted">{% if staff %}{% translate "On a new phone: the sales already here stay, and each sale is counted once." %}{% else %}{% translate "On a new phone, or to add a staff register's sales at the end of a shift: the sales already here stay, and each sale is counted once." %}{% endif %}</p>
+    <p><label for="import-file">{% translate "File of the copy" %}</label> <input id="import-file" type="file" accept=".json,application/json" required></p>
+    <p><label for="import-pass">{% translate "Its passphrase" %}</label> <input id="import-pass" type="password" autocomplete="off" required></p>
+    <p><label class="check"><input type="checkbox" id="import-own"> {% translate "It is a copy of this register, made on this phone or on the one it replaces" %}</label></p>
+    <button class="button button-quiet">{% translate "Import the copy" %}</button>
+  </form>
+  {% if register.relays and not practice %}<div id="nostr" class="history-form" hidden>
+    <h2>{% translate "Copy on Nostr" %}</h2>
+    <p id="nostr-state" class="muted"></p>
+    <button type="button" id="nostr-send" class="button button-quiet">{% translate "Send the copy now" %}</button>
+    {% if not staff %}<div id="nostr-pull">
+      <p class="muted">{% translate "The sales of the staff registers paired from this phone arrive by themselves while this page is open. Your Nostr private key is needed only to bring back your own copies on a new phone, and to read the staff registers this phone no longer has the keys of: it stays on this page until you close it, never stored and never sent." %}</p>
+      <p><label for="nostr-secret">{% translate "Your Nostr private key (nsec)" %}</label> <input id="nostr-secret" class="secret-field" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other"></p>
+      <button type="button" id="nostr-pull-go" class="button button-quiet">{% translate "Bring the sales from Nostr" %}</button>
+    </div>{% endif %}
+  </div>{% endif %}
+  <p id="history-say" role="status"></p>
+  <button type="button" id="history-back" class="button button-quiet">{% translate "Back to the register" %}</button>
+</section>
+{% if not staff and not practice %}<section id="settings" class="register-screen settings" hidden>
+  <h1 id="settings-title" tabindex="-1">{% translate "Register settings" %}</h1>
+  <p class="muted">{% translate "Saved on this phone. Staff registers get them with their pairing code." %}</p>
+  <form id="settings-form" class="settings-form" novalidate>
+    <fieldset class="group"><legend>{% translate "Where the money goes" %}</legend>
+      <p class="field-static">{% translate "Lightning address" %}: <span id="settings-lightning" class="mono">{{ shop.lightning_address }}</span></p>
+      <p class="help">{% translate "It is the shop's address on the site: you change it there." %}</p>
+    </fieldset>
+    <fieldset class="group"><legend>{% translate "Prices" %}</legend>
+      <p class="field"><label for="currency">{% translate "Currency" %}</label>
+        <input id="currency" class="short" maxlength="3" autocapitalize="characters" autocomplete="off" aria-describedby="currency-help">
+        <span id="currency-help" class="help">{% translate "Three letters, for example EUR." %}</span>
+        <span id="currency-error" class="field-error" hidden></span></p>
+      <p class="field"><label for="discount-percent">{% translate "Discount for paying in bitcoin (%)" %}</label>
+        <input id="discount-percent" class="short" type="number" min="0" max="100" step="1" inputmode="numeric" aria-describedby="discount-percent-help">
+        <span id="discount-percent-help" class="help">{% translate "0: no discount." %}</span>
+        <span id="discount-percent-error" class="field-error" hidden></span></p>
+      <p><label class="check"><input type="checkbox" id="discount-removable"> {% translate "Let the registers remove the discount on a sale" %}</label></p>
+    </fieldset>
+    {% if register.chain_on %}<fieldset class="group"><legend>{% translate "On-chain (optional)" %}</legend>
+      <p class="field"><label for="chain-key">{% translate "Your wallet's public key (zpub, xpub…) or a fixed address" %}</label>
+        <textarea id="chain-key" class="key-field" rows="2" placeholder="zpub…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" aria-describedby="chain-key-help"></textarea>
+        <span id="chain-key-help" class="help">{% translate "Empty: Lightning only." %}</span>
+        <span id="chain-key-error" class="field-error" hidden></span></p>
+      <p id="chain-check" class="chain-check" role="status"></p>
+      <p id="chain-confirm-line" hidden><label class="check"><input type="checkbox" id="chain-confirm"> {% translate "I checked it: it is my wallet's" %}</label></p>
+      <p id="chain-start-check" class="chain-check" role="status"></p>
+      <p id="chain-start-line" hidden><label class="check"><input type="checkbox" id="chain-start-confirm"> {% translate "I checked it: it is my wallet's" %}</label></p>
+      <p id="chain-gap-count" class="muted" hidden></p>
+      <details class="more"><summary>{% translate "How on-chain works" %}</summary>
+        <p class="muted">{% translate "With a key, each sale takes the next unused receive address of your wallet, so the payments show in any wallet. These are the same addresses your wallet may give to someone else: a payment to one of them may be for something else. The register counts a payment only if it is the sale's amount and arrives during the sale, and otherwise shows what arrived: check it in your wallet. Never give out the wallet's receive addresses elsewhere while you use the register." %}</p>
+        <p class="muted">{% translate "When you save a new key, the register asks the explorer once for the first unused address of your wallet, keeps it on this phone and goes on from there, one address per sale." %}</p>
+        <p class="muted">{% translate "Sales started and never paid use addresses too: after 20 unpaid in a row, raise the wallet's gap limit. Use this register on one phone only: another phone takes a staff register." %}</p></details>
+      <p class="field"><label for="confirm-above">{% translate "Wait for a block above this amount" %}</label>
+        <input id="confirm-above" class="short" inputmode="decimal" autocomplete="off" aria-describedby="confirm-above-help">
+        <span id="confirm-above-help" class="help">{% translate "0: always wait." %}</span>
+        <span id="confirm-above-error" class="field-error" hidden></span></p>
+    </fieldset>{% endif %}
+    <fieldset class="group"><legend>{% translate "Look" %}</legend>
+      <p class="field field-row"><label for="colour">{% translate "Colour of the register" %}</label> <input id="colour" type="color"></p>
+      <p class="field"><label for="note-text">{% translate "A line on the register and on the staff registers (optional)" %}</label>
+        <input id="note-text" maxlength="140"></p>
+    </fieldset>
+    <details id="advanced" class="advanced"><summary>{% translate "Advanced" %}</summary>
+    {% if register.chain_on %}<fieldset class="group"><legend>{% translate "On-chain addresses" %}</legend>
+      <p class="field"><label for="chain-start">{% translate "Start at address number" %}</label>
+        <input id="chain-start" class="short" inputmode="numeric" autocomplete="off" aria-describedby="chain-start-help">
+        <span id="chain-start-help" class="help">{% translate "Empty: found by itself. Only to correct it." %}</span>
+        <span id="chain-start-error" class="field-error" hidden></span></p>
+      <details class="more"><summary>{% translate "When to set it" %}</summary>
+        <p class="muted">{% translate "Only when the register says that many addresses after the last one it knows look used, and your wallet really used them (a wallet in use for a long time, or a phone restored with too little history): read the number of the last used receive address (…/0) in your wallet (for example in Sparrow's address list) and type the next one. The register then uses that number, the next one, and so on. Empty: no change. All the registers of the shop then go on from there." %}</p></details>
+      <p class="field"><label for="chain-path">{% translate "Path of the on-chain addresses after your key (optional)" %}</label>
+        <input id="chain-path" class="short" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="0" aria-describedby="chain-path-now">
+        <span id="chain-path-now" class="help"></span>
+        <span id="chain-path-error" class="field-error" hidden></span></p>
+      <details class="more"><summary>{% translate "When to change it" %}</summary>
+        <p class="muted">{% translate "Empty: 0, the receive chain of a standard wallet (…/0/0, …/0/1, …). Change it only if your wallet receives on another path after the key you pasted, for example 0/5: whole numbers separated by «/», at most four, none hardened (no ' or h). All the registers of the shop use it; a staff register after you pair it again. Sales already made keep their addresses." %}</p></details>
+      <p class="field"><label for="own-explorer">{% translate "Your own explorer (optional)" %}</label>
+        <input id="own-explorer" type="url" inputmode="url" maxlength="200" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://mynode.example.org/api">
+        <span id="own-explorer-error" class="field-error" hidden></span></p>
+      <details class="more"><summary>{% translate "What it is" %}</summary>
+        <p class="muted">{% translate "The https address of the API of an Esplora or mempool explorer on your own node, for example the mempool app. The registers (yours and the staff's) ask it first to check on-chain payments, and the community's explorers only when it does not answer. It must allow this site's address in its CORS settings and have a valid https certificate; the Bitcoin Core RPC alone cannot be used." %}</p></details>
+    </fieldset>{% endif %}
+    <fieldset id="sources" class="group sources" tabindex="-1"><legend>{% translate "Price sources (at least two)" %}</legend></fieldset>
+    <p class="help">{% translate "The exchange rate is the average of two of these sources that agree. Your choice goes to the staff registers with their pairing code: they cannot change it." %}</p>
+    {% if register.relays %}<fieldset class="group"><legend>{% translate "Copy on Nostr" %}</legend>
+      <p class="field"><label for="nostr-owner">{% translate "Your Nostr public key (npub)" %}</label>
+        <input id="nostr-owner" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="nostr-owner-help">
+        <span id="nostr-owner-help" class="help">{% translate "Empty: no copy on Nostr." %}</span>
+        <span id="nostr-owner-error" class="field-error" hidden></span></p>
+      <details class="more"><summary>{% translate "What it is" %}</summary>
+        <p class="muted">{% translate "With your Nostr public key, this register keeps an encrypted copy of its sales on the community's relays, and the staff registers paired after this send you their sales as they happen. Only your private key opens them." %}</p></details>
+      {% if register.public_relays %}<div id="nostr-relays" class="sources"><p class="help">{% translate "Public relays to use too (optional)" %}</p>
+        {% for relay in register.public_relays %}<label class="check"><input type="checkbox" value="{{ relay }}"> {{ relay }}</label>{% endfor %}</div>{% endif %}
+      <p><button type="button" id="nostr-forget" class="button button-quiet">{% translate "Forget the staff registers' Nostr keys" %}</button></p>
+    </fieldset>{% endif %}
+    </details>
+    <p id="settings-say" role="status"></p>
+    <button class="button">{% translate "Save" %}</button>
+  </form>
+  <button type="button" id="settings-back" class="button button-quiet">{% translate "Back to the register" %}</button>
+</section>{% endif %}
+<section id="step" class="register-screen" hidden>
+  <p class="waiting"><span></span><span></span><span></span> <span id="step-text" tabindex="-1"></span></p>
+</section>
+<section id="rate" class="register-screen" hidden>
+  <p id="question" tabindex="-1"></p>
+  <div class="choices"></div>
+  <button id="rate-back" class="button button-quiet">{% translate "Cancel" %}</button>
+</section>
+<section id="pay" class="register-screen" hidden>
+  <h1 class="visually-hidden">{{ shop.name }}{% if staff %} · {{ staff.name }}{% endif %}</h1>
+  <p id="due" class="due"></p>
+  <p id="rate-used" class="muted"></p>
+  <p id="to" class="muted"></p>
+  <div class="qr-box"><img id="qr" class="qr" tabindex="-1" alt="{% block qr_alt %}{% translate 'Code for the customer to scan' %}{% endblock %}"></div>
+  <p class="waiting"><span></span><span></span><span></span> {% translate "Waiting for payment" %}</p>
+  <p id="no-check" class="no-check" role="alert" hidden></p>
+  <p id="chain-state" class="chain-state" hidden></p>
+  <button type="button" id="confidence" class="confidence" aria-expanded="false" aria-controls="confidence-why" hidden><span class="confidence-bar" aria-hidden="true"><span class="confidence-step"></span><span class="confidence-step"></span><span class="confidence-step"></span></span> <span id="confidence-label"></span></button>
+  <ul id="confidence-why" class="confidence-why muted" hidden></ul>
+  <button id="seen" class="button" hidden></button>
+  <button id="later" class="button button-quiet" hidden></button>
+  <details class="destination"><summary>{% translate "The code does not scan? Show it as text" %}</summary>
+    <p class="muted" id="pay-method">Lightning</p><p id="invoice" class="mono"></p>
+    <button type="button" id="copy-invoice" class="button button-quiet" data-copied="{% translate 'Copied' %}" hidden>{% translate "Copy the text" %}</button></details>
+  <button id="cancel" class="button button-quiet">{% translate "Cancel" %}</button>
+</section>
+<section id="done" class="register-screen" hidden>
+  <div class="tick" aria-hidden="true"></div>
+  <h1 id="result"></h1>
+  <p id="receipt" class="muted"></p>
+  <button id="print" class="button button-quiet no-print">{% translate "Print receipt" %}</button>
+  <button id="again" class="button no-print">{% translate "New payment" %}</button>
+</section>
+{{ register|json_script:"register-data" }}
+<div id="register-modules" hidden data-qrcode="{% static 'vendor/qrcode/qrcode.js' %}" data-derive="{% static 'register-derive.js' %}"{% if register.chain_on %} data-chain="{% static 'register-chain.js' %}"{% endif %} data-nostr="{% static 'register-nostr.js' %}" data-relays="{% static 'register-relays.js' %}"></div>
+<p id="state" class="visually-hidden" role="status"></p>
+<p id="error" role="alert"></p>
+</main>
+{% block practice %}{% endblock %}
+<script src="{% static 'register-book.js' %}"></script>
+<script src="{% static 'register-pairing.js' %}"></script>
+{% block scripts %}<script src="{% static 'register.js' %}"></script>{% endblock %}
+</body>
+</html>

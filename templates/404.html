@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% load i18n %}
+{% block body_class %}page-404{% endblock %}
+{% block page_meta %}<meta name="robots" content="noindex">
+{% endblock %}
+{% block content %}
+<div class="empty">
+  <p class="eyebrow">404</p>
+  <h1>{% translate "This page is not here" %}</h1>
+  <p>{% translate "The address may have changed." %}</p>
+  <a class="button" href="{% url 'home' %}">{% translate "Back to the home page" %}</a>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block head %}{% if training %}<link rel="stylesheet" href="{% static 'training.css' %}">{% endif %}{% endblock %}
+{% block content %}
+<header class="page-head"><h1>{% translate "Your shops" %}</h1>
+  <form method="post" action="{% url 'sign_out' %}" class="account-who muted">{% csrf_token %}{% blocktranslate with who=signed_in %}Signed in as {{ who }}.{% endblocktranslate %}
+    <button class="linklike">{% translate "Not you? Sign out" %}</button></form></header>
+{% for message in notices %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+{% if account_notice %}<div class="notice" role="status" id="account-changed"><strong>{% blocktranslate with when=account_notice.when|date:"DATE_FORMAT" %}On {{ when }} someone who runs the site changed your account:{% endblocktranslate %}</strong>
+  <ul>{% for line in account_notice.what %}<li>{{ line }}</li>{% endfor %}</ul>
+  <p>{{ account_notice.advice }}</p></div>{% endif %}
+{% if saved %}<div class="notice" role="status"><strong>{% translate "Your shop is ready." %}</strong>
+  {% translate "Try it: open the register and pay yourself a small amount from another phone. Then print the sign." %}</div>{% endif %}
+{% if training.locked or training.quick %}{% include "shops/training_card.html" %}{% endif %}
+<div class="panel-list">{% for shop in shops %}
+  <div class="panel-row">
+    <div><strong>{{ shop.name }}</strong>
+      {% if shop.suspended %}<p class="panel-status">{% if shop.has_register %}{% translate "Suspended: not on the map or in the lists. Register and payments keep working." %}{% else %}{% translate "Suspended: not on the map or in the lists." %}{% endif %}</p>
+      {% elif not shop.listed %}<p class="panel-status">{% translate "Not on the map or in the lists." %}</p>
+      {% elif shop.latitude is None or shop.longitude is None %}<p class="panel-status">{% translate "Not on the map: the position is missing." %} <a href="{% url 'edit_shop' shop.id %}">{% translate "Add it" %}</a></p>
+      {% elif shop.closed_on %}<p class="panel-status">{{ shop.historic_note }}. {% if shop.has_register and shop.register_kept %}{% blocktranslate with until=shop.register_until|date:"DATE_FORMAT" %}On the map with its own pin, not among the places to pay. Register and payments keep working until {{ until }}.{% endblocktranslate %}{% elif shop.has_register %}{% blocktranslate with until=shop.register_until|date:"DATE_FORMAT" %}On the map with its own pin, not among the places to pay. The register stopped on {{ until }}, a year after closing.{% endblocktranslate %}{% else %}{% translate "On the map with its own pin, not among the places to pay." %}{% endif %}</p>{% endif %}
+      {% if not shop.has_register and not shop.waits_for_wallet %}<p class="panel-status">{% translate "No register: payments for this shop are not set up on this site." %}{% if shop.needs_wallet %} <a href="{% url 'wallet_steps' shop.id %}">{% translate "Add the wallet" %}</a>{% endif %}</p>{% endif %}
+      {% if shop.lightning_watch and not shop.lightning_watch.broken and not shop.journey %}<p class="panel-status" id="lightning-{{ shop.id }}">{% blocktranslate with when=shop.lightning_watch.checked %}Lightning address checked {{ when }}: it works.{% endblocktranslate %}</p>{% endif %}
+      {% if not shop.lightning_watch.broken and not shop.journey %}{% for note in shop.lightning_notes %}<p class="panel-status" role="status">{{ note }}</p>{% endfor %}{% endif %}
+      {% if shop.address_change %}<p class="panel-status" role="status" id="address-changed-{{ shop.id }}">{% blocktranslate with when=shop.address_change.when|date:"DATE_FORMAT" before=shop.address_change.before after=shop.address_change.after %}On {{ when }} you changed the Lightning address from {{ before }} to {{ after }}. Open each register again and confirm it; give your staff new pairing codes. The printed sign stays valid. If it was not you, write to the association now.{% endblocktranslate %}{% if shop.address_change.pending %} {% translate "We are checking the new address: until then the certified badge is paused." %}{% endif %}</p>{% endif %}
+      {% if shop.has_register and shop.register_kept or shop.needs_wallet and not shop.waits_for_wallet %}<p class="panel-open-line">{% if shop.has_register and shop.register_kept %}<a class="button panel-open{% if shop.till_locked %} button-quiet{% endif %}" href="{% url 'register' shop.id %}">{% if shop.till_locked %}{% translate "Register (waiting for the pass)" %}{% elif shop.till_quick %}{% translate "Open register (quick start)" %}{% else %}{% translate "Open register" %}{% endif %}</a>{% elif shop.needs_wallet and not shop.waits_for_wallet %}<a class="button panel-open" href="{% url 'connect_wallet' shop.id %}">{% translate "Connect your wallet" %}</a>{% endif %}</p>{% endif %}
+      {% include "shops/help_card.html" %}
+      {% if shop.osm_enabled %}{% include "shops/osm_card.html" %}{% endif %}
+    </div>
+    <div class="panel-groups">
+      {% if features.practice %}{% if shop.has_register or not shop.closed_on %}<div class="panel-group"><h3>{% translate "Every day" %}</h3>
+      <p class="panel-actions"><a class="button button-quiet" href="{% url 'practice' shop.id %}">{% translate "Practise without money" %}</a></p></div>{% endif %}{% endif %}
+      {% if not shop.waits_for_wallet or shop.has_register %}<div class="panel-group"><h3>{% translate "To print" %}</h3>
+      <p class="panel-actions">{% if not shop.waits_for_wallet %}<a class="button button-quiet" href="{% url 'shop_sign' shop.id %}">{% translate "Printable sign" %}</a>{% endif %}
+      {% if shop.has_register %}<a class="button button-quiet" href="{% url 'till_card' shop.id %}">{% translate "Card for the till" %}</a>{% endif %}
+      {% if not shop.waits_for_wallet and not shop.suspended and not shop.closed_on %}<a class="button button-quiet" href="{% url 'customer_card' shop.id %}">{% translate "Card for customers without a wallet" %}</a>{% endif %}</p></div>{% endif %}
+      <div class="panel-group"><h3>{% translate "Your page" %}</h3>
+      <p class="panel-actions"><a class="button button-quiet" href="{% url 'shop_display' shop.id %}">{% translate "What customers see" %}</a>
+      <a class="button button-quiet" href="{% url 'edit_shop' shop.id %}">{% translate "Edit" %}</a></p></div>
+    </div>
+    {% if shop.break_eligible %}{% include "shops/break_card.html" %}{% endif %}
+    {% if shop.waits_after_move %}{% include "shops/moved.html" %}{% elif shop.waits_for_wallet %}{% include "shops/wallet_missing.html" %}{% endif %}
+    {% if shop.lightning_watch.broken %}{% include "shops/lightning_alert.html" with watch=shop.lightning_watch %}{% endif %}
+    {% if shop.journey %}{% include "shops/journey.html" with path=shop.journey %}{% elif shop.first_day %}{% include "shops/first_day.html" with day=shop.first_day %}{% endif %}
+    {% if shop.has_register and shop.register_kept %}<details class="handover" id="handover-{{ shop.id }}"><summary>{% translate "Register for whoever works with you" %}</summary>
+      <p>{% translate "Give each person their own register: you turn one off at once when someone leaves or loses the phone. Your own register is different: whoever knows its link can always open it." %}</p>
+      <p><a class="button" href="{% url 'staff_registers' shop.id %}">{% if shop.staff_count %}{% blocktranslate count counter=shop.staff_count %}Registers for your staff: 1 turned on{% plural %}Registers for your staff: {{ counter }} turned on{% endblocktranslate %}{% else %}{% translate "Give a register to someone" %}{% endif %}</a></p>
+      <details class="handover-own"><summary>{% translate "Or share your own register" %}</summary>
+      <p>{% translate "Scan this code with the other phone, or send the link. No sign-in needed: with it one can only take payments, which go to your wallet. Your settings stay yours." %}</p>
+      <p class="muted">{% translate "This link cannot be turned off." %}</p>
+      <div class="qr-box"><img class="qr" src="{{ shop.register_qr }}" alt="{% translate 'Code that opens the register' %}"></div>
+      <p class="mono">{{ shop.register_url }}</p>
+      <p><button type="button" class="button button-quiet" data-copy="{{ shop.register_url }}" data-copied="{% translate 'Link copied' %}">{% translate "Copy the link" %}</button></p>
+      <p>{% translate "On the shop phone, add the page to the home screen from the browser menu: it opens like an app." %}</p>
+      </details>
+      <p>{% translate "Handing over your own phone? Open the register and press «Leave the panel (the register stays open)»." %}</p>
+    </details>{% endif %}
+  </div>
+{% empty %}<p>{% translate "No shops yet." %}</p>{% endfor %}</div>
+<p><a class="button{% if shops %} button-quiet{% endif %}" href="{% url 'new_shop' %}">{% translate "Add a shop" %}</a></p>
+{% if not training.locked and not training.quick %}{% include "shops/training_card.html" %}{% endif %}
+{% if not shops %}<p class="muted">{% blocktranslate with email=community.email %}Is your shop already on the map? To update its details, write to <a href="mailto:{{ email }}">{{ email }}</a>.{% endblocktranslate %}</p>{% endif %}
+<details class="account"{% if form.errors %} open{% endif %}><summary>{% translate "Your account" %}</summary>
+  <form method="post" class="shop-form">{% csrf_token %}{{ form.as_p }}<button class="button button-quiet">{% translate "Save" %}</button></form>
+</details>
+<p id="copy-status" class="visually-hidden" role="status"></p>
+<script src="{% static 'panel.js' %}"></script>
+{% endblock %}

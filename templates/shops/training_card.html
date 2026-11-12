@@ -1,0 +1,22 @@
+{% load i18n %}{% if training %}{% with state=training.state %}
+<section class="training-card" id="training" aria-labelledby="training-title">
+  <div class="training-head">
+    <h2 id="training-title">{% translate "Your merchant pass" %}</h2>
+  </div>
+  <p class="training-status">{% if state.base %}<span aria-hidden="true">✓</span> {% blocktranslate with date=state.trainee.base_earned|date:"DATE_FORMAT" %}Basic pass since {{ date }}.{% endblocktranslate %}{% if state.formed %} {% translate "Your shop shows the «Trained merchant» sign." %}{% endif %}{% else %}{% translate "No basic pass yet." %}{% endif %}</p>
+  {% if training.locked %}<p class="notice training-locked" role="status"><strong>{% translate "The register is waiting for you." %}</strong>
+    {% blocktranslate with names=training.locked.0.name %}The register of «{{ names }}» opens as soon as you have the basic pass. It takes a few minutes, and you can try the practice register meanwhile.{% endblocktranslate %}</p>
+  {% elif training.quick %}<p class="notice training-locked" role="status"><strong>{% translate "Quick start." %}</strong>
+    {% blocktranslate with names=training.quick.0.name %}The register of «{{ names }}» already takes your first payments, up to a small amount in total. The rest opens as soon as you have the basic pass: it takes a few minutes. The staff registers wait for it.{% endblocktranslate %}</p>
+  {% elif state.grace %}<p class="notice" role="status"><strong>{% translate "Your register keeps working." %}</strong>
+    {% if state.grace.days > 0 %}{% blocktranslate count days=state.grace.days with date=state.grace.until|date:"DATE_FORMAT" %}You have {{ days }} more day, until {{ date }}, to get the basic pass. After that the register opens only with it.{% plural %}You have {{ days }} more days, until {{ date }}, to get the basic pass. After that the register opens only with it.{% endblocktranslate %}
+    {% else %}{% blocktranslate with date=state.grace.until|date:"DATE_FORMAT" %}The last day is {{ date }}. After that the register opens only with the basic pass.{% endblocktranslate %}{% endif %}</p>
+  {% elif not state.base and state.cfg.gate == "reminder" %}<p class="notice" role="status">{% translate "The basic pass is not required, but we ask you to get it: a few short modules, and you know what to do if something goes wrong." %}</p>{% endif %}
+  {% if state.base and state.review and state.review.state != "ok" %}<p class="notice" role="status"><strong>{% if state.review.state == "soon" %}{% translate "A short review is coming." %}{% else %}{% translate "Time for the short review." %}{% endif %}</strong>
+    {% translate "One question for each module, whenever you like, no penalty." %} <a href="{% url 'training_review' %}">{% translate "Start the review" %}</a></p>{% endif %}
+  {% if training.stale %}<p class="notice" role="status"><strong>{% translate "Some texts changed." %}</strong>
+    {% translate "Read them again and confirm; your pass stays." %} <a href="{% url 'training_module' training.stale.0.id %}">{% translate "Open" %}</a></p>{% endif %}
+{% include "shops/training_bar.html" %}
+  {% if state.base %}<ul class="training-badges" aria-label="{% translate 'Badges' %}">{% for badge in state.badges %}<li class="{% if badge.earned %}earned{% endif %}"><span aria-hidden="true">{% if badge.earned %}✓{% else %}·{% endif %}</span> {{ badge.name }}<span class="visually-hidden"> — {% if badge.earned %}{% translate "earned" %}{% else %}{% translate "not yet" %}{% endif %}</span></li>{% endfor %}</ul>{% endif %}
+  <p><a class="button{% if state.base %} button-quiet{% endif %}" href="{% if training.next and not state.base %}{% url 'training_module' training.next.id %}{% else %}{% url 'training' %}{% endif %}">{% if state.base %}{% translate "Your path and badges" %}{% elif training.next.attempts or training.next.statements_done %}{% translate "Go on with the path" %}{% else %}{% translate "Start the path" %}{% endif %}</a></p>
+</section>{% endwith %}{% endif %}

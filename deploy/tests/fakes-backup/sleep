@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Fake sleep: backup.sh waits ten seconds between two looks at postgres, the test does not
+exit 0

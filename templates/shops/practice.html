@@ -1,0 +1,56 @@
+{% extends "shops/register.html" %}{% load static i18n %}
+{% block title %}{% translate "Practice" %}: {{ shop.name }}{% endblock %}
+{% block qr_alt %}{% translate "Practice" %}: {% translate "code for the customer to scan, which no wallet can pay" %}{% endblock %}
+{% block manifest %}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'practice.css' %}">
+<noscript><link rel="stylesheet" href="{% static 'practice-nojs.css' %}"></noscript>{% endblock %}
+{% block body_class %} practising{% endblock %}
+{% block band %}<aside class="practice-band" aria-labelledby="practice-band"><h1 id="practice-band"><strong>{% translate "Practice" %}</strong> {% translate "No real money: nothing here is a payment." %}</h1></aside>{% endblock %}
+{% block owner_links %}{% if back %}<a class="sheet-item" href="{{ back }}">{{ back_text }}</a>{% endif %}{% endblock %}
+{% block practice_link %}{% endblock %}
+{% block exercise_now %}<p id="exercise-now" class="exercise-now" role="status" data-text="{% blocktranslate with number='{number}' total='{total}' title='{title}' %}Exercise {{ number }} of {{ total }}: {{ title }}{% endblocktranslate %}" data-all="{% translate 'All exercises done: read «Now the real thing» below.' %}"><a href="#exercises-title">{% translate "Exercises below" %}</a></p>{% endblock %}
+{% block practice %}
+<section id="customer" class="customer" aria-labelledby="customer-title" hidden>
+  <h2 id="customer-title">{% translate "The pretend customer" %}</h2>
+  <p id="customer-say" class="customer-say" role="status"></p>
+  <div class="moves">
+    <button type="button" class="button" data-move="pay">{% translate "Pays" %}</button>
+    <button type="button" class="button button-quiet" data-move="none">{% translate "Does not pay" %}</button>
+    <button type="button" class="button button-quiet" data-move="down">{% translate "The connection drops" %}</button>
+    <button type="button" class="button" data-move="up">{% translate "The connection is back" %}</button>
+    <button type="button" class="button button-quiet" data-move="phone">{% translate "The phone switches off" %}</button>
+    {% if register.chain_on %}<button type="button" class="button button-quiet" data-move="confused">{% translate "Does not understand the code" %}</button>{% endif %}
+  </div>
+</section>
+<aside class="practice" aria-labelledby="exercises-title">
+  <noscript><p class="notice">{% translate "Without JavaScript the practice register does not move. Read the exercises here below: each one says what the register shows and what you do." %}</p></noscript>
+  <section class="exercises">
+    <h2 id="exercises-title">{% translate "Exercises" %}</h2>
+    <p class="muted">{% translate "This register is the real one, with the same screens and the same words. The code it shows cannot be paid by any wallet, and nothing is sent anywhere." %}</p>
+    <ol class="exercise-list" data-done="{% translate 'Done' %}" data-todo="{% translate 'To do' %}">
+      <li data-exercise="take"><p class="exercise-head"><strong>{% translate "Take 3.50" %}</strong> <span class="exercise-state">{% translate "To do" %}</span></p>
+        <p>{% translate "Type 3, 5, 0 and press OK. Then press «Pays»." %}</p>
+        <details><summary>{% translate "When do you hand over the goods?" %}</summary><p>{% translate "When the register shows the green tick and «Payment received». Not before." %}</p></details></li>
+      <li data-exercise="offline"><p class="exercise-head"><strong>{% translate "The customer says they paid, but the register is waiting" %}</strong> <span class="exercise-state">{% translate "To do" %}</span></p>
+        <p>{% translate "Start a sale, press «The connection drops», then «Pays». The customer shows you «Sent» on their phone." %}</p>
+        <details><summary>{% translate "What do you do?" %}</summary><p>{% translate "Do not hand over the goods yet, and do not cancel the sale. Only the green tick on this screen counts. Wait for the connection: the register keeps the sale and says how it ended." %}</p></details></li>
+      <li data-exercise="expired"><p class="exercise-head"><strong>{% translate "The customer does not pay" %}</strong> <span class="exercise-state">{% translate "To do" %}</span></p>
+        <p>{% translate "Start a sale and press «Does not pay»." %}</p>
+        <details><summary>{% translate "What do you do?" %}</summary><p>{% translate "Nothing was charged: keep the goods. The register says «Payment expired» and is ready for the next sale." %}</p></details></li>
+      <li data-exercise="phone"><p class="exercise-head"><strong>{% translate "The phone switches off during a sale" %}</strong> <span class="exercise-state">{% translate "To do" %}</span></p>
+        <p>{% translate "Start a sale, press «The phone switches off», then «Pays»." %}</p>
+        <details><summary>{% translate "What do you do?" %}</summary><p>{% if staff %}{% translate "Open the register again on the same phone: the sale comes back and says how it ended. On another phone it does not: tell the owner the time and the amount." %}{% else %}{% translate "Open the register again on the same phone: the sale comes back and says how it ended. On another phone it does not: look in your wallet." %}{% endif %}</p></details></li>
+      {% if register.chain_on %}<li data-exercise="onchain"><p class="exercise-head"><strong>{% translate "The customer does not understand your code" %}</strong> <span class="exercise-state">{% translate "To do" %}</span></p>
+        <p>{% translate "Start a sale and press «Does not understand the code». Cancel the sale, type the amount again, press «OK, on-chain», then «Pays»." %}</p>
+        <details><summary>{% translate "What do you do?" %}</summary><p>{% if staff %}{% translate "Do not despair: some wallets pay only on-chain. If the owner set up on-chain for this register, press «OK, on-chain» instead of OK. Wait for «Payment received» as usual: it can take ten minutes or more." %}{% else %}{% translate "Do not despair: maybe the customer's wallet pays only on-chain. With on-chain set up in the register's settings, press «OK, on-chain» instead of OK. It has advantages for you too: the money arrives straight in your wallet, with no channel to look after. Wait for «Payment received»: it can take ten minutes or more." %}{% endif %}</p></details></li>{% endif %}
+      <li data-exercise="real" class="exercise-real"><p class="exercise-head"><strong>{% translate "Now the real thing" %}</strong></p>
+        <p>{{ next_note }}</p>
+        {% if next_url %}<p><a class="button" href="{{ next_url }}">{{ next_text }}</a></p>{% endif %}</li>
+    </ol>
+    <p><button type="button" id="practice-again" class="linklike" hidden>{% translate "Start the practice again" %}</button></p>
+  </section>
+</aside>
+{% endblock %}
+{% block scripts %}{{ practice_data|json_script:"practice-data" }}
+<script src="{% static 'practice.js' %}"></script>
+<script src="{% static 'register.js' %}"></script>{% endblock %}

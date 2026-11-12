@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% load static i18n %}
+{% block content %}
+<nav class="crumbs no-print"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a> › <a href="{% url 'staff_registers' shop.id %}">{% translate "Registers for your staff" %}</a></nav>
+{% for message in messages %}<p class="notice no-print" role="status">{{ message }}</p>{% endfor %}
+<div class="staff-card">
+  <header class="page-head"><h1>{% blocktranslate with name=register.name %}The register for {{ name }}{% endblocktranslate %}</h1><p>{{ shop.name }}</p></header>
+  {% if alive %}
+  <ol class="staff-steps">
+    <li>{% translate "Open the camera of the phone that will take payments and point it at this code." %}</li>
+    <li>{% translate "Open the link and press «Open the register on this phone»." %}</li>
+    <li>{% translate "From the browser menu, add the page to the home screen: it opens like an app." %}</li>
+  </ol>
+  <p class="muted no-print">{% if experimental.onchain %}{% translate "The code pairs the register with yours: it carries where the money goes and your preferences, read from this phone. Open this page on the phone with your register, so that on-chain and your settings come along. The site never sees them." %}{% else %}{% translate "The code pairs the register with yours: it carries where the money goes and your preferences, read from this phone. Open this page on the phone with your register, so that your settings come along. The site never sees them." %}{% endif %}</p>
+  <div class="qr-box"><img id="pair-qr" class="qr" alt="{% translate 'Code that puts the register on a phone' %}" hidden></div>
+  <noscript><p class="notice">{% translate "The code is drawn by the browser: turn JavaScript on." %}</p></noscript>
+  <p id="pair-error" class="notice" role="alert" hidden></p>
+  <ul id="pair-summary" class="pair-summary"></ul>
+  <p class="staff-until">{% blocktranslate with date=register.code_until|date:"SHORT_DATETIME_FORMAT" %}The code works once, until {{ date }}. After that it opens nothing: a photo of it is no use to anyone.{% endblocktranslate %}</p>
+  <details class="destination no-print"><summary>{% translate "Send it as a link instead" %}</summary><p id="pair-link" class="mono"></p>
+    <p><button type="button" id="pair-copy" class="button button-quiet" data-copied="{% translate 'Copied' %}" hidden>{% translate "Copy the link" %}</button></p>
+    <p id="pair-say" class="visually-hidden" role="status"></p>
+    <p class="muted">{% translate "Send it only to the person, in a private message: the link carries where the money goes." %}</p></details>
+  <p class="no-print"><button type="button" class="button" data-print>{% translate "Print the card" %}</button></p>
+  <p class="muted">{% translate "Give the card to the person, do not leave it at the till." %}</p>
+  {{ pairing|json_script:"pairing-data" }}
+  {% else %}
+  <p>{% if register.opened %}{% blocktranslate with date=register.opened|date:"SHORT_DATETIME_FORMAT" %}This register was opened on a phone on {{ date }}.{% endblocktranslate %}{% else %}{% translate "The code to open this register has expired." %}{% endif %}</p>
+  <p>{% translate "Need it on another phone, or the person lost it? Make a new code: the phones that already have the register keep it." %}</p>
+  <p>{% if experimental.onchain %}{% translate "Changed your settings, the on-chain key or the Lightning address? Make a new code and scan it with the register's phone: it is paired again." %}{% else %}{% translate "Changed your settings or the Lightning address? Make a new code and scan it with the register's phone: it is paired again." %}{% endif %}</p>
+  {% endif %}
+  <form method="post" class="no-print">{% csrf_token %}<button class="button button-quiet">{% if alive %}{% translate "Make a new code (this one stops working)" %}{% else %}{% translate "Make a new code" %}{% endif %}</button></form>
+  <p class="muted no-print">{% translate "If the phone is lost or the person leaves, turn off the register instead: a new code does not take it away from the phones that have it." %}</p>
+</div>
+{% if alive %}<script src="{% static 'vendor/qrcode/qrcode.js' %}"></script>
+<script src="{% static 'register-derive.js' %}"></script>
+<script src="{% static 'register-nostr.js' %}"></script>
+<script src="{% static 'register-pairing.js' %}"></script>
+<script src="{% static 'staff-pair.js' %}"></script>{% endif %}
+{% endblock %}

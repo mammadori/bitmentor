@@ -1,0 +1,25 @@
+{% load i18n %}<div class="break-wrap" id="break-{{ shop.id }}">
+  {% if shop.welcome %}<div class="break-card break-welcome{% if shop.welcome.works %} break-celebrate{% endif %}">
+  <p class="break-head"><strong>{% translate "Welcome back!" %}</strong></p>
+  {% if shop.welcome.works %}<p>{% translate "The site checked your Lightning address after you opened again: it works. Thank you for keeping the shop on the map." %}</p>
+  {% else %}<p>{% translate "The register worked while you were away: there is nothing to turn on. To be sure, try a small payment of your own: open the register and pay it from another phone." %}</p>{% endif %}
+  <form method="post" action="{% url 'break_seen' shop.id %}">{% csrf_token %}<input type="hidden" name="closure" value="{{ shop.welcome.closure.pk }}"><button class="button button-quiet" type="submit">{% translate "Got it" %}</button></form>
+  </div>{% endif %}
+  <div class="break-card">
+  {% if shop.break_state and shop.break_state.state == "closed" %}
+  <p class="break-head"><strong>{{ shop.break_state.text }}</strong></p>
+  <p>{% translate "The map and your shop page say it. The register keeps working, and no alarm goes off for these days." %}</p>
+  <div class="panel-actions"><a class="button button-quiet" href="{% url 'shop_break' shop.id %}">{% translate "Change the dates" %}</a>
+  <form method="post" action="{% url 'break_over' shop.id %}">{% csrf_token %}<button class="button" type="submit">{% translate "I am back today" %}</button></form></div>
+  {% elif shop.break_state %}
+  <p class="break-head"><strong>{{ shop.break_state.text }}</strong></p>
+  <div class="panel-actions"><a class="button button-quiet" href="{% url 'shop_break' shop.id %}">{% translate "Change the dates" %}</a></div>
+  {% else %}
+  <details class="break-open"><summary>{% translate "Closing for a while?" %}</summary>
+    <p>{% translate "Holidays, works, a bad time: say it, and the map tells your customers kindly. The shop stays on the map, the register keeps working, and the icons on your card do not fade." %}</p>
+    <div class="panel-actions"><a class="button" href="{% url 'shop_break' shop.id %}">{% translate "Choose the days" %}</a>
+    <form method="post" action="{% url 'break_now' shop.id %}">{% csrf_token %}<button class="button button-quiet" type="submit">{% translate "Closed from today, until I say so" %}</button></form></div>
+  </details>
+  {% endif %}
+  </div>
+</div>

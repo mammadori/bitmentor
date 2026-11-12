@@ -1,0 +1,3 @@
+/* The administration says "you are 1 hour behind the server" under every date and hour field. For a meetup the hour is the
+   clock at the meetup, written in the zone below it, not the server's: the note would only mislead. */
+.timezonewarning { display: none; }

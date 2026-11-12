@@ -1,0 +1,3 @@
+{% comment %}The meetup board for a community page: `{% include "website/meetup_board.html" %}` after the page's own heading, so the
+lists start at h3. It draws what `meetups` in community.yml says, and nothing when the block is missing. For the other
+shapes (the next one in a line, a short list) use the tags: docs/features/meetups.md.{% endcomment %}{% meetup_board level=3 full=True %}

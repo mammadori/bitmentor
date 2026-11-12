@@ -1,0 +1,182 @@
+:root { --pos-primary: var(--primary); --pos-accent: var(--accent); --pos-on: #fff; --pos-line: var(--line, #e4e4e4); }
+/* Like an app: one screen the height of the phone, a small header with one round menu button, the amount, and the keypad
+   filling the rest edge to edge. Everything else is in the menu (#menu) */
+.register { display: flex; flex-direction: column; min-height: 100dvh; max-width: 460px; margin: 0 auto; padding: 0; text-align: center; background: var(--background); }
+.register-top { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; color: var(--text); text-align: left; }
+.register-top img { flex: none; width: 24px; height: 24px; }
+.register-id { flex: 1; min-width: 0; line-height: 1.3; }
+.register-name { margin: 0; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A round button: the menu on the keypad, the close of the menu */
+.menu-button { flex: none; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: var(--surface); color: var(--text); cursor: pointer; position: relative; }
+.menu-button[hidden] { display: none; }
+/* Something to read in the menu (a copy to download, the on-chain addresses, the quick start): a dot on the button */
+.register:has(#menu > .notice:not([hidden])) #menu-open::after { content: ""; position: absolute; top: 6px; right: 6px; width: 10px; height: 10px; border: 2px solid var(--background); border-radius: 50%; background: var(--error); }
+/* Where the money goes (shops/guard.py, paying_to): under the shop's name on every screen of the register, small, and not on a receipt */
+.paying-to { margin: 0; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.paying-to strong { color: var(--muted); font-weight: 600; }
+.paying-to .mono { color: var(--text); font-size: 12px; word-break: normal; }
+.paying-to-item { display: inline; }
+@media print { .paying-to, .menu-button { display: none; } }
+/* The register's content is the page's main: without the margins that base.css and the theme give to main */
+.register main { flex: 1; display: flex; flex-direction: column; max-width: none; margin: 0; padding: 0 16px 16px; }
+.register-screen { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+.register-screen[hidden], .register-screen [hidden] { display: none; }
+/* The keypad's screen: the amount on top, the keys take all the height left, edge to edge with thin lines between them */
+.keypad { justify-content: flex-start; gap: 0; margin: 0 -16px -16px; }
+.keypad > .notice, .keypad > .register-note, .keypad > .exercise-now { margin: 0 16px 8px; }
+.register-note { font-size: 14px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.amount-box { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; min-height: 112px; padding: 4px 16px 12px; }
+.register output { display: block; font-size: clamp(40px, 13vw, 56px); font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.hint { margin: 0; color: var(--muted); font-size: 14px; }
+.keys { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: minmax(52px, 1fr); gap: 1px; border-top: 1px solid var(--pos-line); background: var(--pos-line); }
+.keys button { min-height: 52px; font: inherit; font-size: 28px; font-weight: 400; border: 0; border-radius: 0; background: var(--background); color: var(--text); cursor: pointer; transition: background .1s; touch-action: manipulation; }
+.keys button:active { background: var(--surface); }
+.keys button:focus-visible { outline-offset: -4px; }
+.keys button:disabled { opacity: .5; cursor: wait; }
+.keys .ok { background: var(--pos-primary); color: var(--pos-on); font-weight: 700; }
+.keys .ok:active { background: var(--pos-primary); filter: brightness(1.15); }
+.keys .clear { display: grid; place-items: center; color: var(--pos-clear, var(--error)); }
+.chain-ok-line { margin: 0; border-top: 1px solid var(--pos-line); }
+.chain-ok-line:has(#chain-ok[hidden]) { display: none; }
+.chain-ok-line #chain-ok { width: 100%; color: var(--text); font-weight: 600; }
+/* The screens of a sale: one primary action, the code as big as the screen allows */
+.due { font-size: 26px; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums; }
+.register .qr-box { align-self: center; padding: 10px; }
+.register .qr { width: min(280px, 72vw, 40dvh); height: auto; }
+#pay, #done, #step, #rate { padding-top: 4px; }
+#pay .destination { padding: 0; border: 0; }
+#pay .destination summary { font-size: 15px; color: var(--muted); font-weight: 400; }
+#pay .button, #done .button, #rate .button { width: 100%; min-height: 48px; }
+/* The menu: a sheet over the whole screen, like an app's */
+.menu-sheet { box-sizing: border-box; width: 100%; max-width: 460px; height: 100dvh; max-height: none; margin: 0 auto; padding: 8px 16px 24px; border: 0; background: var(--background); color: var(--text); text-align: left; overflow-y: auto; }
+.menu-sheet[open] { display: flex; flex-direction: column; gap: 12px; }
+.menu-sheet::backdrop { background: var(--background); }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sheet-head h2 { margin: 0; font-size: 18px; overflow-wrap: anywhere; }
+.sheet-list { display: flex; flex-direction: column; border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.sheet-list form { margin: 0; }
+.sheet-item { display: flex; align-items: center; width: 100%; min-height: 52px; box-sizing: border-box; padding: 10px 16px; border: 0; border-top: 1px solid var(--pos-line); background: none; color: var(--primary); font: inherit; font-weight: 600; text-align: left; text-decoration: none; cursor: pointer; }
+.sheet-list > :first-child, .sheet-list > :first-child .sheet-item { border-top: 0; }
+.sheet-item::after { content: "›"; margin-left: auto; padding-left: 12px; color: var(--muted); font-weight: 400; }
+.sheet-item:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.menu-sheet .notice, .menu-sheet .muted { margin: 0; }
+.waiting { display: flex; align-items: center; justify-content: center; gap: 5px; margin: 0; color: var(--muted); }
+/* In the real register the dots spin while waiting: for whoever is at the till the motion says the wait is alive,
+   and is part of the job (WCAG 2.2.2 exception). With reduced motion they stop (below). In the community's
+   demos, where nobody waits for a real payment, the theme limits them to three turns. */
+.waiting span { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--pos-primary); animation: bubble 1.2s infinite ease-in-out; }
+.waiting span:nth-child(2) { animation-delay: .15s; }
+.waiting span:nth-child(3) { animation-delay: .3s; margin-right: 6px; }
+@keyframes bubble { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-6px); opacity: 1; } }
+.destination { text-align: left; }
+.destination .muted { margin-bottom: 0; }
+.destination .muted:not([hidden]) + .mono { margin-top: 4px; }
+.tick { align-self: center; width: 96px; height: 96px; border-radius: 50%; background: var(--pos-primary); position: relative; animation: pop .35s ease-out; }
+.tick::after { content: ""; position: absolute; left: 34px; top: 22px; width: 24px; height: 44px; border: solid var(--pos-on); border-width: 0 8px 8px 0; transform: rotate(45deg); }
+.done-expired .tick { background: var(--muted); }
+.done-expired .tick::after { display: none; }
+/* Paid: the whole screen flashes green once, seen from the other side of the counter too */
+#done.flash { animation: paid-flash .9s ease-out; }
+@keyframes paid-flash { 0%, 25% { background: #1f9d55; } 100% { background: transparent; } }
+.sheet-check { display: flex; gap: 10px; align-items: center; }
+@keyframes pop { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+#error { color: var(--error); font-weight: 600; margin: 8px 0 0; }
+#error:empty { margin: 0; }
+/* With reduced motion nothing moves: neither the dots and the tick nor the keys and buttons pressed */
+@media (prefers-reduced-motion: reduce) {
+  .waiting span, .tick { animation: none; }
+  /* No flash: a steady green edge says the same without movement */
+  #done.flash { animation: none; box-shadow: inset 0 0 0 8px #1f9d55; }
+  .keys button, .register .button { transition: none; }
+  .keys button:active, .register .button:hover { transform: none; }
+}
+@media print { .register-top img, #error { display: none; } }
+#question { margin: 0; font-weight: 600; }
+.choices { display: flex; flex-direction: column; gap: 12px; }
+#rate-used, #to { margin: -8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+/* Without LUD-21 the register cannot see the payment: the merchant must look in the wallet before handing over */
+.no-check { margin: 0; padding: 10px 12px; border-left: 4px solid var(--error); border-radius: var(--radius); background: var(--surface); font-weight: 600; text-align: left; }
+.ledger { text-align: left; font-size: 15px; }
+.ledger ul { margin: 0; padding-left: 18px; }
+.ledger li { margin: 4px 0; }
+/* A staff register (shops/staff.py): its name next to the shop's, so whoever holds the phone knows whose it is */
+.staff-name { padding: 2px 8px; border-radius: var(--radius); background: var(--surface); font-weight: 400; font-size: 15px; }
+.staff-retired { margin: 0 0 12px; text-align: left; }
+.staff-help { text-align: left; font-size: 15px; }
+.staff-help summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+.staff-help dl { margin: 0 0 8px; }
+.staff-help dt { margin: 10px 0 2px; font-weight: 600; }
+.staff-help dd { margin: 0; }
+/* The history on the phone: the day closing and the copies, read from the top */
+.history { justify-content: flex-start; text-align: left; }
+.history h1, .history h2 { margin: 8px 0 0; }
+/* The titles of the screens opened from the menu: an app's, not a page's */
+.history h1, .settings h1 { font-size: 26px; }
+.history p { margin: 0; }
+.history select, .history input { width: 100%; }
+.history-form { display: flex; flex-direction: column; gap: 8px; }
+.day-totals { margin: 0; padding-left: 18px; }
+.copy-due { color: var(--error); font-weight: 600; }
+.keep-first, .copy-reminder { margin: 0; text-align: left; }
+.keep-first p { margin: 0 0 8px; }
+.keep-first .button { padding: 8px 14px; }
+@media print { .register-tools, .copy-reminder, .keep-first { display: none; } }
+/* On-chain, the discount and the settings on the phone */
+.discount-line, .chain-ok-line { margin: 0; }
+/* The discount the registers cannot remove: a line to read, in the same box as the button */
+#discount-fixed { display: block; padding: 6px 10px; border-radius: var(--radius); background: var(--surface); color: var(--text); font-weight: 600; }
+.register-note, .shop-town { margin: 0; }
+.register-top .shop-town { margin-left: 8px; opacity: .75; }
+.blocked { margin: 0; text-align: left; }
+.blocked p { margin: 0 0 8px; }
+.quick-start { margin: 0; text-align: left; }
+.chain-state { margin: 0; font-weight: 600; }
+.confidence { display: inline-flex; align-items: center; gap: 8px; margin: 0 auto; padding: 4px 8px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.confidence-bar { display: inline-flex; gap: 2px; }
+.confidence-step { width: 18px; height: 8px; border-radius: 2px; background: currentColor; opacity: .2; }
+.confidence-step.on { opacity: 1; }
+.confidence[data-level=wait] .confidence-step.on { background: #c0392b; }
+.confidence[data-level=likely] .confidence-step.on { background: #d68910; }
+.confidence[data-level=sure] .confidence-step.on { background: #1e8449; }
+.confidence-why { margin: 0; padding-left: 20px; text-align: left; }
+.settings { justify-content: flex-start; text-align: left; }
+.settings h1, .settings h2 { margin: 8px 0 0; }
+.settings p { margin: 0; }
+.settings textarea, .settings input:not([type=checkbox]) { width: 100%; }
+.settings textarea { font-family: monospace; word-break: break-all; }
+/* The settings in titled groups: the label, the field, one line of help, the error next to the field */
+.settings-form { display: flex; flex-direction: column; gap: 14px; }
+.settings .group { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 12px; border: 1px solid var(--border, #d0d4d8); border-radius: var(--radius); }
+.settings .group legend { padding: 0 6px; font-weight: 700; font-size: 18px; }
+.settings .field { display: flex; flex-direction: column; gap: 4px; }
+.settings .field label { font-weight: 600; }
+.settings .field-row { flex-direction: row; align-items: center; justify-content: space-between; }
+.settings input.short { max-width: 12em; }
+.settings .key-field { font-size: 15px; }
+.settings .help { color: var(--muted); font-size: 15px; }
+.settings .field-error { color: var(--error); font-weight: 600; }
+.settings [aria-invalid=true] { border-color: var(--error); outline: 2px solid var(--error); outline-offset: 1px; }
+.settings .field-static { overflow-wrap: anywhere; }
+.settings .more summary { color: var(--muted); font-size: 15px; }
+.settings .more p { margin: 0 0 8px; }
+.settings .advanced { display: flex; flex-direction: column; gap: 14px; }
+.settings .advanced[open] > .group, .settings .advanced[open] > .help { margin-top: 12px; }
+.settings .advanced > summary { font-weight: 700; }
+#settings-say:empty { display: none; }
+.chain-check { overflow-wrap: anywhere; }
+.chain-check:empty { display: none; }
+.sources { display: flex; flex-direction: column; gap: 4px; border: 0; padding: 0; margin: 0; }
+#to { overflow-wrap: anywhere; }
+@media print { .discount-line, .chain-ok-line, .blocked { display: none; } }
+
+/* The owner's nsec (static/register.js, pullNow): masked without being a password field, which would make browsers
+   offer to save it; where the browser cannot mask a text field the script makes it a password field */
+.secret-field { -webkit-text-security: disc; }
+
+/* Targets a finger finds at the till: at least 44×44 CSS px for what opens, chooses or is typed in */
+.register summary { min-height: 44px; padding: 8px 0; box-sizing: border-box; cursor: pointer; }
+.register select, .register textarea, .register input:not([type=checkbox]):not([type=color]) { min-height: 44px; box-sizing: border-box; }
+.register select, .register input { font: inherit; }
+.register input[type=color] { min-width: 44px; min-height: 44px; }
+.register label.check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.register label.check input { flex: none; width: 24px; height: 24px; margin: 0; }

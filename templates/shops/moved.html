@@ -1,0 +1,9 @@
+{% load i18n %}<section class="moved notice" aria-labelledby="moved-{{ shop.id }}">
+  <h2 id="moved-{{ shop.id }}">{% translate "Your shop has arrived here" %}</h2>
+  <p>{% translate "Its page and details came with it. To take payments here, connect your wallet: it takes two minutes. Until then the shop is not on the map." %}</p>
+  <ol class="moved-steps">
+    <li><a class="button" href="{% url 'connect_wallet' shop.id %}">{% translate "Connect your wallet" %}</a></li>
+    <li>{% translate "Once the wallet is connected, print the new sign from here: the old one leads to the old site." %}</li>
+    <li>{% translate "If someone else takes payments with you, send them the new register link." %}</li>
+  </ol>
+</section>

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Fake openssl: the certificate expires within 14 days if $FAKE_DIR/certificate_ko exists
+case "$*" in
+  *x509*) cat >/dev/null; [ ! -e "$FAKE_DIR/certificate_ko" ] ;;
+  *) cat >/dev/null ;;
+esac

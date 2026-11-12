@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block content %}
+{% if elsewhere %}<header class="page-head"><h1>{% translate "Confirm your email" %}</h1>
+<p class="notice" role="alert">{% translate "Open this link in the browser where you are signed in to the account that asked for it: only that account can confirm the email. If you did not ask for it, ignore it: nothing changes." %}</p></header>
+{% else %}<header class="page-head"><h1>{% translate "One last step" %}</h1><p>{% translate "Press the button to finish." %}</p>
+{% if account %}<p>{% if confirming %}{% blocktranslate with email=account %}This email will get you back into your account: {{ email }}.{% endblocktranslate %}{% else %}{% blocktranslate with email=account %}You are signing in as {{ email }}.{% endblocktranslate %}{% endif %}</p>{% endif %}</header>
+<form method="post" action="{{ action }}" class="shop-form" data-once>{% csrf_token %}<input type="hidden" name="token" value="{{ token }}"><button class="button">{% translate "Continue" %}</button></form>
+<script src="{% static 'link_confirm.js' %}"></script>{% endif %}
+{% endblock %}

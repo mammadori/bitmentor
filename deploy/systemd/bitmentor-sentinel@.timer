@@ -1,0 +1,11 @@
+[Unit]
+Description=bitmentor: Lightning addresses of the shops of /opt/%i, every hour
+
+[Timer]
+# Every hour: the command picks the shops that are due, a working address every 6 hours, a failing one every hour
+OnBootSec=15min
+OnUnitInactiveSec=1h
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

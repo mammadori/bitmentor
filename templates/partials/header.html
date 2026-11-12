@@ -1,0 +1,10 @@
+{% load i18n %}
+<header class="top">
+  <a class="brand" href="{% url 'home' %}"><img src="/theme/{{ community.logo }}" alt="" width="40" height="40"> <span>{{ community.name }}</span></a>
+  <button class="menu-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="{% translate 'Menu' %}"><span></span><span></span><span></span></button>
+  <nav id="site-nav" aria-label="{% translate 'Menu' %}">
+    {% for item in menu %}<a href="{{ item.href }}"{% if item.href == request.path %} aria-current="page"{% endif %}>{{ item.label }}</a>{% endfor %}
+    <a class="nav-cta" href="{% url 'shops' %}">{% translate "For shops" %}</a>
+    <span class="langs">{% for alternate in alternates %}<a href="{{ alternate.href }}" hreflang="{{ alternate.code }}" lang="{{ alternate.code }}" title="{{ alternate.name }}" aria-label="{{ alternate.name }}"{% if alternate.active %} aria-current="true"{% endif %}>{{ alternate.code }}</a>{% endfor %}</span>
+  </nav>
+</header>

@@ -1,0 +1,12 @@
+[Unit]
+Description=bitmentor: what to do today about the shops of /opt/%i, every morning
+
+[Timer]
+# Every morning, before the shops open, after the night's runs of the guardian and of the reader
+OnCalendar=*-*-* 06:30:00 UTC
+RandomizedDelaySec=15min
+# If the machine was off at that time, the summary comes at boot
+Persistent=true
+
+[Install]
+WantedBy=timers.target

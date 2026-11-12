@@ -1,0 +1,7 @@
+# SITE_MODE=maintenance: the construction page for everybody, also for whoever is in DEV_ALLOWED_IPS.
+# Still open: /health/ for monitoring, and OPEN_PATHS. No indexing.
+@outside not path /health/ {$OPEN_PATHS}
+handle @outside {
+	import maintenance
+}
+import closed

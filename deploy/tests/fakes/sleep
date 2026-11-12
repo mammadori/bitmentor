@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Fake sleep: release.sh waits 5 seconds between two checks, the test does not
+exit 0

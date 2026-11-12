@@ -1,0 +1,85 @@
+{% load static i18n %}<!doctype html>
+{% get_current_language as LANGUAGE_CODE %}{% get_available_languages as LANGUAGES %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% translate "At the till" %} · {{ shop.name }}</title>
+{% for font in community.preload_fonts %}<link rel="preload" href="/theme/{{ font }}" as="font" type="font/woff2" crossorigin>
+{% endfor %}<link rel="stylesheet" href="{% static 'base.css' %}">
+<link rel="stylesheet" href="/theme/theme.css">
+</head>
+{% translate "Payment received" as paid %}{% translate "Waiting for payment" as waiting %}{% translate "The code does not scan? Show it as text" as as_text %}{% translate "New payment" as again %}{% translate "Payment expired" as expired %}{% translate "Cancel" as cancel %}{% translate "I see the payment in my wallet" as seen %}{% translate "Cannot check the payment with your Lightning wallet right now: still trying." as check_failed %}
+<body class="till-card">
+<nav class="crumbs no-print"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a></nav>
+<main>
+<div class="till-tools no-print">
+  <p>{% translate "Print it on an A4 sheet and keep it at the till, next to the shop phone. Whoever stands there finds everything on it, even without knowing anything about bitcoin." %}</p>
+  <p class="till-languages">{% translate "Language of the card:" %} {% for code, name in LANGUAGES %}{% language code %}<a href="{% url 'till_card' shop.id %}{% if with_qr %}?qr=1{% endif %}" hreflang="{{ code }}" lang="{{ code }}"{% if code == LANGUAGE_CODE %} aria-current="page"{% endif %}>{{ name }}</a>{% endlanguage %}{% endfor %}</p>
+  <p>{% if with_qr %}<a href="{% url 'till_card' shop.id %}">{% translate "Card without the register code" %}</a>{% else %}<a href="{% url 'till_card' shop.id %}?qr=1">{% translate "Add the register code, for whoever works with you" %}</a>{% endif %}</p>
+  {% if with_qr %}<p class="muted">{% translate "With the code on it, keep the card on your side of the counter: whoever scans it opens the register." %}</p>{% endif %}
+  <p><button id="print" class="button">{% translate "Print" %}</button></p>
+  <p class="muted">{% include "partials/source_link.html" %}</p>
+</div>
+<article class="till-sheet">
+  <header class="till-head">
+    <img src="{% static 'bitcoin.svg' %}" alt="" class="till-logo" width="56" height="56">
+    <div><h1>{% translate "Bitcoin at the till" %}</h1><p class="till-shop">{{ shop.name }}</p></div>
+  </header>
+  {% if paying_to %}{% include "shops/paying_to.html" with class="till-to" %}{% endif %}
+  <p class="till-intro">{% translate "The customer pays with an app on their phone, called a wallet. You only need the register: the page that opens on the shop phone." %}</p>
+  <div class="till-columns">
+  <section>
+    <h2>{% translate "Taking a payment" %}</h2>
+    <ol>
+      <li>{% translate "Open the register on the shop phone." %}</li>
+      <li>{% translate "Type the cents too: 1, 5, 0 makes 1.50." %}</li>
+      <li>{% blocktranslate %}Press OK. The register shows a code and “{{ waiting }}”.{% endblocktranslate %}</li>
+      <li>{% translate "Turn the phone towards the customer: they scan the code with their wallet and confirm." %}</li>
+      <li>{% blocktranslate %}If it does not scan, press “{{ as_text }}”: the customer can copy it.{% endblocktranslate %}</li>
+    </ol>
+  </section>
+  <section>
+    <h2>{% translate "How you know it has arrived" %}</h2>
+    <p>{% blocktranslate %}The register says “{{ paid }}”, with a tick. Only then hand over the goods, and press “{{ again }}” for the next customer.{% endblocktranslate %}</p>
+    <p><strong>{% translate "Look at the register, not at the customer's phone: only the register knows that the money has arrived." %}</strong></p>
+    <p>{% translate "With Lightning it takes a few seconds." %}</p>
+  </section>
+  <section>
+    <h2>{% translate "If the wallet does not tell the register" %}</h2>
+    <p>{% blocktranslate %}Some wallets do not tell the register when a payment arrives: then the register says so in red, under the code. Hand over the goods only after the owner sees the payment in the shop's wallet, then press “{{ seen }}”.{% endblocktranslate %}</p>
+    <p>{% blocktranslate %}“{{ expired }}”: the time ran out, nothing was charged. Start again.{% endblocktranslate %}</p>
+    <p>{% blocktranslate %}“{{ cancel }}” only if the customer has not paid.{% endblocktranslate %}</p>
+    <p>{% blocktranslate %}Too much or too little: a Lightning payment is always the exact amount of the code.{% endblocktranslate %}</p>
+  </section>
+  <section>
+    <h2>{% translate "If the network is down" %}</h2>
+    <p>{% translate "Check that the shop phone has Wi-Fi or mobile data." %}</p>
+    <p>{% blocktranslate %}“{{ check_failed }}” Wait: do not cancel and do not start over.{% endblocktranslate %}</p>
+    <p>{% translate "The register works even when the site does not answer: the sales stay on the phone, and the site never sees them." %}</p>
+  </section>
+  <section>
+    <h2>{% translate "At the end of the day" %}</h2>
+    <p>{% blocktranslate %}Tell the owner about every sale that did not end with “{{ paid }}”.{% endblocktranslate %}</p>
+    <p>{% translate "Under the keypad the register lists the sales made on this phone, with how each one ended." %}</p>
+  </section>
+  <section>
+    <h2>{% translate "Who to ask" %}</h2>
+    <p class="till-fill">{% translate "Owner:" %} <span class="till-line"></span></p>
+    <p class="till-fill">{% translate "Phone:" %} <span class="till-line"></span></p>
+    {% if community.email %}<p>{% blocktranslate with email=community.email %}About the register and the site: {{ email }}{% endblocktranslate %}</p>{% endif %}
+    {% if guide %}<p class="till-url">{% blocktranslate %}The guide for shops: {{ guide }}{% endblocktranslate %}</p>{% endif %}
+  </section>
+  </div>
+  {% if with_qr %}<section class="till-qr">
+    <img class="qr" src="{{ register_qr }}" alt="{% translate 'Code that opens the register' %}" width="150" height="150">
+    <div><h2>{% translate "The register on your phone" %}</h2>
+      <p>{% translate "Scan the code and add the page to the home screen. No sign-in needed: with it one can only take payments, which go to the shop." %}</p>
+      <p class="till-url">{{ register_url }}</p></div>
+  </section>{% endif %}
+  <p class="till-foot">{{ community.name }}</p>
+</article>
+</main>
+<script src="{% static 'sign.js' %}"></script>
+</body>
+</html>

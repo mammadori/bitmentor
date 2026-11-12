@@ -1,0 +1,1 @@
+# SITE_MODE=production: open to everybody and indexable. The site serves robots.txt.

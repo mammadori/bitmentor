@@ -1,0 +1,18 @@
+{% load i18n %}
+<footer class="bottom">
+  <div class="bottom-grid">
+    <div>
+      <p class="bottom-name">{{ community.name }}</p>
+      <p>{{ tagline }}</p>
+    </div>
+    <nav aria-label="{% translate 'Explore' %}">
+      {% for item in menu %}<a href="{{ item.href }}">{{ item.label }}</a>{% endfor %}
+    </nav>
+    <div class="bottom-links">
+      <a href="mailto:{{ community.email }}">{{ community.email }}</a>
+      {% for link in community.links %}<a href="{{ link.url }}" rel="noopener">{{ link.label }}</a>{% endfor %}
+      {% for item in footer_menu %}<a href="{{ item.href }}">{{ item.label }}</a>{% endfor %}
+      {% include "partials/source_link.html" %}
+    </div>
+  </div>
+</footer>

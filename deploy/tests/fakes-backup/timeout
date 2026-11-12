@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Fake timeout for deploy/tests/test_backup.sh: when $FAKE_DIR/timeout_ko exists, the commands it limits "take too long"
+# (exit 124, as the real one does); otherwise the real timeout
+if [ -n "${FAKE_DIR:-}" ] && [ -e "$FAKE_DIR/timeout_ko" ]; then exit 124; fi
+HERE=$(dirname "${BASH_SOURCE[0]}")
+exec env PATH="${PATH//$HERE:/}" timeout "$@"

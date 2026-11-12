@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{% blocktranslate with name=shop.name %}Paying with bitcoin at {{ name }}{% endblocktranslate %} · {{ community.name }}{% endblock %}
+{% block description %}{% translate "No wallet yet, or not sure how to pay? Here is how, step by step." %}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'customer.css' %}">{% endblock %}
+{% block body_class %}page-customer{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'shop_detail' shop.id %}">{{ shop.name }}</a></nav>
+<header class="page-head"><h1>{% blocktranslate with name=shop.name %}Paying with bitcoin at {{ name }}{% endblocktranslate %}</h1>
+<p>{% translate "The first time takes a few minutes. After that, paying takes a few seconds." %}</p></header>
+{% if deal %}<p class="deal">-{{ deal.percent }}% <span>{% translate "if you pay in bitcoin" %}</span></p>
+<p>{% blocktranslate with bill=deal.bill saving=deal.saving %}On a bill of {{ bill }}, you save {{ saving }}.{% endblocktranslate %}</p>{% endif %}
+<h2 class="customer-ask" id="customer-ask">{% translate "Which one is you?" %}</h2>
+<ul class="customer-choices" aria-labelledby="customer-ask">
+  <li><a class="customer-choice" href="{% url 'customer_step' shop.id 1 %}">
+    <span class="art-box">{{ art.store }}</span>
+    <strong>{% translate "I don't have a wallet" %}</strong>
+    <span>{% translate "We take you through it, in three short steps. It is free." %}</span></a></li>
+  <li><a class="customer-choice" href="{% url 'customer_help' shop.id %}">
+    <span class="art-box">{{ art.scan }}</span>
+    <strong>{% translate "I have a wallet, but I'm not sure how to pay" %}</strong>
+    <span>{% translate "What to scan, what to expect, and what to do if it says error." %}</span></a></li>
+</ul>
+<p class="muted">{% translate "Nothing here asks for your name, your email or your phone number, and nothing is kept about you." %}</p>
+{% if wallet_page %}<p><a href="{{ wallet_page }}">{% translate "More about wallets, from our community" %}</a></p>{% endif %}
+<p><a href="{% url 'shop_detail' shop.id %}#shop-pay-title">{% translate "Back to how to pay here" %}</a></p>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% load i18n %}<div class="help-card{% if shop.help_state.open %} help-open{% endif %}" id="help-{{ shop.id }}">
+  {% if shop.help_state.open %}<p class="help-head"><strong>{% blocktranslate with when=shop.help_state.when %}You asked for help {{ when }}.{% endblocktranslate %}</strong>
+    {% if shop.help_state.delivered %}{% translate "The association has been told." %}{% else %}{% translate "The request is saved and the association will see it, even if the message to them did not go out." %}{% endif %}</p>
+  {% elif shop.help_state %}<p class="help-head"><strong>{% blocktranslate with when=shop.help_state.solved_when %}Solved {{ when }}.{% endblocktranslate %}</strong>
+    {% blocktranslate with symptom=shop.help_state.symptom %}Your request «{{ symptom }}» is closed. Thank you.{% endblocktranslate %}</p>
+  {% endif %}
+  <p class="help-line"><a class="button button-quiet" href="{% url 'help_home' shop.id %}">{% translate "Something wrong?" %}</a>
+    <span class="muted">{% translate "The payment does not go through, the register does not open, a lost phone…" %}</span></p>
+</div>

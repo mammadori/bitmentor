@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{{ title }} · {% translate "Your merchant pass" %}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'training.css' %}">{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'training' %}{% if shop %}?shop={{ shop.pk }}{% endif %}">{% translate "Your merchant pass" %}</a></nav>
+<header class="page-head"><h1>{{ title }}</h1></header>
+{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+{% if page %}<p><a class="button button-quiet" href="{{ page }}">{% translate "Read the page" %}</a> <span class="muted">{% translate "It opens in the same window; come back here when you finish." %}</span></p>{% endif %}
+
+{% if items or marks %}<section aria-labelledby="quiz-title"><h2 id="quiz-title">{% translate "Questions" %}</h2>
+{% if item.quiz %}<p class="training-ok" role="status">{% translate "All the answers are right." %} ✓</p>
+{% else %}<form method="post" class="training-quiz">{% csrf_token %}<input type="hidden" name="action" value="quiz">{% if shop %}<input type="hidden" name="shop" value="{{ shop.pk }}">{% endif %}
+  {% for question in items %}<fieldset class="quiz-{{ question.state|default:'open' }}"><legend>{{ forloop.counter }}. {{ question.text }}</legend>
+    {% for option in question.options %}<p><label><input type="radio" name="{{ question.name }}" value="{{ option.value }}"{% if option.checked %} checked{% endif %}{% if forloop.first %} required{% endif %}> {{ option.text }}</label></p>{% endfor %}
+    {% if question.state == "wrong" %}<p class="quiz-explain" role="status"><strong>{% translate "Not this one." %}</strong> {{ question.explain }}</p>{% elif question.state == "right" %}<p class="training-ok">{% translate "Right" %} ✓</p>{% endif %}
+  </fieldset>{% endfor %}
+  <p><button class="button" type="submit">{% if marks %}{% translate "Try again" %}{% else %}{% translate "Check my answers" %}{% endif %}</button></p>
+</form>{% endif %}</section>{% endif %}
+
+{% if statements %}<section aria-labelledby="declare-title"><h2 id="declare-title">{% translate "What you tell us" %}</h2>
+{% if not item.quiz %}<p class="muted">{% translate "After the questions you confirm a few statements." %}</p>
+{% else %}<p>{% translate "We keep a note of what you confirm, with the date: it is the proof that you were told. Tick only what you agree with." %}</p>
+<form method="post" class="training-declare">{% csrf_token %}<input type="hidden" name="action" value="declare">{% if shop %}<input type="hidden" name="shop" value="{{ shop.pk }}">{% endif %}
+  <ul class="training-statements">{% for statement in statements %}<li>{% if statement.state == "done" %}<span class="training-ok">✓ {{ statement.text }}</span>
+    {% else %}<label><input type="checkbox" name="ticked" value="{{ statement.id }}"> {{ statement.text }}</label>{% if statement.state == "old" %}<br><small class="muted">{% translate "This text changed since you confirmed it: read it again." %}</small>{% endif %}{% endif %}</li>{% endfor %}</ul>
+  {% if item.statements_done != item.statements_total %}<p><button class="button" type="submit">{% translate "Confirm what I ticked" %}</button></p>{% endif %}
+</form>{% endif %}</section>{% endif %}
+{% if item.done %}<p class="training-ok" role="status">{% translate "This module is done." %} ✓</p>
+  <p>{% if following %}<a class="button" href="{% url 'training_module' following.id %}{% if shop %}?shop={{ shop.pk }}{% endif %}">{% blocktranslate with name=following.title %}Next: {{ name }}{% endblocktranslate %}</a>{% else %}<a class="button" href="{% url 'training' %}{% if shop %}?shop={{ shop.pk }}{% endif %}">{% translate "Back to your path" %}</a>{% endif %}</p>{% endif %}
+{% endblock %}

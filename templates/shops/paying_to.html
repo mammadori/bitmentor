@@ -1,0 +1,1 @@
+{% load i18n %}<p class="{{ class }}"><strong>{% translate "Paying to:" %}</strong>{% for line in paying_to %} <span class="paying-to-item"><span class="paying-to-label">{{ line.label }}</span> <span class="mono">{{ line.value }}</span></span>{% endfor %}</p>

@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{% translate "Three rules of the counter" %}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'training.css' %}">{% endblock %}
+{% block content %}
+{% if busy %}<header class="page-head"><h1>{% translate "Too many tries" %}</h1></header>
+<p>{% translate "Wait ten minutes and try again." %}</p>
+{% else %}<header class="page-head"><h1>{% translate "Three rules of the counter" %}</h1><p>{{ shop.name }}</p></header>
+<p>{% translate "Before the first sale, read them. They are short." %}</p>
+<ol class="training-rules">{% for rule in rules %}<li>{{ rule }}</li>{% endfor %}</ol>
+<form method="post" action="{% url 'staff_rules' staff.id %}">{% csrf_token %}<input type="hidden" name="k" value="{{ key }}">
+  <p><button class="button" type="submit" name="agree" value="1">{% translate "I understood" %}</button></p></form>
+{% if practice %}<p><a class="button button-quiet" href="{{ practice }}">{% translate "Practise first, without money" %}</a></p>{% endif %}
+{% endif %}
+{% endblock %}

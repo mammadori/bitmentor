@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{% translate "The register opens soon" %} · {{ shop.name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'training.css' %}">{% endblock %}
+{% block content %}
+<header class="page-head"><h1>{% translate "The register opens soon" %}</h1><p>{{ shop.name }}</p></header>
+{% if owner %}<p>{% translate "The register that takes real money opens when you have the basic pass: a few short modules, with a little game. Your wallet and your recovery words are yours, and we want you to know what to do if something goes wrong." %}</p>
+<p class="training-actions"><a class="button" href="{% url 'training' %}">{% translate "Start the path" %}</a> {% if features.practice %}<a class="button button-quiet" href="{% url 'practice' shop.id %}">{% translate "Practise without money" %}</a>{% endif %}</p>
+{% elif staff %}<p>{% translate "The owner has not finished the training yet: the register opens when they have. Tell them." %}</p>
+{% else %}<p>{% translate "The owner of the shop has not finished the training yet: the register opens when they have." %}</p>
+{% if features.practice %}<p class="training-actions"><a class="button button-quiet" href="{% url 'practice' shop.id %}">{% translate "Practise without money" %}</a></p>{% endif %}{% endif %}
+{% endblock %}

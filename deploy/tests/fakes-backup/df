@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Fake df for deploy/tests/test_backup.sh (the machine running the tests may have a small /tmp): the free bytes are in
+# $FAKE_DIR/df, or 100 GiB; without $FAKE_DIR, the real df
+if [ -n "${FAKE_DIR:-}" ]; then
+  [ -e "$FAKE_DIR/df_ko" ] && exit 1
+  printf 'Avail\n%s\n' "$(cat "$FAKE_DIR/df" 2>/dev/null || echo 107374182400)"; exit 0
+fi
+HERE=$(dirname "${BASH_SOURCE[0]}")
+exec env PATH="${PATH//$HERE:/}" df "$@"

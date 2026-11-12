@@ -1,0 +1,35 @@
+# The shared entry point: one Caddy that holds ports 80 and 443 and the certificates for every installation on the
+# machine, and forwards each name over HTTP to that installation's Caddy, on the Docker network bitmentor-entry
+# (docs/installation.md, "The shared entry point"). Copy this folder to /opt/entry, write one block per installation
+# in the Caddyfile, then: docker compose up -d. Start it before running deploy/install.sh --entry shared, which reads
+# the network's subnet for TRUSTED_PROXIES.
+name: entry
+
+services:
+  caddy:
+    image: caddy:2.10-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/config, /tmp]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ["no-new-privileges:true"]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - data:/data
+    networks: [entry]
+
+networks:
+  entry:
+    # Created here with a fixed name, so the installations can join it as an external network
+    name: bitmentor-entry
+    ipam:
+      config:
+        # A subnet of its own, the one the installations trust in TRUSTED_PROXIES: change it if it is taken
+        - subnet: 172.31.250.0/24
+
+volumes:
+  data:

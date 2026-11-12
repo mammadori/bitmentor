@@ -1,0 +1,8 @@
+{% load i18n %}<div class="help-card osm-card{% if shop.osm_asked.open %} help-open{% endif %}" id="osm-{{ shop.id }}">
+  {% if shop.osm_asked.open %}<p class="help-head"><strong>{% blocktranslate with when=shop.osm_asked.when %}You asked the association about OpenStreetMap {{ when }}.{% endblocktranslate %}</strong>
+    {% translate "A person does it by hand: you see here when it is done." %}</p>
+  {% elif shop.osm_asked.done %}<p class="help-head"><strong>{% blocktranslate with when=shop.osm_asked.done_when %}Your shop on OpenStreetMap: done {{ when }}.{% endblocktranslate %}</strong></p>
+  {% elif shop.osm_asked.declined %}<p class="help-head"><strong>{% translate "Your shop on OpenStreetMap: the association could not do it." %}</strong></p>{% endif %}
+  <p class="help-line"><a class="button button-quiet" href="{% url 'osm_home' shop.id %}">{% translate "Your shop on OpenStreetMap" %}</a>
+    <span class="muted">{% translate "See what the map says about you, and update it." %}</span></p>
+</div>

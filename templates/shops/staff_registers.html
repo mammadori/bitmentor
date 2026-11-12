@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a></nav>
+<header class="page-head"><h1>{% translate "Registers for your staff" %}</h1><p>{{ shop.name }}</p></header>
+{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+<p>{% translate "Give each person who takes payments their own register. With it they can only take payments, which go to your wallet: they see where the money goes, and nothing else of your wallet, your sales or your settings." %}</p>
+<p>{% translate "When someone stops working with you, or loses the phone, turn off their register: it stops at once, the others keep working." %}</p>
+<h2>{% translate "Turned on" %}</h2>
+<div class="panel-list staff-list">{% for register in active %}
+  <div class="panel-row">
+    <div><strong>{{ register.name }}</strong>
+      <p class="panel-status">{% if register.opened %}{% blocktranslate with date=register.opened|date:"SHORT_DATETIME_FORMAT" %}Opened on a phone on {{ date }}.{% endblocktranslate %}{% elif register.code_alive %}{% translate "Not opened on a phone yet: the code is waiting." %}{% else %}{% translate "Not opened on a phone yet." %}{% endif %}</p>
+    </div>
+    <span class="panel-actions">
+      <a class="button button-quiet" href="{% url 'staff_code' shop.id register.id %}">{% translate "Put it on a phone" %}</a>
+      <form method="post" action="{% url 'staff_retire' shop.id register.id %}">{% csrf_token %}<button class="button button-quiet">{% blocktranslate with name=register.name %}Turn off «{{ name }}»{% endblocktranslate %}</button></form>
+    </span>
+  </div>
+{% empty %}<p class="muted">{% translate "None yet." %}</p>{% endfor %}</div>
+<h2 id="add">{% translate "Add a register" %}</h2>
+<form method="post" class="shop-form" action="#add">{% csrf_token %}{{ form.as_p }}
+  <p><button class="button">{% translate "Add the register" %}</button></p></form>
+{% if retired %}<details class="staff-retired-list"><summary>{% blocktranslate count counter=retired|length %}1 register turned off{% plural %}{{ counter }} registers turned off{% endblocktranslate %}</summary>
+  <ul>{% for register in retired %}<li>{% blocktranslate with name=register.name date=register.retired|date:"SHORT_DATE_FORMAT" %}{{ name }}, turned off on {{ date }}{% endblocktranslate %}</li>{% endfor %}</ul>
+</details>{% endif %}
+<p class="muted">{% blocktranslate with url=owner_register %}<a href="{{ url }}">Your own register</a> is for you: it cannot be turned off, so do not give its link to anyone.{% endblocktranslate %}</p>
+{% endblock %}

@@ -1,0 +1,9 @@
+# Caddy with the software's rules inside the image, for whoever installs from the release images (compose.release.yml).
+# A community adds its own in /etc/caddy/local and its construction page in /srv/maintenance.
+FROM caddy:2.10-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+COPY Caddyfile /etc/caddy/Caddyfile
+COPY caddy /etc/caddy/mode
+COPY maintenance /srv/maintenance
+RUN mkdir -p /etc/caddy/local/sites
+ARG VERSION=development
+LABEL org.opencontainers.image.version=$VERSION

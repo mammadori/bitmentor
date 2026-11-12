@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Fake systemctl: is-failed answers «failed» if $FAKE_DIR/unit_failed exists, empty (every unit) or with the name
+# of the unit on a line
+echo "systemctl $*" >> "$FAKE_CALLS"
+f=$FAKE_DIR/unit_failed
+case "${1:-}" in
+  is-failed) [ -e "$f" ] && { [ ! -s "$f" ] || grep -qxF -- "${!#}" "$f"; } ;;
+esac

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Fake awk: the available memory of check.sh is the one in $FAKE_DIR/memory (50%), not that of the machine running the test.
+# The real awk does everything else.
+case "$*" in
+  *MemTotal*) cat /dev/null; cat "$FAKE_DIR/memory" 2>/dev/null || echo 50 ;;
+  *) exec env PATH="${PATH#*:}" awk "$@" ;;
+esac

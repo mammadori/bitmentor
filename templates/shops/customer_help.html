@@ -1,0 +1,59 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{% blocktranslate with name=shop.name %}How to pay at {{ name }}{% endblocktranslate %} · {{ community.name }}{% endblock %}
+{% block description %}{% translate "What to scan, what to expect, and what to do if your wallet says error." %}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'customer.css' %}">{% endblock %}
+{% block body_class %}page-customer{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'customer' shop.id %}">{% blocktranslate with name=shop.name %}Paying at {{ name }}{% endblocktranslate %}</a></nav>
+<header class="page-head"><h1>{% blocktranslate with name=shop.name %}How to pay at {{ name }}{% endblocktranslate %}</h1>
+<p>{% translate "You have a wallet. Here is what happens at the till, and what to do if something looks wrong." %}</p></header>
+{% if deal %}<p class="deal">-{{ deal.percent }}% <span>{% translate "if you pay in bitcoin" %}</span></p>{% endif %}
+
+<ol class="customer-steps">
+  <li><h2>{% translate "Ask to pay in bitcoin" %}</h2>
+    {# "bitcoin": a shop with its own till while on-chain, an experimental feature, is off (shops/views.py, till_methods): nothing is said of the way #}
+    {% if methods != "bitcoin" %}<p>{% if methods == "lightning" %}{% translate "Here it works with Lightning. Most wallets can do it." %}{% elif methods == "onchain" %}{% translate "Here it works on-chain: your wallet has to send on-chain, not with Lightning." %}{% else %}{% translate "Lightning or on-chain, whichever your wallet uses." %}{% endif %}</p>{% endif %}</li>
+  <li><h2>{% translate "Look at the code on the till" %}</h2>
+    <figure class="art-box">{{ art.scan }}</figure>
+    <p>{% translate "The till shows a square code with the amount. It is the shop's phone: you do not need to touch it." %}</p></li>
+  <li><h2>{% translate "Scan it with your wallet" %}</h2>
+    <p>{% translate "Open your wallet and press Scan, Pay or Send: the name changes from one wallet to another. Point the camera at the code." %}</p></li>
+  <li><h2>{% translate "Check the amount and confirm" %}</h2>
+    <figure class="art-box">{{ art.confirm }}</figure>
+    <p>{% translate "The amount must be the price you were told. Then press the button that sends the payment." %}</p></li>
+  <li><h2>{% translate "Wait for the tick" %}</h2>
+    <figure class="art-box">{{ art.done }}</figure>
+    <p>{% translate "Your wallet shows a tick, or says the payment was sent. The cashier waits for the tick on the till: only the till knows that the money arrived." %}</p></li>
+</ol>
+
+{% if methods != "bitcoin" or deal %}<h2>{% translate "What to expect" %}</h2>{% endif %}
+{% if methods == "lightning" or methods == "both" %}<p>{% translate "With Lightning it takes a few seconds." %}</p>{% endif %}
+{% if methods == "onchain" or methods == "both" %}<p>{% translate "On-chain, the bitcoin network needs about ten minutes to confirm the payment. The till says it is waiting: that is normal. Stay a moment, or ask the cashier." %}</p>{% endif %}
+{% if deal %}<p>{% blocktranslate with percent=deal.percent bill=deal.bill saving=deal.saving %}This shop takes {{ percent }}% off when you pay in bitcoin: ask for it at the till. On a bill of {{ bill }}, you save {{ saving }}.{% endblocktranslate %}</p>{% endif %}
+
+<h2>{% translate "If your wallet says error" %}</h2>
+<figure class="art-box art-small">{{ art.problem }}</figure>
+<div class="customer-problems">
+  <details><summary>{% translate "It does not scan" %}</summary>
+    <p>{% translate "Use the scanner inside your wallet, not the camera of the phone. Hold the phone still, and make the screen of the shop's phone and yours brighter." %}</p>
+    <p>{% translate "Still nothing? Ask the cashier to show the code as text. You copy the text and paste it in your wallet." %}</p></details>
+  <details><summary>{% translate "It says there is not enough money" %}</summary>
+    <p>{% if experimental.onchain %}{% translate "Your wallet holds less than the price. An on-chain payment also needs a little more for the network's fee. Add some bitcoin to the wallet, or pay the rest another way." %}{% else %}{% translate "Your wallet holds less than the price. Add some bitcoin to the wallet, or pay the rest another way." %}{% endif %}</p></details>
+  <details><summary>{% translate "It says the code is not valid, or the network is wrong" %}</summary>
+    {% if test_network %}<p>{% blocktranslate with network=network %}This site works on a test network, called {{ network }}. A wallet set to real bitcoin cannot pay it. In the settings of your wallet, switch to {{ network }}.{% endblocktranslate %}</p>
+    {% else %}<p>{% translate "A wallet set to a test network cannot pay real bitcoin, and the other way round. In the settings of your wallet, switch to real bitcoin." %}</p>{% endif %}</details>
+  <details><summary>{% translate "It says the code has expired" %}</summary>
+    <p>{% translate "A code lasts only a few minutes. Ask the cashier for a new one and scan it again. Nothing was charged." %}</p></details>
+  {% if methods == "lightning" or methods == "both" %}<details><summary>{% translate "It says the payment failed" %}</summary>
+    <p>{% translate "A Lightning payment sometimes cannot find its way. Check that your phone is online, wait a minute and try again. Nothing is charged for a payment that failed." %}</p>
+    <p>{% translate "Still failing? Tell the cashier: they know who to call." %}</p></details>{% endif %}
+  <details><summary>{% translate "I paid, but the till shows nothing" %}</summary>
+    <p>{% translate "Do not pay again. Wait half a minute: the till catches up. The cashier looks at the till, not at your phone." %}</p>
+    <p>{% translate "If it does not change, show the cashier the confirmation in your wallet. The owner of the shop can check the payment." %}</p></details>
+  <details><summary>{% translate "I paid too little, or too much" %}</summary>
+    <p>{% translate "The till shows it to the cashier. Too little: it shows what is still to pay, and you pay the rest. Too much: the cashier gives the difference back." %}</p></details>
+</div>
+
+<p class="customer-buttons"><a class="button" href="{% url 'shop_detail' shop.id %}#shop-pay-title">{% blocktranslate with name=shop.name %}Back to {{ name }}{% endblocktranslate %}</a>
+  <a class="button button-quiet" href="{% url 'customer_step' shop.id 1 %}">{% translate "I don't have a wallet yet" %}</a></p>
+{% endblock %}
