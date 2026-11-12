@@ -38,7 +38,11 @@ if (given.clockAhead) { const realNow = Date.now; Date.now = () => realNow() + g
 if (given.noSubtle) Object.defineProperty(globalThis, "crypto", { value: { getRandomValues: (a) => a.fill(7) }, configurable: true });
 globalThis.Option = function Option(text, value) { return { text, value }; };
 const realTimeout = setTimeout;
-globalThis.setTimeout = (fn, ms) => realTimeout(fn, Math.min(ms, 5));
+// Delays are shortened so the tests run fast, but not the relay limits of static/register-relays.js (8 s to open a
+// socket, 12 s to wait for answers): the fake relay answers in ~1 ms of real time, and with those cut to 5 ms a busy
+// machine could fire the limit first, so the register would see a relay that did not answer and drop its events.
+const RELAY_LIMITS = [8000, 12000];
+globalThis.setTimeout = (fn, ms) => realTimeout(fn, RELAY_LIMITS.includes(ms) ? ms : Math.min(ms, 5));
 globalThis.setInterval = () => 0;
 const elements = {};
 // The files the register hands to the browser: their name and content
@@ -217,6 +221,11 @@ async function lightning() {
     await wait(400);
     out.sales.push({ error: element("error").textContent, ledger: ledger(), seen: !element("seen").hidden });
     listeners["again:click"].forEach((fn) => fn());
+  }
+  // Copies brought in from the relay by the register's own pull, then each checked with the provider: both take as long as
+  // the machine needs (decryption, signatures), so wait for the checks to be asked rather than a fixed time
+  if (given.relay && given.relay.length) {
+    await until(() => ledger().length && asked.filter((url) => url.includes("/verify/")).length >= ledger().length, 8000);
   }
   await wait(400);
   out.ledger = ledger();
