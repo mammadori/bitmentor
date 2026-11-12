@@ -1342,20 +1342,20 @@ class CaddyRules(Base):
         for agent in ("Go-http-client/2.0", "python-requests/2.32"):
             self.assertTrue(re.search(names, agent), agent)
 
-    def test_both_services_get_the_switch_and_the_documents_list_it(self):
+    def test_both_services_get_the_switch(self):
         services = yaml.safe_load((ROOT / "docker-compose.yml").read_text())["services"]
         for name in ("web", "caddy"):
             self.assertEqual(services[name]["environment"]["TEAM_ACCESS"], "${TEAM_ACCESS:-off}", name)
         release = yaml.safe_load((ROOT / "compose.release.yml").read_text().replace("!reset", "").replace("!override", ""))
         for name in ("web", "caddy"):
             self.assertNotIn("environment", release["services"][name], name)  # the release keeps the same environment
-        self.assertIn("\nTEAM_ACCESS=off\n", (ROOT / ".env.example").read_text())
 
 
 class Documents(Base):
     def test_the_variable_and_the_feature_are_documented(self):
-        self.assertIn("\nTEAM_ACCESS=off\n", (ROOT / ".env.example").read_text())
-        # The image leaves docs/ out (.dockerignore), and the list of what it takes in: there only the example is checked
+        # The image leaves .env.example and docs/ out (.dockerignore): there only its own list is checked
+        if (ROOT / ".env.example").is_file():
+            self.assertIn("\nTEAM_ACCESS=off\n", (ROOT / ".env.example").read_text())
         if (ROOT / "docs").is_dir():
             self.assertIn("| `TEAM_ACCESS` | `off` |", (ROOT / "docs" / "configuration.md").read_text())
             self.assertIn("(team-access.md)", (ROOT / "docs" / "features" / "README.md").read_text())
