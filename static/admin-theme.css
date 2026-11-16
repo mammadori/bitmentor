@@ -33,7 +33,10 @@ a:link, a:visited { color: var(--link-fg); }
 a:hover { color: var(--link-hover-color); }
 #header { border-bottom: 1px solid var(--neon-cyan); box-shadow: 0 1px 12px rgba(34, 230, 242, .35); }
 #site-name a:link, #site-name a:visited { color: var(--neon-orange); }
-.staff-zone { flex-basis: 100%; margin: -10px -40px 8px; padding: 3px 40px; background: repeating-linear-gradient(135deg, #ff9a1f 0 14px, #e08a14 14px 28px); color: #0a0c16; font: 700 13px/1.6 var(--font-family-monospace); letter-spacing: .3em; text-transform: uppercase; }
+/* The band sits on top of the header, out of its flex row: Django's header does not wrap, and its padding changes with
+   the width and on the login page, so a band inside the row squeezed next to the title and covered it */
+html body #header, html body.login #header { position: relative; padding-top: 36px; }
+.staff-zone { position: absolute; top: 0; left: 0; right: 0; margin: 0; padding: 3px 16px; background: repeating-linear-gradient(135deg, #ff9a1f 0 14px, #e08a14 14px 28px); color: #0a0c16; font: 700 13px/1.6 var(--font-family-monospace); letter-spacing: .3em; text-transform: uppercase; }
 .staff-zone::before { content: "// "; } .staff-zone::after { content: " //"; }
 .module, #changelist-filter, fieldset.module, .inline-group { border: 1px solid var(--border-color); box-shadow: 0 0 8px rgba(255, 61, 219, .15); background: var(--darkened-bg); }
 .module h2, .module caption, .inline-group h2 { background: #151a33; color: var(--neon-orange); border-bottom: 1px solid var(--neon-orange); }

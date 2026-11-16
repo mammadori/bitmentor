@@ -642,3 +642,25 @@ class Claim(TestCase):
         self.assertEqual(self.client.get("/en/shops/e/42/").status_code, 404)
         Shop.objects.filter(pk=self.shop.pk).update(lightning_address="bar@example.org")
         self.assertEqual(self.client.get("/en/shops/e/42/").status_code, 302)
+
+
+class ClaimSignIn(TestCase):
+    """Signing in from a one-time link: the sign-in pages name the shop being taken, and only for a code that is real."""
+    CODE = "C" * 31 + "d"
+
+    def setUp(self):
+        Shop.objects.create(name="Cyclist", moved_register=True, moved_in="2026-11-04T10:00Z", moved_from="x",
+                            claim_hash=claim_digest(self.CODE))
+
+    def test_the_sign_in_pages_name_the_shop(self):
+        target = f"/en/shops/claim/?code={self.CODE}"
+        page = self.client.get("/en/shops/claim/", {"code": self.CODE}, follow=True)
+        self.assertContains(page, "You are taking Cyclist")
+        self.assertContains(self.client.get("/en/shops/recovery/", {"next": target}), "You are taking Cyclist")
+
+    def test_a_wrong_or_spent_code_names_nothing(self):
+        for code in ("C" * 32, "short"):
+            page = self.client.get("/en/shops/", {"next": f"/en/shops/claim/?code={code}"})
+            self.assertNotContains(page, "You are taking")
+        Shop.objects.update(owner=get_user_model().objects.create(username="owner"), claim_hash="")
+        self.assertNotContains(self.client.get("/en/shops/", {"next": f"/en/shops/claim/?code={self.CODE}"}), "You are taking")

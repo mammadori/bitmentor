@@ -1743,9 +1743,6 @@ msgstr "Controlla il nome di chi lo fa: deve essere lo stesso della pagina del w
 msgid "Create your wallet"
 msgstr "Crea il tuo wallet"
 
-msgid "Open the app and choose to create a new wallet. It shows you some words, 12 or 24: write them on paper, in order, and keep the paper somewhere safe. With them you get your money back if you lose the phone."
-msgstr "Apri l'app e scegli di creare un nuovo wallet. Ti mostra alcune parole, 12 o 24: scrivile su carta, in ordine, e tieni il foglio in un posto sicuro. Con quelle riavrai i tuoi soldi se perdi il telefono."
-
 msgid "Never write those words here, nor in a photo, a message or an email. Nobody from us will ever ask you for them."
 msgstr "Non scrivere mai quelle parole qui, né in una foto, un messaggio o un'email. Nessuno di noi te le chiederà mai."
 
@@ -2167,9 +2164,6 @@ msgstr "Installa il tuo wallet e crealo"
 
 msgid "Make your wallet"
 msgstr "Crea il tuo wallet"
-
-msgid "Open the app and choose to create a new wallet. It shows you some words, 12 or 24."
-msgstr "Apri l'app e scegli di creare un nuovo wallet. Ti mostra alcune parole, 12 o 24."
 
 msgid "Write the words on paper"
 msgstr "Scrivi le parole su carta"
@@ -5975,3 +5969,29 @@ msgstr "Revocata: il wallet non entra più, i suoi lasciapassare hanno smesso di
 
 msgid "Passes ended: every browser signs in again."
 msgstr "Lasciapassare chiusi: ogni browser deve rientrare."
+
+msgid "Tap the wallet's name above: it opens its official page or the right app in the store. Install it from there, as you do with any app. Do not search for the name in the store: other apps have similar names."
+msgstr "Tocca il nome del wallet qui sopra: apre la sua pagina ufficiale o l'app giusta nello store. Installala da lì, come fai con qualsiasi app. Non cercare il nome nello store: altre app hanno nomi simili."
+
+msgid "Open the app and create a new wallet. Depending on the wallet, it shows you some recovery words (12 or 24) or it saves a passkey in your phone's password manager. Write the words on paper, in order, and keep the paper somewhere safe: with a passkey, look for the recovery words in the wallet's settings (often under Backup) and write them down too. With them you get your money back if you lose the phone."
+msgstr "Apri l'app e crea un wallet nuovo. Secondo il wallet, ti mostra delle parole di recupero (12 o 24) oppure salva una passkey nel gestore delle password del telefono. Scrivi le parole su carta, in ordine, e tieni il foglio in un posto sicuro: con la passkey, cerca le parole di recupero nelle impostazioni del wallet (spesso sotto Backup) e scrivi anche quelle. Con le parole riavrai i soldi se perdi il telefono."
+
+msgid "On an iPhone, if the page opened inside Gmail or another app, first open it in Safari (the share button, then «Open in Safari»), then add it to the home screen from there."
+msgstr "Su iPhone, se la pagina si è aperta dentro Gmail o un'altra app, prima aprila in Safari (il tasto Condividi, poi «Apri in Safari») e da lì aggiungila alla schermata Home."
+
+#, python-format
+msgid "You are taking %(name)s: sign in with any email of yours, or with your wallet. Then you confirm that it is your shop."
+msgstr "Stai prendendo %(name)s: entra con una tua email qualsiasi, o con il wallet. Poi confermi che è il tuo negozio."
+
+#, python-format
+msgid "You are taking %(name)s. Write your email: we send you a second email, with the link to sign in. It lasts 15 minutes; then you confirm that it is your shop."
+msgstr "Stai prendendo %(name)s. Scrivi la tua email: ti mandiamo una seconda email, con il link per entrare. Dura 15 minuti; poi confermi che è il tuo negozio."
+
+msgid "This looks like an email, not a Lightning address. You need the wallet's Lightning address: open the wallet and look under Receive."
+msgstr "Questa sembra un'email, non un indirizzo Lightning. Serve l'indirizzo Lightning del wallet: apri il wallet e guarda sotto Ricevi."
+
+msgid "Tap the button below: it opens the wallet's official page or the right app in the store. Install it from there, as you do with any app. Do not search for the name in the store: other apps have similar names."
+msgstr "Tocca il tasto qui sotto: apre la pagina ufficiale del wallet o l'app giusta nello store. Installala da lì, come fai con qualsiasi app. Non cercare il nome nello store: altre app hanno nomi simili."
+
+msgid "Open the app and create a new wallet. It shows you some recovery words, 12 or 24; if it saves a passkey instead, find the words in the wallet's settings (often under Backup)."
+msgstr "Apri l'app e crea un wallet nuovo. Ti mostra delle parole di recupero, 12 o 24; se invece salva una passkey, trovi le parole nelle impostazioni del wallet (spesso sotto Backup)."

@@ -8,6 +8,7 @@
   <div>
     <p class="eyebrow">{% translate "For shops" %}</p>
     <h1>{% translate "Enter the shops area" %}</h1>
+    {% if claiming %}<p class="notice" role="status">{% blocktranslate with name=claiming %}You are taking {{ name }}: sign in with any email of yours, or with your wallet. Then you confirm that it is your shop.{% endblocktranslate %}</p>{% endif %}
     <p>{% translate "No password: we send you a link by email." %}</p>
     <p><a class="button" href="{{ recovery_url }}">{% translate "Sign in with email" %}</a></p>
     {% if returning %}<p>{% translate "Once you are in, you go straight back to where you were." %}</p>{% endif %}

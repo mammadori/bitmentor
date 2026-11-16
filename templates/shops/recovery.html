@@ -1,7 +1,8 @@
 {% extends "base.html" %}{% load i18n %}
 {% block content %}
 <header class="page-head"><h1>{% translate "Sign in with email" %}</h1>
-{% if not sent %}<p>{% translate "We send you a link: open it and you are in. No password." %}</p>{% endif %}</header>
+{% if not sent %}<p>{% translate "We send you a link: open it and you are in. No password." %}</p>
+{% if claiming %}<p class="notice" role="status">{% blocktranslate with name=claiming %}You are taking {{ name }}. Write your email: we send you a second email, with the link to sign in. It lasts 15 minutes; then you confirm that it is your shop.{% endblocktranslate %}</p>{% endif %}{% endif %}</header>
 {% if expired %}<p class="notice">{% translate "This link has expired or was already used: ask for a new one." %}</p>{% endif %}
 {% if failed %}<p class="notice" role="alert">{% translate "The email could not be sent: try again in a few minutes." %}</p>{% endif %}
 {% if taken %}<p class="notice">{% translate "This email is already used by another account." %}</p>{% endif %}

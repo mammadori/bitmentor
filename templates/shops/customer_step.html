@@ -37,11 +37,11 @@
 <h1>{% if chosen %}{% blocktranslate with name=chosen.name %}Install {{ name }} and make your wallet{% endblocktranslate %}{% else %}{% translate "Install your wallet and make it" %}{% endif %}</h1>
 <ol class="customer-steps">
   <li><h2>{% translate "Install it" %}</h2>
-    <p>{% translate "Open the app store of your phone, look for the wallet by its name and install it, as you do with any app." %}</p>
+    <p>{% if chosen %}{% translate "Tap the button below: it opens the wallet's official page or the right app in the store. Install it from there, as you do with any app. Do not search for the name in the store: other apps have similar names." %}{% else %}{% translate "Open the app store of your phone, look for the wallet by its name and install it, as you do with any app." %}{% endif %}</p>
     {% if chosen %}<p><a class="button button-quiet" href="{{ chosen.link }}" rel="noopener noreferrer">{% blocktranslate with name=chosen.name %}The page of {{ name }}{% endblocktranslate %}</a></p>{% endif %}
     <p>{% translate "Check the name of whoever makes it: it must be the same as on the wallet's page. There are fake copies." %}</p></li>
   <li><h2>{% translate "Make your wallet" %}</h2>
-    <p>{% translate "Open the app and choose to create a new wallet. It shows you some words, 12 or 24." %}</p></li>
+    <p>{% translate "Open the app and create a new wallet. It shows you some recovery words, 12 or 24; if it saves a passkey instead, find the words in the wallet's settings (often under Backup)." %}</p></li>
   <li><h2>{% translate "Write the words on paper" %}</h2>
     <figure class="art-box">{{ art.paper }}</figure>
     <p>{% translate "Write them in order, on paper, and keep the paper somewhere safe. With them you get your money back if you lose the phone." %}</p>

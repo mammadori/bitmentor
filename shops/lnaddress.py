@@ -321,6 +321,14 @@ def suggestion(address):
     return f"{user}@{near}" if near else None
 
 
+# Mailbox providers that give no Lightning address: what a merchant writes there is the email, not the wallet's address
+MAILBOXES = frozenset({
+    "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "hotmail.it", "live.com", "live.it", "msn.com",
+    "yahoo.com", "yahoo.it", "icloud.com", "me.com", "mac.com", "aol.com", "gmx.com", "gmx.de", "gmx.net", "web.de",
+    "t-online.de", "proton.me", "protonmail.com", "libero.it", "virgilio.it", "tiscali.it", "alice.it", "tim.it",
+    "fastwebnet.it", "email.it", "pec.it", "orange.fr", "free.fr", "laposte.net"})
+
+
 def explanation(state, address, suggested=None):
     """What the merchant reads: what is wrong and what to do now."""
     domain = address.rpartition("@")[2]
@@ -332,6 +340,9 @@ def explanation(state, address, suggested=None):
         NO_CONFIRMATION: _("This address can receive, but it does not tell the register when a payment arrives. "
                            "Use a wallet with a different Lightning address, or write to {email}."),
     }[state].format(provider=domain, email=community()["email"])
+    if state == NO_ANSWER and domain.lower() in MAILBOXES:
+        text = _("This looks like an email, not a Lightning address. You need the wallet's Lightning address: open the "
+                 "wallet and look under Receive.")
     if suggested:
         text = f"{text} {_('Did you mean {address}?').format(address=suggested)}"
     return text

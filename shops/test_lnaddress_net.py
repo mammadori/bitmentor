@@ -208,3 +208,14 @@ class Bounded(SimpleTestCase):
         go.set()
         pool.submit(lambda: None).result(5)
         self.assertEqual(lnaddress.bounded(slots, pool, 5, lambda: "again"), "again")
+
+
+class MailboxInsteadOfAddress(SimpleTestCase):
+    """An email written where the wallet's Lightning address goes: the merchant reads what it is, not a wallet's name."""
+
+    def test_a_mailbox_domain_says_it_is_an_email(self):
+        from .lnaddress import NO_ANSWER, explanation
+
+        self.assertIn("looks like an email", explanation(NO_ANSWER, "mario@Gmail.com"))
+        self.assertNotIn("Phoenix", explanation(NO_ANSWER, "mario@gmail.com"))
+        self.assertNotIn("looks like an email", explanation(NO_ANSWER, "mario@wallet.example"))

@@ -18,11 +18,11 @@
     {% else %}<p>{% blocktranslate with email=community_email %}Ask us which wallet to use: write to <a href="mailto:{{ email }}">{{ email }}</a>.{% endblocktranslate %}</p>{% endif %}
   </li>
   <li id="step-install"><h2>{% translate "Install it" %}</h2>
-    <p>{% translate "Open the app store of your phone, look for the wallet by its name and install it, as you do with any app." %}</p>
+    <p>{% translate "Tap the wallet's name above: it opens its official page or the right app in the store. Install it from there, as you do with any app. Do not search for the name in the store: other apps have similar names." %}</p>
     <p>{% translate "Check the name of whoever makes it: it must be the same as on the wallet's page. There are fake copies." %}</p>
   </li>
   <li id="step-create"><h2>{% translate "Create your wallet" %}</h2>
-    <p>{% translate "Open the app and choose to create a new wallet. It shows you some words, 12 or 24: write them on paper, in order, and keep the paper somewhere safe. With them you get your money back if you lose the phone." %}</p>
+    <p>{% translate "Open the app and create a new wallet. Depending on the wallet, it shows you some recovery words (12 or 24) or it saves a passkey in your phone's password manager. Write the words on paper, in order, and keep the paper somewhere safe: with a passkey, look for the recovery words in the wallet's settings (often under Backup) and write them down too. With them you get your money back if you lose the phone." %}</p>
     <p class="notice">{% translate "Never write those words here, nor in a photo, a message or an email. Nobody from us will ever ask you for them." %}</p>
   </li>
   <li id="step-address"><h2>{% translate "Copy your Lightning address" %}</h2>

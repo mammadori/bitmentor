@@ -5,7 +5,7 @@ import secrets
 from datetime import timedelta
 from functools import wraps
 from smtplib import SMTPException
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode
 
 import segno
 from django import forms
@@ -125,6 +125,22 @@ def local_path(target):
     return target if target.startswith("/") and url_has_allowed_host_and_scheme(target, allowed_hosts=None) else ""
 
 
+def claimed_name(request, target):
+    """The shop that a one-time link is taking, when signing in comes from that link (claim_shop): the sign-in pages name
+    it, so the owner sees it is the same path. The code is checked as claim_shop does, with the same limit per address
+    but its own counter: a guess here tells no more than there, and pages loaded on a shared address (an office, a link
+    checker) do not use up the tries of claim_shop."""
+    path, _sep, query = target.partition("?")
+    if path != reverse("claim_shop"):
+        return ""
+    code = parse_qs(query).get("code", [""])[0]
+    if not CLAIM_CODE.fullmatch(code) or ratelimit.over_limit(f"claimname:{ratelimit.client_ip(request)}",
+                                                                CLAIMS_PER_IP, CLAIM_WINDOW):
+        return ""
+    shop = Shop.objects.filter(owner=None, claim_hash=claim_digest(code)).only("name").first()
+    return shop.name if shop else ""
+
+
 @not_indexed
 @no_store
 def index(request):
@@ -198,7 +214,7 @@ def index(request):
         lnurl = encode_lnurl(f"{callback}?tag=login&action=login&k1={challenge.k1}")
         qr = segno.make(lnurl, error="l").svg_data_uri(scale=6, border=2)
     response = render(request, "shops/login.html", {
-        "lnurl": lnurl, "qr": qr, "returning": bool(target),
+        "lnurl": lnurl, "qr": qr, "returning": bool(target), "claiming": claimed_name(request, target) if target else "",
         # Staff signed in to the admin lands here from a shop's page (config/guard.py): the page says why
         "staff_apart": getattr(request, "staff_user", None) is not None,
         "recovery_url": f"{reverse('recovery')}?{urlencode({'next': target})}" if target else reverse("recovery")},
@@ -965,6 +981,8 @@ def recovery(request):
     # The address as written, with or without an account: whoever got it wrong notices, and nobody finds out who is signed up
     response = render(request, "shops/recovery.html", {"form": form, "sent": sent, "failed": failed, "busy": busy,
                                                          "recent": recent, "next": target, "email": email,
+                                                         "claiming": claimed_name(request, target)
+                                                         if target and request.method == "GET" else "",
                                                          "budget": mailbudget.message() if budget else "",
                                                          "daily": mailbudget.sender_message() if daily else ""},
                       status=429 if busy or recent or daily else 503 if budget else 200)
