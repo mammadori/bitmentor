@@ -83,6 +83,10 @@ class Meetup(models.Model):
     url = models.CharField(_("link"), max_length=conf.MAX_LINK, blank=True, validators=[https_link],
                            help_text=_("The group or the page of the event, with https://. Without it, the board links "
                                        "the community's group, if it has one."))
+    in_series = models.BooleanField(
+        _("part of the series"), default=True,
+        help_text=_("The community's regular meetups. Untick for a one-off event: the board then shows its own title, "
+                    "and links only its own page, not the community's group."))
     status = models.CharField(_("status"), max_length=10, choices=Status.choices, default=Status.CONFIRMED, db_index=True)
     moved_to = models.DateField(_("postponed to"), null=True, blank=True,
                                 help_text=_("For a postponed meetup: the day it moves to, if it is already known."))

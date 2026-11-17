@@ -324,6 +324,19 @@ class Admin(TestCase):
 
 
 class Board(TestCase):
+    def test_a_one_off_event_keeps_its_title_and_only_its_own_link(self):
+        make(2, title="the first with the new register")
+        make(3, title="Closing toast", in_series=False)
+        make(4, title="Workshop", in_series=False, url="https://example.org/workshop")
+        make(5, title="From an organiser", source=Meetup.Source.NOSTR, nostr_address="30311:ab:x")
+        with block(name="Spritz Club", link="https://t.me/example"):
+            rows = board.board()["upcoming"]
+        self.assertEqual([(r["title"], r["topic"], r["url"]) for r in rows], [
+            ("Spritz Club Example", "the first with the new register", "https://t.me/example"),
+            ("Closing toast", "", ""),
+            ("Workshop", "", "https://example.org/workshop"),
+            ("Spritz Club Example", "", "https://t.me/example")])
+
     def test_next_and_last_ones(self):
         make(2, title="Soon")
         make(9, title="Later")

@@ -98,6 +98,17 @@ def status_text(meetup):
     return ""
 
 
+def heading(meetup):
+    """The title, and under it the topic. With a name for the series (`meetups.name`) its meetups show the name and the
+    city, since organisers' titles differ from one to the next; a title the staff wrote, or corrected, is kept as the
+    topic. A one-off event, outside the series, shows its own title."""
+    name = conf.name()
+    if not name or not meetup.in_series:
+        return {"title": meetup.title or name, "topic": ""}
+    by_staff = meetup.source == Meetup.Source.STAFF or meetup.staff_edited
+    return {"title": " ".join(filter(None, (name, meetup.city.strip()))), "topic": meetup.title if by_staff else ""}
+
+
 def row(meetup, now, fallback_link):
     """A meetup as the texts to show, in the active language and in the zone of the meetup."""
     start = meetup.local_start
@@ -110,9 +121,10 @@ def row(meetup, now, fallback_link):
         "time": "" if meetup.all_day else formats.time_format(start, "TIME_FORMAT"),
         # The zone is said only when it is not the community's: a visitor reads the hour as local time
         "zone": "" if meetup.all_day or meetup.tzid == home else start.tzname() or meetup.tzid,
-        "city": meetup.city, "place": meetup.place, "title": " ".join(filter(None, (conf.name(), meetup.city.strip()))) if conf.name() else meetup.title,
+        "city": meetup.city, "place": meetup.place, **heading(meetup),
         "status": meetup.status, "status_text": status_text(meetup), "off": meetup.status in (Meetup.Status.CANCELLED, Meetup.Status.POSTPONED),
-        "url": conf.safe_link(meetup.url) or fallback_link, "past": is_past(meetup, now),
+        # The community's group stands in only for the meetups of its series: a one-off event is not that group's
+        "url": conf.safe_link(meetup.url) or (fallback_link if meetup.in_series else ""), "past": is_past(meetup, now),
     }
 
 

@@ -25,7 +25,7 @@ class MeetupForm(forms.ModelForm):
 
     class Meta:
         model = Meetup
-        fields = ["all_day", "tzid", "city", "place", "title", "url", "status", "moved_to", "visible", "staff_edited"]
+        fields = ["all_day", "tzid", "city", "place", "title", "url", "in_series", "status", "moved_to", "visible", "staff_edited"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -72,7 +72,7 @@ class MeetupAdmin(HidesSecrets, admin.ModelAdmin):
     actions = ("mark_confirmed", "mark_cancelled", "show", "hide")
     fieldsets = (
         (None, {"fields": ("day", "hour", "all_day", "tzid")}),
-        (_("Where and what"), {"fields": ("city", "place", "title", "url")}),
+        (_("Where and what"), {"fields": ("city", "place", "title", "url", "in_series")}),
         (_("Is it on?"), {"fields": ("status", "moved_to", "visible")}),
         (_("Where it comes from"), {"fields": ("origin_text", "staff_edited")}),
     )

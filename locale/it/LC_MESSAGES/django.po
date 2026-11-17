@@ -5995,3 +5995,9 @@ msgstr "Tocca il tasto qui sotto: apre la pagina ufficiale del wallet o l'app gi
 
 msgid "Open the app and create a new wallet. It shows you some recovery words, 12 or 24; if it saves a passkey instead, find the words in the wallet's settings (often under Backup)."
 msgstr "Apri l'app e crea un wallet nuovo. Ti mostra delle parole di recupero, 12 o 24; se invece salva una passkey, trovi le parole nelle impostazioni del wallet (spesso sotto Backup)."
+
+msgid "part of the series"
+msgstr "fa parte della serie"
+
+msgid "The community's regular meetups. Untick for a one-off event: the board then shows its own title, and links only its own page, not the community's group."
+msgstr "Gli incontri regolari della comunità. Togli la spunta per un evento a sé: la bacheca mostra il suo titolo e collega solo la sua pagina, non il gruppo della comunità."

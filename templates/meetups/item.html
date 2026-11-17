@@ -3,6 +3,7 @@
   <div class="meetup-body">
     <p class="meetup-when"><time datetime="{{ m.iso }}"><strong>{{ m.weekday }} {{ m.date }}</strong>{% if m.time %} · {{ m.time }}{% if m.zone %} {{ m.zone }}{% endif %}{% endif %}</time></p>
     {% if m.title %}<p class="meetup-title">{{ m.title }}</p>{% endif %}
+    {% if m.topic %}<p class="meetup-topic">{{ m.topic }}</p>{% endif %}
     {% if m.city or m.place %}<p class="meetup-where">{{ m.city }}{% if m.city and m.place %} · {% endif %}{{ m.place }}</p>{% endif %}
     {% if m.status_text %}<p class="meetup-status"><span class="meetup-badge meetup-badge-{{ m.status }}">{{ m.status_text }}</span></p>{% endif %}
     {% if m.url %}<p class="meetup-link"><a href="{{ m.url }}" rel="noopener noreferrer">{% translate "Group and details" %}<span class="visually-hidden"> ({{ m.date }}{% if m.city %}, {{ m.city }}{% endif %})</span></a></p>{% endif %}

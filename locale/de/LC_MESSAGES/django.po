@@ -6095,3 +6095,9 @@ msgstr "Tippen Sie auf die Taste unten: Sie öffnet die offizielle Seite des Wal
 
 msgid "Open the app and create a new wallet. It shows you some recovery words, 12 or 24; if it saves a passkey instead, find the words in the wallet's settings (often under Backup)."
 msgstr "Öffnen Sie die App und legen Sie ein neues Wallet an. Es zeigt Ihnen Wiederherstellungswörter, 12 oder 24; speichert es stattdessen einen Passkey, finden Sie die Wörter in den Einstellungen des Wallets (oft unter Backup)."
+
+msgid "part of the series"
+msgstr "gehört zur Reihe"
+
+msgid "The community's regular meetups. Untick for a one-off event: the board then shows its own title, and links only its own page, not the community's group."
+msgstr "Die regelmäßigen Treffen der Gemeinschaft. Entfernen Sie das Häkchen für eine einmalige Veranstaltung: Die Übersicht zeigt dann ihren eigenen Titel und verlinkt nur ihre eigene Seite, nicht die Gruppe der Gemeinschaft."
