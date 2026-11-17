@@ -5,6 +5,13 @@
   <form method="post" action="{% url 'sign_out' %}" class="account-who muted">{% csrf_token %}{% blocktranslate with who=signed_in %}Signed in as {{ who }}.{% endblocktranslate %}
     <button class="linklike">{% translate "Not you? Sign out" %}</button></form></header>
 {% for message in notices %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+{% if wallet_to_confirm %}<div class="notice" role="status" id="wallet-to-confirm">
+  <p>{% blocktranslate with who=signed_in when=wallet_to_confirm.added|date:"DATE_FORMAT" %}Your wallet was connected to this account ({{ who }}) on {{ when }}. If you did that, all is well. If you did not, this is somebody else's account: whatever you write here would be theirs too.{% endblocktranslate %}</p>
+  <form method="post" action="{% url 'link_wallet' %}">{% csrf_token %}
+    <button class="button button-quiet" name="acknowledge" value="{{ wallet_to_confirm.pk }}">{% translate "It is my account" %}</button>
+    <input type="hidden" name="leave" value="1"><button class="linklike" name="remove" value="{{ wallet_to_confirm.pk }}">{% translate "Not mine: disconnect my wallet and sign out" %}</button></form>
+</div>{% endif %}
+{% if wallet_alone %}<p class="notice" role="status" id="wallet-alone">{% translate "This wallet is not connected to any shop. If you registered your shop with an email, sign out, sign in with that email, then open «Your account» and choose «Sign in with a wallet too»: from then on this wallet opens your shop." %}</p>{% endif %}
 {% if account_notice %}<div class="notice" role="status" id="account-changed"><strong>{% blocktranslate with when=account_notice.when|date:"DATE_FORMAT" %}On {{ when }} someone who runs the site changed your account:{% endblocktranslate %}</strong>
   <ul>{% for line in account_notice.what %}<li>{{ line }}</li>{% endfor %}</ul>
   <p>{{ account_notice.advice }}</p></div>{% endif %}
@@ -62,6 +69,8 @@
 {% if not shops %}<p class="muted">{% blocktranslate with email=community.email %}Is your shop already on the map? To update its details, write to <a href="mailto:{{ email }}">{{ email }}</a>.{% endblocktranslate %}</p>{% endif %}
 <details class="account"{% if form.errors %} open{% endif %}><summary>{% translate "Your account" %}</summary>
   <form method="post" class="shop-form">{% csrf_token %}{{ form.as_p }}<button class="button button-quiet">{% translate "Save" %}</button></form>
+  <p><a href="{% url 'link_wallet' %}">{% translate "Sign in with a wallet too" %}</a>{% if wallets %} <span class="muted">({% blocktranslate %}{{ wallets }} connected{% endblocktranslate %})</span>{% endif %}<br>
+    <span class="help">{% translate "To sign in to this account with your Lightning wallet too." %}</span></p>
 </details>
 <p id="copy-status" class="visually-hidden" role="status"></p>
 <script src="{% static 'panel.js' %}"></script>

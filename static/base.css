@@ -58,6 +58,7 @@ main { max-width: var(--width); margin: 0 auto; padding: 32px 16px 64px; }
 a.button-quiet:hover, button.button-quiet:hover { color: var(--primary); text-decoration: underline; }
 .button:disabled { opacity: .6; cursor: wait; }
 .linklike { min-width: 44px; min-height: 44px; border: 0; padding: 0; background: none; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; }
+form.inline { display: inline; margin-left: 8px; }
 .notice { padding: 10px 14px; border-left: 4px solid var(--highlight); background: var(--surface); }
 .empty { padding: 72px 0; text-align: center; }
 

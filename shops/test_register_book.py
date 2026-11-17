@@ -126,6 +126,8 @@ const at = (text) => new Date(text).getTime();
   ];
   out.totals = book.dayTotals(sales, "2026-11-09");
   out.discounted = [book.discounted(1500, 10), book.discounted(999, 10), book.discounted(1000, 0), book.discounted(1000, 150)];
+  out.whole = [book.discounted(1400, 10, true), book.discounted(1000, 10, true), book.discounted(90, 10, true), book.discounted(1400, 0, true), book.discounted(1400, 10, false),
+    book.discounted(200, 10, true), book.discounted(300, 10, true), book.discounted(500, 10, true), book.discounted(1000, 100, true)];
   const chain = { id: "oc", at: at("2026-11-09T09:00:00"), cents: 900, currency: "EUR", status: "seen", method: "onchain",
     sats: 9000, address: "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu", path: "2", index: 7, txid: "ab".repeat(32),
     before: ["x"], list: 1000, discount: 10 };
@@ -365,6 +367,9 @@ class Running(SimpleTestCase):
 
     def test_the_discount_is_rounded_to_the_cent(self):
         self.assertEqual(self.out["discounted"], [1350, 899, 1000, 1000])
+        # Down to the whole unit when asked: never up, never to nothing, nothing without a discount
+        # nor to more than twice the discount (2.00 and 3.00 keep their cents, 5.00 goes to 4.00)
+        self.assertEqual(self.out["whole"], [1200, 900, 81, 1400, 1260, 180, 270, 400, 0])
 
     def test_an_on_chain_sale_keeps_its_address_and_where_it_comes_from(self):
         merged = {sale["id"]: sale for sale in self.out["chainMerge"]["list"]}

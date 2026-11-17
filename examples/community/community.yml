@@ -69,11 +69,18 @@ footer_menu:
 # Donations to the association, shown on the home page with a QR code each: a label and what the code holds.
 # donations:
 #   Lightning: donate@example.org
-# A read-only Blossom server for the theme's files (docs/features/blossom.md).
+# A read-only Blossom server for the theme's files, on the hosts of BLOSSOM_HOSTS (docs/features/blossom.md).
 # blossom: true
+# Tell the moderators when this many different people used it in 30 days, the first time (0 never; 3 when unset).
+# blossom_alert_users: 3
+# Old files of the theme, put in blossom-retired/, stay served for some days, then a redirect to a mirror that has them
+# or «gone» (docs/features/blossom.md, «Retiring the files»). Off when unset.
+# blossom_retire_days: 30
+# blossom_mirrors:
+#   - https://blossom.example.net
 # Optional features (docs/features/README.md, "Turning features off"): all on unless you write `false`. Off, a feature leaves
 # the merchant's panel, the public pages, the messages and the commands, its addresses answer 404, and nothing is deleted:
-# turned on again, everything is back. The names are these three; `manage.py check` warns about anything else.
+# turned on again, everything is back. The names are these four; `manage.py check` warns about anything else.
 # features:
 #   certified: false        # the badge of certified shops: on the map and the shop page, `certified` in /shops.json, the private part of
 #                           # the pages for their owners, the certificate in the merchant's path and /admin/. The icons of

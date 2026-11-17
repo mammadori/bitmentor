@@ -8,6 +8,8 @@ Two are experimental, and off unless a community turns them on: see [Experimenta
 | Feature | How to turn it on |
 |---|---|
 | Sign-in with LNURL-auth, or a link by email | Always on; email needs `EMAIL_HOST` |
+| A wallet connected to an account that was opened with an email (or with another wallet) | Always on: «Sign in with a wallet too» under «Your account» in the panel, `/shops/wallet/`. The wallet signs a code and the owner confirms on the page; up to 5. After one is connected or taken away the shops' Lightning address waits `LIGHTNING_CHANGE_DAYS`, as after a new recovery email, and the owner is told by email. Taking one away signs the account out everywhere else. At its first sign-in the wallet's holder is asked whether the account is theirs. A wallet that already opened an account of its own is connected only if that account holds nothing |
+| The discounted price rounded down to a whole amount, at the register | The owner's choice in the register's settings, off by default: see [The register's settings](register-settings.md) |
 | The register in the browser: it asks the shop's Lightning address for each invoice (LNURL-pay) and checks the payment with LUD-21 `verify`; the sales stay on the phone. One screen like a phone app: the amount, the keypad and one round menu button (history and day closing, settings, practice and training, help, leaving the panel). The page loads only what the keypad needs; the QR code, the Nostr copies and (where it is turned on) on-chain load at their first use, and the copy for when the site does not answer keeps them all | Always on; `register` in `community.yml` sets the price sources, the `tolerance` and `max_rate_age`. Wallets: [Choosing wallets](../wallets.md) |
 | Registers for the staff, one per person, paired from the owner's phone with a one-time code | Always on: see [Registers for the staff](staff-registers.md) |
 | The practice register: four exercises with a pretend customer (five with on-chain turned on), nothing real | Always on: see [The practice register](practice.md) |
@@ -37,7 +39,7 @@ Two are experimental, and off unless a community turns them on: see [Experimenta
 | Writing to OpenStreetMap: `manage.py osm_upload`, run by a person, sends those tags | **Experimental, off by default.** `experimental: {osm_upload: true}` in `community.yml`: see [Automatic edits](openstreetmap.md#automatic-edits) |
 | Public and private parts of a page | `::: private` blocks: see [Public and private parts of a page](private-pages.md) |
 | Team access to a site under construction: a person whose address changes signs with a Lightning wallet, and that browser counts as an allowed address | **Optional, off by default.** `TEAM_ACCESS=on` in `.env`, then invites in `/admin/`: see [Team access with a Lightning wallet](team-access.md) |
-| Read-only Blossom server for the theme's files | `blossom: true`: see [Blossom](blossom.md) |
+| Read-only Blossom server for the theme's files | `blossom: true` and `BLOSSOM_HOSTS`: see [Blossom](blossom.md) |
 | Shops signed on Nostr, and NIP-05 names | `NOSTR_SECRET_KEY`, `NOSTR_RELAYS`, `manage.py publish_nostr` |
 | Onion address | `docker compose --profile tor up -d`; `ONION_LOCATION` in `.env` |
 | Telegram notifications | `TELEGRAM_BOT_TOKEN` |

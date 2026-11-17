@@ -227,8 +227,16 @@
     return { day, sales, lines: [...lines.values()], counts };
   }
 
-  // The amount to charge with the discount for paying in bitcoin (in %), in cents, rounded to the cent
-  const discounted = (cents, percent) => (percent > 0 && percent <= 100 ? Math.round((cents * (100 - percent)) / 100) : cents);
+  // The amount to charge with the discount for paying in bitcoin (in %), in cents, rounded to the cent. With `whole`
+  // (the owner's choice, for shops with round prices) it goes down to the whole unit: 14.00 less 10% is 12.00, not
+  // 12.60. Never up, never down to nothing, and never to more than twice the discount: 2.00 less 10% stays 1.80, or a
+  // small price would lose half of itself, and a bill split in small sales most of the bill
+  const discounted = (cents, percent, whole = false) => {
+    if (!(percent > 0 && percent <= 100)) return cents;
+    const charged = Math.round((cents * (100 - percent)) / 100);
+    const floor = Math.floor(charged / 100) * 100;
+    return whole && floor > 0 && floor >= (cents * (100 - 2 * percent)) / 100 ? floor : charged;
+  };
 
   // Excel separates the columns with the system's list separator: «;» where decimals have a comma, «,» where they have
   // a point. The language of the page chooses, as the site's CSV did

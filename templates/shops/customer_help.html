@@ -51,7 +51,7 @@
     <p>{% translate "Do not pay again. Wait half a minute: the till catches up. The cashier looks at the till, not at your phone." %}</p>
     <p>{% translate "If it does not change, show the cashier the confirmation in your wallet. The owner of the shop can check the payment." %}</p></details>
   <details><summary>{% translate "I paid too little, or too much" %}</summary>
-    <p>{% translate "The till shows it to the cashier. Too little: it shows what is still to pay, and you pay the rest. Too much: the cashier gives the difference back." %}</p></details>
+    <p>{% if methods == "lightning" or not experimental.onchain %}{% translate "With Lightning you pay the exact amount of the code: it cannot be too little or too much. If your wallet shows a little more, that is the fee of the wallet." %}{% else %}{% translate "A Lightning payment is always the exact amount of the code. With an on-chain payment the till shows the cashier how much arrived. Too little: the sale is not paid, and the cashier asks you for the rest or cancels it. Too much: the cashier checks the shop's wallet. Agree with the shop how you get back what you paid over, or what you paid for a cancelled sale: the site holds no money and cannot return it." %}{% endif %}</p></details>
 </div>
 
 <p class="customer-buttons"><a class="button" href="{% url 'shop_detail' shop.id %}#shop-pay-title">{% blocktranslate with name=shop.name %}Back to {{ name }}{% endblocktranslate %}</a>

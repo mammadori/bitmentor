@@ -144,6 +144,8 @@
         <span id="discount-percent-help" class="help">{% translate "0: no discount." %}</span>
         <span id="discount-percent-error" class="field-error" hidden></span></p>
       <p><label class="check"><input type="checkbox" id="discount-removable"> {% translate "Let the registers remove the discount on a sale" %}</label></p>
+      <p><label class="check"><input type="checkbox" id="discount-round" aria-describedby="discount-round-help"> {% translate "Round the discounted price down to a whole amount" %}</label>
+        <span id="discount-round-help" class="help">{% translate "For round prices: 12.60 becomes 12.00. Never rounded up, and never to more than twice the discount." %}</span></p>
     </fieldset>
     {% if register.chain_on %}<fieldset class="group"><legend>{% translate "On-chain (optional)" %}</legend>
       <p class="field"><label for="chain-key">{% translate "Your wallet's public key (zpub, xpub…) or a fixed address" %}</label>

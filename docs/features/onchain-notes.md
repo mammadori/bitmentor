@@ -13,13 +13,9 @@ payment closes a sale, and what a tampered server can do.
 
 ## The owner's settings, on the phone
 
-From the register's menu (the round button at the top of the keypad), **Settings**. Everything here stays in the phone's storage (`register-settings:<shop>`),
-and reaches a staff register only through its pairing code. The screen is in titled groups, the essentials first: «Where
-the money goes» (the Lightning address, shown: it is changed on the site), «Prices» (currency, discount), «On-chain
-(optional)» (key, threshold), «Look» (colour, line); the rest under «Advanced» (the starting number, the path, the own
-explorer, the price sources, Nostr). Each field has at most one line of help, the long explanations open under a small
-summary; a field is checked when it is left (and again as it is typed while it is wrong), and its error shows next to
-it, as on Save:
+The settings every register has (discount, currency, price sources, colour and line) are in
+[The register's settings](register-settings.md). With on-chain turned on the screen has an «On-chain (optional)» group
+(key, threshold) and, under «Advanced», the starting number, the path and the own explorer:
 
 - **On-chain destination.** An extended public key of the wallet (zpub or xpub, vpub or tpub on signet: native segwit;
   ypub or upub: P2SH-P2WPKH), or a fixed address. A private key is refused. A new destination is saved only after the
@@ -33,23 +29,9 @@ it, as on Save:
   one confirmation; at or below, a payment seen in the mempool is enough. The community's default is
   `register.confirm_above` (0: every sale waits). The amount takes a point or a comma before the cents; one that is not
   an amount is refused with a message, never saved as 0.
-- **Discount for paying in bitcoin.** It starts from the shop's discount, or the community's suggestion
-  (`register.discount`) when the shop has none. It is on at every sale, shown with the amount to pay. Only when the owner
-  ticks «Let the registers remove the discount on a sale» (`discountRemovable`, off by default; `dr` in the pairing
-  code) is the line a button whose tap removes it for that sale, on the owner's register and the staff ones alike;
-  otherwise it is a line to read. The sale keeps the price before the discount and the percentage.
-- **Currency** (three letters).
-- **Advanced: price sources.** At least two, chosen only among those the community lists in `register.price_sources`
-  (each one a source the code knows, `PRICE_SOURCES` in `shops/register.py`: never an address typed by the owner). The
-  register's `connect-src` holds only those. The choice goes to the staff registers with the pairing code, which
-  checks it against the community's list again; a staff register has no settings and cannot change it.
 - **Advanced: your own explorer** (optional). The https address of the API of an Esplora or mempool explorer that the shop
   runs itself, for example the mempool app of its own node (`https://mynode.example.org/api`). See «Your own explorer»
   below.
-- **Colour** of the register and a **line** shown on it, both carried to the staff registers.
-
-The owner's phone also remembers the Lightning address it takes payments into. If the site gives a different one, the
-register stops and says so, until the owner confirms the change was theirs.
 
 ## An on-chain sale
 

@@ -59,7 +59,12 @@ SITE_HOST = os.environ.get("SITE_HOST", "localhost")
 # Caddy's too: http behind another proxy that holds TLS (README, "Behind another proxy"). ONION_LOCATION: README, "Onion"
 SITE_SCHEME = os.environ.get("SITE_SCHEME", "https")
 ONION_LOCATION = os.environ.get("ONION_LOCATION", "")
-ALLOWED_HOSTS = [SITE_HOST, "localhost", "127.0.0.1", "web", ".onion"]
+# The hosts that are only the read-only Blossom server, at their root (website/blossom.py), separated by commas or
+# spaces: the first is the one the list gives, the others answer the same (a mirror name)
+BLOSSOM_HOSTS = tuple(dict.fromkeys(
+    name.strip().lower().rstrip(".")
+    for name in os.environ.get("BLOSSOM_HOSTS", "").replace(",", " ").split()))
+ALLOWED_HOSTS = [SITE_HOST, "localhost", "127.0.0.1", "web", ".onion", *BLOSSOM_HOSTS]
 CSRF_TRUSTED_ORIGINS = [f"https://{SITE_HOST}"]
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = not DEBUG
@@ -88,6 +93,7 @@ MIDDLEWARE = [
     "config.middleware.HeadWithoutBody",  # first: it is the last to touch the response
     "django.middleware.security.SecurityMiddleware",
     "config.middleware.SecurityHeaders",
+    "website.blossom.DedicatedHost",  # before the sessions and the pages: those hosts are only Blossom
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",

@@ -8,7 +8,7 @@ community's job is to suggest a few wallets that work well at a till, and to lis
 
 - **A Lightning address** (LUD-16), like `shop@wallet.example`. The register asks it for an invoice at each sale.
 - **LUD-21 `verify`.** With each invoice the wallet gives an address where anyone can ask «is it paid?». The register
-  asks it, and says «paid» on its own. Without it the merchant must look in the wallet at every sale.
+  asks it, and says «paid» on its own. Without it the register could not tell, so such an address is not accepted.
 - **Its own domain.** The invoices and the «is it paid?» address must be on the address's own domain or a subdomain of
   it (`shop@wallet.example` answered by `wallet.example` or `api.wallet.example`): the register talks to nobody else,
   so that a changed answer cannot send it to another site. An address on the merchant's own domain that only forwards

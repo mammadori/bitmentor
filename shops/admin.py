@@ -621,6 +621,9 @@ def dashboard_view(request):
     if request.user.has_perm("shops.view_accountchange"):
         context["account_changes"] = (AccountChange.objects.filter(created__gte=timezone.now() - RECENT)
                                        .exclude(via=AccountChange.Via.OWNER).count())
+    from website import blossom, blossom_visits
+    if blossom.enabled():
+        context["blossom_users"] = blossom_visits.users()
     return TemplateResponse(request, "admin/shops/dashboard.html", context)
 
 

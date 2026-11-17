@@ -20,10 +20,26 @@ class LoginChallenge(models.Model):
     k1 = models.CharField(max_length=64, primary_key=True)
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     linking_key = models.CharField(max_length=66, blank=True)
+    # A challenge to connect a wallet to this account (shops/views.py, link_wallet), never to sign in
+    link_user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE, related_name="+")
+    # When the site acted on the signature. The row stays until it is old, so that a wallet that asks again gets the
+    # same «OK» and does not tell its owner that the sign-in failed
+    used = models.DateTimeField(null=True, blank=True)
 
     @classmethod
-    def new(cls):
-        return cls.objects.create(k1=secrets.token_hex(32))
+    def new(cls, link_user=None):
+        return cls.objects.create(k1=secrets.token_hex(32), link_user=link_user)
+
+
+class WalletKey(models.Model):
+    """A wallet connected to an account that was already there (one born from an email, or from another wallet): its
+    LNURL-auth key signs in to that account. The key an account was born from is its `username` and has no row here."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wallet_keys")
+    key = models.CharField(max_length=66, unique=True)
+    added = models.DateTimeField(auto_now_add=True)
+    # When whoever signed in with this wallet said «it is my account». Until then the panel asks: a wallet's owner
+    # shown someone else's code would otherwise land in that person's account at every sign-in, without knowing
+    acknowledged = models.DateTimeField(null=True, blank=True)
 
 
 class Profile(models.Model):
@@ -37,6 +53,9 @@ class Profile(models.Model):
     # When the recovery email was last set or confirmed (shops/views.py, confirm_email): a Lightning address waits after
     # it (shops/address_change.py), since whoever holds an open session can set an email of theirs and sign in with it
     email_changed = models.DateTimeField(null=True, blank=True, editable=False)
+    # When a wallet was last connected to the account or taken away from it (shops/views.py, link_wallet): a Lightning
+    # address waits after it too. Kept here and not read from the rows: a wallet connected and taken away leaves no row
+    wallet_changed = models.DateTimeField(null=True, blank=True, editable=False)
     # The hash the account's password had when `manage.py temporary_password` marked it as temporary (a password handed
     # over in person). The password is temporary while `user.password` is this same string, and the staff member who signs in
     # with it is sent to change it (config/temporary.py). Another password is another hash: the mark stops holding on its own.

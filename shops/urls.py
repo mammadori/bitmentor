@@ -7,6 +7,8 @@ from . import address_change, chain_count, customer, help_views, osm_views, prac
 urlpatterns = [
     path("", views.index, name="shops"),
     path("map/", views.shop_map, name="shop_map"),
+    path("wallet/", views.link_wallet, name="link_wallet"),
+    path("wallet/status/", views.link_wallet_status, name="link_wallet_status"),
     path("s/<uuid:shop>/", views.shop_detail, name="shop_detail"),
     path("e/<str:external>/", views.shop_by_external, name="shop_by_external"),
     path("sign/<uuid:shop>/", views.shop_sign, name="shop_sign"),

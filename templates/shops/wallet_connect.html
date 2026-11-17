@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block content %}
+<p><a href="{% url 'shops' %}">← {% translate "Your shops" %}</a></p>
+{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+<div class="login">
+  <div>
+    <h1>{% translate "Sign in with a wallet too" %}</h1>
+    <p>{% translate "A Lightning wallet that supports login can sign in to this account, like your email. Without this step the wallet would open a new, empty account." %}</p>
+    {% if signed %}<div class="notice" role="status" id="wallet-signed">
+      <p>{% blocktranslate %}The wallet {{ signed }} signed the code. Connect it only if your own wallet just said that it worked: if it said that the sign-in failed, somebody else scanned the code first.{% endblocktranslate %}</p>
+      <form method="post">{% csrf_token %}<button class="button" name="confirm" value="1">{% translate "Connect this wallet" %}</button>
+        <button class="linklike" name="cancel" value="1">{% translate "Cancel" %}</button></form></div>
+    {% elif lnurl %}<p>{% translate "Scan the code with the wallet, or tap it: this page updates by itself." %}</p>
+    {% elif full %}<p class="notice" role="status">{% blocktranslate %}This account has {{ limit }} wallets, the most it can have: disconnect one to connect another.{% endblocktranslate %}</p>
+    {% else %}<p class="notice" role="status">{% translate "Too many codes from your connection in a short time: in a few minutes the code is back." %}</p>{% endif %}
+    <h2 class="login-other">{% translate "Wallets that sign in to this account" %}</h2>
+    {% if own or wallets %}<ul id="wallets">
+      {% if own %}<li>{{ own }} <span class="muted">({% translate "the wallet this account was opened with" %})</span></li>{% endif %}
+      {% for wallet in wallets %}<li>{{ wallet.name }} <span class="muted">({{ wallet.added|date:"DATE_FORMAT" }})</span>
+        <form method="post" class="inline">{% csrf_token %}<input type="hidden" name="remove" value="{{ wallet.pk }}"><button class="linklike">{% translate "Disconnect" %}</button></form></li>{% endfor %}
+    </ul>{% else %}<p class="muted">{% translate "None yet." %}</p>{% endif %}
+    <p class="help">{% translate "After a wallet is connected, the Lightning address of your shops cannot be changed for some days: a safeguard in case it was not you." %}</p>
+  </div>
+  {% if lnurl %}<a class="qr-box" href="lightning:{{ lnurl }}"><img class="qr" src="{{ qr }}" alt="{% translate 'Code to connect the wallet' %}"></a>{% endif %}
+</div>
+{% if lnurl %}<script src="{% static 'login.js' %}" data-status="{% url 'link_wallet_status' %}"></script>{% endif %}
+{% endblock %}

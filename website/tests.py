@@ -5,6 +5,7 @@ import re
 import shutil
 import struct
 import tempfile
+import unittest
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -15,8 +16,9 @@ import markdown
 import yaml
 from django.conf import settings
 from django.templatetags.static import static
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import override
 
 from config.community import community, community_data, menu
@@ -661,8 +663,11 @@ class OnionLocation(TestCase):
 
 
 @override_settings(PUBLIC_URL=PUBLIC)
+@override_settings(BLOSSOM_HOSTS=("blossom.example.org", "files.example.net"),
+                   ALLOWED_HOSTS=["blossom.example.org", "files.example.net", "testserver"])
 class Blossom(TestCase):
-    """Read-only Blossom (BUD-01): the theme files by their SHA-256, only when `blossom: true`."""
+    """Read-only Blossom (BUD-01): the theme files by their SHA-256, on the hosts of BLOSSOM_HOSTS, only when
+    `blossom: true`."""
 
     def setUp(self):
         from website import blossom
@@ -681,6 +686,11 @@ class Blossom(TestCase):
         self.addCleanup(patcher.stop)
         self.addCleanup(community.cache_clear)
         self.addCleanup(blossom.reset)
+        from website import blossom_visits
+        blossom_visits.reset()
+        self.addCleanup(blossom_visits.reset)
+        self.site = self.client
+        self.client = Client(HTTP_HOST="blossom.example.org")
         self.turn(True)
 
     def turn(self, on):
@@ -692,7 +702,7 @@ class Blossom(TestCase):
         blossom.reset()
 
     def test_the_right_hash_gives_the_bytes_with_cors_and_a_long_cache(self):
-        for address in (f"/blossom/{self.digest}", f"/blossom/{self.digest}.png", f"/blossom/{self.digest.upper()}"):
+        for address in (f"/{self.digest}", f"/{self.digest}.png", f"/{self.digest.upper()}"):
             response = self.client.get(address)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(b"".join(response.streaming_content), self.photo)
@@ -703,56 +713,360 @@ class Blossom(TestCase):
             self.assertIn("max-age=31536000", response["Cache-Control"])
 
     def test_head_has_the_headers_and_no_body(self):
-        response = self.client.head(f"/blossom/{self.digest}.png")
+        response = self.client.head(f"/{self.digest}.png")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Length"], str(len(self.photo)))
         self.assertEqual(response["Access-Control-Allow-Origin"], "*")
         self.assertEqual(response.content, b"")
 
     def test_a_range_gives_part_of_the_file(self):
-        response = self.client.get(f"/blossom/{self.digest}", HTTP_RANGE="bytes=1-3")
+        response = self.client.get(f"/{self.digest}", HTTP_RANGE="bytes=1-3")
         self.assertEqual(response.status_code, 206)
         self.assertEqual(b"".join(response.streaming_content), self.photo[1:4])
         self.assertEqual(response["Content-Range"], f"bytes 1-3/{len(self.photo)}")
 
     def test_the_preflight_is_answered(self):
-        response = self.client.options(f"/blossom/{self.digest}")
+        response = self.client.options(f"/{self.digest}")
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response["Access-Control-Allow-Origin"], "*")
         self.assertIn("GET", response["Access-Control-Allow-Methods"])
 
     def test_an_unknown_hash_is_404(self):
-        self.assertEqual(self.client.get("/blossom/" + "0" * 64).status_code, 404)
-        self.assertEqual(self.client.get("/blossom/not-a-hash").status_code, 404)
+        self.assertEqual(self.client.get("/" + "0" * 64).status_code, 404)
+        self.assertEqual(self.client.get("/not-a-hash").status_code, 400)
 
     def test_what_is_not_public_is_not_served(self):
         for name, content in ((".hidden.png", b"hidden"), ("code.js", b"alert(1)"), ("data.json", b'{"private": 1}')):
-            self.assertEqual(self.client.get("/blossom/" + hashlib.sha256(content).hexdigest()).status_code, 404, name)
-        listed = self.client.get("/blossom/list").json()["files"]
+            self.assertEqual(self.client.get("/" + hashlib.sha256(content).hexdigest()).status_code, 404, name)
+        listed = self.client.get("/list").json()["files"]
         self.assertFalse([item for item in listed if item["url"].endswith((".js", ".json", ".hidden.png"))])
 
     def test_a_changed_file_is_found_by_its_new_hash(self):
         from website import blossom
         (self.root / "theme/photo.png").write_bytes(b"new bytes")
         blossom.reset()
-        self.assertEqual(self.client.get(f"/blossom/{self.digest}").status_code, 404)
-        self.assertEqual(self.client.get("/blossom/" + hashlib.sha256(b"new bytes").hexdigest()).status_code, 200)
+        self.assertEqual(self.client.get(f"/{self.digest}").status_code, 404)
+        self.assertEqual(self.client.get("/" + hashlib.sha256(b"new bytes").hexdigest()).status_code, 200)
 
     def test_off_everything_is_404(self):
         self.turn(False)
-        self.assertEqual(self.client.get(f"/blossom/{self.digest}").status_code, 404)
-        self.assertEqual(self.client.head(f"/blossom/{self.digest}").status_code, 404)
-        self.assertEqual(self.client.get("/blossom/list").status_code, 404)
+        self.assertEqual(self.client.get(f"/{self.digest}").status_code, 404)
+        self.assertEqual(self.client.head(f"/{self.digest}").status_code, 404)
+        self.assertEqual(self.client.get("/list").status_code, 404)
 
     def test_the_list(self):
-        response = self.client.get("/blossom/list")
+        response = self.client.get("/list")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Access-Control-Allow-Origin"], "*")
         data = response.json()
-        self.assertEqual(data["server"], f"{PUBLIC}/blossom")
+        self.assertEqual(data["server"], "https://blossom.example.org")
         item = next(item for item in data["files"] if item["sha256"] == self.digest)
         self.assertEqual(item, {"sha256": self.digest, "size": len(self.photo), "type": "image/png",
-                                "url": f"{PUBLIC}/theme/photo.png", "blossom": f"{PUBLIC}/blossom/{self.digest}.png"})
+                                "url": f"{PUBLIC}/theme/photo.png", "blossom": f"https://blossom.example.org/{self.digest}.png"})
+
+    def test_every_error_has_cors_and_its_reason(self):
+        cases = [("get", "/" + "0" * 64, 404, "blob not found"),
+                 ("get", "/not-a-hash", 400, "not a sha256, with an optional extension"),
+                 ("get", f"/{self.digest}.p-g", 400, "not a sha256, with an optional extension"),
+                 ("put", "/upload", 403, "read-only server"),
+                 ("get", "/upload", 403, "read-only server"),
+                 ("put", "/mirror", 403, "read-only server"),
+                 ("head", "/media", 403, "read-only server"),
+                 ("delete", f"/{self.digest}", 403, "read-only server"),
+                 ("post", "/list", 403, "read-only server")]
+        for method, address, status, reason in cases:
+            response = getattr(self.client, method)(address)
+            self.assertEqual((response.status_code, response["X-Reason"]), (status, reason), (method, address))
+            self.assertEqual(response["Access-Control-Allow-Origin"], "*", address)
+        self.turn(False)
+        response = self.client.get(f"/{self.digest}")
+        self.assertEqual((response.status_code, response["X-Reason"]), (404, "blossom is off"))
+        self.assertEqual(response["Access-Control-Allow-Origin"], "*")
+
+    def test_the_preflight_lets_a_client_ask_to_upload_and_read_the_refusal(self):
+        response = self.client.options("/upload")
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response["Access-Control-Allow-Headers"], "Authorization, *")
+        self.assertIn("PUT", response["Access-Control-Allow-Methods"])
+
+    def test_the_hosts_serve_at_the_root_and_nothing_else_and_the_site_has_no_blossom(self):
+        for name in ("blossom.example.org", "files.example.net"):
+            response = self.client.get(f"/{self.digest}.png", HTTP_HOST=name)
+            self.assertEqual(response.status_code, 200, name)
+            self.assertEqual(b"".join(response.streaming_content), self.photo)
+            # Every name gives the first as the server
+            self.assertEqual(self.client.get("/list", HTTP_HOST=name).json()["server"], "https://blossom.example.org")
+        for address, status in (("/", 404), ("/en/", 400), ("/admin/", 400), ("/upload", 403)):
+            for name in ("blossom.example.org", "blossom.example.org.", "BLOSSOM.example.org:8443", "files.example.net"):
+                response = self.client.get(address, HTTP_HOST=name)
+                self.assertEqual(response.status_code, status, (name, address))
+                self.assertNotIn("Set-Cookie", response, address)
+        self.assertIn("Content-Security-Policy", self.client.get("/"))
+        # The site's own host has no Blossom: not at its root, not under a path
+        for address in (f"/{self.digest}", f"/blossom/{self.digest}", "/blossom/list", "/list"):
+            response = self.site.get(address)
+            self.assertNotEqual(response.status_code, 200, address)
+            self.assertNotIn("X-Reason", response, address)
+
+    def test_the_users_are_counted_without_their_address(self):
+        from website import blossom_visits
+        from website.models import BlossomVisit
+        phone = {"REMOTE_ADDR": "93.40.1.7", "HTTP_USER_AGENT": "Amethyst/1"}
+        self.client.get(f"/{self.digest}", **phone)
+        self.client.get(f"/{self.digest}", **{**phone, "REMOTE_ADDR": "93.40.1.99"})  # same /24, same app
+        for agent in ("a", "b", "c"):  # another User-Agent at every request is still one user
+            self.client.get(f"/{self.digest}", REMOTE_ADDR="93.40.1.8", HTTP_USER_AGENT=agent)
+        self.client.get("/list", REMOTE_ADDR="81.2.3.4", HTTP_USER_AGENT="Primal")  # only the list
+        self.client.get(f"/{self.digest}", REMOTE_ADDR="10.0.0.5", HTTP_USER_AGENT="X")  # private
+        self.client.get(f"/{self.digest}", REMOTE_ADDR="66.249.1.1", HTTP_USER_AGENT="Googlebot/2.1")
+        with override_settings(DEV_ALLOWED_IPS="5.6.7.0/24"):
+            self.client.get(f"/{self.digest}", REMOTE_ADDR="5.6.7.8", HTTP_USER_AGENT="Y")
+        self.client.get("/" + "0" * 64, REMOTE_ADDR="81.2.3.4", HTTP_USER_AGENT="Z")  # not a file served
+        self.assertEqual(blossom_visits.users(), 1)
+        rows = list(BlossomVisit.objects.values_list("who", flat=True))
+        self.assertEqual(len(rows), 2)
+        self.assertFalse([row for row in rows if "93.40" in row or "Amethyst" in row])
+
+    def test_the_moderators_are_told_once_at_three_users(self):
+        from website.models import BlossomMilestone
+        told = []
+        with patch("shops.notifications.deliver_to_moderators", side_effect=lambda *a: told.append(a) or ("x", [])), \
+                patch("threading.Thread.start", lambda thread: thread.run()):
+            for number in range(1, 6):
+                with self.captureOnCommitCallbacks(execute=True):
+                    self.client.get(f"/{self.digest}", REMOTE_ADDR=f"93.40.{number}.1", HTTP_USER_AGENT="A")
+                self.assertEqual(len(told), 0 if number < 3 else 1, number)
+        self.assertIn("3 different users", told[0][1])
+        self.assertEqual(list(BlossomMilestone.objects.values_list("users", flat=True)), [3])
+
+    def test_a_file_gone_since_the_index_is_a_404_not_an_error(self):
+        self.client.get("/list")
+        (self.root / "theme/photo.png").unlink()
+        response = self.client.get(f"/{self.digest}")
+        self.assertEqual((response.status_code, response["X-Reason"]), (404, "blob not found"))
+
+    def test_the_count_forgets_after_90_days(self):
+        import datetime
+
+        from website import blossom_visits
+        from website.models import BlossomVisit
+        old = timezone.localdate() - datetime.timedelta(days=91)
+        BlossomVisit.objects.create(day=old, month=old.strftime("%Y-%m"), who="a" * 64, kind="blob")
+        self.client.get(f"/{self.digest}", REMOTE_ADDR="93.40.1.7", HTTP_USER_AGENT="A")
+        self.assertFalse(BlossomVisit.objects.filter(day=old).exists())
+        self.assertEqual(blossom_visits.users(), 1)
+
+    def retire(self, **keys):
+        """An old file in the folder of the retired ones, and the community's settings for them."""
+        from website import blossom
+        self.old = b"the photo as it was"
+        self.old_digest = hashlib.sha256(self.old).hexdigest()
+        (self.root / "blossom-retired").mkdir(exist_ok=True)
+        (self.root / "blossom-retired/photo.png").write_bytes(self.old)
+        data = yaml.safe_load((self.root / "community.yml").read_text())
+        data.update(keys)
+        (self.root / "community.yml").write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False))
+        community.cache_clear()
+        blossom.reset()
+
+    def test_a_retired_file_is_not_served_unless_the_community_asks(self):
+        self.retire()
+        response = self.client.get(f"/{self.old_digest}")
+        self.assertEqual((response.status_code, response["X-Reason"]), (404, "blob not found"))
+        from website.models import BlossomRetired
+        self.assertFalse(BlossomRetired.objects.exists())
+
+    def test_a_retired_file_is_served_for_its_days_with_sunset_then_gone(self):
+        import datetime
+        from django.utils.http import parse_http_date
+        from website import blossom
+        from website.models import BlossomRetired
+        self.retire(blossom_retire_days=30)
+        response = self.client.get(f"/{self.old_digest}.png")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(b"".join(response.streaming_content), self.old)
+        self.assertEqual(response["Access-Control-Allow-Origin"], "*")
+        self.assertEqual(response["Cache-Control"], "public, max-age=86400")
+        row = BlossomRetired.objects.get()
+        self.assertEqual((row.sha256, row.path), (self.old_digest, "photo.png"))
+        self.assertEqual(parse_http_date(response["Sunset"]), int((row.seen + datetime.timedelta(days=30)).timestamp()))
+        self.assertEqual(self.client.head(f"/{self.old_digest}")["Content-Length"], str(len(self.old)))
+        self.assertNotIn(self.old_digest, {item["sha256"] for item in self.client.get("/list").json()["files"]})
+        # The file of the theme is served as ever, with no Sunset
+        self.assertNotIn("Sunset", self.client.get(f"/{self.digest}"))
+        # Past its days it is gone, though still in the folder; the answer names the file that has its path now
+        BlossomRetired.objects.update(seen=row.seen - datetime.timedelta(days=31))
+        blossom.reset()
+        with self.assertNumQueries(1):  # the rows are read with the folder, not for each request
+            response = self.client.get(f"/{self.old_digest}")
+            self.assertEqual(self.client.get("/" + "1" * 64).status_code, 404)
+        self.assertEqual((response.status_code, response["X-Reason"]), (410, f"retired; the file is now {self.digest}"))
+        self.assertEqual(response["Access-Control-Allow-Origin"], "*")
+        self.assertEqual(response["Cache-Control"], "public, max-age=3600")
+        # Within its days but taken out of the folder: gone too, and the row remembers
+        BlossomRetired.objects.update(seen=row.seen)
+        (self.root / "blossom-retired/photo.png").unlink()
+        (self.root / "theme/photo.png").unlink()
+        blossom.reset()
+        response = self.client.get(f"/{self.old_digest}")
+        self.assertEqual((response.status_code, response["X-Reason"]), (410, "retired"))
+        # Back in the theme it is a file like the others; retired again later, it has its days again
+        (self.root / "theme/photo.png").write_bytes(self.old)
+        blossom.reset()
+        response = self.client.get(f"/{self.old_digest}")
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("Sunset", response)
+        self.client.get("/" + "1" * 64)  # any hash the theme has not makes the site look at the folder
+        self.assertFalse(BlossomRetired.objects.exists())
+        (self.root / "theme/photo.png").unlink()
+        self.retire(blossom_retire_days=30)
+        self.assertIn("Sunset", self.client.get(f"/{self.old_digest}"))
+
+    def test_a_file_that_changed_since_the_index_is_a_404_nobody_keeps(self):
+        (self.root / "theme/photo.png").write_bytes(self.photo + b" and more")
+        response = self.client.get(f"/{self.digest}")
+        self.assertEqual(response.status_code, 404)
+        self.assertNotIn("Cache-Control", response)
+
+    def test_the_days_of_a_retired_file_start_when_it_is_in_the_folder_not_when_asked(self):
+        from website.models import BlossomRetired
+        self.retire(blossom_retire_days=30)
+        self.client.get("/" + "1" * 64)
+        self.assertEqual(list(BlossomRetired.objects.values_list("sha256", "size")), [(self.old_digest, len(self.old))])
+        for value in (True, 0, -3, "30", None):
+            self.retire(blossom_retire_days=value)
+            self.assertEqual(self.client.get(f"/{self.old_digest}").status_code, 404, value)
+
+    def test_past_its_days_a_retired_file_is_found_at_a_mirror_that_has_it(self):
+        import datetime
+        import requests
+        from website import blossom, blossom_retire
+        from website.models import BlossomRetired
+        self.retire(blossom_retire_days=30, blossom_mirrors=[
+            "https://files.example.net/", "http://plain.example.net", "https://a.example.net/path", "https://u@b.example.net", 7,
+            "https://localhost", "https://10.0.0.5", "https://[::1]:8443", "https://169.254.169.254", "https://db.internal"])
+        self.assertEqual(blossom_retire.mirrors(), ["https://files.example.net"])
+        asked = []
+
+        answers = []
+
+        def head(address, **options):
+            asked.append((address, options["allow_redirects"]))
+            answer = answers.pop(0)
+            if answer is None:
+                raise requests.ConnectionError("down")
+            return type("Response", (), {"status_code": answer[0], "headers": {"Content-Length": str(answer[1])}})()
+
+        def ask(*given):
+            answers[:] = given
+            BlossomRetired.objects.update(checked=None)
+            with patch("website.blossom_retire.requests.head", head):
+                blossom_retire.check_mirrors()
+                blossom_retire.check_mirrors()  # each file once a day
+            blossom.reset()
+            return BlossomRetired.objects.get().mirror
+
+        with patch("website.blossom_retire.check_soon"):
+            self.client.get(f"/{self.old_digest}")
+            # A page that answers 200 to anything is not the file; then the mirror has it; then it is down: still known
+            self.assertEqual(ask((200, 5)), "")
+            self.assertEqual(ask((200, len(self.old))), "https://files.example.net")
+            self.assertEqual(ask(None), "https://files.example.net")
+            self.assertEqual(asked, [(f"https://files.example.net/{self.old_digest}", False)] * 3)
+            self.assertEqual(self.client.get(f"/{self.old_digest}").status_code, 200)  # within its days: from here
+            BlossomRetired.objects.update(seen=timezone.now() - datetime.timedelta(days=31))
+            blossom.reset()
+            response = self.client.get(f"/{self.old_digest}")
+            self.assertEqual(response.status_code, 308)
+            self.assertEqual(response["Location"], f"https://files.example.net/{self.old_digest}.png")
+            self.assertEqual(response["Access-Control-Allow-Origin"], "*")
+            self.assertEqual(response["Cache-Control"], "public, max-age=3600")
+            # The mirror says it has it no more; and one the community no longer lists is not sent to
+            self.assertEqual(ask((404, 0)), "")
+            self.assertEqual(self.client.get(f"/{self.old_digest}").status_code, 410)
+            self.assertEqual(ask((200, len(self.old))), "https://files.example.net")
+            self.retire(blossom_retire_days=30, blossom_mirrors=["https://other.example.net"])
+            self.assertEqual(self.client.get(f"/{self.old_digest}").status_code, 410)
+
+    def test_the_mirrors_are_asked_in_the_background_and_not_at_every_request(self):
+        from website import blossom_retire
+        self.retire(blossom_retire_days=30, blossom_mirrors=["https://files.example.net"])
+        started = []
+        with patch("website.blossom_retire.threading.Thread", lambda **options: type("T", (), {"start": lambda self: started.append(options["target"])})()):
+            for _ in range(3):
+                self.client.get(f"/{self.old_digest}")
+        self.assertEqual(len(started), 1)
+        with patch("website.blossom_retire.check_mirrors") as check, patch("django.db.connection.close"):
+            started[0]()
+        check.assert_called_once()
+        self.assertFalse(blossom_retire._state["checking"])
+
+    def test_the_tool_puts_aside_the_old_files_from_an_older_copy(self):
+        import importlib.util
+        from website import blossom
+        spec = importlib.util.spec_from_file_location("blossom_retire_tool", ROOT / "deploy/blossom-retire.py")
+        tool = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(tool)
+        self.assertEqual(tool.EXTENSIONS, blossom.EXTENSIONS)
+        old = self.root.parent / "before"
+        (old / "theme/img").mkdir(parents=True)
+        (old / "theme/photo.png").write_bytes(b"first photo")
+        (old / "theme/img/same.png").write_bytes(self.photo)  # these bytes are still in the theme, elsewhere
+        (old / "theme/code.js").write_bytes(b"old code")
+        (old / "theme/.secret.png").write_bytes(b"hidden")
+        tool.main([str(self.root), "--from", str(old)])
+        tool.main([str(self.root), "--from", str(old)])  # again changes nothing
+        retired = self.root / "blossom-retired"
+        self.assertEqual(sorted(path.relative_to(retired).as_posix() for path in retired.rglob("*") if path.is_file()),
+                         ["photo.png"])
+        # A second old version of the same path keeps both, and the site serves them and knows their path
+        (old / "theme/photo.png").write_bytes(b"second photo")
+        tool.main([str(self.root), "--from", str(old)])
+        second = hashlib.sha256(b"second photo").hexdigest()
+        self.assertEqual((retired / f"photo.{second[:8]}.png").read_bytes(), b"second photo")
+        self.retire(blossom_retire_days=1)
+        (retired / "photo.png").write_bytes(b"first photo")
+        blossom.reset()
+        for content in (b"first photo", b"second photo"):
+            self.assertEqual(self.client.get("/" + hashlib.sha256(content).hexdigest()).status_code, 200)
+        from website.models import BlossomRetired
+        BlossomRetired.objects.update(seen=timezone.now() - timezone.timedelta(days=2))
+        blossom.reset()
+        self.assertEqual(self.client.get(f"/{second}")["X-Reason"], f"retired; the file is now {self.digest}")
+
+    @unittest.skipUnless(shutil.which("git"), "no git on this machine")
+    def test_the_tool_puts_aside_the_old_files_from_git(self):
+        import importlib.util
+        import subprocess
+        spec = importlib.util.spec_from_file_location("blossom_retire_tool", ROOT / "deploy/blossom-retire.py")
+        tool = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(tool)
+        # What the theme had at a commit
+        work = self.root.parent / "checkout"
+        (work / "theme").mkdir(parents=True)
+        (work / "theme/logo.svg").write_bytes(b"<svg>old</svg>")
+
+        def git(*arguments):
+            subprocess.run(["git", "-C", str(work), "-c", "user.name=t", "-c", "user.email=t@example.org", *arguments],
+                           check=True, capture_output=True)
+
+        git("init", "-q")
+        git("add", ".")
+        git("commit", "-q", "-m", "one")
+        (work / "theme/logo.svg").write_bytes(b"<svg>new</svg>")
+        (work / "theme/kept.png").write_bytes(b"kept")
+        git("add", ".")
+        git("commit", "-q", "-m", "two")
+        tool.main([str(work), "--git", "HEAD~1", "--prune", "30"])
+        self.assertEqual((work / "blossom-retired/logo.svg").read_bytes(), b"<svg>old</svg>")
+        self.assertEqual(sorted(path.name for path in (work / "blossom-retired").iterdir()), ["logo.svg"])
+        with self.assertRaises(SystemExit):
+            tool.main([str(work), "--git=--output=/tmp/x"])
+        # --prune removes what was put aside long ago
+        os.utime(work / "blossom-retired/logo.svg", (0, 0))
+        tool.main([str(work), "--prune", "30"])
+        self.assertFalse((work / "blossom-retired/logo.svg").exists())
+
 
 
 class SourceLink(TestCase):

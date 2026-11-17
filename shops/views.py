@@ -11,12 +11,14 @@ import segno
 from django import forms
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import get_user_model, login, logout
+from django.contrib.auth import SESSION_KEY, get_user_model, login, logout
+from django.contrib.sessions.models import Session
 from django.contrib.auth.decorators import login_required
 from django.core import signing
 from django.core.cache import cache
 from config.mail import send_mail
-from django.db import DatabaseError, IntegrityError, transaction
+from django.db import DatabaseError, IntegrityError, router, transaction
+from django.db.models.deletion import Collector, ProtectedError, RestrictedError
 from django.db.models import F
 from django.db.models.functions import Lower
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
@@ -45,11 +47,14 @@ from .forms import NewShopForm, ProfileForm, RecoveryForm, ShopDetailsForm, Shop
 from .lnaddress import BUSY, NO_ANSWER, UNKNOWN_DOMAIN, checked_live, explanation, refusal, suggestion
 from .lnurl_auth import K1, encode_lnurl, verify
 from .models import HAS_REGISTER, REGISTER_AFTER_CLOSING, keeps_register, register_kept, LoginChallenge, Profile, Shop, claim_digest
+from .models import WalletKey
 from .nostr import public_key
 from .register import connect_origins, register_data
 
 logger = logging.getLogger(__name__)
 CHALLENGE_LIFETIME = timedelta(minutes=5)
+MAX_WALLETS = 5
+K_NAME = re.compile(r"0[23][0-9a-f]{64}")
 # New sign-in challenges (a row and a QR each) for browsers without one alive: a browser makes about two every five
 # minutes, a school or a shop behind one address a few dozen
 CHALLENGES_PER_IP = 60
@@ -146,7 +151,10 @@ def claimed_name(request, target):
 def index(request):
     target = local_path(request.GET.get("next", ""))
     if request.user.is_authenticated:
-        if target and request.method == "GET":
+        # Signed in with a connected wallet whose holder has not said yet «it is my account»: the panel first, where
+        # that is asked, and not straight on to a page that would put a shop in somebody else's account
+        unconfirmed = request.user.wallet_keys.filter(key=request.session.get("wallet_key") or "-", acknowledged=None).first()
+        if target and request.method == "GET" and not unconfirmed:
             return redirect(target)
         profile, _created = Profile.objects.get_or_create(user=request.user)
         form = ProfileForm(request.POST or None, initial={"email": profile.email})
@@ -196,11 +204,19 @@ def index(request):
                                                      "training": training.panel(request.user, shops),
                                                      "first_day_count": FIRST_DAY_COUNT, "community_email": community()["email"],
                                                      "account_notice": guard.notice(request.user),
+                                                     # A wallet that signed in for the first time and has nothing: its owner
+                                                     # may have a shop under an email, and is told how to get to it
+                                                     "wallet_alone": not shops and not profile.email and born_from_wallet(request.user),
+                                                     # Signed in with a connected wallet nobody confirmed yet from the
+                                                     # wallet's side: its holder is asked whether this is their account
+                                                     "wallet_to_confirm": unconfirmed,
+                                                     "wallets": request.user.wallet_keys.count(),
                                                      "notices": [note for note in notices if not note.extra_tags.startswith("lightning")]})
     LoginChallenge.objects.filter(created__lt=timezone.now() - CHALLENGE_LIFETIME).delete()
     # This browser's challenge, if still alive, is reused: a visit to the panel does not write a new one in the database each time
     alive = request.get_signed_cookie("k1", default="", salt="login", max_age=CHALLENGE_LIFETIME.total_seconds())
-    challenge = (LoginChallenge.objects.filter(k1=alive, linking_key="", created__gte=timezone.now() - CHALLENGE_LIFETIME / 2).first()
+    challenge = (LoginChallenge.objects.filter(k1=alive, linking_key="", link_user=None,
+                                               created__gte=timezone.now() - CHALLENGE_LIFETIME / 2).first()
                  if alive else None)
     # A new one only within the limits of the address and of its /48: without the cookie every visit writes a row. Over
     # them the page has no wallet code for a while, and the email still signs in
@@ -238,25 +254,74 @@ def live_challenges():
 
 
 def lnurl_auth(request):
+    """What the wallet calls with its signature (LUD-04), to sign in or to be connected to an account. The log says how
+    each call ended, with no key and no challenge: a wallet that tells its owner «could not connect» can be understood."""
     k1 = request.GET.get("k1", "")
     key = request.GET.get("key", "").lower()
     challenge = live_challenges().filter(k1=k1).first() if K1.fullmatch(k1) else None
     if not challenge or not verify(challenge.k1, request.GET.get("sig", ""), key):
+        logger.info("lnurl-auth: refused, %s", "the signature is not of this challenge" if challenge else "no such challenge")
         return JsonResponse({"status": "ERROR", "reason": "Invalid login"})
-    # The challenge is in a QR that anyone can see: the first signature counts, a second one does not replace it
+    # The challenge is in a QR that anyone can see: the first signature counts, a second one does not replace it. The
+    # same wallet asking again, also after the site acted on its signature, hears «OK» again
     LoginChallenge.objects.filter(pk=k1, linking_key="").update(linking_key=key)
     if not LoginChallenge.objects.filter(pk=k1, linking_key=key).exists():
+        logger.info("lnurl-auth: refused, the challenge was signed by another key")
         return JsonResponse({"status": "ERROR", "reason": "Invalid login"})
+    logger.info("lnurl-auth: ok (%s%s)", "connect" if challenge.link_user_id else "sign in",
+                ", asked again" if challenge.linking_key else "")
     return JsonResponse({"status": "OK"})
 
+
+def born_from_wallet(user):
+    """An account born from an email is named «email:…»; one born from a wallet has the wallet's key as its name."""
+    return K_NAME.fullmatch(user.get_username()) is not None
+
+
+def own_wallet_signs_in(user):
+    """Whether the wallet the account was born from still opens it: not once that wallet is connected to another one."""
+    return born_from_wallet(user) and not WalletKey.objects.filter(key=user.get_username()).exists()
+
+
+def holds_nothing(user):
+    """True for an account that only exists: no shop, no email, no rights, no row of any kind that would go with it.
+    Asked of the account a wallet opened by itself before being connected to another: only an empty one is left behind.
+    Whatever is added to the site later counts without being named here: the question is what deleting it would touch."""
+    if not signs_in_here(user) or Profile.objects.filter(user=user).exclude(email="").exists():
+        return False
+    collector = Collector(using=router.db_for_write(type(user)))
+    try:
+        collector.collect([user])
+    except (ProtectedError, RestrictedError):
+        return False
+    allowed = {type(user), Profile, LoginChallenge}
+    if any(model not in allowed for model in collector.data):
+        return False
+    if any(queryset.model not in allowed and queryset.exists() for queryset in collector.fast_deletes):
+        return False
+    return not any(len(objects) if isinstance(objects, (list, set)) else objects.exists()
+                   for found in collector.field_updates.values() for objects in found)
+
+
+def end_sessions(user, keep=""):
+    """Signs the account out everywhere, but for the session `keep`. A rare act: every session is read."""
+    for session in Session.objects.filter(expire_date__gt=timezone.now()).iterator():
+        if session.session_key != keep and session.get_decoded().get(SESSION_KEY) == str(user.pk):
+            session.delete()
+
+
+def account_of(key):
+    """The account a wallet's key signs in to: the one it was connected to, otherwise the one born from it."""
+    connected = WalletKey.objects.filter(key=key).select_related("user").first()
+    return connected.user if connected else get_user_model().objects.filter(username=key).first()
 
 
 def login_status(request):
     k1 = request.get_signed_cookie("k1", "", salt="login")
-    challenge = live_challenges().filter(k1=k1).exclude(linking_key="").first()
+    challenge = live_challenges().filter(k1=k1, link_user=None, used=None).exclude(linking_key="").first()
     if not challenge:
         return JsonResponse({"logged_in": False})
-    user = get_user_model().objects.filter(username=challenge.linking_key).first()
+    user = account_of(challenge.linking_key)
     if not user:
         # Every signed key is a new account: without a cap, whoever generates keys in bursts fills the database
         if limits.refuse("accounts"):
@@ -265,11 +330,174 @@ def login_status(request):
             return JsonResponse({"logged_in": False, "error": _("Too many new accounts from here: try again later.")},
                                 status=429)
         user, _created = get_user_model().objects.get_or_create(username=challenge.linking_key)
-    challenge.delete()
+    # Used once: two status calls at the same time sign in one
+    if not LoginChallenge.objects.filter(pk=challenge.pk, used=None).update(used=timezone.now()):
+        return JsonResponse({"logged_in": False})
     if not signs_in_here(user):
         return JsonResponse({"logged_in": False})
     login(request, user)
+    # Which wallet opened this session: the panel asks once whether a connected wallet is in the right account
+    request.session["wallet_key"] = challenge.linking_key
     return JsonResponse({"logged_in": True})
+
+
+def other_ways_in(user, without=None):
+    """Whether the account can still be signed in to without one of its connected wallets."""
+    profile = Profile.objects.filter(user=user).first()
+    return bool(own_wallet_signs_in(user) or (profile and profile.email)
+                or user.wallet_keys.exclude(pk=without).exists())
+
+
+def short_key(key):
+    return f"{key[:6]}…{key[-4:]}"
+
+
+def tell_about_wallet(user, subject, lines):
+    """The owner hears by email of a wallet connected or taken away, when the account has an email. Never fails the act."""
+    email = Profile.objects.filter(user=user).values_list("email", flat=True).first()
+    if not email:
+        return
+    subject = f"{community()['name']}: {subject}"
+    body = "\n\n".join([*lines, f"{settings.PUBLIC_URL}{reverse('link_wallet')}"])
+    try:
+        send_mail(subject, body, None, [email], kind="link")
+    except (OSError, SMTPException):
+        logger.warning("account %s: the email about its wallets could not be sent", user.pk)
+
+
+def wallet_changed(user):
+    profile, _created = Profile.objects.get_or_create(user=user)
+    profile.wallet_changed = timezone.now()
+    profile.save(update_fields=["wallet_changed"])
+
+
+def signed_challenge(request):
+    """The challenge of this browser to connect a wallet, once a wallet signed it and until the owner decides."""
+    k1 = request.get_signed_cookie("k1", "", salt="link")
+    return (live_challenges().filter(k1=k1, link_user=request.user, used=None).exclude(linking_key="").first()
+            if K1.fullmatch(k1) else None)
+
+
+def connect_key(request, key):
+    """Connects a wallet's key to the account signed in here, or says why not."""
+    user = request.user
+    owner = account_of(key)
+    if owner and owner.pk == user.pk:
+        messages.info(request, _("This wallet already signs in to this account."))
+        return
+    if owner and (WalletKey.objects.filter(key=key).exists() or not holds_nothing(owner)):
+        # An account of its own with something in it, or a wallet connected elsewhere: never moved from here
+        messages.error(request, _("This wallet already has an account of its own with a shop or an email, or is connected "
+                                  "to another account: it cannot be connected here."))
+        return
+    try:
+        with transaction.atomic():
+            # One connection at a time for an account: the limit holds
+            get_user_model().objects.select_for_update().get(pk=user.pk)
+            if user.wallet_keys.count() >= MAX_WALLETS:
+                messages.error(request, _("Too many wallets on this account: disconnect one first."))
+                return
+            # Not acknowledged yet: at its first sign-in the wallet's holder is asked whether this is their account
+            WalletKey.objects.create(user=user, key=key)
+            wallet_changed(user)
+            # Looked at again now that the connection is written: the account this wallet opens by itself may have
+            # been made, or filled, a moment ago
+            owner = get_user_model().objects.filter(username=key).first()
+            if owner and not holds_nothing(owner):
+                raise IntegrityError("the wallet's own account is not empty")
+    except IntegrityError:
+        messages.error(request, _("This wallet was connected to another account just now."))
+        return
+    if owner:
+        # The empty account this wallet opened by itself is no longer reached: whoever is still in it is signed out,
+        # so nothing is put in an account that has no way in
+        end_sessions(owner)
+    messages.success(request, _("Wallet connected: from now on it signs in to this account."))
+    logger.info("wallet connected to account %s", user.pk)
+    tell_about_wallet(user, _("A wallet was connected to your account"),
+                      [_("From now on the wallet %(key)s signs in to your account, like your email.") % {"key": short_key(key)},
+                       _("If it was not you, sign in and disconnect it:")])
+
+
+@not_indexed
+@no_store
+@login_required
+def link_wallet(request):
+    """«Sign in with a wallet too»: whoever signed in with the email scans a code with the wallet, confirms, and from
+    then on the wallet signs in to this same account. Without it a wallet opens an account of its own, with no shop in
+    it. The wallets connected are listed and can be taken away, as long as another way in is left."""
+    LoginChallenge.objects.filter(created__lt=timezone.now() - CHALLENGE_LIFETIME).delete()
+    if request.method == "POST":
+        number = request.POST.get("remove") or request.POST.get("acknowledge") or ""
+        found = (request.user.wallet_keys.filter(pk=int(number)).first()
+                 if number.isascii() and number.isdecimal() and len(number) < 19 else None)
+        signed = signed_challenge(request)
+        if "confirm" in request.POST or "cancel" in request.POST:
+            # Used once, whichever button and however many times it is pressed
+            if signed and LoginChallenge.objects.filter(pk=signed.pk, used=None).update(used=timezone.now()) and "confirm" in request.POST:
+                connect_key(request, signed.linking_key)
+        elif found and "acknowledge" in request.POST:
+            # Only the browser that signed in with that wallet answers for it: the account's owner cannot say «it is
+            # mine» in the place of whoever holds the wallet
+            if request.session.get("wallet_key") == found.key:
+                WalletKey.objects.filter(pk=found.pk, acknowledged=None).update(acknowledged=timezone.now())
+            return redirect("shops")
+        elif found:
+            leaving = "leave" in request.POST
+            with transaction.atomic():
+                # One at a time for an account: two removals together would each count on the other's wallet
+                get_user_model().objects.select_for_update().get(pk=request.user.pk)
+                removed = other_ways_in(request.user, without=found.pk)
+                if removed:
+                    key = found.key
+                    found.delete()
+                    wallet_changed(request.user)
+            if removed:
+                # Whoever signed in with that wallet is out, everywhere; this browser stays, unless it is the one leaving
+                end_sessions(request.user, keep="" if leaving else request.session.session_key)
+                tell_about_wallet(request.user, _("A wallet was disconnected from your account"),
+                                  [_("The wallet %(key)s no longer signs in to your account.") % {"key": short_key(key)},
+                                   _("If it was not you, sign in and check the wallets of your account:")])
+            if leaving:
+                # Whoever says «not mine» is out of the account also when their wallet could not be taken away
+                logout(request)
+                return redirect("shops")
+            if removed:
+                messages.success(request, _("Wallet disconnected: it no longer signs in to this account."))
+            else:
+                messages.error(request, _("This wallet is the only way into this account: add a recovery email first."))
+        return redirect("link_wallet")
+    signed = signed_challenge(request)
+    alive = request.get_signed_cookie("k1", default="", salt="link", max_age=CHALLENGE_LIFETIME.total_seconds())
+    challenge = None if signed else (
+        LoginChallenge.objects.filter(k1=alive, linking_key="", link_user=request.user,
+                                      created__gte=timezone.now() - CHALLENGE_LIFETIME / 2).first() if alive else None)
+    full = request.user.wallet_keys.count() >= MAX_WALLETS
+    if challenge is None and not signed and not full and not ratelimit.over_address_limits(
+            request, "challenge", CHALLENGES_PER_IP, CHALLENGES_PER_NETWORK, CHALLENGE_WINDOW):
+        challenge = LoginChallenge.new(link_user=request.user)
+    lnurl = qr = ""
+    if challenge:
+        # `action=link`, as LUD-04 has it: the wallet may say «connect» instead of «sign in»
+        lnurl = encode_lnurl(f"{settings.PUBLIC_URL}{reverse('lnurl_auth')}?tag=login&action=link&k1={challenge.k1}")
+        qr = segno.make(lnurl, error="l").svg_data_uri(scale=6, border=2)
+    response = render(request, "shops/wallet_connect.html", {
+        "lnurl": lnurl, "qr": qr, "full": full, "limit": MAX_WALLETS,
+        "signed": short_key(signed.linking_key) if signed else "",
+        "wallets": [{"pk": row.pk, "name": short_key(row.key), "added": row.added}
+                    for row in request.user.wallet_keys.order_by("added")],
+        "own": short_key(request.user.get_username()) if own_wallet_signs_in(request.user) else ""})
+    if challenge:
+        response.set_signed_cookie("k1", challenge.k1, salt="link", httponly=True, samesite="Lax",
+                                   secure=request.is_secure(), max_age=CHALLENGE_LIFETIME.seconds)
+    return response
+
+
+@login_required
+def link_wallet_status(request):
+    """Asked by the page while the wallet signs: it only says when a wallet has, and changes nothing. The owner then
+    confirms on the page."""
+    return JsonResponse({"done": signed_challenge(request) is not None})
 
 
 def shop_map(request):
@@ -1046,6 +1274,11 @@ def save_recovery_email(request, profile, email):
     if email == profile.email:
         return
     if not email:
+        # The email is not taken away from an account opened with it when nothing else opens the account: no wallet
+        # was connected since
+        if request.user.get_username().startswith("email:") and not request.user.wallet_keys.exists():
+            messages.error(request, _("This email is the only way into this account: it cannot be removed."))
+            return
         profile.email = ""
         profile.save()
         return

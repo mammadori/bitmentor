@@ -66,6 +66,8 @@ def stamp(sender, request=None, user=None, **kwargs):
     session = getattr(request, "session", None)
     if session is not None:
         session[SESSION_KEY] = int(time.time())
+        # Which wallet opened the session (shops/views.py, login_status, written after this): not the one of a sign-in before
+        session.pop("wallet_key", None)
 
 
 def signed_in_recently(request):
@@ -79,10 +81,16 @@ def every():
 
 def next_change(shop, now=None):
     """When the owner may change the address again, or None if now: `every()` after the last change, and after the
-    last change of the account's recovery email (a stolen session could set its own email and sign in with it)."""
-    times = [moment + every() for moment in (shop.lightning_changed, email_changed(shop.owner_id)) if moment]
+    last change of the account's recovery email or wallet connected to it (a stolen session could set its own email, or
+    connect its own wallet, and sign in with it)."""
+    times = [moment + every() for moment in (shop.lightning_changed, email_changed(shop.owner_id), wallet_changed(shop.owner_id))
+             if moment]
     then = max(times, default=None)
     return then if then and then > (now or timezone.now()) else None
+
+
+def wallet_changed(user_id):
+    return Profile.objects.filter(user_id=user_id).values_list("wallet_changed", flat=True).first()
 
 
 def email_changed(user_id):

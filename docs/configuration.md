@@ -6,7 +6,8 @@ page explains each setting. [Every variable](#every-variable) is listed at the e
 
 ## Turning features off
 
-The badge of the certified shops, the shops closed for a while and the practice register are on unless `community.yml` has a `features` block that says
+The badge of the certified shops, the shops closed for a while, the practice register and the wait for an approval of
+new shops are on unless `community.yml` has a `features` block that says
 `false` for them. What each switch takes away and what it keeps is in
 [Turning features off](features/README.md#turning-features-off). `manage.py check` and `manage.py preflight` say which
 are off.
@@ -291,6 +292,7 @@ The `.env` of the stack. Empty or missing means the default.
 | `MERCHANT_FROM_EMAIL` | empty (= `DEFAULT_FROM_EMAIL`) | The sender of the emails to a shop's owner, where a reply makes sense: Lightning alerts, a change of where the shop is paid, back from holidays. Same domain, allowed by the same SMTP account |
 | `EMAIL_ENVELOPE_FROM` | empty (= the sender) | The envelope sender (Return-Path), for a mail server that accepts only its own account there while `From` shows another address. Both senders can carry a name: `Name <address>` |
 | `EMAIL_REAL_BACKEND` | empty (SMTP with `EMAIL_HOST`) | A mail backend of the community, as a Python path ([A mail backend of the community](#a-mail-backend-of-the-community)) |
+| `BLOSSOM_HOSTS` | empty | The hosts that are only the read-only Blossom server, at their root, separated by commas; the first is the main one, the others the same server under another name ([Blossom](features/blossom.md)) |
 | `TELEGRAM_BOT_TOKEN` | empty | The bot that writes the site's messages |
 | `TELEGRAM_MODERATION_CHAT` | empty | The moderators' chat: a chat number or an `@name`. Alerts about Lightning addresses and requests for help, and the morning summary |
 | `TELEGRAM_API` | `https://api.telegram.org` | Another address for Telegram's API (a test server) |

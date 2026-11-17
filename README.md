@@ -49,7 +49,9 @@ bitmentor is young.
 - **It may change without a way to upgrade.** Until a first stable version the names in `community.yml` and the
   database can change from one version to the next, with no migration.
 - **Versions** are numbered `0.MINOR.PATCH`, and each is a tag and a release of the repository: the
-  [releases](https://github.com/mammadori/bitmentor/releases) say what changed.
+  [releases](https://github.com/mammadori/bitmentor/releases) say what changed. An image you build takes its version
+  from the `VERSION` build argument: give it the release's number, or a name of the day (`v2026.11.10`) for a build of
+  your own in between ([Releases](docs/releases.md)).
 
 Found a security problem? Tell us privately: [SECURITY.md](SECURITY.md).
 
@@ -102,6 +104,7 @@ people there; check the law of your own country): read [Privacy and data protect
   - [History and day closing](docs/features/end-of-day.md): the till's history, day closing and end of shift, worked
     out on the phone, with the CSV for the accountant and an encrypted copy to bring back on another phone;
   - [Copies on Nostr](docs/features/nostr-copies.md): the same copies on a relay, optional;
+  - [The register's settings](docs/features/register-settings.md): discount, currency, price sources, colour, on the owner's phone;
   - [Registers for the staff](docs/features/staff-registers.md): one per person, paired with a one-time code, turned off alone;
   - [On-chain at the register](docs/features/onchain.md), for special cases: experimental, off by default;
   - [The practice register](docs/features/practice.md): pretend sales, nothing real;
@@ -124,8 +127,8 @@ people there; check the law of your own country): read [Privacy and data protect
     construction from any address;
   - [A training site in five minutes](docs/features/demo.md): `manage.py demo_data`, a made-up community in every state
     for the volunteers to learn on.
-- [Turning features off](docs/features/README.md#turning-features-off): the badge, closed shops and the practice register
-  can each be switched off in `community.yml`, with nothing deleted.
+- [Turning features off](docs/features/README.md#turning-features-off): the badge, closed shops, the practice register and the
+  wait for an approval of new shops can each be switched off in `community.yml`, with nothing deleted.
 - [Experimental features](docs/features/README.md#experimental-features): on-chain at the register and writing to
   OpenStreetMap are off unless a community turns them on in `community.yml`.
 - [Architecture](docs/architecture.md): software and community kept apart, the Nostr profile.

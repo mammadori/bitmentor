@@ -18,7 +18,9 @@ DIR=$PWD  # docker compose gets paths that do not depend on where the script is 
 : "${PROJECT:?}" "${WEB_IMAGE_REPO:?}" "${CADDY_IMAGE_REPO:?}" "${TAG:=active}"
 : "${COMMUNITY_COMPOSE:=/community/deploy/compose.yml}" "${BACKUP_KEEP:=10}" "${WEB_DIGEST:=}" "${CADDY_DIGEST:=}"
 DIGEST_RE='^sha256:[0-9a-f]{64}$'
-VERSION_RE='^v[0-9]{4}\.[0-9]{2}\.[0-9]{2}(-[0-9]+)?$'  # the same as the CI tags
+# A release of the source, 0.1.4 or v0.1.4, or a build named after its day, v2026.11.10 or v2026.11.10-2: nothing else
+# becomes the name of a folder here
+VERSION_RE='^(v?[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,6}|v[0-9]{4}\.[0-9]{2}\.[0-9]{2}-[0-9]+)$'
 umask 077
 mkdir -p state releases backup bin
 exec 9>state/.lock
@@ -137,7 +139,7 @@ date +%s > state/registry.ok
 [ -z "$PINNED" ] || has_digest "$WEB_IMAGE_REPO" "$WEB_DIGEST" || refuse "the web image is not $WEB_DIGEST"
 new_version=$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.version"}}' "$WEB_REF")
 # the label comes from the image: it becomes paths and tags only if it looks like a CI version
-[[ $new_version =~ $VERSION_RE ]] || refuse "the image's version label is not vYYYY.MM.DD[-N]: $(printf '%q' "${new_version:0:80}")"
+[[ $new_version =~ $VERSION_RE ]] || refuse "the image's version label is not a version (0.1.4, v0.1.4, v2026.11.10, v2026.11.10-2): $(printf '%q' "${new_version:0:80}")"
 [ -z "$PINNED" ] || [ "$TAG" = active ] || [ "$TAG" = "$new_version" ] || refuse "WEB_DIGEST is version $new_version, not TAG=$TAG"
 installed=$(cat state/version 2>/dev/null || true)
 if [ -n "$PINNED" ] && [ "$new_version" = "$installed" ] && [ -f "releases/$installed/images" ] &&

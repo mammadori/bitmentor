@@ -16,7 +16,6 @@ from shops import explorer, staff
 from shops.admin import approve_view, dashboard_view
 from shops import views as shops
 from website.views import robots, sitemap, switch_view, theme_file
-from website import blossom
 
 
 # The admin opens only with a session born from the password, here (ADMIN_SESSION, config/guard.py). A session opened
@@ -112,9 +111,6 @@ admin.site.password_change = temporary.password_change
 urlpatterns = [
     path("theme/<path:path>", theme_file),
     path("shops.json", shops.shops_json, name="shops_json"),
-    # Read-only Blossom (BUD-01) for the theme files, when `blossom: true` (website/blossom.py); the list before the hashes
-    path("blossom/list", blossom.listing, name="blossom_list"),
-    path("blossom/<str:name>", blossom.blob, name="blossom_blob"),
     path("sitemap.xml", sitemap, name="sitemap"),
     path("robots.txt", robots, name="robots"),
     path("view/", switch_view, name="switch_view"),

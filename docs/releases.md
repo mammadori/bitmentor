@@ -70,8 +70,9 @@ CADDY_DIGEST=sha256:<64 lowercase hex>
 - The containers run the digests (`releases/<version>/images`, copied into `current/`), also for a rollback and for
   `mode.sh`: the rollback never pulls a tag again. The tag stays for people: logs, `state/`, `/health/`, and a local
   `repo:<version>` tag on the images.
-- The version label of the image must look like a CI version, `vYYYY.MM.DD` or `vYYYY.MM.DD-N`, with or without digests;
-  otherwise `release.sh` refuses it.
+- The version label of the image (the `VERSION` build argument) must be a version, with or without digests: a release
+  of the source, `0.1.4` or `v0.1.4`, or a build named after its day, `v2026.11.10` or `v2026.11.10-2`. Otherwise
+  `release.sh` refuses it: the label becomes the name of a folder on the machine.
 - **Without digests**, `release.sh` refuses when the `.env` says `SITE_MODE=production` or `NETWORK=mainnet`: there a
   moved tag reaches real money, and the release is done by hand anyway, so writing two more lines costs nothing. On
   test and development machines it pulls by tag and writes a warning, so that a machine that follows `active` keeps

@@ -18,7 +18,7 @@
 (() => {
   const VERSION = 2;
   const MAX_TEXT = 2400;
-  const KEYS = ["v", "r", "ln", "oc", "cf", "d", "cu", "ps", "s", "m", "dr"];
+  const KEYS = ["v", "r", "ln", "oc", "cf", "d", "cu", "ps", "s", "m", "dr", "dw"];
   const HEX64 = /^[0-9a-f]{64}$/;
   const MAX_RELAYS = 8;
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -94,6 +94,7 @@
         || (shop.t !== undefined && !text(shop.t, 100))) throw failure("format");
     if (data.m !== undefined && !text(data.m, 140)) throw failure("format");
     if (data.dr !== undefined && data.dr !== true) throw failure("format");
+    if (data.dw !== undefined && data.dw !== true) throw failure("format");
     let nostr = null;
     if (data.v === 2) {
       const copy = data.no;
@@ -106,7 +107,7 @@
       nostr = { owner: copy.p, secret: copy.k, relays: copy.r.filter((url) => relays.includes(url)) };
     }
     return { register: data.r, lightning: data.ln, onchain, confirmAbove: data.cf, discount: data.d,
-      discountRemovable: data.dr === true, currency: data.cu,
+      discountRemovable: data.dr === true, discountRound: data.dw === true, currency: data.cu,
       sources: [...data.ps], shop: { name: shop.n, colour: shop.c || "", town: shop.t || "" }, note: data.m || "", nostr };
   }
 
@@ -121,6 +122,7 @@
         ...(pairing.shop.town ? { t: pairing.shop.town } : {}) } });
     if (pairing.note) data.m = pairing.note;
     if (pairing.discountRemovable === true) data.dr = true;
+    if (pairing.discountRound === true) data.dw = true;
     if (pairing.nostr) {
       data.no = { p: pairing.nostr.owner, k: pairing.nostr.secret,
         r: (pairing.nostr.relays || []).filter((url) => relays.includes(url)) };

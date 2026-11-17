@@ -209,6 +209,9 @@ def check_owner(run):
         how = f"wallet key {user.username[:8]}…"
     else:
         how = "other"
+    connected = user.wallet_keys.count()
+    if connected:
+        how += f", {connected} connected wallet(s)"
     seen = f"last login {user.last_login:%Y-%m-%d %H:%M} UTC" if user.last_login else "never logged in"
     detail = f"signs in with: {how}; {seen}"
     if user.is_staff or user.is_superuser:

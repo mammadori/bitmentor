@@ -38,8 +38,13 @@
   shop's Lightning address, once in seven days: the register's phone remembers the address and stops when the site gives another
   one, until the owner confirms it there, and the change is told to the owner by email and in the shop's Telegram
   chats, and to the association ([Changing a shop's Lightning address](features/address-change.md)).
-- There is no «sign out everywhere». A session lasts two weeks and ends only in the browser that signs out: a
-  phone lost, or a browser someone else got signed in, stays in until then. Changing the Lightning address
+  The same holds for the code that connects a wallet to an account («Sign in with a wallet too»): whoever scans it first
+  is the wallet the page offers to connect, and a merchant shown someone else's connecting code would sign in to that
+  person's account from then on. The page asks the owner to confirm, and the wallet's holder is asked at the first
+  sign-in whether the account is theirs, with a button to leave it; neither question can check who holds the wallet.
+- There is no «sign out everywhere» button. A session lasts two weeks and ends in the browser that signs out, or
+  everywhere else when the owner takes a connected wallet away from the account: a phone lost, or a browser someone
+  else got signed in, stays in until then. Changing the Lightning address
   asks for a sign-in of the last 15 minutes.
 - The administrators' sign-in in `/admin/` is a password, with no second factor: restrict it by address with
   `ADMIN_ALLOWED_IPS` ([configuration.md](configuration.md#admin-and-access-log)).

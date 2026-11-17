@@ -23,7 +23,7 @@
 # A refused file is reported once (the first 20 of a run). What has the shape of a real copy (a valid name, the age header,
 # 1000 bytes or more) is never deleted: it is moved out of inbox into refused (next to archive, root's; REFUSED_DIR to
 # change it), where it stays REFUSED_DAYS days (30), whatever its size, until a person puts it into archive by hand
-# (docs/mainnet.md, "Destination"). refused keeps under REFUSED_MAX_BYTES (1 GiB): over that, the oldest go, except the
+# (docs/backup.md, "Destination"). refused keeps under REFUSED_MAX_BYTES (1 GiB): over that, the oldest go, except the
 # newest three, and a refused copy that would not fit stays in inbox and is reported again. What has not the shape of a
 # copy (a name that is not one, an empty or small file, no age header) is deleted at once: it was invented.
 # A copy that is archived is replaced in inbox by an empty file with its name and date: rsync --ignore-existing, on the

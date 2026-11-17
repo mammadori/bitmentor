@@ -26,12 +26,12 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.sessions.models import Session
 from django.db import IntegrityError, transaction
 from django.forms import modelform_factory
-from django.core import mail
+from django.core import mail, signing
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import override
@@ -140,10 +140,249 @@ class LnurlAuth(TestCase):
     def test_login(self):
         k1 = self.k1()
         signature, key = self.sign(k1)
-        self.assertEqual(self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": key}).json()["status"], "OK")
+        with self.assertLogs("shops.views", "INFO") as log:
+            self.assertEqual(self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": key}).json()["status"], "OK")
+        self.assertIn("ok (sign in)", log.output[0])
+        with self.assertLogs("shops.views", "INFO") as log:
+            self.assertEqual(self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": key}).json()["status"], "OK")
+        self.assertIn("ok (sign in, asked again)", log.output[0])
+        self.assertNotIn(key, log.output[0])
+        self.assertNotIn(k1, log.output[0])
         self.assertTrue(self.client.get("/lnurl-auth/status/").json()["logged_in"])
-        self.assertFalse(LoginChallenge.objects.exists())
         self.assertTrue(get_user_model().objects.filter(username=key).exists())
+        # The wallet that asks once more, after the site signed it in, still hears OK; the challenge signs in nobody else
+        self.assertEqual(self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": key}).json()["status"], "OK")
+        self.assertFalse(self.client.get("/lnurl-auth/status/").json()["logged_in"])
+        other = self.sign(k1)
+        self.assertEqual(self.client.get("/lnurl-auth/", {"k1": k1, "sig": other[0], "key": other[1]}).json()["status"], "ERROR")
+        # A wallet alone, with no shop and no email, is told that a shop taken with an email is under that email
+        self.assertContains(self.client.get("/en/shops/"), 'id="wallet-alone"')
+
+    def wallet(self):
+        key = coincurve.PrivateKey()
+        return key, key.public_key.format().hex()
+
+    def call(self, client, k1, key):
+        """The wallet's call for a challenge, as LUD-04 has it."""
+        return client.get("/lnurl-auth/", {"k1": k1, "sig": key.sign(bytes.fromhex(k1), hasher=None).hex(),
+                                           "key": key.public_key.format().hex()}).json()["status"]
+
+    def sign_in(self, key):
+        """A browser that signs in with the wallet: the account it lands in, or None."""
+        client = Client()
+        client.get("/en/shops/")
+        k1 = LoginChallenge.objects.filter(link_user=None).latest("created").k1
+        self.assertEqual(self.call(client, k1, key), "OK")
+        client.get("/lnurl-auth/status/")
+        return client.session.get("_auth_user_id")
+
+    def connect(self, client, key, answer="confirm"):
+        from shops.models import WalletKey
+        before = list(WalletKey.objects.values_list("user", flat=True))
+        client.get("/en/shops/wallet/")
+        k1 = LoginChallenge.objects.exclude(link_user=None).latest("created").k1
+        self.assertEqual(self.call(client, k1, key), "OK")
+        # The challenge of a connection signs in nobody, and the status only tells: the owner confirms
+        self.assertFalse(client.get("/lnurl-auth/status/").json()["logged_in"])
+        done = client.get("/en/shops/wallet/status/").json()["done"]
+        self.assertFalse(WalletKey.objects.filter(key=key.public_key.format().hex()).exclude(user__in=before).exists())
+        page = client.get("/en/shops/wallet/")
+        self.assertContains(page, 'id="wallet-signed"')
+        self.assertNotContains(page, "lightning:")
+        client.post("/en/shops/wallet/", {answer: "1"})
+        return done
+
+    def email_account(self, email="rosa@example.org"):
+        user = get_user_model().objects.create(username="email:" + "a" * 32)
+        Profile.objects.create(user=user, email=email)
+        shop = Shop.objects.create(name="Bar", owner=user)
+        client = Client()
+        client.force_login(user)
+        return user, shop, client
+
+    def test_a_wallet_is_connected_to_the_account_opened_with_the_email(self):
+        from shops import address_change
+        from shops.models import WalletKey
+        user, shop, client = self.email_account()
+        self.assertNotContains(client.get("/en/shops/"), 'id="wallet-alone"')
+        self.assertContains(client.get("/en/shops/"), "/en/shops/wallet/")
+        key, public = self.wallet()
+        # The wallet signed in once before, and got an empty account of its own: it does not stand in the way
+        self.assertNotEqual(self.sign_in(key), str(user.pk))
+        self.assertIsNone(address_change.next_change(shop))
+        with self.assertLogs("shops.views", "INFO"):
+            self.assertTrue(self.connect(client, key))
+        self.assertEqual(list(WalletKey.objects.values_list("user", "key")), [(user.pk, public)])
+        self.assertEqual(self.sign_in(key), str(user.pk))
+        page = client.get("/en/shops/wallet/")
+        self.assertContains(page, "Wallet connected")
+        self.assertContains(page, f"{public[:6]}…{public[-4:]}")
+        self.assertNotContains(page, public)
+        # The owner is told by email, and the shop's address waits, as after a new recovery email
+        self.assertIn("wallet was connected", mail.outbox[-1].subject)
+        self.assertEqual(mail.outbox[-1].to, ["rosa@example.org"])
+        self.assertIsNotNone(address_change.next_change(shop))
+        self.assertIn(f"{public[:6]}…{public[-4:]}", mail.outbox[-1].body)
+        # Connected twice changes nothing; a signature the owner does not confirm connects nothing
+        self.assertTrue(self.connect(client, key))
+        self.assertEqual(WalletKey.objects.count(), 1)
+        other, _public = self.wallet()
+        self.assertTrue(self.connect(client, other, answer="cancel"))
+        self.assertEqual(WalletKey.objects.count(), 1)
+        # The wallet's holder, at the first sign-in, is asked whether this is their account
+        phone = Client()
+        phone.get("/en/shops/")
+        self.assertEqual(self.call(phone, LoginChallenge.objects.filter(link_user=None).latest("created").k1, key), "OK")
+        phone.get("/lnurl-auth/status/")
+        self.assertContains(phone.get("/en/shops/"), 'id="wallet-to-confirm"')
+        self.assertNotContains(client.get("/en/shops/"), 'id="wallet-to-confirm"')
+        # Until it answers, signing in goes to the panel and its question, not on to the page it came for
+        self.assertEqual(phone.get("/en/shops/?next=/en/shops/new/").status_code, 200)
+        self.assertEqual(client.get("/en/shops/?next=/en/shops/new/").status_code, 302)
+        # The account's owner cannot answer in the place of the wallet's holder
+        row = WalletKey.objects.get()
+        client.post("/en/shops/wallet/", {"acknowledge": row.pk})
+        self.assertIsNone(WalletKey.objects.get().acknowledged)
+        phone.post("/en/shops/wallet/", {"acknowledge": row.pk})
+        self.assertIsNotNone(WalletKey.objects.get().acknowledged)
+        self.assertEqual(phone.get("/en/shops/?next=/en/shops/new/").status_code, 302)
+        self.assertNotContains(phone.get("/en/shops/"), 'id="wallet-to-confirm"')
+        # Taken away: the browser that signed in with it is out, the wallet opens its own empty account again, and
+        # the address still waits, though no wallet is left to show for it
+        client.post("/en/shops/wallet/", {"remove": "²"})
+        client.post("/en/shops/wallet/", {"remove": row.pk})
+        self.assertFalse(WalletKey.objects.exists())
+        self.assertEqual(phone.get("/en/shops/wallet/").status_code, 302)
+        self.assertEqual(client.get("/en/shops/wallet/").status_code, 200)
+        self.assertNotEqual(self.sign_in(key), str(user.pk))
+        self.assertIsNotNone(address_change.next_change(shop))
+        self.assertIn("disconnected", mail.outbox[-1].subject)
+
+    def test_whoever_was_shown_someone_elses_code_can_leave_that_account(self):
+        from shops.models import WalletKey
+        user, _shop, client = self.email_account()
+        key, public = self.wallet()
+        self.assertTrue(self.connect(client, key))
+        phone = Client()
+        phone.get("/en/shops/")
+        self.assertEqual(self.call(phone, LoginChallenge.objects.filter(link_user=None).latest("created").k1, key), "OK")
+        phone.get("/lnurl-auth/status/")
+        phone.post("/en/shops/wallet/", {"remove": WalletKey.objects.get().pk, "leave": "1"})
+        self.assertFalse(WalletKey.objects.exists())
+        self.assertNotIn("_auth_user_id", phone.session)
+        self.assertEqual(client.get("/en/shops/wallet/").status_code, 302)  # every session of the account ended
+        self.assertNotEqual(self.sign_in(key), str(user.pk))
+
+    def test_an_account_the_wallet_opened_is_left_behind_only_when_empty(self):
+        from shops.models import WalletKey
+        from shops.views import holds_nothing, other_ways_in
+        user, _shop, client = self.email_account()
+        key, public = self.wallet()
+        born = get_user_model().objects.create(username=public)
+        self.assertTrue(holds_nothing(born))
+        still_in = Client()
+        still_in.force_login(born)
+        self.assertTrue(self.connect(client, key))
+        self.assertEqual(WalletKey.objects.count(), 1)
+        # Whoever was still in the empty account is out of it, and its wallet is no longer a way into it
+        self.assertEqual(still_in.get("/en/shops/wallet/").status_code, 302)
+        self.assertFalse(other_ways_in(born))
+        # With an email, a shop or anything else of its own, it is not empty
+        second, public = self.wallet()
+        full = get_user_model().objects.create(username=public)
+        Profile.objects.create(user=full, email="full@example.org")
+        self.assertFalse(holds_nothing(full))
+        Profile.objects.filter(user=full).update(email="")
+        self.assertTrue(holds_nothing(full))
+        full.groups.create(name="anything")
+        self.assertFalse(holds_nothing(full))
+        self.assertTrue(self.connect(client, second))
+        self.assertEqual(WalletKey.objects.count(), 1)
+        staff = get_user_model().objects.create(username="02" + "c" * 64, is_staff=True)
+        self.assertFalse(holds_nothing(staff))
+
+    def test_the_two_kinds_of_challenge_do_not_mix(self):
+        from shops.models import WalletKey
+        user, _shop, client = self.email_account()
+        key, _public = self.wallet()
+        # A sign-in challenge signed by a wallet connects nothing, also for a browser signed in
+        client.get("/en/shops/wallet/")
+        sign_in = LoginChallenge.new()
+        self.assertEqual(self.call(client, sign_in.k1, key), "OK")
+        client.cookies["k1"] = signing.get_cookie_signer(salt="k1" + "link").sign(sign_in.k1)
+        self.assertFalse(client.get("/en/shops/wallet/status/").json()["done"])
+        client.post("/en/shops/wallet/", {"confirm": "1"})
+        # One account's signed challenge is not another account's
+        client.get("/en/shops/wallet/")
+        mine = LoginChallenge.objects.exclude(link_user=None).latest("created")
+        self.assertEqual(self.call(client, mine.k1, key), "OK")
+        other = get_user_model().objects.create(username="email:" + "d" * 32)
+        thief = Client()
+        thief.force_login(other)
+        thief.cookies["k1"] = client.cookies["k1"].value
+        self.assertFalse(thief.get("/en/shops/wallet/status/").json()["done"])
+        thief.post("/en/shops/wallet/", {"confirm": "1"})
+        self.assertFalse(WalletKey.objects.exists())
+        self.assertTrue(client.get("/en/shops/wallet/status/").json()["done"])  # while its own account sees it
+
+    def test_a_wallet_with_its_own_shop_or_another_account_is_not_moved(self):
+        from shops.models import WalletKey
+        user, _shop, client = self.email_account()
+        key, public = self.wallet()
+        owner = get_user_model().objects.create(username=public)
+        Shop.objects.create(name="Other", owner=owner)
+        self.assertTrue(self.connect(client, key))
+        self.assertFalse(WalletKey.objects.exists())
+        self.assertContains(client.get("/en/shops/wallet/"), "cannot be connected here")
+        self.assertEqual(self.sign_in(key), str(owner.pk))
+        # Connected to one account, it is not connected to another
+        second, public = self.wallet()
+        self.assertTrue(self.connect(client, second))
+        other = get_user_model().objects.create(username="email:" + "b" * 32)
+        elsewhere = Client()
+        elsewhere.force_login(other)
+        self.assertTrue(self.connect(elsewhere, second))
+        self.assertEqual(list(WalletKey.objects.values_list("user", flat=True)), [user.pk])
+        # Somebody else's connection cannot be taken away, and nobody not signed in gets the page
+        elsewhere.post("/en/shops/wallet/", {"remove": WalletKey.objects.get().pk})
+        self.assertEqual(WalletKey.objects.count(), 1)
+        self.assertEqual(Client().get("/en/shops/wallet/").status_code, 302)
+        self.assertEqual(Client().get("/en/shops/wallet/status/").status_code, 302)
+
+    def test_the_only_way_in_is_not_taken_away_and_the_wallets_have_a_limit(self):
+        from shops.models import WalletKey
+        user, _shop, client = self.email_account()
+        key, _public = self.wallet()
+        self.assertTrue(self.connect(client, key))
+        Profile.objects.filter(user=user).update(email="")
+        client.post("/en/shops/wallet/", {"remove": WalletKey.objects.get().pk})
+        self.assertEqual(WalletKey.objects.count(), 1)
+        for number in range(4):
+            WalletKey.objects.create(user=user, key=f"02{number:064x}")
+        self.assertNotContains(client.get("/en/shops/wallet/"), "lightning:")
+        client.post("/en/shops/wallet/", {"remove": WalletKey.objects.order_by("pk").last().pk})  # another way in is left
+        self.assertEqual(WalletKey.objects.count(), 4)
+        # Whoever says «not mine» from the wallet that is the only way in is signed out, and the wallet stays
+        WalletKey.objects.exclude(key=key.public_key.format().hex()).delete()
+        phone = Client()
+        phone.get("/en/shops/")
+        self.assertEqual(self.call(phone, LoginChallenge.objects.filter(link_user=None).latest("created").k1, key), "OK")
+        phone.get("/lnurl-auth/status/")
+        phone.post("/en/shops/wallet/", {"remove": WalletKey.objects.get().pk, "leave": "1"})
+        self.assertNotIn("_auth_user_id", phone.session)
+        self.assertEqual(WalletKey.objects.count(), 1)
+        # A wallet connected before the account became staff does not sign in
+        get_user_model().objects.filter(pk=user.pk).update(is_staff=True)
+        self.assertIsNone(self.sign_in(key))
+
+    def test_the_email_that_is_the_only_way_in_is_not_removed(self):
+        user, _shop, client = self.email_account()
+        client.post("/en/shops/", {"email": ""})
+        self.assertEqual(Profile.objects.get(user=user).email, "rosa@example.org")
+        key, _public = self.wallet()
+        self.assertTrue(self.connect(client, key))
+        client.post("/en/shops/", {"email": ""})
+        self.assertEqual(Profile.objects.get(user=user).email, "")
 
     def test_forged_login(self):
         k1 = self.k1()

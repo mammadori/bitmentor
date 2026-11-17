@@ -2457,8 +2457,11 @@ msgstr "Ändert sich nichts, zeigen Sie die Bestätigung in Ihrem Wallet vor. De
 msgid "I paid too little, or too much"
 msgstr "Ich habe zu wenig oder zu viel bezahlt"
 
-msgid "The till shows it to the cashier. Too little: it shows what is still to pay, and you pay the rest. Too much: the cashier gives the difference back."
-msgstr "Die Kasse zeigt es dem Personal. Zu wenig: Sie zeigt, was noch fehlt, und Sie zahlen den Rest. Zu viel: Man gibt Ihnen die Differenz zurück."
+msgid "With Lightning you pay the exact amount of the code: it cannot be too little or too much. If your wallet shows a little more, that is the fee of the wallet."
+msgstr "Mit Lightning zahlen Sie genau den Betrag des Codes: zu wenig oder zu viel ist nicht möglich. Wenn Ihr Wallet etwas mehr anzeigt, ist das die Gebühr des Wallets."
+
+msgid "A Lightning payment is always the exact amount of the code. With an on-chain payment the till shows the cashier how much arrived. Too little: the sale is not paid, and the cashier asks you for the rest or cancels it. Too much: the cashier checks the shop's wallet. Agree with the shop how you get back what you paid over, or what you paid for a cancelled sale: the site holds no money and cannot return it."
+msgstr "Eine Lightning-Zahlung ist immer genau der Betrag des Codes. Bei einer On-Chain-Zahlung zeigt die Kasse dem Personal, wie viel angekommen ist. Zu wenig: der Verkauf ist nicht bezahlt, und das Personal bittet Sie um den Rest oder storniert ihn. Zu viel: das Personal prüft im Wallet des Geschäfts. Vereinbaren Sie mit dem Geschäft, wie Sie zurückbekommen, was Sie zu viel oder für einen stornierten Verkauf gezahlt haben: die Website hält kein Geld und kann es nicht zurückgeben."
 
 msgid "I don't have a wallet yet"
 msgstr "Ich habe noch kein Wallet"
@@ -6162,3 +6165,118 @@ msgstr "Der Block-Explorer antwortet nicht. Versuchen Sie es in einer Minute noc
 
 msgid "The register reaches neither the site nor the explorer: check the phone's network, then try again."
 msgstr "Die Kasse erreicht weder die Website noch den Explorer: Prüfen Sie das Netz des Telefons und versuchen Sie es dann noch einmal."
+
+#: templates/admin/shops/dashboard.html
+msgid "Blossom: %(count)s different user in the last 30 days."
+msgid_plural "Blossom: %(count)s different users in the last 30 days."
+msgstr[0] "Blossom: %(count)s verschiedener Nutzer in den letzten 30 Tagen."
+msgstr[1] "Blossom: %(count)s verschiedene Nutzer in den letzten 30 Tagen."
+
+msgid "Round the discounted price down to a whole amount"
+msgstr "Den rabattierten Preis auf einen ganzen Betrag abrunden"
+
+msgid "For round prices: 12.60 becomes 12.00. Never rounded up, and never to more than twice the discount."
+msgstr "Für runde Preise: aus 12,60 wird 12,00. Nie aufgerundet und nie mehr als der doppelte Rabatt."
+
+msgid "This wallet is not connected to any shop. If you registered your shop with an email, sign out, sign in with that email, then open «Your account» and choose «Sign in with a wallet too»: from then on this wallet opens your shop."
+msgstr "Dieses Wallet ist mit keinem Geschäft verbunden. Wenn Sie Ihr Geschäft mit einer E-Mail angemeldet haben, melden Sie sich ab, melden Sie sich mit dieser E-Mail an, öffnen Sie dann «Ihr Konto» und wählen Sie «Auch mit einem Wallet anmelden»: von da an öffnet dieses Wallet Ihr Geschäft."
+
+msgid "Sign in with a wallet too"
+msgstr "Auch mit einem Wallet anmelden"
+
+#, python-format
+msgid "%(wallets)s connected"
+msgstr "%(wallets)s verbunden"
+
+msgid "To sign in to this account with your Lightning wallet too."
+msgstr "Um sich in diesem Konto auch mit Ihrem Lightning-Wallet anzumelden."
+
+msgid "A Lightning wallet that supports login can sign in to this account, like your email. Without this step the wallet would open a new, empty account."
+msgstr "Ein Lightning-Wallet, das Login unterstützt, kann sich in diesem Konto anmelden, wie Ihre E-Mail. Ohne diesen Schritt würde das Wallet ein neues, leeres Konto öffnen."
+
+msgid "Scan the code with the wallet, or tap it: this page updates by itself."
+msgstr "Scannen Sie den Code mit dem Wallet oder tippen Sie ihn an: diese Seite aktualisiert sich von selbst."
+
+#, python-format
+msgid "This account has %(limit)s wallets, the most it can have: disconnect one to connect another."
+msgstr "Dieses Konto hat %(limit)s Wallets, das Maximum: trennen Sie eines, um ein anderes zu verbinden."
+
+msgid "Too many codes from your connection in a short time: in a few minutes the code is back."
+msgstr "Zu viele Codes von Ihrer Verbindung in kurzer Zeit: in ein paar Minuten ist der Code wieder da."
+
+msgid "Wallets that sign in to this account"
+msgstr "Wallets, die sich in diesem Konto anmelden"
+
+msgid "the wallet this account was opened with"
+msgstr "das Wallet, mit dem dieses Konto eröffnet wurde"
+
+msgid "Disconnect"
+msgstr "Trennen"
+
+msgid "After a wallet is connected, the Lightning address of your shops cannot be changed for some days: a safeguard in case it was not you."
+msgstr "Nachdem ein Wallet verbunden wurde, kann die Lightning-Adresse Ihrer Geschäfte einige Tage lang nicht geändert werden: ein Schutz, falls Sie es nicht waren."
+
+msgid "Code to connect the wallet"
+msgstr "Code zum Verbinden des Wallets"
+
+msgid "Wallet disconnected: it no longer signs in to this account."
+msgstr "Wallet getrennt: es meldet sich nicht mehr in diesem Konto an."
+
+msgid "This wallet is the only way into this account: add a recovery email first."
+msgstr "Dieses Wallet ist der einzige Weg in dieses Konto: fügen Sie zuerst eine Wiederherstellungs-E-Mail hinzu."
+
+msgid "This wallet already signs in to this account."
+msgstr "Dieses Wallet meldet sich bereits in diesem Konto an."
+
+msgid "This wallet already has an account of its own with a shop or an email, or is connected to another account: it cannot be connected here."
+msgstr "Dieses Wallet hat bereits ein eigenes Konto mit einem Geschäft oder einer E-Mail, oder es ist mit einem anderen Konto verbunden: es kann hier nicht verbunden werden."
+
+msgid "Too many wallets on this account: disconnect one first."
+msgstr "Zu viele Wallets in diesem Konto: trennen Sie zuerst eines."
+
+msgid "This wallet was connected to another account just now."
+msgstr "Dieses Wallet wurde gerade mit einem anderen Konto verbunden."
+
+msgid "Wallet connected: from now on it signs in to this account."
+msgstr "Wallet verbunden: von nun an meldet es sich in diesem Konto an."
+
+msgid "A wallet was connected to your account"
+msgstr "Ein Wallet wurde mit Ihrem Konto verbunden"
+
+
+msgid "If it was not you, sign in and disconnect it:"
+msgstr "Wenn Sie es nicht waren, melden Sie sich an und trennen Sie es:"
+
+#, python-format
+msgid "Your wallet was connected to this account (%(who)s) on %(when)s. If you did that, all is well. If you did not, this is somebody else's account: whatever you write here would be theirs too."
+msgstr "Ihr Wallet wurde am %(when)s mit diesem Konto (%(who)s) verbunden. Wenn Sie das waren, ist alles in Ordnung. Wenn nicht, ist dies das Konto von jemand anderem: was Sie hier schreiben, würde auch ihm gehören."
+
+msgid "It is my account"
+msgstr "Es ist mein Konto"
+
+msgid "Not mine: disconnect my wallet and sign out"
+msgstr "Nicht meins: mein Wallet trennen und abmelden"
+
+#, python-format
+msgid "The wallet %(signed)s signed the code. Connect it only if your own wallet just said that it worked: if it said that the sign-in failed, somebody else scanned the code first."
+msgstr "Das Wallet %(signed)s hat den Code signiert. Verbinden Sie es nur, wenn Ihr eigenes Wallet gerade gemeldet hat, dass es geklappt hat: wenn es einen Fehler gemeldet hat, hat jemand anderes den Code zuerst gescannt."
+
+msgid "Connect this wallet"
+msgstr "Dieses Wallet verbinden"
+
+#, python-format
+msgid "From now on the wallet %(key)s signs in to your account, like your email."
+msgstr "Von nun an meldet sich das Wallet %(key)s in Ihrem Konto an, wie Ihre E-Mail."
+
+msgid "A wallet was disconnected from your account"
+msgstr "Ein Wallet wurde von Ihrem Konto getrennt"
+
+#, python-format
+msgid "The wallet %(key)s no longer signs in to your account."
+msgstr "Das Wallet %(key)s meldet sich nicht mehr in Ihrem Konto an."
+
+msgid "If it was not you, sign in and check the wallets of your account:"
+msgstr "Wenn Sie es nicht waren, melden Sie sich an und prüfen Sie die Wallets Ihres Kontos:"
+
+msgid "This email is the only way into this account: it cannot be removed."
+msgstr "Diese E-Mail ist der einzige Weg in dieses Konto: sie kann nicht entfernt werden."

@@ -252,12 +252,12 @@ echo
 echo "What is left, in order:"
 step=0
 say() { step=$((step + 1)); echo "$step. $1"; shift; for line in "$@"; do echo "   $line"; done; }
-say "DNS: $SITE points to this machine (A record; AAAA only after README, \"IPv6\")." \
+say "DNS: $SITE points to this machine (A record; AAAA only after docs/configuration.md, \"IPv6\")." \
   "$( [ "$ENTRY" = shared ] && echo "The shared entry point forwards the name to caddy-$PROJECT." || echo "Ports 80 and 443 open in the firewall: Caddy gets the certificates by itself.")"
 if [[ " ${missing[*]} " == *" start "* ]]; then
   [ "$DIR" = "/opt/$PROJECT" ] || echo "   (the systemd units run /opt/<project>: this folder is $DIR, start bin/release.sh $DIR by hand)"
   # The units are templates, shared by every installation on the machine: only the missing ones are copied, and
-  # from then on they come from the releases (current/deploy/systemd), as in docs/mainnet.md
+  # from then on they come from the releases (current/deploy/systemd), as in docs/operations.md
   units=()
   for unit in "$CLONE"/deploy/systemd/bitmentor-*; do
     [ -e "${INSTALL_SYSTEMD:-/etc/systemd/system}/${unit##*/}" ] || units+=("$unit")
@@ -278,7 +278,7 @@ if [[ " ${missing[*]} " == *" start "* ]]; then
     "TELEGRAM_MODERATION_CHAT in the .env, or else to the email of community.yml." \
     "Once a month bitmentor-osm reads OpenStreetMap, only if community.yml has an osm section (docs/features/openstreetmap.md)." \
     "Every day bitmentor-meetups reads the meetups that the trusted authors of the \`meetups\` block publish on Nostr (it does nothing without the block)." \
-    "The nightly backup, bitmentor-backup@$PROJECT.timer, once backup.env is ready (docs/operations.md, \"Turn on the backup\")." \
+    "The nightly backup, bitmentor-backup@$PROJECT.timer, once backup.env is ready (docs/backup.md, \"Turn on the backup\")." \
     "What each timer does, when it runs and what it needs: docs/operations.md, \"The timers of a production machine\"."
 fi
 say "The site's first administrator: $DIR/bin/compose.sh exec web python manage.py createsuperuser"

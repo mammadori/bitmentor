@@ -116,6 +116,7 @@
       confirmAbove: Number.isSafeInteger(mine.confirmAbove) ? mine.confirmAbove : data.confirm_above,
       discount: Number.isInteger(mine.discount) ? mine.discount : data.discount,
       discountRemovable: mine.discountRemovable === true,
+      discountRound: mine.discountRound === true,
       currency: typeof mine.currency === "string" && mine.currency ? mine.currency : data.currency,
       sources: chosen.length >= 2 ? chosen : data.sources,
     };

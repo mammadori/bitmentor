@@ -28,8 +28,8 @@ and **what to do now**, step by step. The words never name the protocols: the de
 request.
 
 **The page loads from the database only.** Nothing slow is asked while it loads: no Lightning
-provider. «Look again, asking your Lightning wallet» (a POST, up to 20 seconds, with the diagnosis' own time limits per
-call: `diagnosis.CALL_TIMEOUT`) adds the check that needs it, and says so. It is limited to 6 per shop per hour and 30
+provider. «Look again, asking your Lightning wallet» (a POST, up to 20 seconds, with the diagnosis' own time limits:
+`diagnosis.LIGHTNING_SECONDS`, 15 for the wallet's answer, and `diagnosis.TOTAL_SECONDS`, 40 in all) adds the check that needs it, and says so. It is limited to 6 per shop per hour and 30
 per person, since the Lightning check asks the merchant's provider for a real invoice that nobody pays.
 
 ## Asking the association

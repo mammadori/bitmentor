@@ -73,6 +73,7 @@ services:
       MERCHANT_FROM_EMAIL: ${MERCHANT_FROM_EMAIL:-}
       EMAIL_ENVELOPE_FROM: ${EMAIL_ENVELOPE_FROM:-}
       EMAIL_REAL_BACKEND: ${EMAIL_REAL_BACKEND:-}
+      BLOSSOM_HOSTS: ${BLOSSOM_HOSTS:-}
     volumes:
       - ${COMMUNITY_DIR:-./examples/community}:/community:ro
     # web is healthy when it answers: 503 from /health/ is a problem already reported on its own (as in deploy/release.sh)

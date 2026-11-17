@@ -9,7 +9,7 @@
 // payment seen by asking the community's explorer (register-chain.js). The key, the addresses and the preferences never
 // reach the site. What the site could still do is change this page itself: the register shows each address with its
 // number, so the owner can find it in the wallet, and the owner checks the staff registers' addresses when importing
-// their copies (docs/features/onchain.md, «What a tampered server can do»).
+// their copies (docs/features/onchain-notes.md, «What a tampered server can do»).
 // With the owner's Nostr public key, the register keeps an encrypted copy of its sales on the community's relays, and a
 // staff register sends its sales to the owner as they happen (register-nostr.js, register-relays.js,
 // docs/features/nostr-copies.md).
@@ -317,6 +317,8 @@
       discount: Number.isInteger(from.discount) && from.discount >= 0 && from.discount <= 100 ? from.discount : data.discount || 0,
       // Whether the registers may take the discount away from a sale: the owner's choice, off unless chosen
       discountRemovable: from.discountRemovable === true,
+      // Whether the discounted price goes down to the whole unit: the owner's choice, off unless chosen
+      discountRound: from.discountRound === true,
       confirmAbove: Number.isSafeInteger(from.confirmAbove) && from.confirmAbove >= 0 ? from.confirmAbove : data.confirm_above || 0,
       currency: /^[A-Z]{3}$/.test(from.currency || "") ? from.currency : data.currency,
       sources: sources.length >= 2 ? sources : serverSources,
@@ -2173,7 +2175,7 @@
   // --- The screens ---
 
   // What the customer pays: the amount typed, less the discount when it is on
-  const charged = () => (discountOn ? book.discounted(cents, prefs.discount) : cents);
+  const charged = () => (discountOn ? book.discounted(cents, prefs.discount, prefs.discountRound) : cents);
 
   function render() {
     $("amount").textContent = money();
@@ -2850,6 +2852,7 @@
     hideStart();
     $("discount-percent").value = prefs.discount;
     $("discount-removable").checked = prefs.discountRemovable;
+    $("discount-round").checked = prefs.discountRound;
     $("settings-lightning").textContent = data.address;
     for (const id of Object.keys(fieldChecks)) if ($(`${id}-error`)) fieldError(id, "");
     $("currency").value = prefs.currency;
@@ -3062,6 +3065,7 @@
     store(SETTINGS, { ...saved, onchain, sources, currency, nostr: nostrOwner || undefined,
       discount: Math.min(100, Math.max(0, Math.round(Number($("discount-percent").value) || 0))),
       discountRemovable: $("discount-removable").checked === true,
+      discountRound: $("discount-round").checked === true,
       confirmAbove,
       colour: /^#[0-9a-f]{6}$/i.test($("colour").value) ? $("colour").value : "",
       note: $("note-text").value.replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 140) });

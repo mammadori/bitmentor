@@ -27,6 +27,7 @@
 <p class="dashboard-none">{% translate "Nothing to do: every register is fine, as far as the database knows." %}</p>
 {% endif %}
 {% if account_changes %}<p class="dashboard-account-changes">{% blocktranslate count count=account_changes %}{{ count }} change to the account of a shop's owner in the last two weeks:{% plural %}{{ count }} changes to the accounts of shops' owners in the last two weeks:{% endblocktranslate %} <a href="{% url 'admin:shops_accountchange_changelist' %}">{% translate "see the register" %}</a></p>{% endif %}
+{% if blossom_users is not None %}<p class="dashboard-blossom">{% blocktranslate count count=blossom_users %}Blossom: {{ count }} different user in the last 30 days.{% plural %}Blossom: {{ count }} different users in the last 30 days.{% endblocktranslate %}</p>{% endif %}
 <h2>{% translate "Limits" %}</h2>
 <p>{% translate "What the site keeps, against its limit. At the limit it refuses what would add one more and deletes nothing. The limits are the ones in community.yml (limits), or the defaults." %}</p>
 <table class="dashboard-limits">

@@ -48,7 +48,7 @@ from config import features
 from . import approval, details
 from .forms import CanonicalEmailField, ShopDetailsForm
 from .lnurl_auth import LINKING_KEY
-from .models import Profile, Shop, claim_digest, keeps_register, real
+from .models import Profile, Shop, WalletKey, claim_digest, keeps_register, real
 
 FORMAT = "bitmentor-shops"
 # 2 has the business name, the VAT number and what the owner shows; 1 has none of them, and is read too.
@@ -87,7 +87,9 @@ def owner_entry(user):
     travels: their shops move without an owner, and whoever runs the site assigns them from /admin/."""
     if user is None or user.is_staff or user.is_superuser or not user.is_active:
         return None
-    wallet = bool(LINKING_KEY.fullmatch(user.username))
+    # A wallet signs in: the one the account was born from, unless connected elsewhere since, or one connected to it
+    wallet = bool((LINKING_KEY.fullmatch(user.username) and not WalletKey.objects.filter(key=user.username).exists())
+                  or user.wallet_keys.exists())
     profile = Profile.objects.filter(user=user).first()
     email = profile.email if profile else ""
     if not wallet and not email:

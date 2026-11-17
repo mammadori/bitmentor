@@ -514,13 +514,23 @@ equal "rollback: exits with 1" 1 "$EXIT_CODE"
 contains "rollback: refused, says why" "$OUT" "no rollback to v2026.01.01"
 equal "rollback: only the new version activated" "v2026.01.02 " "$(activated_versions)"
 
-title "release.sh: the version label must look like a CI version"
-for label in 'v1' 'v2026.01.01;rm -rf /' '../../etc' 'v2026.1.1' ''; do
+title "release.sh: a release of the source is a version too"
+for label in '0.1.4' 'v0.1.4' 'v2026.01.01-3'; do
+  machine source
+  registry "$label"; healthy "$label"
+  do_release
+  equal "«$label»: exits with 0" 0 "$EXIT_CODE"
+  contains "«$label»: installed" "$OUT" "installed $label"
+  equal "«$label»: state/version" "$label" "$(cat "$D/state/version")"
+done
+
+title "release.sh: the version label must look like a version"
+for label in 'v1' 'v2026.01.01;rm -rf /' '../../etc' '0.1' '1.2.3.4' '0.1.4-rc1' '0.1.4 ' 'latest' ''; do
   machine label
   registry "$label"; healthy "$label"
   do_release
   equal "«$label»: exits with 1" 1 "$EXIT_CODE"
-  contains "«$label»: refused" "$OUT" "version label is not"
+  contains "«$label»: refused" "$OUT" "version label is not a version"
   lacks "«$label»: nothing started" grep -q " up " "$FAKE_CALLS"
 done
 

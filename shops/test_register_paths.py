@@ -221,6 +221,23 @@ class Waiting(Paths):
         # A tap that reaches the button all the same changes nothing: the sale has the discount
         self.assertEqual((out["sale"]["cents"], out["sale"]["list"], out["sale"]["discount"]), (900, 1000, 10))
 
+    def test_the_discounted_price_goes_down_to_a_whole_amount_when_the_owner_asks(self):
+        chosen = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "discountRound": True})}
+        script = """
+          key("Escape");
+          for (const k of "1400") key(k);
+          const fixed = element("discount-fixed").textContent;
+          key("Escape");
+          const sale = await sell("1400");
+          return { fixed, sale };"""
+        out = self.lightning(script, storage=chosen, discount=10, sats=12000)
+        self.assertIn("12.00", out["fixed"])
+        self.assertEqual((out["sale"]["cents"], out["sale"]["list"], out["sale"]["discount"]), (1200, 1400, 10))
+        # Not chosen, the cents stay
+        out = self.lightning(script, discount=10, sats=12600)
+        self.assertIn("12.60", out["fixed"])
+        self.assertEqual(out["sale"]["cents"], 1260)
+
     def test_a_staff_register_follows_the_owners_choice(self):
         script = r"""
 const fs = require("fs");
@@ -230,14 +247,17 @@ const base = { register: "%s", lightning: "%s", confirmAbove: 0, discount: 10, c
 const sources = ["kraken", "coinbase", "bitstamp"];
 const off = registerPairing.encode(base, sources);
 const on = registerPairing.encode({ ...base, discountRemovable: true }, sources);
+const whole = registerPairing.decode(registerPairing.encode({ ...base, discountRound: true }, sources), sources);
 process.stdout.write(JSON.stringify({ off, on, read: [registerPairing.decode(off, sources).discountRemovable,
-  registerPairing.decode(on, sources).discountRemovable] }));
+  registerPairing.decode(on, sources).discountRemovable],
+  round: [registerPairing.decode(off, sources).discountRound, whole.discountRound, whole.discountRemovable] }));
 """ % (REGISTER, ADDRESS)
         made = subprocess.run([self.node, "-e", script, str(STATIC / "register-pairing.js")], capture_output=True,
                               text=True, timeout=60)
         self.assertEqual(made.returncode, 0, made.stderr)
         codes = json.loads(made.stdout)
         self.assertEqual(codes["read"], [False, True])
+        self.assertEqual(codes["round"], [False, True, False])
         ledger = f"shop-1:{REGISTER}"
         dataset = {"ledger": ledger, "shop": "shop-1", "staff": REGISTER, "tillName": "Anna"}
         for code, removable in ((codes["off"], False), (codes["on"], True)):

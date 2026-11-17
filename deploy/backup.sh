@@ -8,13 +8,12 @@
 # (deploy/examples/verify-copy.sh).
 # From here, remote copies are only added, never deleted: whoever takes over this machine must not be able to delete
 # those too. The destination decides how long to keep them (deploy/examples/keep-backups.sh).
-# Does not copy the game files and the media (they have their own sources), or
-# the certificates (the entry point has them).
+# Does not copy the community folder (it has its own repository), or the certificates (the entry point has them).
 # If something goes wrong, it alerts through check.sh and exits with an error; if all goes well, it writes the time
 # (and the name, size and sha256 of the copy) to state/backup.ok.
-# Usage: backup.sh <directory> [--here-only], the directory containing .env, release.env and backup.env. Restore: docs/mainnet.md.
+# Usage: backup.sh <directory> [--here-only], the directory containing .env, release.env and backup.env. Restore: docs/backup.md, "Full restore".
 # With --here-only, by hand, it makes and checks the copy and does not ship it: for whoever has no destination yet and takes
-# the file to a computer with scp (docs/operations.md, "Take a copy off the machine"). It writes nothing in state/ when it works and prunes
+# the file to a computer with scp (docs/backup.md, "Take a copy off the machine"). It writes nothing in state/ when it works and prunes
 # nothing: delete the copy after taking it (an error still leaves backup.error). The timer never runs it so.
 #
 # An installation from the sources (a clone, no release.env, no current/) can run it too, for a test or a development

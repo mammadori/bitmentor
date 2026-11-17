@@ -2357,8 +2357,11 @@ msgstr "Se non cambia, mostra a chi è alla cassa la conferma nel wallet. Il tit
 msgid "I paid too little, or too much"
 msgstr "Ho pagato troppo poco, o troppo"
 
-msgid "The till shows it to the cashier. Too little: it shows what is still to pay, and you pay the rest. Too much: the cashier gives the difference back."
-msgstr "Lo vede chi è alla cassa. Troppo poco: la cassa indica quanto manca, e paghi il resto. Troppo: chi è alla cassa ti restituisce la differenza."
+msgid "With Lightning you pay the exact amount of the code: it cannot be too little or too much. If your wallet shows a little more, that is the fee of the wallet."
+msgstr "Con Lightning paghi l'importo esatto del codice: non può essere troppo poco né troppo. Se il tuo wallet mostra qualcosa in più, è la commissione del wallet."
+
+msgid "A Lightning payment is always the exact amount of the code. With an on-chain payment the till shows the cashier how much arrived. Too little: the sale is not paid, and the cashier asks you for the rest or cancels it. Too much: the cashier checks the shop's wallet. Agree with the shop how you get back what you paid over, or what you paid for a cancelled sale: the site holds no money and cannot return it."
+msgstr "Un pagamento Lightning è sempre l'importo esatto del codice. Con un pagamento on-chain la cassa mostra a chi è alla cassa quanto è arrivato. Troppo poco: la vendita non è pagata, e chi è alla cassa ti chiede il resto o la annulla. Troppo: chi è alla cassa controlla nel wallet del negozio. Accordati con il negozio su come riavere quello che hai pagato in più, o quello che hai pagato per una vendita annullata: il sito non tiene soldi e non può restituirli."
 
 msgid "I don't have a wallet yet"
 msgstr "Non ho ancora un wallet"
@@ -6062,3 +6065,118 @@ msgstr "L'esploratore di blocchi non risponde. Riprova tra un minuto; intanto pu
 
 msgid "The register reaches neither the site nor the explorer: check the phone's network, then try again."
 msgstr "La cassa non raggiunge né il sito né l'esploratore: controlla la rete del telefono, poi riprova."
+
+#: templates/admin/shops/dashboard.html
+msgid "Blossom: %(count)s different user in the last 30 days."
+msgid_plural "Blossom: %(count)s different users in the last 30 days."
+msgstr[0] "Blossom: %(count)s utente diverso negli ultimi 30 giorni."
+msgstr[1] "Blossom: %(count)s utenti diversi negli ultimi 30 giorni."
+
+msgid "Round the discounted price down to a whole amount"
+msgstr "Arrotonda per difetto il prezzo scontato a una cifra tonda"
+
+msgid "For round prices: 12.60 becomes 12.00. Never rounded up, and never to more than twice the discount."
+msgstr "Per chi ha prezzi tondi: 12,60 diventa 12,00. Mai per eccesso, e mai oltre il doppio dello sconto."
+
+msgid "This wallet is not connected to any shop. If you registered your shop with an email, sign out, sign in with that email, then open «Your account» and choose «Sign in with a wallet too»: from then on this wallet opens your shop."
+msgstr "Questo wallet non è collegato a nessun negozio. Se hai registrato il negozio con un'email, esci, entra con quell'email, poi apri «Il tuo account» e scegli «Entra anche con un wallet»: da allora questo wallet apre il tuo negozio."
+
+msgid "Sign in with a wallet too"
+msgstr "Entra anche con un wallet"
+
+#, python-format
+msgid "%(wallets)s connected"
+msgstr "%(wallets)s collegati"
+
+msgid "To sign in to this account with your Lightning wallet too."
+msgstr "Per entrare in questo account anche con il tuo wallet Lightning."
+
+msgid "A Lightning wallet that supports login can sign in to this account, like your email. Without this step the wallet would open a new, empty account."
+msgstr "Un wallet Lightning che supporta il login può entrare in questo account, come la tua email. Senza questo passo il wallet aprirebbe un account nuovo e vuoto."
+
+msgid "Scan the code with the wallet, or tap it: this page updates by itself."
+msgstr "Inquadra il codice con il wallet, o toccalo: questa pagina si aggiorna da sola."
+
+#, python-format
+msgid "This account has %(limit)s wallets, the most it can have: disconnect one to connect another."
+msgstr "Questo account ha %(limit)s wallet, il massimo: scollegane uno per collegarne un altro."
+
+msgid "Too many codes from your connection in a short time: in a few minutes the code is back."
+msgstr "Troppi codici dalla tua connessione in poco tempo: tra qualche minuto il codice torna."
+
+msgid "Wallets that sign in to this account"
+msgstr "Wallet che entrano in questo account"
+
+msgid "the wallet this account was opened with"
+msgstr "il wallet con cui è stato aperto questo account"
+
+msgid "Disconnect"
+msgstr "Scollega"
+
+msgid "After a wallet is connected, the Lightning address of your shops cannot be changed for some days: a safeguard in case it was not you."
+msgstr "Dopo aver collegato un wallet, l'indirizzo Lightning dei tuoi negozi non si può cambiare per alcuni giorni: una protezione nel caso non fossi stato tu."
+
+msgid "Code to connect the wallet"
+msgstr "Codice per collegare il wallet"
+
+msgid "Wallet disconnected: it no longer signs in to this account."
+msgstr "Wallet scollegato: non entra più in questo account."
+
+msgid "This wallet is the only way into this account: add a recovery email first."
+msgstr "Questo wallet è l'unico modo per entrare in questo account: aggiungi prima un'email di recupero."
+
+msgid "This wallet already signs in to this account."
+msgstr "Questo wallet entra già in questo account."
+
+msgid "This wallet already has an account of its own with a shop or an email, or is connected to another account: it cannot be connected here."
+msgstr "Questo wallet ha già un suo account con un negozio o un'email, oppure è collegato a un altro account: non si può collegare qui."
+
+msgid "Too many wallets on this account: disconnect one first."
+msgstr "Troppi wallet su questo account: scollegane prima uno."
+
+msgid "This wallet was connected to another account just now."
+msgstr "Questo wallet è appena stato collegato a un altro account."
+
+msgid "Wallet connected: from now on it signs in to this account."
+msgstr "Wallet collegato: d'ora in poi entra in questo account."
+
+msgid "A wallet was connected to your account"
+msgstr "Un wallet è stato collegato al tuo account"
+
+
+msgid "If it was not you, sign in and disconnect it:"
+msgstr "Se non sei stato tu, entra e scollegalo:"
+
+#, python-format
+msgid "Your wallet was connected to this account (%(who)s) on %(when)s. If you did that, all is well. If you did not, this is somebody else's account: whatever you write here would be theirs too."
+msgstr "Il tuo wallet è stato collegato a questo account (%(who)s) il %(when)s. Se l'hai fatto tu, va tutto bene. Se non l'hai fatto tu, questo è l'account di qualcun altro: quello che scrivi qui sarebbe anche suo."
+
+msgid "It is my account"
+msgstr "È il mio account"
+
+msgid "Not mine: disconnect my wallet and sign out"
+msgstr "Non è mio: scollega il mio wallet ed esci"
+
+#, python-format
+msgid "The wallet %(signed)s signed the code. Connect it only if your own wallet just said that it worked: if it said that the sign-in failed, somebody else scanned the code first."
+msgstr "Il wallet %(signed)s ha firmato il codice. Collegalo solo se il tuo wallet ha appena detto che è andata bene: se ha detto che l'accesso è fallito, qualcun altro ha inquadrato il codice prima di te."
+
+msgid "Connect this wallet"
+msgstr "Collega questo wallet"
+
+#, python-format
+msgid "From now on the wallet %(key)s signs in to your account, like your email."
+msgstr "D'ora in poi il wallet %(key)s entra nel tuo account, come la tua email."
+
+msgid "A wallet was disconnected from your account"
+msgstr "Un wallet è stato scollegato dal tuo account"
+
+#, python-format
+msgid "The wallet %(key)s no longer signs in to your account."
+msgstr "Il wallet %(key)s non entra più nel tuo account."
+
+msgid "If it was not you, sign in and check the wallets of your account:"
+msgstr "Se non sei stato tu, entra e controlla i wallet del tuo account:"
+
+msgid "This email is the only way into this account: it cannot be removed."
+msgstr "Questa email è l'unico modo per entrare in questo account: non si può togliere."
