@@ -6001,3 +6001,52 @@ msgstr "fa parte della serie"
 
 msgid "The community's regular meetups. Untick for a one-off event: the board then shows its own title, and links only its own page, not the community's group."
 msgstr "Gli incontri regolari della comunità. Togli la spunta per un evento a sé: la bacheca mostra il suo titolo e collega solo la sua pagina, non il gruppo della comunità."
+
+msgid "awaiting approval"
+msgstr "in attesa di approvazione"
+
+msgid "A new shop written by its owner: off maps and lists until someone approves it. The register works."
+msgstr "Un negozio nuovo scritto dal titolare: fuori da mappe ed elenchi finché qualcuno non lo approva. La cassa funziona."
+
+#, python-format
+msgid "A new shop waits for your approval: %(name)s"
+msgstr "Un negozio nuovo aspetta la vostra approvazione: %(name)s"
+
+msgid "New shop"
+msgstr "Negozio nuovo"
+
+msgid "Approve the new shops: on the map and the lists"
+msgstr "Approva i negozi nuovi: in mappa e negli elenchi"
+
+#, python-format
+msgid "Approved: %(count)d shops."
+msgstr "Approvati: %(count)d negozi."
+
+#, python-format
+msgid "%(name)s is approved: it is on the map and the lists."
+msgstr "%(name)s è approvato: è in mappa e negli elenchi."
+
+msgid "The community looks at every new shop before it goes on the map: until then the register works, and the shop is not on the map and the lists."
+msgstr "La comunità guarda ogni negozio nuovo prima di metterlo in mappa: intanto la cassa funziona, e il negozio non è in mappa né negli elenchi."
+
+msgid "Not on the map yet: the community looks at every new shop first. The register already works."
+msgstr "Non ancora in mappa: la comunità guarda prima ogni negozio nuovo. La cassa funziona già."
+
+msgid "The community looks at every new shop before it goes on the map: it will be there once approved."
+msgstr "La comunità guarda ogni negozio nuovo prima di metterlo in mappa: ci sarà appena approvato."
+
+msgid "A new shop waits for your approval before it goes on the map."
+msgstr "Un negozio nuovo aspetta la vostra approvazione prima di andare in mappa."
+
+msgid "Look at the shop and its owner; if all is well, approve it."
+msgstr "Guardate il negozio e il titolare; se va tutto bene, approvatelo."
+
+msgid "Approve: on the map and the lists"
+msgstr "Approva: in mappa e negli elenchi"
+
+msgid "The community looks at every new shop before it goes on the map: yours is waiting. The register already works."
+msgstr "La comunità guarda ogni negozio nuovo prima di metterlo in mappa: il tuo è in attesa. La cassa funziona già."
+
+#, python-format
+msgid "%(name)s was already approved."
+msgstr "%(name)s era già approvato."

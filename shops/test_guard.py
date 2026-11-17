@@ -201,7 +201,7 @@ class StaffWalk(Base):
         admin/ are the admin site, its login and the association's list, and nothing else."""
         under = {str(pattern.pattern): pattern for pattern in get_resolver().url_patterns
                  if str(pattern.pattern).startswith("admin")}
-        self.assertEqual(sorted(under), ["admin/", "admin/login/", "admin/today/"])
+        self.assertEqual(sorted(under), ["admin/", "admin/login/", "admin/today/", "admin/today/approve/<uuid:shop>/"])
         self.assertEqual(under["admin/login/"].callback, site_urls.admin_login)
         self.assertEqual(under["admin/today/"].name, "admin_dashboard")
         self.assertEqual((under["admin/"].app_name, under["admin/"].namespace), ("admin", "admin"))

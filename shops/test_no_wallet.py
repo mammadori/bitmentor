@@ -148,6 +148,9 @@ class Guide(Base):
         shop.refresh_from_db()
         self.assertEqual((shop.lightning_address, shop.lightning, shop.awaiting_wallet, shop.name),
                          ("mario@example.org", True, False, "Bar"))
+        # A new shop waits for the community's approval (shops/approval.py) as well
+        self.assertTrue(shop.awaiting_approval)
+        Shop.objects.filter(pk=shop.pk).update(awaiting_approval=False)
         self.assertContains(self.client.get("/en/shops/map/"), str(shop.id))
         # Once there is a wallet the guide never opens again: the destination does not change from here
         self.assertRedirects(self.client.get(f"/en/shops/wallet/{shop.id}/"), "/en/shops/", fetch_redirect_response=False)

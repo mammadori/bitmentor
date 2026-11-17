@@ -6101,3 +6101,52 @@ msgstr "gehört zur Reihe"
 
 msgid "The community's regular meetups. Untick for a one-off event: the board then shows its own title, and links only its own page, not the community's group."
 msgstr "Die regelmäßigen Treffen der Gemeinschaft. Entfernen Sie das Häkchen für eine einmalige Veranstaltung: Die Übersicht zeigt dann ihren eigenen Titel und verlinkt nur ihre eigene Seite, nicht die Gruppe der Gemeinschaft."
+
+msgid "awaiting approval"
+msgstr "wartet auf Freigabe"
+
+msgid "A new shop written by its owner: off maps and lists until someone approves it. The register works."
+msgstr "Ein neues Geschäft, vom Inhaber eingetragen: nicht auf Karten und in Listen, bis jemand es freigibt. Die Kasse funktioniert."
+
+#, python-format
+msgid "A new shop waits for your approval: %(name)s"
+msgstr "Ein neues Geschäft wartet auf Ihre Freigabe: %(name)s"
+
+msgid "New shop"
+msgstr "Neues Geschäft"
+
+msgid "Approve the new shops: on the map and the lists"
+msgstr "Neue Geschäfte freigeben: auf die Karte und in die Listen"
+
+#, python-format
+msgid "Approved: %(count)d shops."
+msgstr "Freigegeben: %(count)d Geschäfte."
+
+#, python-format
+msgid "%(name)s is approved: it is on the map and the lists."
+msgstr "%(name)s ist freigegeben: Es ist auf der Karte und in den Listen."
+
+msgid "The community looks at every new shop before it goes on the map: until then the register works, and the shop is not on the map and the lists."
+msgstr "Die Gemeinschaft sieht sich jedes neue Geschäft an, bevor es auf die Karte kommt: Bis dahin funktioniert die Kasse, und das Geschäft ist nicht auf der Karte und in den Listen."
+
+msgid "Not on the map yet: the community looks at every new shop first. The register already works."
+msgstr "Noch nicht auf der Karte: Die Gemeinschaft sieht sich zuerst jedes neue Geschäft an. Die Kasse funktioniert schon."
+
+msgid "The community looks at every new shop before it goes on the map: it will be there once approved."
+msgstr "Die Gemeinschaft sieht sich jedes neue Geschäft an, bevor es auf die Karte kommt: Nach der Freigabe ist es dort."
+
+msgid "A new shop waits for your approval before it goes on the map."
+msgstr "Ein neues Geschäft wartet auf Ihre Freigabe, bevor es auf die Karte kommt."
+
+msgid "Look at the shop and its owner; if all is well, approve it."
+msgstr "Sehen Sie sich das Geschäft und seinen Inhaber an; wenn alles stimmt, geben Sie es frei."
+
+msgid "Approve: on the map and the lists"
+msgstr "Freigeben: auf die Karte und in die Listen"
+
+msgid "The community looks at every new shop before it goes on the map: yours is waiting. The register already works."
+msgstr "Die Gemeinschaft sieht sich jedes neue Geschäft an, bevor es auf die Karte kommt: Ihres wartet noch. Die Kasse funktioniert schon."
+
+#, python-format
+msgid "%(name)s was already approved."
+msgstr "%(name)s war bereits freigegeben."

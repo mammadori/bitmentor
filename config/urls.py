@@ -13,7 +13,7 @@ from config import ratelimit, temporary
 from config.guard import ADMIN_SESSION
 from meetups import views as meetups
 from shops import explorer, staff
-from shops.admin import dashboard_view
+from shops.admin import approve_view, dashboard_view
 from shops import views as shops
 from website.views import robots, sitemap, switch_view, theme_file
 from website import blossom
@@ -126,6 +126,7 @@ urlpatterns = [
     path("admin/login/", admin_login),
     # What to do today about the registers, behind the admin's own checks (the password session, staff)
     path("admin/today/", admin.site.admin_view(dashboard_view), name="admin_dashboard"),
+    path("admin/today/approve/<uuid:shop>/", admin.site.admin_view(approve_view), name="admin_approve_shop"),
     path("admin/", admin.site.urls),
     path(".well-known/nostr.json", shops.nostr_names, name="nostr_names"),
     path("register/<uuid:shop>/manifest.webmanifest", shops.register_manifest, name="register_manifest"),

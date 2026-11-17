@@ -166,7 +166,7 @@ class Items(TestCase):
         self.assertEqual(queries(2), queries(40))
         # The shops, the money owed by the shops no longer trading, the moved shops, the requests for help, the requests
         # about OpenStreetMap (its settings, which ask nothing, are off here), and one count for each total of the limits
-        self.assertLessEqual(queries(2), 6 + len(limits.counters()))
+        self.assertLessEqual(queries(2), 7 + len(limits.counters()))
 
     def test_no_other_server_is_asked(self):
         register("Bar", lightning_status=LightningStatus.NO_ANSWER, lightning_since=ago(days=1), first_sale=None,

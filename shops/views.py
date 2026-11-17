@@ -38,7 +38,7 @@ from config import features, limits, mailbudget, ratelimit
 from config.community import community, page_path, private_page, shop_form_links, shop_page_links
 from config.middleware import csp_with_connect
 
-from . import address_change, certified, details, first_day, guard, journey, lightning_watch, vacation
+from . import address_change, approval, certified, details, first_day, guard, journey, lightning_watch, vacation
 from . import helpdesk, osm, osm_request, public_cache, training
 from .directory import WAITING_FOR_WALLET, nearby_shops, public_shops, waits_for_wallet
 from .forms import NewShopForm, ProfileForm, RecoveryForm, ShopDetailsForm, ShopDisplayForm, ShopForm, WalletForm, prefill, tidy_lightning_address
@@ -364,7 +364,8 @@ def shop_detail(request, shop):
     in the community's main language. Neither for a historic shop nor for a suspended one. Then the places to pay
     nearby, and the community's own pages about the shop (`shop_page` in community.yml)."""
     shop = get_object_or_404(Shop, pk=shop)
-    reduced = shop.suspended
+    # A new shop waiting for the approval (shops/approval.py) shows as little as a suspended one: nobody looked at it yet
+    reduced = shop.suspended or shop.awaiting_approval
     shop.trained = not reduced and training.is_trained(shop)
     language = get_language()
     extras = shop_page_links(language, shop.external_id)
@@ -378,7 +379,7 @@ def shop_detail(request, shop):
         "stories": [] if reduced else extras["stories"],
         "certified_rule": certified.MEANING if shop.certified and not reduced else "",
         "nearby": [{"shop": other, "distance": distance_text(other.metres)} for other in nearby_shops(shop)]})
-    if shop.suspended or not shop.listed or waits_for_wallet(shop):
+    if shop.suspended or shop.awaiting_approval or not shop.listed or waits_for_wallet(shop):
         response["X-Robots-Tag"] = "noindex, nofollow"
     return response
 
@@ -410,7 +411,7 @@ def shop_by_external(request, external):
     that opens their register."""
     # PostgreSQL refuses a text with a NUL in it: no shop has one
     shop = None if "\x00" in external else (
-        Shop.objects.filter(external_id=external, suspended=False, listed=True).exclude(WAITING_FOR_WALLET)
+        Shop.objects.filter(external_id=external, suspended=False, awaiting_approval=False, listed=True).exclude(WAITING_FOR_WALLET)
         .order_by("pk").first())
     if shop is None:
         raise Http404
@@ -571,13 +572,17 @@ def new_shop(request):
                 return shop_saved()
             shop = draft
             shop.owner = request.user
+            # Off the map until someone of the community approves it; the register works at once (shops/approval.py)
+            shop.awaiting_approval = approval.enabled()
             if shop.awaiting_wallet:
                 # No wallet yet: the shop's page is saved, without a register, and the guide takes it from here
                 shop.save()
+                announce(request, shop)
                 warn_about_vat(request, form)
                 return redirect(f"{reverse('wallet_steps', args=[shop.id])}?saved=1")
             if not problem:
                 shop.save()
+                announce(request, shop)
                 warn_about_vat(request, form)
                 return shop_saved()
         form.add_error("lightning_address", problem)
@@ -671,6 +676,14 @@ def lightning_check(request):
         answer.update(state=found, message=explanation(found, address),
                       suggestion=suggestion(address) if found in (UNKNOWN_DOMAIN, NO_ANSWER) else None)
     return JsonResponse(answer, headers={"Cache-Control": "no-store"})
+
+
+def announce(request, shop):
+    """A shop that waits for the approval: its owner reads why it is not on the map yet, the moderators hear of it."""
+    if shop.awaiting_approval:
+        messages.info(request, _("The community looks at every new shop before it goes on the map: until then the "
+                                 "register works, and the shop is not on the map and the lists."))
+        approval.tell_moderators(shop)
 
 
 def shop_saved():

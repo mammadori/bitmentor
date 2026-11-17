@@ -9,7 +9,7 @@
         {% if shop.public_place %}<p class="journey-card-place">{{ shop.public_place }}</p>{% endif %}
         {% if card.template %}<p class="marks">{% include card.template %}</p>{% endif %}</div>
     </div>
-    {% else %}<p class="journey-card-off">{% if card.why == "suspended" %}{% translate "Not on the map for now: the community has taken the shop off it." %}{% elif card.why == "unlisted" %}{% translate "Not on the map: the shop stays off it, as agreed with the community." %}{% else %}{% translate "Not on the map yet: the position is missing." %} <a href="{% url 'edit_shop' shop.id %}">{% translate "Add it" %}</a>{% endif %}</p>{% endif %}
+    {% else %}<p class="journey-card-off">{% if card.why == "suspended" %}{% translate "Not on the map for now: the community has taken the shop off it." %}{% elif card.why == "approval" %}{% translate "Not on the map yet: the community looks at every new shop first. The register already works." %}{% elif card.why == "unlisted" %}{% translate "Not on the map: the shop stays off it, as agreed with the community." %}{% else %}{% translate "Not on the map yet: the position is missing." %} <a href="{% url 'edit_shop' shop.id %}">{% translate "Add it" %}</a>{% endif %}</p>{% endif %}
   </figure>
   <ol class="journey-steps">
   {% for step in path.steps %}<li data-milestone="{{ step.key }}" data-state="{{ step.state }}"{% if step.state != "off" and step.state != "optional" %} data-counted{% endif %}{% if step.next %} class="journey-next"{% endif %}{% if step.key == "lightning" and not shop.lightning_watch.broken %} id="lightning-{{ shop.id }}"{% endif %}>

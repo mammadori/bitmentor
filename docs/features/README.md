@@ -2,7 +2,7 @@
 
 What bitmentor does, and how to turn each part on. The longer explanations are in the pages linked from the table.
 
-Three of the features below can be turned off by a community, one by one: see [Turning features off](#turning-features-off).
+Four of the features below can be turned off by a community, one by one: see [Turning features off](#turning-features-off).
 Two are experimental, and off unless a community turns them on: see [Experimental features](#experimental-features).
 
 | Feature | How to turn it on |
@@ -24,6 +24,7 @@ Two are experimental, and off unless a community turns them on: see [Experimenta
 | Closed for a while: holidays or works said kindly, with no alarms | Always on: see [Closed for a while](vacation.md) |
 | Historic shop: stays on the map with its own marker | `closed_on` in `/admin/` or in the `import_shops` JSON |
 | Suspension from maps and lists, never blocking the register | `/admin/` |
+| New shops wait for an approval before the map, the lists and the counts; the register works at once, the moderators are told (Telegram, or the community's email), and `/admin/today/` approves with one click. Shops imported from a list and taken by their owner never wait | On by default; `features: {approval: false}` in `community.yml` turns it off |
 | The merchant's training, the «pass» | `training` in `community.yml`: see [The merchant's training](merchant-training.md) |
 | The merchant's path in the panel, from a working register to a certified shop | Always on (`shops/journey.py`) |
 | Something wrong?: the merchant asks the association for help with one tap | Always on: see [Something wrong?](help.md) |
@@ -49,7 +50,7 @@ Two are experimental, and off unless a community turns them on: see [Experimenta
 
 ## Turning features off
 
-Three parts of the site are optional. A community that writes nothing keeps them all, and sees no change. To turn one
+Four parts of the site are optional. A community that writes nothing keeps them all, and sees no change. To turn one
 off, write `false` in a `features` block of `community.yml` (the block, commented, is in
 `examples/community/community.yml`):
 
@@ -58,6 +59,7 @@ features:
   certified: false
   vacation: false
   practice: false
+  approval: false
 ```
 
 A feature that is off goes quiet everywhere: it is not in the merchant's panel, in the public pages, in the maps, in
@@ -73,6 +75,7 @@ on): `manage.py check` warns (`shops.W003`), and `manage.py preflight` lists the
 | `certified` | The "Certified shop" badge and its sentence on the shop page, the list and the map; the `certified` field of `/shops.json` (absent, not `false`); the private part of the pages for the owners of certified shops (`::: private` blocks, [Public and private parts of a page](private-pages.md)); the certificate's milestone in the merchant's path; the "Certified" column, filter and the revoke and allow actions in `/admin/`; the certificate lines of the diagnosis | The icons of how recently the Lightning address answered (they are not the badge), and the certificates already given or revoked: `check_lightning` keeps working them out, in silence, so they are all there when it is turned on |
 | `vacation` | The "Closing for a while?" and "Welcome back" cards in the panel; the four addresses `/shops/break/…` (404); "Closed for holidays · back on…" on the shop page, the list and the map card; `break` in `/shops.json` (absent) and the `break` tag of the Nostr event; the welcome back message of `check_lightning`; the "closed for a while" count and the "closed for over three months" line of the dashboard; the closure lines of the diagnosis. The icons and the path stop forgiving the days a shop was closed | The closures written, and the Closures table in `/admin/`, so that the association can shorten or remove one. One that has a day to open again and is running keeps the dashboard and the guardian quiet until that day, and at most 92 days from its first (a shop away on holiday raises no false alarm, a fault never stays quiet for months); if the Lightning address is broken meanwhile, the dashboard has one line to know (`closed_lightning`) and the association is told the day the closure ends, without the welcome back to the merchant. One with no day ("until I say so") counts for nothing at once, because nobody could end it. A shop that sells while closed has its alarms as always. The register is never touched. `manage.py preflight` counts the closures running |
 | `practice` | The "Practise without money" buttons and links (panel, the owner's and the staff's register, the first day); `/shops/practice/…` and `/shops/register/p/…/practice/` (404); the practice lines of the diagnosis | The practice register writes nothing: there is nothing to keep |
+| `approval` | The wait for an approval: a shop its owner writes on the site goes on the map, the lists and the home's counts at once, and the moderators are not told of it | The shops already waiting keep waiting, on `/admin/today/`, until someone approves them. The approval action and the "awaiting approval" filter stay in `/admin/` |
 
 ## Experimental features
 

@@ -17,8 +17,9 @@ def applies(shop):
 def steps(shop):
     """The steps with their state, in order; `why` tells apart the texts of the same state."""
     found = [{"key": "sale", "state": DONE if shop.first_sale else TODO}]
-    if shop.suspended or not shop.listed:
-        found.append({"key": "map", "state": OFF, "why": "suspended" if shop.suspended else "unlisted"})
+    if shop.suspended or shop.awaiting_approval or not shop.listed:
+        why = "suspended" if shop.suspended else "approval" if shop.awaiting_approval else "unlisted"
+        found.append({"key": "map", "state": OFF, "why": why})
     elif shop.latitude is None or shop.longitude is None:
         found.append({"key": "map", "state": TODO})
     else:

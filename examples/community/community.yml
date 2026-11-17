@@ -82,6 +82,7 @@ footer_menu:
 #                           # `break` in /shops.json and Nostr, the welcome back. A closure running with a day to open again still
 #                           # keeps the alarms quiet until that day (at most 92 days), and /admin/ keeps the Closures table
 #   practice: false         # the practice register: the buttons, the links and the two addresses
+#   approval: false         # new shops go on the map at once, without waiting for someone to approve them
 # Experimental features (docs/features/README.md, "Experimental features"): all off unless you write `true`. They work and are
 # tested, but had less review and less real use, and may change or go: not what a community starts with. Off, one is as quiet
 # as a feature turned off, and nothing is deleted. The names are these two; `manage.py check` warns about anything else.

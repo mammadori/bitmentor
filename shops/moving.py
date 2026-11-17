@@ -122,7 +122,8 @@ def shop_entry(shop):
     entry = {"id": str(shop.pk), **{name: getattr(shop, name) for name in TEXT}, "latitude": shop.latitude,
              "longitude": shop.longitude, "discount": shop.discount, "listed": shop.listed,
              # For a shop with a register the flag follows its Lightning address, which does not move
-             "lightning": shop.lightning and not register, "suspended": shop.suspended,
+             "lightning": shop.lightning and not register, "suspended": shop.suspended or shop.awaiting_approval,
+             # A shop still waiting for the approval here arrives suspended there: the other site's staff decides
              "register": register, **{name: getattr(shop, name) for name in SHOWN},
              "closed_on": shop.closed_on.isoformat() if shop.closed_on else None, "owner": owner_entry(shop.owner)}
     return entry

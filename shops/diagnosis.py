@@ -169,6 +169,10 @@ def check_shop(run):
         run.add("shop_suspended", WARNING,
                 _("The association has taken your shop off the map and the lists for now. The register still works."),
                 "suspended=True")
+    if shop.awaiting_approval:
+        run.add("shop_awaiting_approval", WARNING,
+                _("The community looks at every new shop before it goes on the map: yours is waiting. The register "
+                  "already works."), "awaiting_approval=True")
     if shop.closed_on:
         run.add("shop_historic", WARNING,
                 _("Your shop is marked as historic ({note}): it stays on the map but does not count among the places "
@@ -178,11 +182,13 @@ def check_shop(run):
         run.add("shop_unlisted", WARNING,
                 _("Your shop is not shown on the map or in the lists, as you chose. The register works the same."),
                 "listed=False")
-    elif not shop.suspended and (shop.latitude is None or shop.longitude is None):
+    elif shop.suspended or shop.awaiting_approval:
+        pass
+    elif (shop.latitude is None or shop.longitude is None):
         run.add("shop_no_position", WARNING,
                 _("Your shop has no position, so it is not on the map. Add it in your shop page."),
                 "latitude or longitude empty")
-    elif not shop.suspended and not shop.closed_on and not directory.waits_for_wallet(shop):
+    elif not shop.closed_on and not directory.waits_for_wallet(shop):
         run.add("shop_visible", OK, _("Your shop is on the map."), f"id={shop.id}")
 
 

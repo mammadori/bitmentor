@@ -50,7 +50,7 @@ def payable(shop):
     """How the shop takes bitcoin (views.till_methods) if a customer can pay there now, else None. The same
     shops as the "How to pay here" box of the shop page: not a suspended one, not a historic one, not one that waits for
     its owner's wallet."""
-    if shop.suspended or shop.closed_on or waits_for_wallet(shop):
+    if shop.suspended or shop.awaiting_approval or shop.closed_on or waits_for_wallet(shop):
         return None
     return views.till_methods(shop)
 

@@ -19,6 +19,7 @@
   {% endif %}  <p><span class="dashboard-label">{% translate "Now:" %}</span> {{ item.do }}</p>
   {% if item.say %}<p><span class="dashboard-label">{% translate "To the merchant:" %}</span> <q>{{ item.say }}</q></p>{% endif %}
   {% if item.command %}<p class="dashboard-command"><code>{{ item.command }}</code></p>{% endif %}
+  {% if item.code == "approve" and can_approve %}<form method="post" action="{% url 'admin_approve_shop' item.shop.id %}" id="approve-{{ item.shop.id }}">{% csrf_token %}<button type="submit" class="button">{% translate "Approve: on the map and the lists" %}</button></form>{% endif %}
   {% if item.links %}<p class="dashboard-links">{% for link in item.links %}{% if not link.perm or link.perm in perms %}<a href="{{ link.url }}">{{ link.text }}</a>{% if not forloop.last %} · {% endif %}{% endif %}{% endfor %}</p>{% endif %}
 </li>
 {% endfor %}</ol>

@@ -215,6 +215,10 @@ class Shop(models.Model):
     telegram_chat = models.CharField(_("Telegram chat for notifications"), max_length=40, blank=True, validators=[
         RegexValidator(r"^(-?[0-9]+|@[A-Za-z0-9_]{5,})$", _("A chat number or a @name."))])
     suspended = models.BooleanField(default=False, help_text="Hides from maps and lists, leaves the register alone")
+    # A shop written on the site by its owner waits for someone of the community to look at it (shops/approval.py): off
+    # the maps, the lists and the counts like a suspended one, with the register working. Imported shops never wait
+    awaiting_approval = models.BooleanField(_("awaiting approval"), default=False, db_default=False, help_text=_(
+        "A new shop written by its owner: off maps and lists until someone approves it. The register works."))
     # Decided by the association, not by the owner: no form on the site shows it
     closed_on = models.DateField(null=True, blank=True, help_text=(
         "History: stays on the map with a different marker, does not count among the places to pay. "

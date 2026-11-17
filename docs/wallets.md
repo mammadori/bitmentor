@@ -22,20 +22,48 @@ address that fails one, saying which. CORS and the phone switched off show only 
 
 ## What we suggest
 
-- **A self-custodial wallet on Spark.** The merchant keeps the keys (the recovery words). It receives with the phone
-  switched off, with no channels and no liquidity to manage. Blink in its non-custodial mode was tested on mainnet on
-  11 November 2026: the register saw the payment `settled` through `verify` with the wallet's phone switched off. Other
-  Spark wallets with a Lightning address, such as Glow (breez.tips) and Cake Wallet, are worth trying the same way. On
-  12 November 2026 an address of each of the three (`blink.sv`, `breez.tips`, `cake.cash`) passed the site's check and
-  answered the browser: `verify` is there, on the address's own domain, with CORS open. That is the check, not a
-  payment with the phone off: only Blink had that.
+### A self-custodial wallet on Spark
+
+[Spark](https://www.spark.money/) is a layer on top of Bitcoin that a wallet can use to receive Lightning payments
+without a Lightning node on the phone. For a shop this is the easy choice:
+
+- **The merchant keeps the keys**, as recovery words or a passkey: nobody else can move the money, neither the
+  community nor the wallet's maker.
+- **It receives with the phone switched off**, or with the app closed: the register is often on another phone.
+- **No channels and no liquidity to manage**: the merchant installs the app, copies the Lightning address, and is done.
+
+The first community in production (since 17 November 2026) suggests two of them to its shops:
+
+- **Glow, by Breez** (addresses on `breez.cash`; older ones on `breez.tips` still work). On 12 November 2026 an
+  address passed the site's check and answered the browser: `verify` is there, on the address's own domain, with CORS
+  open.
+- **Blink, in its non-custodial mode** (addresses on `blink.sv`). Tested on mainnet on 11 November 2026 with the
+  wallet's phone switched off: the register saw the payment `settled` through `verify`. It is the only one tried so far
+  with the phone off.
+
+Cake Wallet (`cake.cash`) passed the same check on 12 November 2026, but was not tried with the phone off. The project
+has no affiliation with any wallet maker: these are the wallets tried so far, not an endorsement.
+
+### Setting it up with the merchant
+
+What the first shops taught, worth telling every merchant:
+
+- **Install from the wallet's official link**, not by searching the store: other apps have similar names (there is a
+  «Glow» for another blockchain). The wallet guide in the shop's panel says so.
+- **Write the recovery words on paper.** Some wallets, Glow among them, create a passkey at the first start and show no
+  words: the words are in the settings (in Glow: Settings → Backup → Recovery Phrase). Write them anyway: a passkey
+  can be lost with the phone's account, or not move between Android and iPhone.
+- **Choose the address's name before pasting it.** In some wallets the first name is random and can be changed;
+  after a change the old address stops receiving, and the site keeps the one that was pasted.
+- **On an iPhone, open the register in Safari** and add it to the home screen from there: a link opened from a mail
+  app stays in that app's browser.
+
+### Other choices
+
 - **The merchant's own Lightning node**, for those who run one: its Lightning address works in the same way, if it
   offers LUD-21.
 - **On-chain** only for special cases, and only where the community turned it on: it is an experimental feature, off
   by default, set up by the owner on the register's phone. See [On-chain](features/onchain.md).
-
-A custodial wallet works too, if it meets the requirements above. Then the money is held by the provider: say so to
-the merchant.
 
 ## How to try a wallet
 

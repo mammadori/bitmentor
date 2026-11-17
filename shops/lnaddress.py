@@ -306,7 +306,7 @@ def known_domains():
     from .models import Shop
 
     shops = (Shop.objects.exclude(lightning_address="").exclude(owner=None)
-             .filter(suspended=False, closed_on=None))
+             .filter(suspended=False, awaiting_approval=False, closed_on=None))
     owners = {}
     for address, owner in shops.values_list("lightning_address", "owner")[:5000]:
         owners.setdefault(address.rpartition("@")[2], set()).add(owner)

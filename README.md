@@ -8,7 +8,8 @@ and the server runs no Bitcoin node and no payment server: the register in the b
 address for each invoice (LUD-16, LNURL-pay) and checks the payment with its LUD-21 `verify`.
 
 The merchant picks the wallet. For a corner shop the easy one is self-custodial on [Spark](https://www.spark.money/):
-it receives with the phone switched off, with no channels and no liquidity to manage. A merchant who runs a Lightning
+the merchant keeps the keys, and the wallet receives with the phone switched off, with no channels and no liquidity to
+manage. It is what the first community in production suggests to its shops. A merchant who runs a Lightning
 node of their own uses its address in the same way. See [Choosing wallets for your community](docs/wallets.md).
 On-chain payments at the register are an experimental feature for special cases, off unless the community turns it
 on: see [On-chain at the register](docs/features/onchain.md).
@@ -38,16 +39,17 @@ This section is the only place where the software names a community: the name ch
 
 ## Status
 
-bitmentor is young, and this is its first public version.
+bitmentor is young.
 
-- **Not in production yet.** So far it has run on test sites only. The register was tried on mainnet with real
-  payments and one wallet ([Choosing wallets](docs/wallets.md)): no community runs its shops on it yet.
+- **In production since 17 November 2026.** The community in [Origin](#origin) runs its public site and its shops'
+  registers on it, from version 0.1.1, with real payments on mainnet. Before that it ran on test sites, and the
+  register was tried on mainnet with real payments ([Choosing wallets](docs/wallets.md)).
 - **No independent security review.** The register's cryptography in the browser is written for this project and
   checked against the public test vectors, not audited: see [Limitations](docs/limitations.md).
 - **It may change without a way to upgrade.** Until a first stable version the names in `community.yml` and the
   database can change from one version to the next, with no migration.
-- **Versions** are named by their day, `vYYYY.MM.DD` (`-N` for another one on the same day): the list is the tags of
-  the repository.
+- **Versions** are numbered `0.MINOR.PATCH`, and each is a tag and a release of the repository: the
+  [releases](https://github.com/mammadori/bitmentor/releases) say what changed.
 
 Found a security problem? Tell us privately: [SECURITY.md](SECURITY.md).
 

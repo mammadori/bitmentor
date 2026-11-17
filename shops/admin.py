@@ -2,15 +2,17 @@ import csv
 
 from django.contrib import admin, messages
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from django.utils.formats import date_format
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
+from django.views.decorators.http import require_POST
 
 from config import features
 from config.admin_secrets import HidesSecrets
 
-from . import certified, details, guard, osm
+from . import approval, certified, details, guard, osm
 from .forms import ShopAdminForm
 from .guard import CHANNELS, RECENT, VIA, words
 from .lightning_watch import BROKEN
@@ -105,9 +107,9 @@ class ClosureInline(admin.TabularInline):
 class ShopAdmin(HidesSecrets, admin.ModelAdmin):
     form = ShopAdminForm
     list_display = ("name", "city", "lightning_column", "certified_column", "osm_proposal_column", "discount", "listed", "suspended",
-                    "closed_on", "owner")
+                    "awaiting_approval", "closed_on", "owner")
     list_editable = ("suspended", "closed_on")
-    list_filter = (LightningFilter, CertifiedFilter, OsmFilter, VatFilter, "suspended", "closed_on", "listed", "lightning",
+    list_filter = (LightningFilter, CertifiedFilter, OsmFilter, VatFilter, "awaiting_approval", "suspended", "closed_on", "listed", "lightning",
                    "awaiting_wallet")
     search_fields = ("name", "city", "legal_name", "vat_number")
     # Where the money goes is the owner's to change, from the panel. What the guardian found is written only by its probes
@@ -116,7 +118,7 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
                        "lightning_checked", "lightning_worked", "certified_month", "certified_revoked", "private_approved",
                        "private_approved_by", "moved_in",
                        "moved_register", "awaiting_wallet", "osm_seen", "osm_page", "osm_proposal", "osm_offered", "osm_history")
-    actions = ("approve_private_part", "revoke_private_part", "revoke_certificate", "allow_certificate", "show_contacts", "hide_contacts", "confirm_osm_link",
+    actions = ("approve_shops", "approve_private_part", "revoke_private_part", "revoke_certificate", "allow_certificate", "show_contacts", "hide_contacts", "confirm_osm_link",
                "reject_osm_link", "accept_osm_contacts", "decline_osm_contacts")
     inlines = (ClosureInline,)
     # What the community's `features` block (config/features.py) takes away from the administration. The data stays in
@@ -276,6 +278,11 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
     def hide_contacts(self, request, queryset):
         count = queryset.filter(owner__isnull=True).update(show_phone=False, show_email=False)
         self.message_user(request, _("%(count)d shops now hide their phone and email.") % {"count": count})
+
+    @admin.action(description=_("Approve the new shops: on the map and the lists"), permissions=["change"])
+    def approve_shops(self, request, queryset):
+        count = approval.approve(queryset, request.user)
+        self.message_user(request, _("Approved: %(count)d shops.") % {"count": count})
 
     def log_each(self, request, shops, message):
         """The association's actions on the certificate and the private part go in the admin's history of each shop."""
@@ -601,9 +608,25 @@ def dashboard_view(request):
 
     if not request.user.has_perm("shops.view_shop"):
         raise PermissionDenied
-    context = {**admin.site.each_context(request), "title": _("To do today"), **summary()}
+    context = {**admin.site.each_context(request), "title": _("To do today"), **summary(),
+               "can_approve": request.user.has_perm("shops.change_shop")}
     # What whoever runs the site changed in the accounts of shop owners lately (shops/guard.py): a line, with its register
     if request.user.has_perm("shops.view_accountchange"):
         context["account_changes"] = (AccountChange.objects.filter(created__gte=timezone.now() - RECENT)
                                        .exclude(via=AccountChange.Via.OWNER).count())
     return TemplateResponse(request, "admin/shops/dashboard.html", context)
+
+
+@require_POST
+def approve_view(request, shop):
+    """The one-click approval of a new shop on /admin/today/: staff with the permission to change shops."""
+    from django.core.exceptions import PermissionDenied
+
+    if not request.user.has_perm("shops.change_shop"):
+        raise PermissionDenied
+    shop = get_object_or_404(Shop, pk=shop)
+    if approval.approve(Shop.objects.filter(pk=shop.pk), request.user):
+        messages.success(request, _("%(name)s is approved: it is on the map and the lists.") % {"name": shop.name})
+    else:
+        messages.info(request, _("%(name)s was already approved.") % {"name": shop.name})
+    return redirect("admin_dashboard")

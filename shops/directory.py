@@ -1,4 +1,5 @@
-"""Public list of the shops: a suspended shop, or one without consent, never appears.
+"""Public list of the shops: a suspended shop, one awaiting approval (shops/approval.py), or one without consent, never
+appears.
 
 A historic shop (with `closed_on`) stays on the map as a place of history, but is not a place to pay:
 it does not enter the counts, the discounts or the shop window.
@@ -32,7 +33,7 @@ def waits_for_wallet(shop):
 
 def public_shops():
     """A shop waiting for its owner's wallet (WAITING_FOR_WALLET) is not a place of the map yet."""
-    return (Shop.objects.filter(suspended=False, listed=True).exclude(latitude=None).exclude(longitude=None)
+    return (Shop.objects.filter(suspended=False, awaiting_approval=False, listed=True).exclude(latitude=None).exclude(longitude=None)
             .exclude(WAITING_FOR_WALLET))
 
 
