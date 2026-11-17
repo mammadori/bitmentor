@@ -15,6 +15,9 @@ if not SECRET_KEY:
 if not (COMMUNITY_DIR / "community.yml").is_file():
     raise ImproperlyConfigured(f"COMMUNITY_DIR {COMMUNITY_DIR} has no community.yml: copy examples/community and point "
                                "COMMUNITY_DIR at the copy")
+# The community's own Python modules, such as a mail backend, are importable from its python/ folder
+if (COMMUNITY_DIR / "python").is_dir():
+    sys.path.append(str(COMMUNITY_DIR / "python"))
 DEBUG = os.environ.get("DEBUG") == "1"
 NETWORK = os.environ.get("NETWORK", "signet")
 if NETWORK not in ("signet", "mainnet"):
@@ -210,8 +213,14 @@ EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = True
 EMAIL_TIMEOUT = 10
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@localhost")
+# The sender of the emails to a shop's owner, where a reply makes sense; empty = DEFAULT_FROM_EMAIL
+MERCHANT_FROM_EMAIL = os.environ.get("MERCHANT_FROM_EMAIL", "")
+# The envelope sender (Return-Path), when the mail server accepts only its own account there; empty = the From address
+EMAIL_ENVELOPE_FROM = os.environ.get("EMAIL_ENVELOPE_FROM", "")
 # On the console the login link would end up in the logs: on mainnet, with no mail server, sending fails and says so.
 # On a test network the console is how a test site works without a mail server (docs/configuration.md#the-network)
-EMAIL_REAL_BACKEND = f"django.core.mail.backends.{'smtp' if EMAIL_HOST or NETWORK == 'mainnet' else 'console'}.EmailBackend"
+# A community can send with a backend of its own (docs/configuration.md#a-mail-backend-of-the-community)
+EMAIL_REAL_BACKEND = os.environ.get("EMAIL_REAL_BACKEND") or (
+    f"django.core.mail.backends.{'smtp' if EMAIL_HOST or NETWORK == 'mainnet' else 'console'}.EmailBackend")
 # Every email goes through the one that counts them and keeps the provider's monthly quota (config/mailbudget.py)
 EMAIL_BACKEND = "config.mailbudget.CountingBackend"

@@ -78,7 +78,7 @@ def deliver_to_moderators(subject, text):
     address = community().get("email")
     if isinstance(address, str) and "@" in address:
         try:
-            send_mail(subject, text, None, [address.strip()])
+            send_mail(subject, text, None, [address.strip()], kind="staff")
             return "the community's email", problems
         except (OSError, SMTPException, ValueError) as error:
             problems.append(f"the community's email failed ({type(error).__name__})")

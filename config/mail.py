@@ -4,6 +4,7 @@ A line that is only an address becomes a button. Nothing else in the HTML: no im
 no styles from outside; the text is escaped, so nothing a merchant wrote can become markup."""
 import re
 
+from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, get_connection
 from django.utils.html import escape
 
@@ -50,9 +51,23 @@ def html(text):
             '<body style="font-family:sans-serif;line-height:1.5">\n' + "\n".join(paragraphs) + "\n</body></html>")
 
 
-def send_mail(subject, message, from_email, recipient_list, fail_silently=False, connection=None):
-    """django.core.mail.send_mail with the same arguments and answer (1 if sent), plus the HTML copy."""
+def merchant_sender():
+    """The sender of the emails to a shop's owner (a reply reaches someone), or None for DEFAULT_FROM_EMAIL."""
+    return settings.MERCHANT_FROM_EMAIL or None
+
+
+# What an email is, for a community's mail backend that sends each kind its own way (message.kind)
+KINDS = ("link", "staff", "merchant")
+
+
+def send_mail(subject, message, from_email, recipient_list, fail_silently=False, connection=None, kind=""):
+    """django.core.mail.send_mail with the same arguments and answer (1 if sent), plus the HTML copy and its kind."""
     connection = connection or get_connection(fail_silently=fail_silently)
-    mail = EmailMultiAlternatives(subject, message, from_email, recipient_list, connection=connection)
+    shown = from_email or settings.DEFAULT_FROM_EMAIL
+    # The envelope (Return-Path) can be another address than the one shown in From, see EMAIL_ENVELOPE_FROM
+    envelope = settings.EMAIL_ENVELOPE_FROM or shown
+    mail = EmailMultiAlternatives(subject, message, envelope, recipient_list, connection=connection,
+                                  headers={"From": shown} if envelope != shown else None)
     mail.attach_alternative(html(message), "text/html")
+    mail.kind = kind
     return mail.send()

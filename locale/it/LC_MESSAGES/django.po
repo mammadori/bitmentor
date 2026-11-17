@@ -4588,9 +4588,6 @@ msgstr "La chiave on-chain su questo telefono non è più valida: controllala ne
 msgid "The on-chain key of this register's pairing does not give addresses any more: ask the owner for a new pairing code, and take this sale with Lightning."
 msgstr "La chiave on-chain dell'abbinamento di questa cassa non dà più indirizzi: chiedi al titolare un nuovo codice di abbinamento, e incassa questa vendita con Lightning."
 
-msgid "The explorer does not answer, and this phone has no count of its own of the on-chain addresses (a history brought back from a copy): the register gives an address only when the explorer says it is unused. Take this sale with Lightning, or try again in a moment."
-msgstr "L'esploratore di blocchi non risponde, e questo telefono non ha ancora un conteggio suo degli indirizzi on-chain (una cronologia riportata da una copia): la cassa dà un indirizzo solo quando l'esploratore dice che non è usato. Incassa questa vendita con Lightning, o riprova tra un momento."
-
 msgid "The register asked the explorer about many addresses of this chain and did not find one that is surely unused: the history on this phone may miss many sales. Take this sale with Lightning, or try again later."
 msgstr "La cassa ha chiesto all'esploratore di blocchi di molti indirizzi di questa catena e non ne ha trovato uno sicuramente non usato: alla cronologia su questo telefono possono mancare molte vendite. Incassa questa vendita con Lightning, o riprova più tardi."
 
@@ -5334,9 +5331,6 @@ msgstr "Affidabilità: bassa"
 msgid "the explorer does not say the fee level"
 msgstr "l'explorer non dice il livello delle commissioni"
 
-msgid "The explorer does not answer: the register gives an address of your wallet only after the explorer says it is unused. Take this sale with Lightning, or try again in a moment."
-msgstr "L'explorer non risponde: la cassa dà un indirizzo del tuo wallet solo dopo che l'explorer dice che non è usato. Prendi questa vendita con Lightning, o riprova tra un momento."
-
 msgid "Change the Lightning address"
 msgstr "Cambia l'indirizzo Lightning"
 
@@ -6062,3 +6056,9 @@ msgstr "approvato da"
 
 msgid "Empty: the shop waits for an approval, off maps and lists. The register works all the same."
 msgstr "Vuoto: il negozio aspetta l'approvazione, fuori da mappe ed elenchi. La cassa funziona lo stesso."
+
+msgid "The block explorer does not answer. Try again in a minute; meanwhile you can take this sale with Lightning."
+msgstr "L'esploratore di blocchi non risponde. Riprova tra un minuto; intanto puoi incassare con Lightning."
+
+msgid "The register reaches neither the site nor the explorer: check the phone's network, then try again."
+msgstr "La cassa non raggiunge né il sito né l'esploratore: controlla la rete del telefono, poi riprova."

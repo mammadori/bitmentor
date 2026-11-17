@@ -955,7 +955,7 @@ def send_link(subject, intro, link, email):
     name = community()["name"]
     body = "\n\n".join([intro, link, _("If you did not ask for it, ignore this email.")])
     try:
-        return bool(send_mail(f"{name}: {subject}", body, None, [email]))
+        return bool(send_mail(f"{name}: {subject}", body, None, [email], kind="link"))
     except (OSError, SMTPException):
         return False
 

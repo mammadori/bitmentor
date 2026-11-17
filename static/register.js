@@ -83,6 +83,9 @@
   const rateKey = () => `register-rate:${data.currency}`;
   const MIN_MSAT = 1000;
   const ASK_WAIT = 5000;
+  // When no explorer answered, all of them are asked again, twice, after these pauses: a phone just woken, or a network
+  // that drops the first request (Safari on an iPhone), usually answers the second time
+  const ASK_AGAIN_AFTER = [1500, 3000];
   const CHECK_EVERY = 3000;
   // A good rate less than a minute old is used for the next sale, without asking again
   const FRESH = 60000;
@@ -680,6 +683,17 @@
   // still syncing, or without its backend, answers so): the next one is asked too, and the empty list stands only when
   // none of them answers
   async function chainTxs(address) {
+    for (const pause of ASK_AGAIN_AFTER) {
+      try {
+        return await chainTxsOnce(address);
+      } catch {
+        await new Promise((done) => setTimeout(done, pause));
+      }
+    }
+    return chainTxsOnce(address);
+  }
+
+  async function chainTxsOnce(address) {
     let last = new Error("no explorer");
     let ownFailed = false;
     let ownEmpty = null;
@@ -948,7 +962,8 @@
         headers: { "Content-Type": "application/json", ...(claim.csrf ? { "X-CSRFToken": claim.csrf } : {}) },
         body: JSON.stringify(body) });
     } catch {
-      throw fail(words.chain_claim_down);
+      // Not even the site answers: the phone's network, and Lightning would not work either
+      throw fail(words.chain_offline);
     }
     if (response.status === 412) throw fail(words.chain_not_opened);
     if (response.status === 403) throw fail(staff ? words.chain_claim_down : words.chain_sign_in);

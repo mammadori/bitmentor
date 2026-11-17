@@ -174,7 +174,7 @@ class Command(BaseCommand):
         address = community().get("email")
         if isinstance(address, str) and "@" in address:
             try:
-                send_mail(subject, text, None, [address.strip()])
+                send_mail(subject, text, None, [address.strip()], kind="staff")
                 if problems:
                     self.stderr.write(f"{problems[0]}: sent by email instead.")
                 return "the community's email"

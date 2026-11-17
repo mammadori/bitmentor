@@ -15,7 +15,7 @@ from time import monotonic
 from urllib.parse import urlsplit
 
 from django.conf import settings
-from config.mail import send_mail
+from config.mail import merchant_sender, send_mail
 from django.db import transaction
 from django.db.models import F, Q
 from django.urls import reverse
@@ -338,7 +338,7 @@ def tell_owner(shop, change):
     with override(settings.LANGUAGE_CODE):
         subject, body = email_text(shop, change)
     try:
-        send_mail(subject, body, None, [email])
+        send_mail(subject, body, merchant_sender(), [email], kind="merchant")
     except (OSError, SMTPException, ValueError):
         logger.error("Lightning address email not delivered for shop %s", shop.pk)
         return False

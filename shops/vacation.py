@@ -476,9 +476,9 @@ def welcome_back(now=None):
         email = lightning_watch.owner_email(shop)
         if email:
             try:
-                from config.mail import send_mail
+                from config.mail import merchant_sender, send_mail
 
-                send_mail(subject, body, None, [email])
+                send_mail(subject, body, merchant_sender(), [email], kind="merchant")
             except (OSError, SMTPException, ValueError):
                 logger.error("Welcome back email not delivered for shop %s", shop.pk)
         if shop.telegram_chat:

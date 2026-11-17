@@ -42,7 +42,7 @@ from smtplib import SMTPException
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
-from config.mail import send_mail
+from config.mail import merchant_sender, send_mail
 from django.db import transaction
 from django.db.models.signals import m2m_changed, post_save, pre_delete, pre_save
 from django.dispatch import receiver
@@ -220,7 +220,7 @@ class Delivery:
         if not self.may_try():
             return False
         try:
-            send_mail(subject, body, None, [address])
+            send_mail(subject, body, merchant_sender(), [address], kind="merchant")
         except (OSError, SMTPException):
             return False
         return True

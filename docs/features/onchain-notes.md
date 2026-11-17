@@ -223,13 +223,15 @@ The history, the day closing and the CSV count on-chain sales on their own line,
 
 ## Where the register sees a payment
 
-The register asks a public explorer for the transactions of the sale's address: mempool.space's API by default, or an
-instance of the same API that the community runs. In `community.yml`:
+The register asks a public explorer for the transactions of the sale's address: by default mainnet asks mempool.space's
+API and, when it does not answer, Blockstream's Esplora (blockstream.info). The register asks the explorers in order, the
+next one on an error or a timeout; when none answers it waits a moment and asks them all again, twice, before it says so. A community can list
+its own, for example an instance of the same API that it runs. In `community.yml`:
 
 ```yaml
 register:
   explorers:
-    mainnet: [https://mempool.space/api]
+    mainnet: [https://mempool.space/api, https://blockstream.info/api]
     signet: [https://mempool.space/signet/api]
 ```
 

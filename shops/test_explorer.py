@@ -42,7 +42,7 @@ class Explorers(SimpleTestCase):
             self.assertEqual(explorers(), ["https://ours.example.org/api"])
             self.assertEqual(len(explorer_problems()), 1)
         with with_register(explorers=["nonsense"]), override_settings(NETWORK="mainnet"):
-            self.assertEqual(explorers(), ["https://mempool.space/api"])
+            self.assertEqual(explorers(), ["https://mempool.space/api", "https://blockstream.info/api"])
         with with_register(explorers={"signet": ["https://ours.example.org/api", 7]}):
             self.assertEqual(explorer_problems(), ["register.explorers: 7 is not an https address of an explorer's API "
                                                    "(https://host/path): it is not used"])

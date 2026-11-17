@@ -9,6 +9,14 @@ from django.test.runner import DiscoverRunner, ParallelTestSuite, RemoteTestResu
 from django.utils import translation
 
 
+# Python 3.14 starts the workers with forkserver on Linux, and Django clones a SQLite test database only for fork: the
+# tests keep fork, as up to 3.13. Here, when the runner is imported, and not in its __init__: `manage.py test --parallel`
+# with no number reads the start method while it parses its arguments, before the runner exists, and with forkserver it
+# chose one process, so the whole suite ran in series (internal/ci-checks.sh: 389 s instead of 105 s)
+if multiprocessing.get_start_method(allow_none=True) is None:
+    multiprocessing.set_start_method("fork")
+
+
 class CleanTextResult(unittest.TextTestResult):
     def stopTest(self, test):
         translation.deactivate()
@@ -32,13 +40,6 @@ class CleanParallelSuite(ParallelTestSuite):
 
 class Runner(DiscoverRunner):
     parallel_test_suite = CleanParallelSuite
-
-    def __init__(self, *args, **kwargs):
-        # Python 3.14 starts the workers with forkserver on Linux, and Django clones a SQLite test database only for
-        # fork: --parallel keeps fork, as up to 3.13
-        if multiprocessing.get_start_method(allow_none=True) is None:
-            multiprocessing.set_start_method("fork")
-        super().__init__(*args, **kwargs)
 
     def setup_test_environment(self, **kwargs):
         # The test client comes from 127.0.0.1, the default of DEV_ALLOWED_IPS in docker-compose.yml: the tests start

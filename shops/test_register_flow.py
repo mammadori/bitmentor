@@ -131,6 +131,7 @@ globalThis.fetch = async (url, options = {}) => {
   if (given.data.chain_claim && url === given.data.chain_claim.url) {
     const body = JSON.parse(options.body);
     claims.push(body);
+    if (given.data.claimDown === "network") throw new TypeError("network");
     if (given.data.claimDown) return { ok: false, status: given.data.claimDown, json: async () => ({}) };
     if (body.back !== undefined) {
       if (shopCount === body.back + 1) shopCount = body.back;
@@ -152,6 +153,10 @@ globalThis.fetch = async (url, options = {}) => {
   else if (url.includes("/address/")) {
     // An explorer that does not answer at all
     if (given.data.explorerDown) return { ok: false, status: 503, text: async () => "" };
+    // An explorer that drops the first questions (given.data.explorerFlaky: how many), as a phone just woken
+    if (asked.filter((item) => item.includes("/address/")).length <= (given.data.explorerFlaky || 0)) {
+      return { ok: false, status: 503, text: async () => "" };
+    }
     // The shop's own explorer that does not answer (given.data.ownDown): a network error, or an answer that is not OK
     if (given.data.ownDown && given.data.own_explorer && url.startsWith(given.data.own_explorer)) {
       if (given.data.ownDown === "network") throw new TypeError("network");
@@ -818,7 +823,7 @@ class ChainStartFlow(RegisterRun):
         for down in ({"atStart": busy}, {"explorerDown": True}):
             out = self.run_register(dataset, {**self.chain_settings(), "register-chain-next:shop-1": json.dumps(started)},
                                     **down)
-            self.assertIn("The explorer does not answer", out["chainError"], down)
+            self.assertIn("The block explorer does not answer", out["chainError"], down)
             self.assertEqual(out["ledger"], [], down)
             self.assertEqual(json.loads(out["next"]), started, down)
         out = self.run_register(dataset, {**self.chain_settings(), "register-chain-next:shop-1": json.dumps(started)},
@@ -829,7 +834,7 @@ class ChainStartFlow(RegisterRun):
         # explorer's answer (a payment of someone else to it may sit in the mempool)
         later = self.run_register(dataset, {**self.chain_settings(), "register-chain-next:shop-1": out["next"]},
                                   explorerDown=True)
-        self.assertIn("only after the explorer says it is unused", later["chainError"])
+        self.assertIn("Try again in a minute; meanwhile", later["chainError"])
         self.assertEqual(json.loads(later["next"])["next"], 121)
 
     def test_an_own_sale_forged_far_on_does_not_lift_the_bound(self):
@@ -862,7 +867,7 @@ class ChainStartFlow(RegisterRun):
         busy = {**self.used_range(6), self.derived(BIP84_ACCOUNT, [0, 9]): {"error": "busy"}}
         out = self.run_register(dataset, {**self.chain_settings(), key: json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 5})},
                                 atStart=busy, chainMeanwhile={"at": 1, "key": key, "value": json.dumps(other)})
-        self.assertIn("The explorer does not answer", out["chainError"])
+        self.assertIn("The block explorer does not answer", out["chainError"])
         self.assertTrue(json.loads(out["next"])["first"])
         started = {"of": f"{BIP84_ACCOUNT}/0", "next": 5, "start": 5, "first": True}
         out = self.run_register(dataset, {**self.chain_settings(), key: json.dumps(started)}, atStart=self.used_range(5),
@@ -870,7 +875,7 @@ class ChainStartFlow(RegisterRun):
         self.assertEqual(out["sale"]["index"], 5)
         self.assertTrue(json.loads(out["next"])["first"])
         later = self.run_register(dataset, {**self.chain_settings(), key: out["next"]}, explorerDown=True)
-        self.assertIn("The explorer does not answer", later["chainError"])
+        self.assertIn("The block explorer does not answer", later["chainError"])
 
     def test_a_starting_number_saved_in_another_tab_is_never_lost_nor_skipped(self):
         """The owner saves a starting number in another tab while a sale runs. A restored chain's check of the addresses
@@ -886,7 +891,7 @@ class ChainStartFlow(RegisterRun):
         busy = {**self.used_range(5), self.derived(BIP84_ACCOUNT, [0, 5]): {"error": "busy"}}
         out = self.run_register(dataset, {**self.chain_settings(), key: json.dumps({"of": account, "next": 5})},
                                 atStart=busy, chainMeanwhile={"at": 1, "key": key, "value": json.dumps(nine)})
-        self.assertIn("The explorer does not answer", out["chainError"])
+        self.assertIn("The block explorer does not answer", out["chainError"])
         self.assertEqual(out["ledger"], [])
         hundred = {"of": account, "next": 100, "start": 100, "first": True}
         out = self.run_register(dataset, {**self.chain_settings(), key: json.dumps({"of": account, "next": 5})},
@@ -945,18 +950,22 @@ class ChainStartFlow(RegisterRun):
         for history in (sales, self.chain_history(range(40), reported="?"), []):
             out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
                 **self.chain_settings(), "register-ledger:shop-1": json.dumps(history)}, explorerDown=True)
-            self.assertIn("gives an address only when the explorer says it is unused", out["chainError"])
+            self.assertIn("Try again in a minute; meanwhile", out["chainError"])
             self.assertEqual(len(out["ledger"]), len(history))
             self.assertTrue(json.loads(out["next"])["unsure"])
             # Still not: the count it took is not a count of its own
             again = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
                 **self.chain_settings(), "register-ledger:shop-1": json.dumps(history),
                 "register-chain-next:shop-1": out["next"]}, explorerDown=True)
-            self.assertIn("gives an address only when", again["chainError"])
+            self.assertIn("Try again in a minute; meanwhile", again["chainError"])
+        # An explorer that drops the first two questions answers the third: the register asks again by itself, twice
+        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
+            **self.chain_settings(), "register-ledger:shop-1": json.dumps([])}, explorerFlaky=2)
+        self.assertFalse(out.get("chainError"))
         counted = {"register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 500})}
         out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
             **self.chain_settings(), "register-ledger:shop-1": json.dumps(sales), **counted}, explorerDown=True)
-        self.assertIn("only after the explorer says it is unused", out["chainError"])
+        self.assertIn("Try again in a minute; meanwhile", out["chainError"])
         self.assertEqual((len(out["ledger"]), json.loads(out["next"])["next"]), (len(sales), 500))
 
 
@@ -1149,6 +1158,10 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
         down = self.run_register(dataset, kept, chain_claim=claim, claimDown=503)
         self.assertIsNone(down.get("sale"))
         self.assertIn("The site does not answer", down["chainError"])
+        # Not reached at all: the phone's network, and no Lightning offered (it would not work either)
+        offline = self.run_register(dataset, kept, chain_claim=claim, claimDown="network")
+        self.assertIn("check the phone's network", offline["chainError"])
+        self.assertNotIn("Lightning", offline["chainError"])
         # A pairing kept on the phone that no longer reads (the community dropped a price source it names) says so
         broken = self.run_register(dataset, kept, sources=["coinbase", "bitstamp"])
         self.assertIn("no longer matches", broken["blocked"])

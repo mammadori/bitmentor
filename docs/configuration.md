@@ -93,6 +93,42 @@ sign-in links included, so a test site works without a mail server. Whoever read
 or a log collector) can then sign in as any shop, for 15 minutes per link. A signet site that real people use needs
 `EMAIL_HOST`. On mainnet, without it, sending fails and the page says so: no link reaches the log.
 
+## A mail backend of the community
+
+The site sends every email with one mail server (`EMAIL_HOST`). A community that wants more, for example one provider
+for the automatic emails and another for those a person may answer, writes a Django mail backend of its own and names
+it in `EMAIL_REAL_BACKEND`. No change to bitmentor is needed, and the next versions keep it working.
+
+- Put the module in the `python/` folder of the community package (`COMMUNITY_DIR/python/`): the site can import it.
+- Each message carries `message.kind`: `link` (sign-in and email confirmation links), `staff` (summaries and alerts to
+  the staff), `merchant` (emails to a shop's owner) or empty. `message.from_email` is the sender chosen for it.
+- The email budget still counts every message, whatever the backend: set `emails_per_month` to the smallest quota.
+
+```python
+# COMMUNITY_DIR/python/community_mail.py, with EMAIL_REAL_BACKEND=community_mail.Backend
+import os
+
+from django.core.mail import get_connection
+from django.core.mail.backends.base import BaseEmailBackend
+
+
+class Backend(BaseEmailBackend):
+    def send_messages(self, messages):
+        sent = 0
+        for message in messages:
+            if getattr(message, "kind", "") == "link":
+                connection = get_connection("django.core.mail.backends.smtp.EmailBackend")
+            else:
+                connection = get_connection("django.core.mail.backends.smtp.EmailBackend",
+                                            host=os.environ["OTHER_EMAIL_HOST"], port=465, use_tls=False,
+                                            use_ssl=True, username=os.environ["OTHER_EMAIL_USER"],
+                                            password=os.environ["OTHER_EMAIL_PASSWORD"])
+            sent += connection.send_messages([message]) or 0
+        return sent
+```
+
+The variables the module reads go in the `.env` and in an `environment:` of your own compose override.
+
 ## The site's name and processes
 
 `SITE_HOST` is the site's name. Absolute links, that is the register and login QR codes, the sign, email
@@ -251,7 +287,10 @@ The `.env` of the stack. Empty or missing means the default.
 | `WEB_CONCURRENCY`, `WEB_THREADS` | 3, 8 | Gunicorn's processes and threads |
 | `LIGHTNING_CHANGE_DAYS` | 7 | Days between two changes of a shop's Lightning address by its owner |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` | empty, `587` | The mail server (STARTTLS on 587) |
-| `DEFAULT_FROM_EMAIL` | `noreply@localhost` | The sender, on the community's domain |
+| `DEFAULT_FROM_EMAIL` | `noreply@localhost` | The sender, on the community's domain: sign-in and confirmation links, summaries and alerts to the staff |
+| `MERCHANT_FROM_EMAIL` | empty (= `DEFAULT_FROM_EMAIL`) | The sender of the emails to a shop's owner, where a reply makes sense: Lightning alerts, a change of where the shop is paid, back from holidays. Same domain, allowed by the same SMTP account |
+| `EMAIL_ENVELOPE_FROM` | empty (= the sender) | The envelope sender (Return-Path), for a mail server that accepts only its own account there while `From` shows another address. Both senders can carry a name: `Name <address>` |
+| `EMAIL_REAL_BACKEND` | empty (SMTP with `EMAIL_HOST`) | A mail backend of the community, as a Python path ([A mail backend of the community](#a-mail-backend-of-the-community)) |
 | `TELEGRAM_BOT_TOKEN` | empty | The bot that writes the site's messages |
 | `TELEGRAM_MODERATION_CHAT` | empty | The moderators' chat: a chat number or an `@name`. Alerts about Lightning addresses and requests for help, and the morning summary |
 | `TELEGRAM_API` | `https://api.telegram.org` | Another address for Telegram's API (a test server) |

@@ -1,6 +1,6 @@
 """Every email has an HTML copy with real links (config/mail.py)."""
 from django.core import mail
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 
 from config.mail import html, send_mail
 
@@ -52,3 +52,55 @@ class Parentheses(SimpleTestCase):
     def test_a_closing_parenthesis_of_the_address_stays_one_of_a_sentence_goes(self):
         self.assertIn('href="https://a.example/x_(y)"', html("See https://a.example/x_(y) now"))
         self.assertIn('href="https://a.example/x"', html("(see https://a.example/x)"))
+
+
+class Senders(SimpleTestCase):
+    @override_settings(MERCHANT_FROM_EMAIL="")
+    def test_with_no_merchant_sender_the_default_one(self):
+        from config.mail import merchant_sender
+        self.assertIsNone(merchant_sender())
+
+    @override_settings(MERCHANT_FROM_EMAIL="Shops <shops@example.org>", DEFAULT_FROM_EMAIL="noreply@example.org",
+                       EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_the_owner_gets_the_shops_address_the_links_the_noreply_one(self):
+        from django.core import mail
+
+        from config.mail import merchant_sender, send_mail
+        send_mail("a", "b", merchant_sender(), ["o@example.org"])
+        send_mail("c", "d", None, ["o@example.org"])
+        self.assertEqual([m.from_email for m in mail.outbox], ["Shops <shops@example.org>", "noreply@example.org"])
+
+    def test_the_mails_to_the_owner_use_the_merchant_sender(self):
+        from pathlib import Path
+        for name in ("guard.py", "lightning_watch.py", "vacation.py"):
+            self.assertIn("merchant_sender()", (Path(__file__).parent.parent / "shops" / name).read_text(), name)
+
+    @override_settings(EMAIL_ENVELOPE_FROM="shops@example.org", DEFAULT_FROM_EMAIL="Valley (automatic) <shops@example.org>",
+                       EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_the_envelope_is_its_own_address_the_from_the_one_shown(self):
+        from django.core import mail
+        send_mail("a", "b", None, ["o@example.org"])
+        sent = mail.outbox[-1]
+        self.assertEqual(sent.from_email, "shops@example.org")
+        self.assertEqual(sent.message()["From"], "Valley (automatic) <shops@example.org>")
+
+
+class Kinds(SimpleTestCase):
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_each_email_says_its_kind_to_the_backend(self):
+        from django.core import mail
+        send_mail("a", "b", None, ["o@example.org"], kind="link")
+        self.assertEqual(mail.outbox[-1].kind, "link")
+
+    def test_every_sender_says_a_known_kind(self):
+        import re
+        from pathlib import Path
+
+        from config.mail import KINDS
+        root = Path(__file__).parent.parent
+        calls = [call for path in root.glob("shops/**/*.py") if not path.name.startswith("test")
+                 for call in re.findall(r"send_mail\((.*)", path.read_text())]
+        self.assertTrue(calls)
+        for call in calls:
+            kind = re.search(r'kind="(\w+)"', call)
+            self.assertTrue(kind and kind.group(1) in KINDS, call)

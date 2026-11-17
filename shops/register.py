@@ -36,9 +36,12 @@ MAX_RATE_AGE = 120
 # A domain name and nothing else: it ends up in a header, and a space or a semicolon would open the CSP to other things
 DOMAIN = re.compile(r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}\Z")
 USER = re.compile(r"[a-z0-9._+-]+\Z", re.I)
-# Where the register asks whether an on-chain payment arrived: mempool.space's API, or an instance of the same API that
-# the community runs (`register.explorers` in community.yml). Only these hosts enter the register's CSP
-EXPLORERS = {"mainnet": ["https://mempool.space/api"], "signet": ["https://mempool.space/signet/api"]}
+# Where the register asks whether an on-chain payment arrived: mempool.space's API and, when it does not answer,
+# Blockstream's Esplora (the same calls for the transactions of an address; the fee rates and the parents only
+# mempool.space gives, and the register does without them). Or the explorers the community runs (`register.explorers` in
+# community.yml). Only these hosts enter the register's CSP
+EXPLORERS = {"mainnet": ["https://mempool.space/api", "https://blockstream.info/api"],
+             "signet": ["https://mempool.space/signet/api"]}
 EXPLORER_PATH = re.compile(r"(?:/[A-Za-z0-9._~-]+)*/?\Z")
 # The discount for paying in bitcoin the register suggests to a shop that has none (`register.discount`), and the amount,
 # in the register's currency, above which an on-chain sale waits for a confirmation (`register.confirm_above`; 0: always)
@@ -339,9 +342,8 @@ def onchain_texts():
         "chain_fixed_down": _("The explorer does not answer: with a fixed address the register cannot tell this sale's "
                               "payment from earlier ones. Use Lightning, or try again in a moment."),
         "chain_no_key": _("The on-chain key on this phone is not valid any more: check it in the settings."),
-        "chain_unchecked": _("The explorer does not answer, and this phone has no count of its own of the on-chain "
-                             "addresses (a history brought back from a copy): the register gives an address only when "
-                             "the explorer says it is unused. Take this sale with Lightning, or try again in a moment."),
+        "chain_unchecked": _("The block explorer does not answer. Try again in a minute; meanwhile you can take this "
+                             "sale with Lightning."),
         "chain_used_up": _("The register asked the explorer about many addresses of this chain and did not find one "
                            "that is surely unused: the history on this phone may miss many sales. Take this sale with "
                            "Lightning, or try again later."),
@@ -416,8 +418,11 @@ def onchain_texts():
         "own_explorer_saved": _("Saved. Reload the register for the new explorer to be used."),
         "own_explorer_bad": _("Your own explorer must be an https address (https://host/api): no password in it, no query."),
         "own_explorer_failed": _("The site could not save your own explorer: try again."),
-        "chain_owner_down": _("The explorer does not answer: the register gives an address of your wallet only after "
-                              "the explorer says it is unused. Take this sale with Lightning, or try again in a moment."),
+        "chain_owner_down": _("The block explorer does not answer. Try again in a minute; meanwhile you can take this "
+                              "sale with Lightning."),
+        # The site itself is out of reach: the phone's network (Lightning would not work either, so it is not offered)
+        "chain_offline": _("The register reaches neither the site nor the explorer: check the phone's network, then "
+                           "try again."),
         "chain_over": _("More than asked has arrived: {seen} of {sats}. It may be a payment for something else to the "
                         "same address: look in your wallet, and confirm by hand only if it is this sale's."),
         "chain_outside": _("A payment of {seen} reached this address before this sale or long after it: it is not "
