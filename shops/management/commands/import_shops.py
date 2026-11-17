@@ -3,6 +3,7 @@ import json
 import math
 from datetime import date
 
+from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 from django.core.validators import URLValidator
@@ -86,10 +87,13 @@ class Command(BaseCommand):
                     if vat_doubt(values["vat_number"]):
                         self.stdout.write(f"Shop {row['external_id']}: the VAT number may have a mistake: look at it in the admin.")
                 values = checked(row, values, new=not Shop.objects.filter(external_id=str(row["external_id"])).exists())
-                shop, created = Shop.objects.get_or_create(external_id=str(row["external_id"]), defaults=values)
+                shop, created = Shop.objects.get_or_create(external_id=str(row["external_id"]),
+                                                           defaults={**values, "approved_on": timezone.now(), "approved_by": "import"})
                 # A shop moved from another site belongs to its owner even while it waits for them
                 if not created and shop.owner_id is None and not shop.moved_from:
                     Shop.objects.filter(pk=shop.pk).update(**values)
+                    # One made while an older image was put back has no approval: the list approves it
+                    Shop.objects.filter(pk=shop.pk, approved_on=None).update(approved_on=timezone.now(), approved_by="import")
                 elif not created and "closed_on" in values:
                     # The association decides "historic" even for a claimed shop: the rest belongs to the owner
                     Shop.objects.filter(pk=shop.pk).update(closed_on=values["closed_on"])

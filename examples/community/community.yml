@@ -115,6 +115,7 @@ footer_menu:
 # help_terms: {path: about/}
 # training:
 #   gate: unlock
+#   gate_imported: reminder   # the shops of the community's list (external_id): `reminder` unless written, `unlock` locks them too
 #   quick_start: 20
 #   review_months: 12
 #   refresh_days: 30

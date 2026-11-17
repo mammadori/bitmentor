@@ -202,7 +202,7 @@ def approval_items():
     return [Item(WARNING, "approve", _("A new shop waits for your approval before it goes on the map."), shop=shop,
                  since=shop.created, do=_("Look at the shop and its owner; if all is well, approve it."),
                  links=[shop_link(shop)])
-            for shop in Shop.objects.filter(awaiting_approval=True).order_by("created")[:50]]
+            for shop in Shop.objects.filter(approved_on=None).order_by("created")[:50]]
 
 
 def certificate_items(found_shops):

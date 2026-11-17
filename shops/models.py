@@ -215,10 +215,15 @@ class Shop(models.Model):
     telegram_chat = models.CharField(_("Telegram chat for notifications"), max_length=40, blank=True, validators=[
         RegexValidator(r"^(-?[0-9]+|@[A-Za-z0-9_]{5,})$", _("A chat number or a @name."))])
     suspended = models.BooleanField(default=False, help_text="Hides from maps and lists, leaves the register alone")
-    # A shop written on the site by its owner waits for someone of the community to look at it (shops/approval.py): off
-    # the maps, the lists and the counts like a suspended one, with the register working. Imported shops never wait
-    awaiting_approval = models.BooleanField(_("awaiting approval"), default=False, db_default=False, help_text=_(
-        "A new shop written by its owner: off maps and lists until someone approves it. The register works."))
+    # No shop goes on the maps, the lists and the counts until someone of the community approved it (shops/approval.py).
+    # The register works before that. Shops imported from a list, moved from another site or written in /admin/ are
+    # approved by whoever imports or writes them
+    approved_on = models.DateTimeField(_("approved on"), null=True, blank=True, help_text=_(
+        "Empty: the shop waits for an approval, off maps and lists. The register works all the same."))
+    approved_by = models.CharField(_("approved by"), max_length=150, blank=True, db_default="")
+    # The column of 0.1.2, which marked new shops instead: no longer read or written, kept one release so that 0.1.2
+    # put back on this database still works (docs/releases.md, "Going back"). To be removed with the next migration
+    awaiting_approval = models.BooleanField(default=False, db_default=False, editable=False)
     # Decided by the association, not by the owner: no form on the site shows it
     closed_on = models.DateField(null=True, blank=True, help_text=(
         "History: stays on the map with a different marker, does not count among the places to pay. "
@@ -334,6 +339,10 @@ class Shop(models.Model):
             if kwargs.get("update_fields") is not None:
                 kwargs["update_fields"] = {*kwargs["update_fields"], "claim_hash"}
         super().save(*args, **kwargs)
+
+    @property
+    def needs_approval(self):
+        return self.approved_on is None
 
     @property
     def has_register(self):

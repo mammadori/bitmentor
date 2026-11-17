@@ -154,6 +154,11 @@ class Accounts(TestCase):
 
 @override_settings(NETWORK="mainnet")
 class Locking(Base):
+    def test_a_shop_of_the_list_is_never_locked_unless_the_community_says_so(self):
+        self.assertTrue(training.locked(self.shop))
+        self.shop.external_id = "12"
+        self.assertFalse(training.locked(self.shop))
+
     def test_a_database_that_fails_never_locks_a_till(self):
         self.assertTrue(training.locked(self.shop))
         with patch("shops.training.locked_for", side_effect=DatabaseError("down")):

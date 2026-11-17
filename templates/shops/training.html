@@ -13,7 +13,7 @@
 {% if state.base %}<p class="training-ok" role="status">{% blocktranslate with date=state.trainee.base_earned|date:"DATE_FORMAT" %}You have the basic pass since {{ date }}.{% endblocktranslate %}
   {% if state.formed %}{% translate "Your shop shows the «Trained merchant» sign." %}{% endif %}
   {% if state.modules_done < state.modules|length %}<span class="training-note">{% translate "The modules stay open: read them again whenever you like." %}</span>{% endif %}</p>
-{% elif real_money %}<p class="notice">{% if state.cfg.gate == "unlock" %}{% translate "The register that takes real money opens with the basic pass. The practice register always works." %}{% else %}{% translate "The basic pass is not required to take payments, but we ask you to get it." %}{% endif %}</p>{% endif %}
+{% elif real_money %}<p class="notice">{% if state.gate == "unlock" %}{% translate "The register that takes real money opens with the basic pass. The practice register always works." %}{% else %}{% translate "The basic pass is not required to take payments, but we ask you to get it." %}{% endif %}</p>{% endif %}
 
 <section aria-labelledby="path-title"><h2 id="path-title">{% translate "The path to the basic pass" %}</h2>
 <ol class="training-modules">{% for item in modules %}

@@ -4,7 +4,9 @@ moves the risk of the money to the merchant who has been informed and accompanie
 What the community writes, in the `training` block of `community.yml` (off when the block is missing):
 - the modules: a title, a link to one of its pages, two to four questions with the right answer and a line that explains,
   and the statements the merchant ticks («the recovery words stay with me only»);
-- how the real till is unlocked (`gate`: `unlock` or `reminder`), the `quick_start` (below), the day the training starts
+- how the real till is unlocked (`gate`: `unlock` or `reminder`), and for the shops imported from the community's list
+  (`external_id`, then taken by their owner) on their own (`gate_imported`, `reminder` unless written: they sold before
+  the site, and the pass is asked of them warmly, never as a lock), the `quick_start` (below), the day the training starts
   to count (`since`), how often the short review comes, whether a «trained merchant» sign is shown. The certificate of a
   shop always needs the basic pass (shops/certified.py).
 
@@ -137,6 +139,8 @@ class Config:
     # The quick start: what the owner's register may take in total before the basic pass, in cents of the community's
     # currency; 0 is off
     quick_start: int = 0
+    # The gate of the shops imported from the community's list (`external_id`): `reminder` unless the community writes
+    gate_imported: str = "reminder"
 
 
 def source_of(text):
@@ -261,6 +265,10 @@ def parse(warn=None):
     if gate not in GATES:
         say(f"`training.gate` is {' or '.join(GATES)}: {gate!r}; `unlock` counts instead")
         gate = "unlock"
+    gate_imported = data.get("gate_imported", "reminder")
+    if gate_imported not in GATES:
+        say(f"`training.gate_imported` is {' or '.join(GATES)}: {gate_imported!r}; `reminder` counts instead")
+        gate_imported = "reminder"
     quick = data.get("quick_start", 0)
     if quick is None or quick is False:
         quick = 0
@@ -308,7 +316,8 @@ def parse(warn=None):
         rules = None
     flag = lambda name: data.get(name, True) is not False
     return Config(gate, numbers["review_months"], numbers["refresh_days"], since or None,
-                  flag("public_sign"), guides, tuple(modules), terms, tuple(rules or ()), round(quick * 100))
+                  flag("public_sign"), guides, tuple(modules), terms, tuple(rules or ()), round(quick * 100),
+                  gate_imported)
 
 
 def problems():
@@ -450,6 +459,11 @@ def badge_list(trainee, declared, user=None):
     return found
 
 
+def gate_of(cfg, shop):
+    """The gate for this shop: `gate_imported` for a shop of the community's list (`external_id`), `gate` for the others."""
+    return cfg.gate_imported if shop is not None and shop.external_id else cfg.gate
+
+
 @dataclass
 class Standing:
     cfg: Config
@@ -466,6 +480,10 @@ class Standing:
     grace: dict | None
     locked: bool
     formed: bool
+
+    @property
+    def gate(self):
+        return gate_of(self.cfg, self.shop)
 
     @property
     def modules_done(self):
@@ -520,7 +538,7 @@ def standing(user, shop=None, now=None, cfg=None):
     steps = {name: badge for badge in badges for name in step_keys() if badge["key"] == name}
     # The community's own days, asked once and only where they change something: a real register that would
     # otherwise wait for the pass. Said in the panel, and the same answer decides the lock below
-    waits = bool(shop) and not base and cfg.gate == "unlock" and real_money(shop) and in_force(cfg, now)
+    waits = bool(shop) and not base and gate_of(cfg, shop) == "unlock" and real_money(shop) and in_force(cfg, now)
     grace = grace_of(user, now) if waits else None
     held = locked_for(cfg, user.pk, shop, now, trainee, user, grace if waits else False) if shop else False
     grace = grace if shop and shop.has_register else None
@@ -670,7 +688,7 @@ def grace_of(user, now=None):
 def locked_for(cfg, user_id, shop, now=None, trainee=False, user=None, grace=False):
     """Whether the real till of `shop` waits for the basic pass of its owner. See the head of the module. `grace`, when the
     caller already asked the community's rule for this owner, is its answer (grace_of), so that it is asked once."""
-    if cfg.gate != "unlock" or not real_money(shop) or not user_id or not in_force(cfg, now):
+    if gate_of(cfg, shop) != "unlock" or not real_money(shop) or not user_id or not in_force(cfg, now):
         return False
     trainee = trainee_of_id(user_id) if trainee is False else trainee
     if trainee and trainee.base_earned:

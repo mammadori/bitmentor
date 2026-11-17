@@ -107,14 +107,14 @@ class ClosureInline(admin.TabularInline):
 class ShopAdmin(HidesSecrets, admin.ModelAdmin):
     form = ShopAdminForm
     list_display = ("name", "city", "lightning_column", "certified_column", "osm_proposal_column", "discount", "listed", "suspended",
-                    "awaiting_approval", "closed_on", "owner")
+                    "approved_column", "closed_on", "owner")
     list_editable = ("suspended", "closed_on")
-    list_filter = (LightningFilter, CertifiedFilter, OsmFilter, VatFilter, "awaiting_approval", "suspended", "closed_on", "listed", "lightning",
+    list_filter = (LightningFilter, CertifiedFilter, OsmFilter, VatFilter, ("approved_on", admin.EmptyFieldListFilter), "suspended", "closed_on", "listed", "lightning",
                    "awaiting_wallet")
     search_fields = ("name", "city", "legal_name", "vat_number")
     # Where the money goes is the owner's to change, from the panel. What the guardian found is written only by its probes
     # (manage.py check_lightning), and the certificate never from here
-    readonly_fields = ("lightning_address", "lightning_status", "lightning_since",
+    readonly_fields = ("approved_on", "approved_by", "lightning_address", "lightning_status", "lightning_since",
                        "lightning_checked", "lightning_worked", "certified_month", "certified_revoked", "private_approved",
                        "private_approved_by", "moved_in",
                        "moved_register", "awaiting_wallet", "osm_seen", "osm_page", "osm_proposal", "osm_offered", "osm_history")
@@ -234,6 +234,9 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
         warning, but only when this save wrote the number: a tick of the list does not repeat it."""
         if obj.osm_ref and obj.osm_proposed:
             obj.osm_proposed = ""
+        if not change:
+            # A shop written here is the staff's own: approved by whoever writes it
+            approval.stamp(obj, request.user.get_username())
         # Another owner: Shop.save takes the approval of the private part away, written here in the shop's history
         approved = change and "owner" in form.changed_data and obj.private_approved is not None
         super().save_model(request, obj, form, change)
@@ -278,6 +281,10 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
     def hide_contacts(self, request, queryset):
         count = queryset.filter(owner__isnull=True).update(show_phone=False, show_email=False)
         self.message_user(request, _("%(count)d shops now hide their phone and email.") % {"count": count})
+
+    @admin.display(description=_("approved"), boolean=True, ordering="approved_on")
+    def approved_column(self, shop):
+        return not shop.needs_approval
 
     @admin.action(description=_("Approve the new shops: on the map and the lists"), permissions=["change"])
     def approve_shops(self, request, queryset):

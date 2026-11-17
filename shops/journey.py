@@ -69,7 +69,7 @@ def card(shop, now):
     icons. The same rules as the map: a suspended or unlisted shop, or one without a position, is not on it."""
     if shop.suspended:
         return {"on_map": False, "why": "suspended"}
-    if shop.awaiting_approval:
+    if shop.needs_approval:
         return {"on_map": False, "why": "approval"}
     if not shop.listed:
         return {"on_map": False, "why": "unlisted"}

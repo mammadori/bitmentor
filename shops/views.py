@@ -15,7 +15,7 @@ from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core import signing
 from django.core.cache import cache
-from django.core.mail import send_mail
+from config.mail import send_mail
 from django.db import DatabaseError, IntegrityError, transaction
 from django.db.models import F
 from django.db.models.functions import Lower
@@ -365,7 +365,7 @@ def shop_detail(request, shop):
     nearby, and the community's own pages about the shop (`shop_page` in community.yml)."""
     shop = get_object_or_404(Shop, pk=shop)
     # A new shop waiting for the approval (shops/approval.py) shows as little as a suspended one: nobody looked at it yet
-    reduced = shop.suspended or shop.awaiting_approval
+    reduced = shop.suspended or shop.needs_approval
     shop.trained = not reduced and training.is_trained(shop)
     language = get_language()
     extras = shop_page_links(language, shop.external_id)
@@ -379,7 +379,7 @@ def shop_detail(request, shop):
         "stories": [] if reduced else extras["stories"],
         "certified_rule": certified.MEANING if shop.certified and not reduced else "",
         "nearby": [{"shop": other, "distance": distance_text(other.metres)} for other in nearby_shops(shop)]})
-    if shop.suspended or shop.awaiting_approval or not shop.listed or waits_for_wallet(shop):
+    if shop.suspended or shop.needs_approval or not shop.listed or waits_for_wallet(shop):
         response["X-Robots-Tag"] = "noindex, nofollow"
     return response
 
@@ -411,7 +411,7 @@ def shop_by_external(request, external):
     that opens their register."""
     # PostgreSQL refuses a text with a NUL in it: no shop has one
     shop = None if "\x00" in external else (
-        Shop.objects.filter(external_id=external, suspended=False, awaiting_approval=False, listed=True).exclude(WAITING_FOR_WALLET)
+        Shop.objects.filter(external_id=external, suspended=False, approved_on__isnull=False, listed=True).exclude(WAITING_FOR_WALLET)
         .order_by("pk").first())
     if shop is None:
         raise Http404
@@ -573,7 +573,7 @@ def new_shop(request):
             shop = draft
             shop.owner = request.user
             # Off the map until someone of the community approves it; the register works at once (shops/approval.py)
-            shop.awaiting_approval = approval.enabled()
+            shop.approved_on, shop.approved_by = (None, "") if approval.enabled() else (timezone.now(), "-")
             if shop.awaiting_wallet:
                 # No wallet yet: the shop's page is saved, without a register, and the guide takes it from here
                 shop.save()
@@ -680,7 +680,7 @@ def lightning_check(request):
 
 def announce(request, shop):
     """A shop that waits for the approval: its owner reads why it is not on the map yet, the moderators hear of it."""
-    if shop.awaiting_approval:
+    if shop.needs_approval:
         messages.info(request, _("The community looks at every new shop before it goes on the map: until then the "
                                  "register works, and the shop is not on the map and the lists."))
         approval.tell_moderators(shop)

@@ -48,6 +48,7 @@ The `training` block of `community.yml` (a complete example, commented, is in `e
 ```yaml
 training:
   gate: unlock          # or reminder: only reminders, never a locked register
+  gate_imported: reminder  # the same for the shops of the community's list (external_id); reminder when not written
   quick_start: 20       # optional: the owner's register takes this much in total before the pass (0 or missing: off)
   since: 2026-12-01     # optional: the day the training starts to count (missing: at once)
   review_months: 12     # the short review
@@ -146,6 +147,9 @@ nothing stops a sale in the middle of a day:
   day, the register stays open until that day ends and the panel counts the days; `training_practice_done` counts the
   practice as done for whoever practised elsewhere ([The community's own code](../architecture.md#the-communitys-own-code)).
 - **`gate: reminder`** turns the unlock into reminders: the panel asks for the pass and nothing locks.
+- **The shops of the community's list** (imported with `external_id`, then taken by their owner) have their own
+  `gate_imported`, `reminder` when the community writes nothing: they sold before the site, so the panel asks for the
+  pass warmly and their register never waits for it. Write `gate_imported: unlock` to lock them as the new shops.
 - **Never a lock because of a text, a review or an error.** A text that changed, a late review, a database that does not
   answer: the till opens. Demo shops and shops with no owner are never locked.
 - The staff registers follow their owner: the owner's lock is theirs, and the page says to tell the owner.

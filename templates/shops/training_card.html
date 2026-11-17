@@ -11,7 +11,7 @@
   {% elif state.grace %}<p class="notice" role="status"><strong>{% translate "Your register keeps working." %}</strong>
     {% if state.grace.days > 0 %}{% blocktranslate count days=state.grace.days with date=state.grace.until|date:"DATE_FORMAT" %}You have {{ days }} more day, until {{ date }}, to get the basic pass. After that the register opens only with it.{% plural %}You have {{ days }} more days, until {{ date }}, to get the basic pass. After that the register opens only with it.{% endblocktranslate %}
     {% else %}{% blocktranslate with date=state.grace.until|date:"DATE_FORMAT" %}The last day is {{ date }}. After that the register opens only with the basic pass.{% endblocktranslate %}{% endif %}</p>
-  {% elif not state.base and state.cfg.gate == "reminder" %}<p class="notice" role="status">{% translate "The basic pass is not required, but we ask you to get it: a few short modules, and you know what to do if something goes wrong." %}</p>{% endif %}
+  {% elif not state.base and state.gate == "reminder" %}<p class="notice" role="status">{% translate "The basic pass is not required, but we ask you to get it: a few short modules, and you know what to do if something goes wrong." %}</p>{% endif %}
   {% if state.base and state.review and state.review.state != "ok" %}<p class="notice" role="status"><strong>{% if state.review.state == "soon" %}{% translate "A short review is coming." %}{% else %}{% translate "Time for the short review." %}{% endif %}</strong>
     {% translate "One question for each module, whenever you like, no penalty." %} <a href="{% url 'training_review' %}">{% translate "Start the review" %}</a></p>{% endif %}
   {% if training.stale %}<p class="notice" role="status"><strong>{% translate "Some texts changed." %}</strong>

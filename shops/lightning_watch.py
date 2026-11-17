@@ -15,7 +15,7 @@ from time import monotonic
 from urllib.parse import urlsplit
 
 from django.conf import settings
-from django.core.mail import send_mail
+from config.mail import send_mail
 from django.db import transaction
 from django.db.models import F, Q
 from django.urls import reverse

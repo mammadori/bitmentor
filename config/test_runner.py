@@ -45,6 +45,15 @@ class Runner(DiscoverRunner):
         # from a visitor without the private view, and those about it choose the addresses (website/test_visibility.py)
         super().setup_test_environment(**kwargs)
         settings.DEV_ALLOWED_IPS = ""
+        # A shop made in a test is approved, as one imported or written in /admin/ is: the tests about the map do not
+        # each approve their shops. Those about the approval make it wait (approved_on=None, shops/test_approval.py),
+        # and /shops/new/ sets it itself (shops/views.py)
+        from django.utils import timezone
+
+        from shops.models import Shop
+
+        # On the field's get_default, not its default: the check of the migrations still reads the model's own (none)
+        Shop._meta.get_field("approved_on").get_default = timezone.now
 
     def get_resultclass(self):
         return super().get_resultclass() or CleanTextResult

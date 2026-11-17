@@ -7,7 +7,7 @@ from smtplib import SMTPException
 
 import requests
 from django.conf import settings
-from django.core.mail import send_mail
+from config.mail import send_mail
 
 logger = logging.getLogger(__name__)
 

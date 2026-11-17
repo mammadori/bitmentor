@@ -179,9 +179,15 @@ def training_notes():
     on mainnet they are locked from the moment the training is on. A community that turns it on for shops that already
     sell writes a `since` ahead and tells its merchants first (docs/features/merchant-training.md)."""
     cfg = training.parse()
-    if not cfg or cfg.gate != "unlock" or cfg.since:
+    if not cfg or "unlock" not in (cfg.gate, cfg.gate_imported) or cfg.since:
         return []
-    waiting = real(Shop.objects.filter(HAS_REGISTER, owner__isnull=False, owner__trainee__base_earned__isnull=True)).count()
+    shops = real(Shop.objects.filter(HAS_REGISTER, owner__isnull=False, owner__trainee__base_earned__isnull=True))
+    # The shops of the community's list have their own gate (training.gate_of)
+    if cfg.gate != "unlock":
+        shops = shops.exclude(external_id="")
+    if cfg.gate_imported != "unlock":
+        shops = shops.filter(external_id="")
+    waiting = shops.count()
     if not waiting:
         return []
     return [("the training locks the register without the basic pass (training.gate: unlock) and has no `since` day: "

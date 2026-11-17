@@ -6150,3 +6150,15 @@ msgstr "Die Gemeinschaft sieht sich jedes neue Geschäft an, bevor es auf die Ka
 #, python-format
 msgid "%(name)s was already approved."
 msgstr "%(name)s war bereits freigegeben."
+
+msgid "approved"
+msgstr "freigegeben"
+
+msgid "approved on"
+msgstr "freigegeben am"
+
+msgid "approved by"
+msgstr "freigegeben von"
+
+msgid "Empty: the shop waits for an approval, off maps and lists. The register works all the same."
+msgstr "Leer: Das Geschäft wartet auf die Freigabe, nicht auf Karten und in Listen. Die Kasse funktioniert trotzdem."

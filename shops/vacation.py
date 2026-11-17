@@ -476,7 +476,7 @@ def welcome_back(now=None):
         email = lightning_watch.owner_email(shop)
         if email:
             try:
-                from django.core.mail import send_mail
+                from config.mail import send_mail
 
                 send_mail(subject, body, None, [email])
             except (OSError, SMTPException, ValueError):

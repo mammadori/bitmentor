@@ -169,10 +169,10 @@ def check_shop(run):
         run.add("shop_suspended", WARNING,
                 _("The association has taken your shop off the map and the lists for now. The register still works."),
                 "suspended=True")
-    if shop.awaiting_approval:
+    if shop.needs_approval:
         run.add("shop_awaiting_approval", WARNING,
                 _("The community looks at every new shop before it goes on the map: yours is waiting. The register "
-                  "already works."), "awaiting_approval=True")
+                  "already works."), "approved_on empty")
     if shop.closed_on:
         run.add("shop_historic", WARNING,
                 _("Your shop is marked as historic ({note}): it stays on the map but does not count among the places "
@@ -182,7 +182,7 @@ def check_shop(run):
         run.add("shop_unlisted", WARNING,
                 _("Your shop is not shown on the map or in the lists, as you chose. The register works the same."),
                 "listed=False")
-    elif shop.suspended or shop.awaiting_approval:
+    elif shop.suspended or shop.needs_approval:
         pass
     elif (shop.latitude is None or shop.longitude is None):
         run.add("shop_no_position", WARNING,
@@ -618,7 +618,7 @@ def check_training(run):
         run.add("training_done", OK, _("The owner has the basic pass of the training."),
                 f"base_earned={trainee.base_earned:%Y-%m-%d}")
         return
-    detail = f"gate={cfg.gate}; NETWORK={settings.NETWORK}; no basic pass; since={cfg.since or '-'}"
+    detail = f"gate={training.gate_of(cfg, shop)}; NETWORK={settings.NETWORK}; no basic pass; since={cfg.since or '-'}"
     if training.locked(shop):
         run.add("training_locked", WARNING, _("The register is waiting for the owner's basic pass."), detail,
                 _("The register page says «The register opens soon» and no new sale starts, by the community's choice. Tell "

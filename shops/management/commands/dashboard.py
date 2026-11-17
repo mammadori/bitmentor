@@ -15,7 +15,7 @@ from datetime import timedelta
 from smtplib import SMTPException
 
 from django.conf import settings
-from django.core.mail import send_mail
+from config.mail import send_mail
 from django.core.management.base import BaseCommand, CommandError
 from django.urls import reverse
 from django.utils import timezone, translation

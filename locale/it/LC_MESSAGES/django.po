@@ -6050,3 +6050,15 @@ msgstr "La comunità guarda ogni negozio nuovo prima di metterlo in mappa: il tu
 #, python-format
 msgid "%(name)s was already approved."
 msgstr "%(name)s era già approvato."
+
+msgid "approved"
+msgstr "approvato"
+
+msgid "approved on"
+msgstr "approvato il"
+
+msgid "approved by"
+msgstr "approvato da"
+
+msgid "Empty: the shop waits for an approval, off maps and lists. The register works all the same."
+msgstr "Vuoto: il negozio aspetta l'approvazione, fuori da mappe ed elenchi. La cassa funziona lo stesso."

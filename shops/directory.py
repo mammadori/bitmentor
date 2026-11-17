@@ -33,7 +33,7 @@ def waits_for_wallet(shop):
 
 def public_shops():
     """A shop waiting for its owner's wallet (WAITING_FOR_WALLET) is not a place of the map yet."""
-    return (Shop.objects.filter(suspended=False, awaiting_approval=False, listed=True).exclude(latitude=None).exclude(longitude=None)
+    return (Shop.objects.filter(suspended=False, approved_on__isnull=False, listed=True).exclude(latitude=None).exclude(longitude=None)
             .exclude(WAITING_FOR_WALLET))
 
 

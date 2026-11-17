@@ -39,7 +39,7 @@ class NewShopWaits(TestCase):
 
     def test_a_new_shop_waits_off_the_map_with_its_register(self):
         shop = self.new()
-        self.assertTrue(shop.awaiting_approval)
+        self.assertTrue(shop.needs_approval)
         self.assertTrue(shop.has_register)
         self.assertFalse(public_shops().exists())
         self.assertEqual(statistics()["shops"], 0)
@@ -57,19 +57,19 @@ class NewShopWaits(TestCase):
     def test_with_the_approval_off_it_goes_on_the_map_at_once(self):
         with approval_off():
             shop = self.new()
-        self.assertFalse(shop.awaiting_approval)
+        self.assertFalse(shop.needs_approval)
         self.assertTrue(public_shops().filter(pk=shop.pk).exists())
         self.told.assert_not_called()
 
-    def test_an_imported_shop_never_waits(self):
-        shop = Shop.objects.create(name="Old", external_id="7", latitude=41.9, longitude=12.5)
-        self.assertFalse(shop.awaiting_approval)
-        self.assertTrue(public_shops().filter(pk=shop.pk).exists())
+    def test_a_shop_nobody_approved_is_never_on_the_map(self):
+        shop = Shop.objects.create(name="Old", latitude=41.9, longitude=12.5, approved_on=None)
+        self.assertFalse(public_shops().filter(pk=shop.pk).exists())
+        self.assertNotContains(self.client.get("/shops.json"), str(shop.id))
 
 
 class Approve(TestCase):
     def setUp(self):
-        self.shop = Shop.objects.create(name="Bar", latitude=41.9, longitude=12.5, awaiting_approval=True)
+        self.shop = Shop.objects.create(name="Bar", latitude=41.9, longitude=12.5, approved_on=None)
         self.staff = get_user_model().objects.create(username="staff", is_staff=True)
 
     def grant(self, *codes):
@@ -91,7 +91,8 @@ class Approve(TestCase):
         response = self.client.post(f"/admin/today/approve/{self.shop.id}/")
         self.assertRedirects(response, "/admin/today/", fetch_redirect_response=False)
         self.shop.refresh_from_db()
-        self.assertFalse(self.shop.awaiting_approval)
+        self.assertFalse(self.shop.needs_approval)
+        self.assertEqual(self.shop.approved_by, "staff")
         self.assertTrue(public_shops().filter(pk=self.shop.pk).exists())
         self.assertEqual(LogEntry.objects.get().object_id, str(self.shop.pk))
 
@@ -100,7 +101,7 @@ class Approve(TestCase):
         self.assertNotContains(self.client.get("/admin/today/"), "/admin/today/approve/")
         self.assertEqual(self.client.post(f"/admin/today/approve/{self.shop.id}/").status_code, 403)
         self.shop.refresh_from_db()
-        self.assertTrue(self.shop.awaiting_approval)
+        self.assertTrue(self.shop.needs_approval)
 
     def test_get_does_nothing(self):
         self.grant("view_shop", "change_shop")
@@ -110,12 +111,12 @@ class Approve(TestCase):
         self.grant("view_shop", "change_shop")
         self.client.post("/admin/shops/shop/", {"action": "approve_shops", "_selected_action": [str(self.shop.pk)]})
         self.shop.refresh_from_db()
-        self.assertFalse(self.shop.awaiting_approval)
+        self.assertFalse(self.shop.needs_approval)
 
 
 class Tell(TestCase):
     def test_the_moderators_hear_of_it_after_the_save(self):
-        shop = Shop.objects.create(name="Bar", awaiting_approval=True)
+        shop = Shop.objects.create(name="Bar", approved_on=None)
         with patch("shops.notifications.deliver_to_moderators", return_value=("x", [])) as deliver, \
                 patch("shops.approval.threading.Thread") as thread, self.captureOnCommitCallbacks(execute=True):
             from .approval import tell_moderators
@@ -124,3 +125,44 @@ class Tell(TestCase):
             thread.call_args.kwargs["target"]()
         self.assertIn("Bar", deliver.call_args.args[1])
         self.assertIn(f"#approve-{shop.id}", deliver.call_args.args[1])
+
+
+class ApprovedByWhoeverBringsThem(TestCase):
+    def test_an_imported_shop_is_approved_by_the_import(self):
+        import json
+        import tempfile
+
+        from django.core.management import call_command
+
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as file:
+            json.dump([{"external_id": "7", "name": "Old", "latitude": 41.9, "longitude": 12.5}], file)
+        # As in production: the model's own default (none), not the one the tests' runner gives
+        field = Shop._meta.get_field("approved_on")
+        with patch.object(field, "get_default", lambda: None):
+            call_command("import_shops", file.name, stdout=__import__("io").StringIO())
+        shop = Shop.objects.get(external_id="7")
+        self.assertEqual(shop.approved_by, "import")
+        self.assertTrue(public_shops().filter(pk=shop.pk).exists())
+
+    def test_the_model_alone_approves_nothing(self):
+        field = Shop._meta.get_field("approved_on")
+        with patch.object(field, "get_default", lambda: None):
+            self.assertIsNone(Shop(name="x").approved_on)
+
+    def test_a_shop_written_in_the_admin_is_approved_by_its_writer(self):
+        from config.urls import ADMIN_SESSION
+
+        staff = get_user_model().objects.create_superuser("boss", password="x")
+        self.client.force_login(staff)
+        session = self.client.session
+        session[ADMIN_SESSION] = True
+        session.save()
+        field = Shop._meta.get_field("approved_on")
+        with patch.object(field, "get_default", lambda: None):
+            response = self.client.get("/admin/shops/shop/add/")
+            form = response.context["adminform"].form
+            data = {name: value for name, value in form.initial.items() if value is not None and not callable(value)}
+            data.update({"name": "Written", "discount": 0, "closures-TOTAL_FORMS": 0, "closures-INITIAL_FORMS": 0})
+            self.client.post("/admin/shops/shop/add/", data)
+        shop = Shop.objects.get(name="Written")
+        self.assertEqual(shop.approved_by, "boss")

@@ -814,7 +814,7 @@ def standing(shop, today):
     """What this site knows about the shop, for OpenStreetMap: ("yes", the day its Lightning address last worked or None), ("no",
     the day it closed), or None when it says nothing (a made-up shop, suspended, not listed, waiting for its wallet:
     nothing we know is proof of anything there). A closing date still to come is a shop that still takes bitcoin."""
-    if is_demo(shop) or shop.suspended or shop.awaiting_approval or not shop.listed or waits_for_wallet(shop):
+    if is_demo(shop) or shop.suspended or shop.needs_approval or not shop.listed or waits_for_wallet(shop):
         return None
     if shop.closed_on is not None and shop.closed_on < today:
         return "no", shop.closed_on

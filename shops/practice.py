@@ -19,7 +19,7 @@ from django.utils.translation import gettext as _
 from config import features
 from config.community import community
 
-from . import first_day
+from . import first_day, training
 from . import staff as staff_registers
 from . import views
 from .models import Shop
@@ -68,6 +68,10 @@ def context(request, shop, staff=None):
         back, back_text = real, _("Back to the register")
         next_url, next_text = real, _("Open the real register")
         next_note = _("The next sale is real. The first times, ask the owner to stay close.")
+        if training.locked(shop):
+            # The real till waits for the owner's basic pass: no button to a page that says so
+            next_url, next_text = "", ""
+            next_note = _("The owner has not finished the training yet: the register opens when they have. Tell them.")
     else:
         base = reverse("practice", args=[shop.id])
         real = reverse("register", args=[shop.id]) if shop.has_register else ""
@@ -78,6 +82,16 @@ def context(request, shop, staff=None):
         elif owner and not shop.has_register:
             next_url, next_text = reverse("connect_wallet", args=[shop.id]), _("Connect your wallet")
             next_note = _("To take real payments the shop needs its wallet: it takes a few minutes.")
+        elif real and training.locked(shop) and not (owner and training.quick_start(shop, request.user)):
+            # The real till waits for the owner's basic pass (shops/training.py): the way there, not a closed door
+            if owner:
+                next_url, next_text = reverse("training"), _("Start the path")
+                next_note = _("The register that takes real money opens when you have the basic pass: a few short "
+                              "modules, with a little game. Your wallet and your recovery words are yours, and we want "
+                              "you to know what to do if something goes wrong.")
+            else:
+                next_url, next_text = "", ""
+                next_note = _("The owner of the shop has not finished the training yet: the register opens when they have.")
         else:
             next_url, next_text = real, _("Open the real register")
             next_note = _("The next sale is real.")

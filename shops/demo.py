@@ -255,9 +255,11 @@ def make_shop(spec, index, plan, state, owner):
     values = fields_of(spec, index, plan, state)
     shop = Shop.objects.filter(external_id=external).first()
     if shop is None:
-        shop = Shop.objects.create(external_id=external, name=values["name"])
+        shop = Shop.objects.create(external_id=external, name=values["name"], approved_on=timezone.now(), approved_by="demo")
     # update(): no signal sees a demo shop change hands or an owner's chat change. Back to the start, on every run
     Shop.objects.filter(pk=shop.pk).update(owner=owner, **values)
+    # A made-up shop is always approved, even one an older image made while put back (docs/releases.md, "Going back")
+    Shop.objects.filter(pk=shop.pk, approved_on=None).update(approved_on=timezone.now(), approved_by="demo")
     shop.refresh_from_db()
     return shop
 

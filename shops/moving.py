@@ -45,7 +45,7 @@ from django.utils.translation import override
 
 from config import features
 
-from . import details
+from . import approval, details
 from .forms import CanonicalEmailField, ShopDetailsForm
 from .lnurl_auth import LINKING_KEY
 from .models import Profile, Shop, claim_digest, keeps_register, real
@@ -122,7 +122,7 @@ def shop_entry(shop):
     entry = {"id": str(shop.pk), **{name: getattr(shop, name) for name in TEXT}, "latitude": shop.latitude,
              "longitude": shop.longitude, "discount": shop.discount, "listed": shop.listed,
              # For a shop with a register the flag follows its Lightning address, which does not move
-             "lightning": shop.lightning and not register, "suspended": shop.suspended or shop.awaiting_approval,
+             "lightning": shop.lightning and not register, "suspended": shop.suspended or shop.needs_approval,
              # A shop still waiting for the approval here arrives suspended there: the other site's staff decides
              "register": register, **{name: getattr(shop, name) for name in SHOWN},
              "closed_on": shop.closed_on.isoformat() if shop.closed_on else None, "owner": owner_entry(shop.owner)}
@@ -414,6 +414,8 @@ def import_row(row, now, made, new_codes=False):
             shop.moved_in, shop.moved_from = now, row["id"]
             shop.moved_register = row["register"] and shop.closed_on is None
             shop.owner, shop.claim_hash = None, ""
+            # Whoever runs the move brings it: approved here, and kept off the map if it came suspended
+            approval.stamp(shop, "move")
             place_owner(shop, row["owner"], outcome, made)
             shop.save()
     except RowRefused as error:

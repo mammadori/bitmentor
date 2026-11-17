@@ -108,6 +108,20 @@ class Practice(TestCase):
         self.assertContains(response, f'href="/en/shops/register/{self.shop.id}/">Open the real register</a>')
         self.assertNotContains(response, "first-day-")
 
+    def test_a_till_waiting_for_the_pass_leads_to_the_training_not_to_a_closed_door(self):
+        with patch("shops.training.locked", return_value=True), patch("shops.training.quick_start", return_value=0), \
+                patch("shops.first_day.applies", return_value=False):
+            response = self.open(self.url)
+            self.assertContains(response, 'href="/en/shops/training/">Start the path</a>')
+            self.assertNotContains(response, "Open the real register")
+            # Whoever opens it by the register's link gets no button to a closed till either
+            other = self.open(self.url, self.client_class())
+            self.assertNotContains(other, "Open the real register")
+        # With the quick start the owner's till takes the first sales: the button stays
+        with patch("shops.training.locked", return_value=True), patch("shops.training.quick_start", return_value=500), \
+                patch("shops.first_day.applies", return_value=False):
+            self.assertContains(self.open(self.url), "Open the real register")
+
     def test_the_real_register_links_to_the_practice_and_stays_the_same(self):
         response = self.client.get(f"/en/shops/register/{self.shop.id}/")
         self.assertContains(response, f'href="{self.url}">Practise without money</a>')

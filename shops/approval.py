@@ -1,10 +1,13 @@
-"""New shops wait for an approval: a shop its owner writes on the site (/shops/new/) stays off the maps, the lists and
-the counts until someone of the community looks at it and approves it, on /admin/today/ or with the action in /admin/.
-Its register works from the first minute: the approval is about what the public sees, never about the payments.
+"""No shop goes on the map without an approval: `Shop.approved_on` is empty until someone of the community looks at the
+shop and approves it, on /admin/today/ or with the action in /admin/. Until then the shop is off the maps, the lists,
+the counts and OpenStreetMap, and its page shows as little as a suspended one's. Its register works from the first
+minute: the approval is about what the public sees, never about the payments.
 
-The shops imported from a list (`import_shops`, with `external_id`) and then taken by their owner never wait: the
-community already put them on its list. A community can turn the approval off (`features: {approval: false}`): new
-shops then appear at once, and the shops already waiting keep waiting until someone approves them."""
+Approved by whoever brings them: the shops imported from a list (`import_shops`, with `external_id`, later taken by
+their owner), those moved from another site (`manage.py move_shops`), those written in /admin/, the made-up ones of the
+demo. A shop its owner writes on the site (/shops/new/) waits. A community can turn the wait off
+(`features: {approval: false}`): new shops are then approved as they are saved, and the shops already waiting keep
+waiting until someone approves them."""
 import logging
 import threading
 
@@ -12,7 +15,7 @@ from django.conf import settings
 from django.contrib.admin.models import CHANGE, LogEntry
 from django.db import transaction
 from django.urls import reverse
-from django.utils import translation
+from django.utils import timezone, translation
 from django.utils.translation import gettext as _
 
 from config import features
@@ -27,15 +30,22 @@ def enabled():
 
 
 def waiting():
-    return Shop.objects.filter(awaiting_approval=True)
+    return Shop.objects.filter(approved_on=None)
+
+
+def stamp(shop, by):
+    """Marks a shop being saved as approved, by `by` (a username, or how it came: "import", "move", "demo")."""
+    if shop.approved_on is None:
+        shop.approved_on, shop.approved_by = timezone.now(), by
 
 
 def approve(shops, user):
     """Approves the shops of a queryset that wait; each approval goes in the admin's history of the shop. Returns how many."""
     count = 0
-    for shop in shops.filter(awaiting_approval=True):
+    for shop in shops.filter(approved_on=None):
         # Only if it still waits: two people approving at once write one history line
-        if Shop.objects.filter(pk=shop.pk, awaiting_approval=True).update(awaiting_approval=False):
+        if Shop.objects.filter(pk=shop.pk, approved_on=None).update(approved_on=timezone.now(),
+                                                                       approved_by=user.get_username()):
             LogEntry.objects.log_actions(user.pk, [shop], CHANGE, change_message="Shop approved",
                                          single_object=True)
             count += 1
