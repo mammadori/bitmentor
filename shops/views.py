@@ -43,11 +43,11 @@ from config.middleware import csp_with_connect
 from . import address_change, approval, certified, details, first_day, guard, journey, lightning_watch, vacation
 from . import helpdesk, osm, osm_request, public_cache, training
 from .directory import WAITING_FOR_WALLET, nearby_shops, public_shops, waits_for_wallet
-from .forms import NewShopForm, ProfileForm, RecoveryForm, ShopDetailsForm, ShopDisplayForm, ShopForm, WalletForm, prefill, tidy_lightning_address
+from .forms import NewShopForm, ProfileForm, RecoveryForm, ShopDetailsForm, ShopDisplayForm, ShopForm, ShopPlaceForm, WalletForm, prefill, tidy_lightning_address
 from .lnaddress import BUSY, NO_ANSWER, UNKNOWN_DOMAIN, checked_live, explanation, refusal, suggestion
 from .lnurl_auth import K1, encode_lnurl, verify
 from .models import HAS_REGISTER, REGISTER_AFTER_CLOSING, keeps_register, register_kept, LoginChallenge, Profile, Shop, claim_digest
-from .models import WalletKey
+from .models import ShopPlace, WalletKey
 from .nostr import public_key
 from .register import connect_origins, register_data
 
@@ -525,13 +525,16 @@ def map_listing():
     """What shop_map caches: the list rendered as HTML, the number of places to pay and the words for map.js. Nothing
     here reads a request or an account."""
     # First the places to pay, the historic ones at the end: the counter counts only the first
-    shops = list(public_shops().prefetch_related("closures").order_by(F("closed_on").asc(nulls_first=True), "-discount", "name"))
+    shops = list(public_shops().prefetch_related("closures", "places")
+                 .order_by(F("closed_on").asc(nulls_first=True), "-discount", "name"))
     now = timezone.now()
     training.mark_trained(shops, now)
     for shop in shops:
         shop.marks = certified.marks(shop, now)
         # A shop closed for a while stays a place to pay and on the map: it only says so (shops/vacation.py)
         shop.break_note = vacation.note(shop)
+        # The towns of a shop with several places, each once, the shop's own first
+        shop.towns = ", ".join(dict.fromkeys(town for town in (shop.city, *(place.city for place in shop.places.all())) if town))
     texts = certified.texts()
     if not certified.enabled():
         # No badge, so nothing to say about it; the icons' sentences stay
@@ -555,9 +558,16 @@ def shops_json(request):
     return response
 
 
+def other_places(shop):
+    """The other places of a shop as /shops.json and the map give them. `shop.places` is prefetched by the callers."""
+    with_address = details.chosen(shop, "address")
+    return [{**({"address": place.address} if with_address else {}), "city": place.city,
+             "latitude": place.latitude, "longitude": place.longitude} for place in shop.places.all()]
+
+
 def shops_json_body():
     now = timezone.now()
-    shops = training.mark_trained(public_shops().prefetch_related("closures").order_by("name"), now)
+    shops = training.mark_trained(public_shops().prefetch_related("closures", "places").order_by("name"), now)
     # A feature the community turned off (config/features.py) has no key at all: `"certified": false` would say the shop
     # is not certified, `"break": null` that it is open, and neither is known
     certificates, breaks = features.enabled(features.CERTIFIED), features.enabled(features.VACATION)
@@ -574,7 +584,11 @@ def shops_json_body():
          # What the owner says, no more: the site knows no on-chain address and no on-chain payment. Absent while
          # on-chain at the register, an experimental feature, is off
          **({"onchain": shop.onchain} if onchain else {}), "latitude": shop.latitude,
-         "longitude": shop.longitude, "url": reverse("shop_detail", args=[shop.id]), "closed_on": shop.closed_on,
+         "longitude": shop.longitude,
+         # The other places of a shop with several branches (ShopPlace), only when it has some: the fields above are
+         # the first place. An address only when the owner shows the shop's
+         **({"places": other_places(shop)} if shop.places.all() else {}),
+         "url": reverse("shop_detail", args=[shop.id]), "closed_on": shop.closed_on,
          # Only the flag and the bands (shops/certified.py): never the dates, counts or amounts behind them
          **({"certified": shop.certified} if certificates else {}),
          "trained": shop.trained,
@@ -599,8 +613,15 @@ def shop_detail(request, shop):
     extras = shop_page_links(language, shop.external_id)
     # What the owner shows (shops/details.py); a shop the association took off the map shows no contacts
     shown = details.shown_on_a_suspended_page(shop) if reduced else details.shown(shop)
+    # The other places of a shop with several branches, with the address only if the owner shows the shop's; none for a
+    # shop off the map
+    with_address = details.chosen(shop, "address")
+    places = [] if reduced else [
+        {"line": ", ".join(part for part in ((place.address if with_address else ""), place.city) if part),
+         "position": f"{place.latitude:.6f},{place.longitude:.6f}"} for place in shop.places.all()]
     response = render(request, "shops/shop.html", {
-        "shop": shop, "reduced": reduced, "facts": details.rows(shop, shown),
+        "shop": shop, "reduced": reduced, "facts": details.rows(shop, shown), "places": places,
+        "place_points": ";".join(place["position"] for place in places),
         "payment": None if reduced or shop.closed_on or waits_for_wallet(shop) else till_methods(shop),
         "waiting": waits_for_wallet(shop), "break_note": "" if reduced else vacation.note(shop),
         "main_language": settings.LANGUAGE_CODE, "language": language,
@@ -950,6 +971,36 @@ def edit_shop(request, shop):
     return render(request, "shops/shop_edit.html", {"form": form, "shop": shop,
                                                      "needs_wallet": needs_wallet(shop), "can_change_address": address_change.changeable(shop),
                                                      "waits_for_wallet": needs_wallet(shop) and waits_for_wallet(shop)})
+
+
+@not_indexed
+@login_required(login_url="shops")
+def shop_places(request, shop):
+    """The other places of a shop with several branches: the owner adds one, with its address and its point on the map,
+    or takes one away. One shop, one register, a point on the map for each place; the shop's own position is the first
+    and is changed with the shop's details."""
+    shop = get_object_or_404(request.user.shops, pk=shop)
+    form = ShopPlaceForm(request.POST or None if "remove" not in request.POST else None)
+    if request.method == "POST":
+        if ratelimit.over_limit(f"edit-shop-user:{request.user.pk}", EDITS_PER_USER, OWNER_WINDOW):
+            messages.error(request, _("You saved many times in a short while: wait a few minutes and try again."))
+            return redirect("shop_places", shop=shop.id)
+        number = request.POST.get("remove", "")
+        if "remove" in request.POST:
+            if number.isascii() and number.isdecimal() and len(number) < 19:
+                shop.places.filter(pk=int(number)).delete()
+            return redirect("shop_places", shop=shop.id)
+        if shop.places.count() >= ShopPlace.MAX:
+            form.add_error(None, _("This shop has %(count)s other places, the most it can have.") % {"count": ShopPlace.MAX})
+        elif form.is_valid():
+            place = form.save(commit=False)
+            place.shop = shop
+            place.save()
+            messages.success(request, _("Place added: it is a point of your shop on the map."))
+            return redirect("shop_places", shop=shop.id)
+    return render(request, "shops/shop_places.html", {"form": form, "shop": shop, "places": list(shop.places.all()),
+                                                       "full": shop.places.count() >= ShopPlace.MAX},
+                  status=400 if form.is_bound and form.errors else 200)
 
 
 def warn_about_vat(request, form):

@@ -524,6 +524,42 @@ for label in '0.1.4' 'v0.1.4' 'v2026.01.01-3'; do
   equal "«$label»: state/version" "$label" "$(cat "$D/state/version")"
 done
 
+title "release.sh: release.env says what a version is called, within what is safe"
+for label in '0.1.5-mine.2' '0.1.6-mine.10'; do
+  machine named
+  registry "$label"; healthy "$label"
+  do_release
+  equal "«$label» without VERSION_RE: exits with 1" 1 "$EXIT_CODE"
+  machine named
+  printf '%s\n' "VERSION_RE='^[0-9]+\.[0-9]+\.[0-9]+-mine\.[0-9]+\$'" >> "$D/release.env"
+  registry "$label"; healthy "$label"
+  do_release
+  equal "«$label» with VERSION_RE: exits with 0" 0 "$EXIT_CODE"
+  equal "«$label» with VERSION_RE: state/version" "$label" "$(cat "$D/state/version")"
+done
+# With VERSION_RE the names it does not say are refused, the usual ones too; and no VERSION_RE lets a path through
+for label in '0.1.5' 'v2026.01.01' '../../etc' 'a/b' '.hidden' 'a..b' '-rf' 'v1;rm -rf x' ''; do
+  machine named
+  printf '%s\n' "VERSION_RE='^[0-9]+\.[0-9]+\.[0-9]+-mine\.[0-9]+\$'" >> "$D/release.env"
+  registry "$label"; healthy "$label"
+  do_release
+  equal "«$label» with a VERSION_RE of another shape: exits with 1" 1 "$EXIT_CODE"
+done
+for label in '../../etc' 'a/b' '.hidden' 'a..b' '-rf' 'v1;rm -rf x' 'with space' ''; do
+  machine named
+  printf '%s\n' "VERSION_RE='.*'" >> "$D/release.env"
+  registry "$label"; healthy "$label"
+  do_release
+  equal "«$label» with VERSION_RE='.*': exits with 1" 1 "$EXIT_CODE"
+  contains "«$label» with VERSION_RE='.*': refused" "$OUT" "version label is not a version"
+  lacks "«$label» with VERSION_RE='.*': nothing started" grep -q " up " "$FAKE_CALLS"
+done
+machine named
+printf '%s\n' "VERSION_RE='^(unclosed'" >> "$D/release.env"
+registry 0.1.5; healthy 0.1.5
+do_release
+equal "a VERSION_RE that is not an expression: exits with 1" 1 "$EXIT_CODE"
+
 title "release.sh: the version label must look like a version"
 for label in 'v1' 'v2026.01.01;rm -rf /' '../../etc' '0.1' '1.2.3.4' '0.1.4-rc1' '0.1.4 ' 'latest' ''; do
   machine label

@@ -824,6 +824,84 @@ class Report(Guard, TestCase):
         self.assertEqual(osm.fit(["short", "text"]), "short\ntext")
 
 
+class OtherPlaces(Guard, TestCase):
+    """A shop with several branches (ShopPlace): the elements of its other places are the shop, not strangers."""
+
+    def run_it(self, *elements, **more):
+        found, skipped = osm.parse(osm.load(fake_overpass(*elements)))
+        return osm.synchronize(config(**more), found, skipped)
+
+    def school(self, **place):
+        from .models import ShopPlace
+        owner = shop("Driving School Rossi", osm_ref="node/1", lightning_worked=day(days=2), discount=10)
+        return owner, ShopPlace.objects.create(shop=owner, address="Side road 90", city="Southvillage",
+                                               latitude=41.95, longitude=12.55, **place)
+
+    BRANCH = {"lat": 41.9501, "lon": 12.55, "currency:XBT": "yes"}
+
+    def test_an_element_with_the_shops_name_at_a_place_is_listed_for_the_association(self):
+        owner, place = self.school()
+        other = shop("Driving School Rossi Two", latitude=41.9502, longitude=12.55)
+        report = self.run_it(node(1, "Driving School Rossi", **{"currency:XBT": "yes"}),
+                             node(2, "Driving School Rossi", **self.BRANCH),
+                             node(3, "Bakery", lat=41.9501, lon=12.5501, **{"currency:XBT": "yes"}))
+        self.assertEqual([(item["shop"], item["ref"], item["place"], item["metres"]) for item in report["place_links"]],
+                         [(str(owner.pk), "node/2", "Side road 90, Southvillage", 11)])
+        # Nothing is linked by the reading; the element is no stranger that takes bitcoin, and no other shop's match
+        place.refresh_from_db(), other.refresh_from_db()
+        self.assertEqual((place.osm_ref, other.osm_proposed), ("", ""))
+        self.assertEqual([item["ref"] for item in report["candidates"]], ["node/3"])
+        self.assertEqual(report["link_proposals"] + report["suggested"] + report["ambiguous"] + report["unsure"], [])
+        self.assertIn("node/2 (Driving School Rossi)", "\n".join(osm.report_lines(report)))
+
+    def test_a_doubt_lists_nothing(self):
+        from .models import ShopPlace
+        owner, place = self.school()
+        # Two elements at one place; then one element between two places
+        report = self.run_it(node(1, "Driving School Rossi"), node(2, "Driving School Rossi", **self.BRANCH),
+                             node(3, "Driving School Rossi", lat=41.9502, lon=12.55))
+        self.assertEqual(report["place_links"], [])
+        ShopPlace.objects.create(shop=owner, city="Twin", latitude=41.9502, longitude=12.55)
+        self.assertEqual(self.run_it(node(1, "Driving School Rossi"), node(2, "Driving School Rossi", **self.BRANCH))["place_links"], [])
+        # Another name, too far, or at the shop's own position while the shop has no link yet
+        report = self.run_it(node(1, "Driving School Rossi"), node(2, "Pharmacy", **self.BRANCH),
+                             node(4, "Driving School Rossi", lat=41.97, lon=12.55))
+        self.assertEqual(report["place_links"], [])
+        alone = shop("Garage Verdi")
+        ShopPlace.objects.create(shop=alone, city="Next door", latitude=41.9001, longitude=12.5)
+        report = self.run_it(node(1, "Driving School Rossi"), node(7, "Garage Verdi", lat=41.9001))
+        self.assertEqual(report["place_links"], [])
+        self.assertEqual([item["name"] for item in report["link_proposals"]], ["Garage Verdi"])
+
+    def test_a_linked_place_gets_the_shops_proposals_apart_from_the_shops_own(self):
+        owner, place = self.school(osm_ref="node/2")
+        report = self.run_it(node(1, "Driving School Rossi", **{"currency:XBT": "yes", "payment:lightning": "yes"}),
+                             node(2, "Rossi branch", **{"lat": 41.9501, "lon": 12.55}))
+        item, = report["place_proposals"]
+        self.assertEqual((item["shop"], item["ref"], item["place"]), (str(owner.pk), "node/2", "Side road 90, Southvillage"))
+        self.assertIn(("currency:XBT", None, "yes"), [(change["tag"], change["old"], change["new"]) for change in item["changes"]])
+        self.assertNotIn("node/2", [found["ref"] for found in report["proposals"]])
+        self.assertEqual(report["place_links"] + report["candidates"], [])
+        self.assertIn("Changes proposed for the other places", "\n".join(osm.report_lines(report)))
+        # Gone from OpenStreetMap: said, as for a shop
+        report = self.run_it(node(1, "Driving School Rossi"))
+        self.assertEqual([(found["ref"], found["place"]) for found in report["place_missing"]], [("node/2", "Side road 90, Southvillage")])
+
+    def test_an_element_is_one_place(self):
+        from django.core.exceptions import ValidationError
+        from django.db import IntegrityError, transaction
+        from .models import ShopPlace
+        owner, place = self.school(osm_ref="node/2")
+        with self.assertRaises(ValidationError):
+            ShopPlace(shop=owner, latitude=1, longitude=1, osm_ref="node/1").full_clean()  # the shop's own entry
+        with self.assertRaises(ValidationError):
+            ShopPlace(shop=owner, latitude=1, longitude=1, osm_ref="nodes/9").full_clean()
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            ShopPlace.objects.create(shop=owner, latitude=1, longitude=1, osm_ref="node/2")
+        ShopPlace.objects.create(shop=owner, latitude=1, longitude=1)
+        ShopPlace.objects.create(shop=owner, latitude=2, longitude=2)  # not linked: as many as there are
+
+
 class Requests(SimpleTestCase):
     """The requests: the same protections as the other servers the site does not control."""
 

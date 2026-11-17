@@ -162,7 +162,7 @@ class ApprovedByWhoeverBringsThem(TestCase):
             response = self.client.get("/admin/shops/shop/add/")
             form = response.context["adminform"].form
             data = {name: value for name, value in form.initial.items() if value is not None and not callable(value)}
-            data.update({"name": "Written", "discount": 0, "closures-TOTAL_FORMS": 0, "closures-INITIAL_FORMS": 0})
+            data.update({"name": "Written", "discount": 0, "closures-TOTAL_FORMS": 0, "closures-INITIAL_FORMS": 0, "places-TOTAL_FORMS": 0, "places-INITIAL_FORMS": 0})
             self.client.post("/admin/shops/shop/add/", data)
         shop = Shop.objects.get(name="Written")
         self.assertEqual(shop.approved_by, "boss")

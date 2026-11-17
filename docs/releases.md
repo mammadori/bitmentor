@@ -23,8 +23,8 @@ Nothing is built on a production machine: it installs images that have already b
   change nothing for a community that writes no such block.
 
 On the machine, in `/opt/<project>`: the stack's `.env`, `release.env` (`PROJECT`, `SITE`, `WEB_IMAGE_REPO`,
-`CADDY_IMAGE_REPO`, `TAG`, usually `active`, and on production `WEB_DIGEST` and `CADDY_DIGEST`: [Pinning the images by
-digest](#pinning-the-images-by-digest)), `alerts.env` (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_IDS`, and
+`CADDY_IMAGE_REPO`, `TAG`, usually `active`, on production `WEB_DIGEST` and `CADDY_DIGEST`, and `VERSION_RE` for
+whoever names the versions of their own images: [Pinning the images by digest](#pinning-the-images-by-digest)), `alerts.env` (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_IDS`, and
 `TELEGRAM_CHAT_IDS_BEFORE` for the chats that get the alerts alone until the site has been in `production` for a week),
 an optional `compose.locale.yml`; then the scripts in `bin/` and the units of `deploy/systemd` in `/etc/systemd/system`:
 
@@ -73,6 +73,11 @@ CADDY_DIGEST=sha256:<64 lowercase hex>
 - The version label of the image (the `VERSION` build argument) must be a version, with or without digests: a release
   of the source, `0.1.4` or `v0.1.4`, or a build named after its day, `v2026.11.10` or `v2026.11.10-2`. Otherwise
   `release.sh` refuses it: the label becomes the name of a folder on the machine.
+- **Your own names.** Whoever builds images of their own can name the versions otherwise: `VERSION_RE` in
+  `release.env` is the bash regular expression a version must match, in place of the two shapes above. For example
+  `VERSION_RE='^[0-9]+\.[0-9]+\.[0-9]+-mine\.[0-9]+$'` takes `0.1.5-mine.2`, the second build of yours on bitmentor
+  0.1.5. Whatever it says, a version is made of letters, digits, dots, dashes and underscores, starts with a letter or
+  a digit, has no two dots in a row and is 64 characters at most.
 - **Without digests**, `release.sh` refuses when the `.env` says `SITE_MODE=production` or `NETWORK=mainnet`: there a
   moved tag reaches real money, and the release is done by hand anyway, so writing two more lines costs nothing. On
   test and development machines it pulls by tag and writes a warning, so that a machine that follows `active` keeps

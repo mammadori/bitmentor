@@ -239,13 +239,13 @@ function site(shop) {
   }
 }
 
-function popup(shop) {
+function popup(shop, place = shop) {
   const box = document.createElement("div");
   const name = document.createElement("a");
   name.href = card(shop);
   name.textContent = shop.name;
   const details = document.createElement("p");
-  details.textContent = shop.address || shop.city;
+  details.textContent = place.address || place.city;
   box.append(name, details);
   const web = site(shop);
   if (web) {
@@ -270,7 +270,15 @@ function popup(shop) {
   return box;
 }
 
-const spot = (shop) => [shop.latitude, shop.longitude];
+// A shop with several branches is one shop, with one line in the list and a pin for each place: its own position
+// first, then the others (`places` of /shops.json). From a point, the shop is where its closest place is
+const point = (place) => [place.latitude, place.longitude];
+const spots = (shop) => [shop, ...(shop.places || [])];
+const closest = (shop) => (from && shop.places
+  ? spots(shop).reduce((best, place) => (from.distanceTo(point(place)) < from.distanceTo(point(best)) ? place : best))
+  : shop);
+const spot = (shop) => point(closest(shop));
+const towns = (shop) => [...new Set(spots(shop).map((place) => place.city).filter(Boolean))].join(", ");
 
 // Pins just outside the visible part stay in the page and Tab reaches them: the map brings them into view. After a
 // frame, because Leaflet resets the scrolling the browser does to show the focus
@@ -287,8 +295,8 @@ element.addEventListener("focusin", (event) => {
 // From the keyboard Enter on a pin opens the popup: focus enters it, and when it closes, with Esc or with the cross,
 // it returns to the pin. On its own Leaflet leaves focus on the pin, after the popup in Tab order, and closes
 // with Esc only if focus is on the container. The popup is built when it opens, not for all shops at load.
-function marker(shop) {
-  const pin = L.marker(spot(shop), { icon: icon(shop) }).bindPopup(() => popup(shop));
+function marker(shop, place = shop) {
+  const pin = L.marker(point(place), { icon: icon(shop) }).bindPopup(() => popup(shop, place));
   pin.on("popupopen", ({ popup: box }) => box.getElement().querySelector("a")?.focus({ preventScroll: true }));
   pin.on("popupclose", ({ popup: box }) => {
     const focus = document.activeElement;
@@ -323,8 +331,11 @@ function entry(shop) {
   const name = document.createElement("strong");
   name.textContent = shop.name;
   const place = document.createElement("span");
-  place.textContent = (from ? [metres(from.distanceTo(spot(shop))), shop.address || shop.city] : [shop.city, shop.address])
-    .filter(Boolean).join(" · ");
+  const near = closest(shop);
+  const { address, city } = near;
+  // Several places: their towns, or from a point the closest one; the address of one alone would hide the others
+  place.textContent = (from ? [metres(from.distanceTo(point(near))), address || city]
+    : shop.places ? [towns(shop)] : [shop.city, shop.address]).filter(Boolean).join(" · ");
   link.append(name, place);
   const signs = marks(shop);
   if (signs) link.append(signs);
@@ -363,12 +374,13 @@ function render(wait = 0, later = false) {
   const onlyDiscount = $("shop-discount").checked;
   const onlyLightning = $("shop-lightning").checked;
   visible = shops.filter((shop) => {
-    const text = plain(`${shop.name} ${shop.city} ${shop.address || ""} ${shop.description}`);
+    const where = spots(shop).map((place) => `${place.city} ${place.address || ""}`).join(" ");
+    const text = plain(`${shop.name} ${where} ${shop.description}`);
     return (!onlyDiscount || shop.discount) && (!onlyLightning || (shop.lightning && !historic(shop))) && text.includes(query)
       && words.every((box) => !box.checked || new RegExp(`\\b(${box.dataset.words.split(" ").join("|")})\\b`).test(text));
   });
   cluster.clearLayers();
-  cluster.addLayers(visible.map(marker));
+  cluster.addLayers(visible.flatMap((shop) => spots(shop).map((place) => marker(shop, place))));
   const filtered = query || onlyDiscount || onlyLightning || words.some((box) => box.checked);
   // Outside the fetch an error of the list would not reach its catch: it says so here, as the catch would
   if (later) setTimeout(() => { try { if (mine === turn) list(filtered, wait); } catch { say(failed); } });

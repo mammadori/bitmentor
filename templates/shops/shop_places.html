@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% load i18n l10n static %}
+{% block head %}<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a> <a href="{% url 'edit_shop' shop.id %}">{{ shop.name }}</a></nav>
+<header class="page-head"><h1>{% translate "The other places of your shop" %}</h1>
+<p>{% translate "A shop with several branches is one shop here: one register, one Lightning address, and a point on the map for each place. The first place is the shop's own position, which you change with its details." %}</p></header>
+{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+{% if places %}<ul id="places" class="facts">{% for place in places %}<li>{{ place }}
+  <form method="post" class="inline">{% csrf_token %}<button class="linklike" name="remove" value="{{ place.pk }}">{% translate "Remove" %}</button></form></li>{% endfor %}</ul>
+{% else %}<p class="muted">{% translate "No other place yet." %}</p>{% endif %}
+{% if full %}<p class="notice" role="status">{% translate "This shop has the most places it can have: remove one to add another." %}</p>
+{% else %}<h2>{% translate "Add a place" %}</h2>
+<form method="post" class="shop-form" data-saving="{% translate 'Saving...' %}">{% csrf_token %}
+  {% if form.errors %}<p class="notice form-alert" role="alert">{% translate "Something needs fixing: look at the messages in red." %}</p>{% endif %}
+  {{ form.non_field_errors }}
+  <fieldset><legend>{% translate "Where it is" %}</legend>
+    {{ form.address.as_field_group }}{{ form.city.as_field_group }}
+    <p class="pick-tools"><button type="button" id="pick-here" class="button button-quiet" data-denied="{% translate 'I cannot read your position: touch the place on the map.' %}" data-searching="{% translate 'Looking for your position...' %}">{% translate "I am there: use my position" %}</button></p>
+    <div id="pick-map" class="pick-map" aria-describedby="pick-status" data-label="{% translate 'Map' %}" data-zoom-in="{% translate 'Zoom in' %}" data-zoom-out="{% translate 'Zoom out' %}" data-library="{% translate 'A JavaScript library for interactive maps' %}" data-lat="{% if shop.latitude is not None %}{{ shop.latitude|unlocalize }}{% else %}{{ community.map.latitude|unlocalize }}{% endif %}" data-lon="{% if shop.longitude is not None %}{{ shop.longitude|unlocalize }}{% else %}{{ community.map.longitude|unlocalize }}{% endif %}" data-zoom="{{ community.map.zoom }}" data-chosen="{% translate 'Position chosen. Touch the map to move it.' %}"></div>
+    <p id="pick-status" class="muted" role="status">{% translate "Touch the place on the map." %}</p>
+    <details{% if form.latitude.errors or form.longitude.errors %} open{% endif %}><summary>{% translate "Type the coordinates" %}</summary>
+      {{ form.latitude.as_field_group }}{{ form.longitude.as_field_group }}
+    </details>
+  </fieldset>
+  <button class="button" type="submit">{% translate "Add this place" %}</button></form>
+<script src="{% static 'vendor/leaflet/leaflet.js' %}"></script>
+<script src="{% static 'shop_form.js' %}"></script>{% endif %}
+{% endblock %}

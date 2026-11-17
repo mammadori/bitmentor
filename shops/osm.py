@@ -45,7 +45,7 @@ from config.community import community, localized
 from . import certified, details
 from .directory import metres_between, waits_for_wallet
 from .forms import PRIVATE_NAMES
-from .models import OSM_REF, OsmRun, Shop, is_demo, real
+from .models import OSM_REF, OsmRun, Shop, ShopPlace, is_demo, real
 
 # The tags that tell OpenStreetMap a place takes bitcoin: any element with one of them is read
 BITCOIN_KEYS = ("currency:XBT", "payment:bitcoin", "payment:lightning", "payment:onchain")
@@ -939,6 +939,59 @@ def wanted_tags(shop, config, today):
 
 # --- One reading ------------------------------------------------------------------------------------------------------
 
+def other_places(shops, elements, by_ref, taken, config, report):
+    """The other places of the shops with several branches (ShopPlace). A place linked by the association
+    (`ShopPlace.osm_ref`) takes its element: it is the shop, not a stranger that takes bitcoin, and never another shop's
+    match. For a place not linked, the one element with the shop's name close to it is listed for the association to
+    write in /admin/: nothing is linked by the reading. Adds the elements to `taken`, writes `place_missing` and
+    `place_links` in the report, and returns the linked (shop, place, element) that were read whole."""
+    by_pk = {shop.pk: shop for shop in shops}
+    pairs, open_places = [], []
+    for place in ShopPlace.objects.filter(shop_id__in=list(by_pk)).order_by("shop_id", "pk"):
+        shop = by_pk[place.shop_id]
+        if not place.osm_ref:
+            open_places.append((shop, place))
+        elif place.osm_ref in by_ref:
+            taken.add(place.osm_ref)
+            if not by_ref[place.osm_ref].unreliable:
+                pairs.append((shop, place, by_ref[place.osm_ref]))
+        else:
+            report["place_missing"].append({"shop": str(shop.pk), "name": shop.name[:120], "ref": place.osm_ref,
+                                            "place": str(place)[:120]})
+    options = {}
+    for shop, place in open_places:
+        if not shop.name.strip():
+            continue
+        here = (place.latitude, place.longitude)
+        for element in elements:
+            if element.ref in taken or element.unreliable or element.position is None:
+                continue
+            metres = metres_between(here, element.position)
+            if metres > config.metres:
+                continue
+            # An element at the shop's own position is the shop's to match, not a place's
+            own = distance(shop, element)
+            if not shop.osm_ref and own is not None and own <= config.metres:
+                continue
+            alike = best_similarity(shop, element)
+            if alike >= config.similarity:
+                options.setdefault(place.pk, []).append((shop, place, element, alike, metres))
+    wanted = {}
+    for found in options.values():
+        for option in found:
+            wanted.setdefault(option[2].ref, []).append(option)
+    for found in options.values():
+        # Beyond doubt only: one element for the place, one place for the element
+        if len(found) == 1 and len(wanted[found[0][2].ref]) == 1:
+            shop, place, element, alike, metres = found[0]
+            taken.add(element.ref)
+            report["place_links"].append(view(shop, element, place=str(place)[:120],
+                                              osm_name=element.names[0][:120] if element.names else "",
+                                              similarity=round(alike, 2), metres=round(metres)))
+    report["place_links"].sort(key=lambda item: (item["name"].lower(), item["ref"]))
+    return pairs
+
+
 def view(shop, element, **more):
     return {"shop": str(shop.pk), "name": shop.name[:120], "ref": element.ref, **more}
 
@@ -956,7 +1009,9 @@ def synchronize(config, elements, skipped=0, now=None, apply=True, previous=None
     report = {"version": 2, "created": now.isoformat(), "area": list(config.bbox), "elements": len(elements), "skipped": skipped,
               "unreliable_elements": sum(1 for element in elements if element.unreliable), "link_proposals": [], "suggested": [],
               "waiting_links": 0, "filled": [], "offers": [], "missing": [], "unreliable": [], "ambiguous": [], "unsure": [],
-              "candidates": [], "new_candidates": [], "osm_says_no": [], "newer_on_osm": [], "proposals": [], "not_on_osm": 0}
+              "candidates": [], "new_candidates": [], "osm_says_no": [], "newer_on_osm": [], "proposals": [], "not_on_osm": 0,
+              # The other places of the shops with several branches (ShopPlace)
+              "place_links": [], "place_missing": [], "place_proposals": []}
 
     pairs = {}
     free = []
@@ -979,6 +1034,7 @@ def synchronize(config, elements, skipped=0, now=None, apply=True, previous=None
                 Shop.objects.filter(pk=shop.pk, osm_proposed=shop.osm_proposed).update(osm_proposed="")
         free.append(shop)
     taken = {shop.osm_ref for shop in shops if shop.osm_ref} | waiting
+    place_pairs = other_places(shops, elements, by_ref, taken, config, report)
     matches = match(free, [element for element in elements if element.ref not in taken], config)
 
     for shop, element, alike, metres in matches.safe:
@@ -1030,6 +1086,13 @@ def synchronize(config, elements, skipped=0, now=None, apply=True, previous=None
             # our registers. For a shop we closed: still yes after the day we closed it
             if accepts(element) and theirs is not None and (ours is None or theirs > ours):
                 report["newer_on_osm"].append(view(shop, element, **item))
+    # The element of another place of a shop says what the shop's own says: the same tags, proposed for it too. They are
+    # listed apart: osm_upload sends only the shops' own
+    for shop, place, element in place_pairs:
+        found = changes_for(shop, element, config, today)
+        if found:
+            report["place_proposals"].append(view(shop, element, place=str(place)[:120], changes=[
+                {"tag": tag, "old": old, "new": new, "kind": kind} for tag, old, new, kind in found]))
     if apply and seen:
         Shop.objects.filter(pk__in=seen).update(osm_seen=now)
     report["not_on_osm"] = sum(1 for shop in shops if shop.pk not in pairs and (standing(shop, today) or ("",))[0] == "yes")
@@ -1293,6 +1356,20 @@ def report_lines(report):
         lines += ["", "Possible, but far or without a position, never linked:"]
         for item in report["unsure"]:
             lines.append(f"  {item['name']}  {item['ref']} ({item['osm_name']})  {item['why']}")
+    if report.get("place_links"):
+        lines += ["", "Other places of a shop that look like an element (write it on the place, in the shop's page of /admin/):"]
+        lines += [f"  {item['name']}, {item['place']}  {item['ref']} ({item['osm_name']})  similarity={item['similarity']} "
+                  f"metres={item['metres']}" for item in report["place_links"]]
+    if report.get("place_missing"):
+        lines += ["", "Other places linked, not found on OpenStreetMap:"]
+        lines += [f"  {item['name']}, {item['place']}  {item['ref']}" for item in report["place_missing"]]
+    if report.get("place_proposals"):
+        lines += ["", "Changes proposed for the other places of a shop (for a person to make by hand; osm_upload does not send them):"]
+        for item in report["place_proposals"]:
+            lines.append(f"  {item['name']}, {item['place']}  {item['ref']}")
+            for change in item["changes"]:
+                lines.append(f"    {change['tag']}: {change['old'] if change['old'] is not None else '(missing)'} -> "
+                             f"{change['new'] if change['new'] is not None else '(remove)'}" + ("   [needs judgement]" if change["kind"] == REVIEW else ""))
     if report.get("proposals"):
         lines += ["", "Changes proposed for OpenStreetMap (osm_upload sends them, by hand):"
                   if features.enabled(features.OSM_UPLOAD) else

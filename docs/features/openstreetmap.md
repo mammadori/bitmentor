@@ -79,6 +79,24 @@ openstreetmap.org). Two shops never share an element.
   link in `/admin/` if they agree. `auto_link: false` makes every match only a suggestion in the report.
   `/admin/today/` has a line while links wait for confirmation.
 
+## A shop with several places
+
+A shop with several branches is one shop with a point on the map for each place
+([the features](README.md)); on OpenStreetMap each branch is an element of its own. The shop's link (`Shop.osm_ref`)
+is the element of its own position. Each other place can have its link too, written by the association on the place,
+in the shop's page of `/admin/` («other places»); never by the owner.
+
+- **Linked**, the element is the shop: it is not listed among the strangers that take bitcoin, it is never proposed as
+  another shop's match, and the reading prepares for it the same tags as for the shop's own element. Those changes are
+  listed apart in the report, for a person to make by hand: `osm_upload` sends only the shops' own.
+- **Not linked**, the reading looks for it: one element with the shop's name (`name_similarity`) within
+  `distance_metres` of the place, and no other that fits, is listed in the report for the association to write on the
+  place. Nothing is linked by the reading, and a doubt (two elements at a place, one element between two places)
+  lists nothing.
+- A linked element that is gone from OpenStreetMap is said in the report, as for a shop.
+
+The reading fills nothing on a place: its address, town and position are the owner's.
+
 ## What the reading does
 
 `manage.py osm_sync` asks Overpass for every element in the area with `currency:XBT`, `payment:bitcoin`,
@@ -233,7 +251,9 @@ only (no server is asked while it loads):
   carried to the next summary that goes out: a summary that did not go out, or a reading made by hand without `--send`,
   never takes its news with it.
 - Each month: read the message, open the report in `/admin/shops/osmrun/`, confirm or refuse the links proposed, accept
-  or decline the contacts offered, link in `/admin/` the doubtful ones that are right. The tags the report proposes
+  or decline the contacts offered, link in `/admin/` the doubtful ones that are right, and write on the other places of
+  a shop the elements the report lists for them ([A shop with several places](#a-shop-with-several-places)). The tags
+  the report proposes
   are then changed by hand on openstreetmap.org, or, with `osm_upload` turned on, sent with
   `read -rs OSM_TOKEN; export OSM_TOKEN` and `docker compose exec -e OSM_TOKEN web python manage.py osm_upload`.
 

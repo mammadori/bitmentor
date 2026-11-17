@@ -21,9 +21,14 @@ if (element && window.L) {
   // the Tab order (keyboard: false) rather than being a key with no name
   const { historic } = element.dataset;
   const CLOCK = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg>';
-  L.marker(position, historic === undefined
+  const pin = () => (historic === undefined
     ? { icon: L.divIcon({ className: "pin", iconSize: [18, 18] }), keyboard: false }
-    : { icon: L.divIcon({ className: "pin pin-historic", html: CLOCK, iconSize: [22, 22] }), title: historic, keyboard: false }).addTo(map);
+    : { icon: L.divIcon({ className: "pin pin-historic", html: CLOCK, iconSize: [22, 22] }), title: historic, keyboard: false });
+  L.marker(position, pin()).addTo(map);
+  // A shop with several branches: a pin for each of the other places, and the map wide enough for all of them
+  const others = (element.dataset.places || "").split(";").filter(Boolean).map((text) => text.split(",").map(Number));
+  others.forEach((place) => L.marker(place, pin()).addTo(map));
+  if (others.length) map.fitBounds(L.latLngBounds([position, ...others]), { maxZoom: 15, padding: [24, 24] });
 
   // With the position, OpenStreetMap draws the route at once; without it, it only asks where to start from
   const route = document.getElementById("shop-route");

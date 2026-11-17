@@ -4,7 +4,7 @@
 <nav class="crumbs"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a></nav>
 <header class="page-head"><h1>{{ shop.name }}</h1>
 <p class="notice">{% translate "Never enter your seed phrase or a private key here." %}</p>
-<p><a href="{% url 'shop_display' shop.id %}">{% translate "Choose what customers see" %}</a></p></header>
+<p><a href="{% url 'shop_display' shop.id %}">{% translate "Choose what customers see" %}</a> · <a href="{% url 'shop_places' shop.id %}">{% translate "More than one place? Add the others" %}</a></p></header>
 <form method="post" class="shop-form" data-saving="{% translate 'Saving...' %}">{% csrf_token %}{% include "shops/shop_fields.html" %}<button class="button" type="submit">{% translate "Save" %}</button></form>
 <h2>{% translate "Where the money goes" %}</h2>
 {% if needs_wallet %}<p>{% if waits_for_wallet %}{% translate "No wallet yet: your shop is not on the map and has no register." %}{% else %}{% translate "No register: payments for this shop are not set up on this site." %}{% endif %} <a href="{% url 'wallet_steps' shop.id %}">{% translate "Add the wallet" %}</a></p>

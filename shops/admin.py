@@ -16,7 +16,7 @@ from . import approval, certified, details, guard, osm
 from .forms import ShopAdminForm
 from .guard import CHANNELS, RECENT, VIA, words
 from .lightning_watch import BROKEN
-from .models import AccountChange, Closure, Declaration, HelpRequest, LightningStatus, OsmRequest, OsmRun, Shop, Trainee
+from .models import AccountChange, Closure, Declaration, HelpRequest, LightningStatus, OsmRequest, OsmRun, Shop, ShopPlace, Trainee
 
 
 class LightningFilter(admin.SimpleListFilter):
@@ -94,6 +94,15 @@ class VatFilter(admin.SimpleListFilter):
         return queryset
 
 
+class PlaceInline(admin.TabularInline):
+    """The other places of a shop with several branches (ShopPlace): one shop and one register, a point on the map for
+    each. The shop's own position is the first."""
+    model = ShopPlace
+    extra = 0
+    max_num = ShopPlace.MAX
+    fields = ("address", "city", "latitude", "longitude", "osm_ref")
+
+
 class ClosureInline(admin.TabularInline):
     """Closed for a while (shops/vacation.py): the association writes it for a merchant who phones. The first day may be in
     the past; the shop says it is closed until the day it opens again, and nothing else changes: the register keeps
@@ -120,7 +129,7 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
                        "moved_register", "awaiting_wallet", "osm_seen", "osm_page", "osm_proposal", "osm_offered", "osm_history")
     actions = ("approve_shops", "approve_private_part", "revoke_private_part", "revoke_certificate", "allow_certificate", "show_contacts", "hide_contacts", "confirm_osm_link",
                "reject_osm_link", "accept_osm_contacts", "decline_osm_contacts")
-    inlines = (ClosureInline,)
+    inlines = (PlaceInline, ClosureInline)
     # What the community's `features` block (config/features.py) takes away from the administration. The data stays in
     # the database; the page just does not show a feature that is off. The Closures table is never hidden here (a closure written before can still keep the alarms quiet until its day, and the association must be able
     # to shorten or remove it)

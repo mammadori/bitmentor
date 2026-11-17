@@ -433,6 +433,43 @@ def staff_key():
     return secrets.token_urlsafe(24)
 
 
+class ShopPlace(models.Model):
+    """One more place of a shop: a business with several branches is one shop, with one owner, one register and one
+    Lightning address, and a point on the map for each branch. The shop's own position (`Shop.latitude`,
+    `Shop.longitude`, with its address and town) is the first place and stays where it was; these are the others. A
+    place decides nothing about where the money goes."""
+    # More than this is a list of shops, not a shop
+    MAX = 20
+
+    shop = models.ForeignKey("Shop", on_delete=models.CASCADE, related_name="places")
+    address = models.CharField(_("address"), max_length=200, blank=True)
+    city = models.CharField(_("city"), max_length=100, blank=True)
+    latitude = models.FloatField(_("latitude"), validators=[MinValueValidator(-90), MaxValueValidator(90)])
+    longitude = models.FloatField(_("longitude"), validators=[MinValueValidator(-180), MaxValueValidator(180)])
+    created = models.DateTimeField(auto_now_add=True)
+    # The place's own entry on OpenStreetMap, as Shop.osm_ref is the shop's: set by the association in /admin/, never by
+    # the owner. With it the reading knows that element is this shop, and proposes for it what it proposes for the shop
+    osm_ref = models.CharField(_("OpenStreetMap element"), max_length=30, blank=True, default="", db_default="", validators=[
+        RegexValidator(OSM_REF, _("Write it like node/123456, way/123456 or relation/123456."))],
+        help_text=_("This place's entry on OpenStreetMap, like node/123456. Empty: not linked."))
+
+    class Meta:
+        ordering = ["pk"]
+        verbose_name = _("other place")
+        verbose_name_plural = _("other places")
+        constraints = [models.UniqueConstraint(fields=["osm_ref"], condition=~models.Q(osm_ref=""), name="unique_place_osm_ref")]
+
+    def clean(self):
+        super().clean()
+        from django.core.exceptions import ValidationError
+        # One element is one place: not also a shop's own entry (the constraint keeps two places apart)
+        if self.osm_ref and Shop.objects.filter(osm_ref=self.osm_ref).exists():
+            raise ValidationError({"osm_ref": _("This element is already the entry of a shop.")})
+
+    def __str__(self):
+        return ", ".join(part for part in (self.address, self.city) if part) or f"{self.latitude:.5f}, {self.longitude:.5f}"
+
+
 class StaffRegister(models.Model):
     """A register the owner gives to one person who works with them: its own link, its own name, turned off alone.
 

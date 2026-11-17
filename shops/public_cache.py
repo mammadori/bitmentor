@@ -6,7 +6,7 @@ fifth of a second; a burst of requests would hold every worker. What is cached i
 links and the sentences change with it), for PUBLIC_LIST_SECONDS: never the page around the map, which says who is
 signed in.
 
-Saving or deleting a shop, a closure or a trainee changes the generation once the transaction commits (`changed`), so
+Saving or deleting a shop, one of its other places, a closure or a trainee changes the generation once the transaction commits (`changed`), so
 the next request builds the body again,
 except a shop saved with `update_fields` that are all in NOT_PUBLIC (the guardian's probes, the ticks of the first day),
 or marked with `same_list` (a probe that moves the last time the address worked within the same day). So does a Shop
@@ -99,8 +99,8 @@ def renew():
 
 
 def connect():
-    from .models import Closure, Shop, Trainee
+    from .models import Closure, Shop, ShopPlace, Trainee
 
-    for model in (Shop, Closure, Trainee):
+    for model in (Shop, ShopPlace, Closure, Trainee):
         post_save.connect(saved, sender=model, dispatch_uid=f"public-shops-save-{model.__name__}")
         post_delete.connect(changed, sender=model, dispatch_uid=f"public-shops-delete-{model.__name__}")

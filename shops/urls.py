@@ -20,6 +20,7 @@ urlpatterns = [
     path("first-day/<uuid:shop>/", views.first_day_tick, name="first_day"),
     path("lightning/<uuid:shop>/", views.lightning_retry, name="lightning_retry"),
     path("edit/<uuid:shop>/", views.edit_shop, name="edit_shop"),
+    path("places/<uuid:shop>/", views.shop_places, name="shop_places"),
     path("lightning-address/<uuid:shop>/", address_change.change, name="change_address"),
     path("preview/<uuid:shop>/", views.shop_display, name="shop_display"),
     path("connect/<uuid:shop>/", views.wallet_steps, name="connect_wallet"),

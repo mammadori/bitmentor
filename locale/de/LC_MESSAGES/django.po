@@ -6280,3 +6280,61 @@ msgstr "Wenn Sie es nicht waren, melden Sie sich an und prüfen Sie die Wallets 
 
 msgid "This email is the only way into this account: it cannot be removed."
 msgstr "Diese E-Mail ist der einzige Weg in dieses Konto: sie kann nicht entfernt werden."
+
+msgid "More than one place? Add the others"
+msgstr "Mehr als ein Standort? Fügen Sie die anderen hinzu"
+
+msgid "The other places of your shop"
+msgstr "Die anderen Standorte Ihres Geschäfts"
+
+msgid "A shop with several branches is one shop here: one register, one Lightning address, and a point on the map for each place. The first place is the shop's own position, which you change with its details."
+msgstr "Ein Geschäft mit mehreren Standorten ist hier ein einziges Geschäft: eine Kasse, eine Lightning-Adresse und ein Punkt auf der Karte für jeden Standort. Der erste Standort ist die Position des Geschäfts, die Sie mit seinen Angaben ändern."
+
+msgid "Remove"
+msgstr "Entfernen"
+
+msgid "No other place yet."
+msgstr "Noch kein weiterer Standort."
+
+msgid "This shop has the most places it can have: remove one to add another."
+msgstr "Dieses Geschäft hat die Höchstzahl an Standorten: entfernen Sie einen, um einen anderen hinzuzufügen."
+
+msgid "Add a place"
+msgstr "Einen Standort hinzufügen"
+
+msgid "Where it is"
+msgstr "Wo er ist"
+
+msgid "I am there: use my position"
+msgstr "Ich bin dort: meine Position verwenden"
+
+msgid "Touch the place on the map."
+msgstr "Tippen Sie auf den Ort auf der Karte."
+
+msgid "Add this place"
+msgstr "Diesen Standort hinzufügen"
+
+msgid "Also here"
+msgstr "Auch hier"
+
+#, python-format
+msgid "This shop has %(count)s other places, the most it can have."
+msgstr "Dieses Geschäft hat %(count)s weitere Standorte, die Höchstzahl."
+
+msgid "Place added: it is a point of your shop on the map."
+msgstr "Standort hinzugefügt: er ist ein Punkt Ihres Geschäfts auf der Karte."
+
+msgid "Write the address or the town of this place."
+msgstr "Geben Sie die Adresse oder den Ort dieses Standorts an."
+
+msgid "other place"
+msgstr "weiterer Standort"
+
+msgid "other places"
+msgstr "weitere Standorte"
+
+msgid "This place's entry on OpenStreetMap, like node/123456. Empty: not linked."
+msgstr "Der Eintrag dieses Standorts auf OpenStreetMap, wie node/123456. Leer: nicht verknüpft."
+
+msgid "This element is already the entry of a shop."
+msgstr "Dieses Element ist bereits der Eintrag eines Geschäfts."

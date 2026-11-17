@@ -346,7 +346,7 @@ class Administration(Base):
         shop = Shop.objects.get(pk=self.shop.pk)
         data = {"name": shop.name, "description": "", "address": "", "city": shop.city, "latitude": "41.9", "longitude": "12.5", "website": "",
                 "email": "", "phone": "", "discount": "10", "listed": "on", "nostr_pubkey": "", "nip05_name": "", "telegram_chat": "",
-                "owner": shop.owner_id, "external_id": "", "osm_ref": "", "closures-TOTAL_FORMS": "0", "closures-INITIAL_FORMS": "0",
+                "owner": shop.owner_id, "external_id": "", "osm_ref": "", "closures-TOTAL_FORMS": "0", "closures-INITIAL_FORMS": "0", "places-TOTAL_FORMS": "0", "places-INITIAL_FORMS": "0",
                 "closures-MIN_NUM_FORMS": "0", "closures-MAX_NUM_FORMS": "1000", **more}
         return self.staff.post(url, data)
 
@@ -655,7 +655,7 @@ class ConfirmLinks(Base):
         shop = self.shop
         data = {"name": shop.name, "description": "", "address": "", "city": shop.city, "latitude": "41.9", "longitude": "12.5", "website": "",
                 "email": "", "phone": "", "discount": "10", "listed": "on", "nostr_pubkey": "", "nip05_name": "", "telegram_chat": "",
-                "owner": shop.owner_id, "external_id": "", "osm_ref": "node/12", "closures-TOTAL_FORMS": "0", "closures-INITIAL_FORMS": "0",
+                "owner": shop.owner_id, "external_id": "", "osm_ref": "node/12", "closures-TOTAL_FORMS": "0", "closures-INITIAL_FORMS": "0", "places-TOTAL_FORMS": "0", "places-INITIAL_FORMS": "0",
                 "closures-MIN_NUM_FORMS": "0", "closures-MAX_NUM_FORMS": "1000"}
         self.assertEqual(self.staff.post(url, data).status_code, 302)
         shop.refresh_from_db()

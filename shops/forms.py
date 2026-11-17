@@ -14,7 +14,7 @@ from config.network import is_public, resolve
 from . import details
 from .certified import address_taken
 from .details import INVISIBLE_CONTROLS
-from .models import Shop
+from .models import Shop, ShopPlace
 
 PRIVATE_KEY = re.compile(r"[xyztuv]prv[1-9a-z]{20,}|nsec1[0-9a-z]{50,}", re.I)
 SEED_WORDS = frozenset((Path(__file__).parent / "bip39_english.txt").read_text().split())
@@ -143,6 +143,27 @@ class ShopAdminForm(VatNumberMixin, forms.ModelForm):
     class Meta:
         model = Shop
         fields = "__all__"
+
+
+class ShopPlaceForm(forms.ModelForm):
+    """One more place of a shop, written by its owner: where it is, and nothing about the money."""
+
+    class Meta:
+        model = ShopPlace
+        fields = ["address", "city", "latitude", "longitude"]
+        field_classes = {"latitude": CoordinateField, "longitude": CoordinateField}
+
+    def clean(self):
+        data = super().clean()
+        for field in ("address", "city"):
+            warning = secret_warning(str(self.data.get(field, "")))
+            if warning:
+                self.add_error(field, warning)
+            if isinstance(data.get(field), str):
+                data[field] = INVISIBLE_CONTROLS.sub("", data[field]).strip()
+        if not self.errors and not (data.get("address") or data.get("city")):
+            raise forms.ValidationError(_("Write the address or the town of this place."))
+        return data
 
 
 class ShopDetailsForm(VatNumberMixin, forms.ModelForm):

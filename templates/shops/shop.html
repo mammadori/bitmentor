@@ -32,10 +32,12 @@
       {% if shop.lightning and not shop.closed_on %}<li>{% translate "Accepts Lightning payments" %}</li>{% endif %}
       {% include "shops/shop_facts.html" with rows=facts %}
     </ul>
+    {% if places %}<h3 class="shop-places-title">{% translate "Also here" %}</h3>
+    <ul class="facts" id="shop-places">{% for place in places %}<li>{{ place.line|default:place.position }} · <a href="https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&amp;to={{ place.position|urlencode }}" rel="noopener">{% translate "Get directions" %}</a></li>{% endfor %}</ul>{% endif %}
     {% if shop.external_id and not shop.owner_id %}<p class="muted owner-note">{% blocktranslate with email=community.email %}Is this your shop? To update these details, write to <a href="mailto:{{ email }}">{{ email }}</a>.{% endblocktranslate %}</p>{% endif %}
     {% if shop.latitude is not None and shop.longitude is not None %}<a class="button" id="shop-route" href="https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&amp;to={{ shop.latitude|unlocalize }}%2C{{ shop.longitude|unlocalize }}" rel="noopener">{% translate "Get directions" %}</a>{% endif %}
   </div>
-  {% if shop.latitude is not None and shop.longitude is not None %}<div id="map" class="map-small" data-lat="{{ shop.latitude|unlocalize }}" data-lon="{{ shop.longitude|unlocalize }}"{% if shop.closed_on %} data-historic="{{ shop.historic_note }}"{% endif %}></div>{% endif %}
+  {% if shop.latitude is not None and shop.longitude is not None %}<div id="map" class="map-small" data-lat="{{ shop.latitude|unlocalize }}" data-lon="{{ shop.longitude|unlocalize }}"{% if place_points %} data-places="{{ place_points }}"{% endif %}{% if shop.closed_on %} data-historic="{{ shop.historic_note }}"{% endif %}></div>{% endif %}
 </div>
 {% if stories %}<section class="shop-more" aria-labelledby="shop-stories-title">
   <h2 id="shop-stories-title">{% translate "In our story" %}</h2>

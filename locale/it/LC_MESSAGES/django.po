@@ -6180,3 +6180,61 @@ msgstr "Se non sei stato tu, entra e controlla i wallet del tuo account:"
 
 msgid "This email is the only way into this account: it cannot be removed."
 msgstr "Questa email è l'unico modo per entrare in questo account: non si può togliere."
+
+msgid "More than one place? Add the others"
+msgstr "Più di una sede? Aggiungi le altre"
+
+msgid "The other places of your shop"
+msgstr "Le altre sedi del tuo negozio"
+
+msgid "A shop with several branches is one shop here: one register, one Lightning address, and a point on the map for each place. The first place is the shop's own position, which you change with its details."
+msgstr "Un negozio con più sedi qui è un negozio solo: una cassa, un indirizzo Lightning, e un punto sulla mappa per ogni sede. La prima sede è la posizione del negozio, che cambi con i suoi dati."
+
+msgid "Remove"
+msgstr "Togli"
+
+msgid "No other place yet."
+msgstr "Ancora nessun'altra sede."
+
+msgid "This shop has the most places it can have: remove one to add another."
+msgstr "Questo negozio ha il massimo delle sedi: toglierne una per aggiungerne un'altra."
+
+msgid "Add a place"
+msgstr "Aggiungi una sede"
+
+msgid "Where it is"
+msgstr "Dove si trova"
+
+msgid "I am there: use my position"
+msgstr "Sono lì: usa la mia posizione"
+
+msgid "Touch the place on the map."
+msgstr "Tocca il punto sulla mappa."
+
+msgid "Add this place"
+msgstr "Aggiungi questa sede"
+
+msgid "Also here"
+msgstr "Anche qui"
+
+#, python-format
+msgid "This shop has %(count)s other places, the most it can have."
+msgstr "Questo negozio ha %(count)s altre sedi, il massimo."
+
+msgid "Place added: it is a point of your shop on the map."
+msgstr "Sede aggiunta: è un punto del tuo negozio sulla mappa."
+
+msgid "Write the address or the town of this place."
+msgstr "Scrivi l'indirizzo o il paese di questa sede."
+
+msgid "other place"
+msgstr "altra sede"
+
+msgid "other places"
+msgstr "altre sedi"
+
+msgid "This place's entry on OpenStreetMap, like node/123456. Empty: not linked."
+msgstr "La scheda di questa sede su OpenStreetMap, come node/123456. Vuoto: non collegata."
+
+msgid "This element is already the entry of a shop."
+msgstr "Questo elemento è già la scheda di un negozio."

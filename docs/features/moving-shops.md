@@ -23,7 +23,8 @@ docker compose exec web python manage.py import_moved_shops /tmp/shops.json --ap
   same wallet signs in as someone else. Staff accounts sign in with a password, which never travels: their shops arrive
   without an owner.
 - **What never moves**: the Lightning address and what the guardian found, the first day's ticks, the certificate
-  (earned on one network, it starts again on the other), passwords, sessions, secrets. A historic shop moves without a register to wait for. There are no photos or opening hours to move: the shop has
+  (earned on one network, it starts again on the other), passwords, sessions, secrets, and the other places of a shop with several branches, which the owner adds again on the
+  new site. A historic shop moves without a register to wait for. There are no photos or opening hours to move: the shop has
   none.
 - **The file** is JSON, `format: bitmentor-shops`, `version: 2`; a version 1 file, which has no business details, is
   read too, and its shops start with these choices: the phone and the email shown for a shop that had an

@@ -551,7 +551,7 @@ def admin_post_data(response):
                 data[name] = "on"
         elif value is not None:
             data[name] = str(value)
-    data.update({"closures-TOTAL_FORMS": "0", "closures-INITIAL_FORMS": "0", "closures-MIN_NUM_FORMS": "0",
+    data.update({"closures-TOTAL_FORMS": "0", "closures-INITIAL_FORMS": "0", "places-TOTAL_FORMS": "0", "places-INITIAL_FORMS": "0", "closures-MIN_NUM_FORMS": "0",
                  "closures-MAX_NUM_FORMS": "1000"})
     return data
 

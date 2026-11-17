@@ -57,7 +57,7 @@ class Approval(TestCase):
         page = self.client.get(f"{URL}{self.shop.pk}/change/")
         data = {**page.context["adminform"].form.initial, "owner": heir.pk, "_save": "1"}
         data = {key: ("" if value is None else value) for key, value in data.items()}
-        data.update({"closures-TOTAL_FORMS": "0", "closures-INITIAL_FORMS": "0"})
+        data.update({"closures-TOTAL_FORMS": "0", "closures-INITIAL_FORMS": "0", "places-TOTAL_FORMS": "0", "places-INITIAL_FORMS": "0"})
         response = self.client.post(f"{URL}{self.shop.pk}/change/", data)
         self.assertEqual(response.status_code, 302, getattr(response, "context", None) and
                          response.context["adminform"].form.errors)
