@@ -99,3 +99,5 @@ shift».
   the register off does not take that address back ([Limitations](../limitations.md)).
 - Its sales reach the owner in the copy the person downloads at the end of the shift, or on Nostr as they happen:
   never through the site.
+- On a PC or a tablet it has less than the owner's register beside the keypad: its last sales, without what the day
+  collected, and no choice on the keys ([On a PC or a tablet](register-settings.md#on-a-pc-or-a-tablet)).

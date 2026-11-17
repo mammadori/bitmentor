@@ -220,10 +220,16 @@
   const FOCUS = { keypad: "amount", step: "step-text", rate: "question", pay: "qr", done: "again", history: "history-title",
     settings: "settings-title" };
 
+  // On a wide screen (register.css) the history opens beside the keypad, which stays and still takes payments; on a
+  // phone, and in the practice register, it takes its place. The settings always do: a sale never starts while they
+  // are being changed or saved
+  const WIDE = matchMedia("screen and (min-width: 900px) and (min-height: 560px)");
+  const BESIDE = ["history"];
   function show(section) {
-    for (const id of Object.keys(FOCUS)) if ($(id)) $(id).hidden = id !== section;
+    const beside = BESIDE.includes(section) && Boolean(WIDE.matches) && !practice;
+    for (const id of Object.keys(FOCUS)) if ($(id)) $(id).hidden = id !== section && !(beside && id === "keypad");
     // The menu is opened from the keypad only: during a sale nothing else is on the screen
-    $("menu-open").hidden = section !== "keypad";
+    $("menu-open").hidden = section !== "keypad" && !beside;
     closeMenu(false);
     keepAwake(section === "pay");
     const changed = section !== shown;
@@ -1286,9 +1292,28 @@
     byOther(entry) ? "" : entry.who].filter(Boolean).join(" · ");
   const methodName = (method) => (method === "onchain" ? words.method_onchain : "Lightning");
 
+  // The day at a glance, next to the keypad on a wide screen (register.css): what was collected today and the last
+  // sales, newest first. The same lines as the day closing, without opening the history. A staff register has the
+  // last sales only (the page gives it no place for the totals)
+  function showToday() {
+    const panel = $("today");
+    if (!panel) return;
+    const totals = book.dayTotals(ledger(), book.businessDay(Date.now()));
+    const states = STATES();
+    const lines = totals.lines.map((total) => line(say(words.day_line, {
+      method: methodName(total.method), count: total.count,
+      amount: amount(total.cents, total.currency), sats: sats(total.sats) })));
+    if (!lines.length) lines.push(line(words.no_paid));
+    if (!staff) $("today-totals")?.replaceChildren(...lines);
+    $("today-sales").replaceChildren(...totals.sales.slice().reverse().slice(0, 12).map((entry) => line(
+      saleLine(entry, new Date(entry.at).toLocaleTimeString(lang, { timeStyle: "short" }), states))));
+    panel.hidden = false;
+  }
+
   function showLedger() {
     showGap();
     showQuick();
+    showToday();
     const list = ledger();
     const log = $("ledger");
     log.hidden = !list.length;
@@ -2606,8 +2631,49 @@
       press(Number(button.textContent));
     }
   });
+  // With a keyboard and a mouse (a PC) the amount is typed: on a wide screen the keys leave the page, only OK stays
+  // (register.css, .typing), and the buttons show their key. «Show the keys» brings them back, and the choice stays
+  const KEYS = `register-keys:${text.shop}`;
+  const withKeyboard = matchMedia("(hover: hover) and (pointer: fine)");
+  function setTyping() {
+    // A staff register has nothing to choose: it follows the device it is on
+    const choice = staff ? null : load(KEYS, null);
+    const typing = choice === null ? Boolean(withKeyboard.matches) : choice === "hide";
+    document.querySelector(".register")?.classList.toggle("typing", typing);
+    const toggle = $("keys-toggle");
+    if (!toggle) return;
+    toggle.setAttribute("aria-pressed", String(!typing));
+    toggle.textContent = typing ? toggle.dataset.show : toggle.dataset.hide;
+  }
+  $("keys-toggle")?.addEventListener("click", () => {
+    store(KEYS, document.querySelector(".register").classList.contains("typing") ? "show" : "hide");
+    setTyping();
+  });
+  withKeyboard.addEventListener?.("change", setTyping);
+  // The window made narrow or wide with the history or the settings open: they take the keypad's place, or go beside
+  WIDE.addEventListener?.("change", () => show(shown));
+  setTyping();
+  // The keys of the other screens: Esc leaves a payment (Cancel asks before, as when pressed) or the choice of the
+  // rate, P prints the receipt. «New payment» has the focus when a sale ends, so Enter is already its key
+  document.addEventListener("keydown", (event) => {
+    if (menu.open || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
+    if (event.target.closest?.("input, select, textarea, dialog, #history button, #history summary, #history a")) return;
+    const tap = (id) => {
+      const button = $(id);
+      // The practice register has no receipt (practice.css hides the button)
+      if (!button || button.hidden || button.disabled || (id === "print" && practice)) return;
+      event.preventDefault();
+      button.click();
+    };
+    if (event.key === "Escape" && shown === "pay") tap("cancel");
+    else if (event.key === "Escape" && shown === "rate") tap("rate-back");
+    else if (event.key.toLowerCase?.() === "p" && shown === "done") tap("print");
+    else if (event.key.toLowerCase?.() === "d" && !$("keypad").hidden && ["keypad", ...BESIDE].includes(shown)) tap("discount");
+  });
   document.addEventListener("keydown", (event) => {
     if ($("keypad").hidden || menu.open || event.ctrlKey || event.metaKey || event.altKey) return;
+    // Beside the keypad there may be the history (show): what is typed in its fields or on its buttons is its own
+    if (event.target.closest?.("input, select, textarea, #history button, #history summary, #history a")) return;
     // Enter on a link, on the exit or on a key reached with Tab does what it says; on a key just tapped,
     // or with focus nowhere, it stays OK, as at a till with a physical keyboard
     const control = event.target.closest?.("a, button, input, select, textarea, summary");
@@ -3177,14 +3243,24 @@
   // Closed with Escape: the focus goes back to the menu button
   menu.addEventListener("cancel", () => setTimeout(() => $("menu-open").focus()));
   $("menu-close").addEventListener("click", () => closeMenu(true));
+  // On a wide screen the menu is a panel on the side: a click on the rest of the page closes it
+  menu.addEventListener("click", (event) => {
+    if (event.target !== menu) return;
+    const box = menu.getBoundingClientRect();
+    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) closeMenu(true);
+  });
   // A screen opened from the menu loads its code first: the history, the settings
   async function opening(open) {
+    const had = sale;
+    const from = shown;
     try {
       await need(...EVERYTHING);
     } catch {
       warn(words.not_loaded);
       return;
     }
+    // Asked from beside the keypad (the day's panel) and loaded while a sale started: the sale keeps the screen
+    if (sale !== had || shown !== from) return;
     closeMenu(false);
     open();
   }

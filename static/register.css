@@ -180,3 +180,59 @@
 .register input[type=color] { min-width: 44px; min-height: 44px; }
 .register label.check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
 .register label.check input { flex: none; width: 24px; height: 24px; margin: 0; }
+
+/* The key that does what a button does, shown where the amount is typed on a keyboard (static/register.js, typing);
+   not in the practice register, which has no receipt to print and its own guide */
+.typing:not(.practising) [data-key]::after { content: attr(data-key); display: inline-block; min-width: 1.4em; margin-left: 10px; padding: 1px 6px; border: 1px solid currentColor; border-radius: 6px; font-size: 13px; font-weight: 600; line-height: 1.4; opacity: .7; vertical-align: middle; }
+@media print { .typing:not(.practising) [data-key]::after { display: none; } }
+/* Only on a wide screen (below): the day at a glance, and the line about the keyboard */
+.today, .keys-line { display: none; }
+
+/* On a wide screen (a PC or a tablet on the counter) the register is a till, not a wide phone. Next to the keypad is
+   a panel: the day (what was collected, the last sales) or, opened from the menu, the history, while the keypad
+   stays and takes payments (static/register.js, show). With a keyboard (.typing) the amount is typed and
+   takes the place of the keys; on a touch screen the keys stay. The menu is a panel on the right, over the dimmed
+   page. The code to scan takes the height of the screen, for the customer it is turned to. The practice register has
+   its own wide layout (practice.css). Not for a phone held sideways, which is wide but low. The same sizes are in
+   register.js (WIDE) */
+@media screen and (min-width: 900px) and (min-height: 560px) {
+  .register:not(.practising) { max-width: 1200px; }
+  .register:not(.practising) main { padding: 0 24px 24px; }
+  /* The keypad's page is as high as the window: the panel beside it scrolls in itself */
+  .register:not(.practising):has(#keypad:not([hidden])) { height: 100dvh; }
+  .register:not(.practising) .register-screen:not(.keypad, #pay) { width: 100%; max-width: 460px; align-self: center; }
+  .register:not(.practising) main:has(#keypad:not([hidden])) { display: grid; grid-template-columns: minmax(0, 1fr) clamp(320px, 34vw, 420px); grid-template-rows: auto minmax(0, 1fr) auto; column-gap: 32px; min-height: 0; }
+  .register:not(.practising) main:has(#keypad:not([hidden])) > * { grid-column: 1 / -1; grid-row: 3; }
+  .register:not(.practising) main:has(#keypad:not([hidden])) > .staff-retired { grid-row: 1; }
+  .register:not(.practising) main:has(#keypad:not([hidden])) > .keypad { grid-column: 1; grid-row: 2; }
+  .register:not(.practising) main:has(#keypad:not([hidden])) > :is(.today, #history):not([hidden]) { grid-column: 2; grid-row: 2; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; align-self: center; box-sizing: border-box; width: 100%; max-width: none; max-height: 100%; padding: 16px 20px; border-radius: var(--radius); background: var(--surface); text-align: left; overflow-y: auto; }
+  .register:not(.practising) main:has(#keypad:not([hidden])):has(#history:not([hidden])) > .today { display: none; }
+  .register:not(.practising) main:has(#keypad:not([hidden])) > #history:not([hidden]) { align-self: stretch; }
+  .today h2 { margin: 0; font-size: 18px; }
+  .today ul { margin: 0; font-size: 15px; }
+  .today .day-totals { padding: 0; list-style: none; font-weight: 600; }
+  .today-sales { padding: 0; list-style: none; }
+  .today-sales li { padding: 8px 0; border-top: 1px solid var(--pos-line); overflow-wrap: anywhere; }
+  .today-sales:empty { display: none; }
+  .today .linklike { align-self: flex-start; }
+  /* On a touch screen: the phone's keypad, at the phone's width */
+  .register:not(.practising) .keypad { width: 100%; max-width: 460px; max-height: 680px; margin: 0; justify-self: center; align-self: center; height: 100%; }
+  .register:not(.practising) .keypad .keys { border: 1px solid var(--pos-line); border-radius: var(--radius); overflow: hidden; }
+  .register:not(.practising) .keys-line { display: block; margin: 8px 0 0; font-size: 15px; color: var(--muted); }
+  .register:not(.practising):not(.typing) .typing-hint { display: none; }
+  /* Typed on a keyboard: the amount as big as the window allows, OK as the one button */
+  .register:not(.practising).typing .keypad { max-width: 640px; height: auto; justify-content: center; }
+  .register:not(.practising).typing .amount-box { min-height: 0; padding: 12px 0; }
+  .register:not(.practising).typing output { font-size: clamp(64px, 7vw, 104px); }
+  .register:not(.practising).typing .keypad .keys { flex: none; grid-template-columns: 1fr; grid-auto-rows: 64px; width: 100%; max-width: 420px; margin: 16px auto 0; border: 0; background: none; }
+  .register:not(.practising).typing .keys button:not(.ok) { display: none; }
+  .register:not(.practising).typing .keys .ok { border-radius: var(--radius); font-size: 22px; }
+  /* The menu: a panel on the right, the register still in sight behind it */
+  .register:not(.practising) .menu-sheet { width: 420px; max-width: 420px; margin: 0 0 0 auto; box-shadow: -8px 0 32px rgb(0 0 0 / .18); }
+  .register:not(.practising) .menu-sheet::backdrop { background: rgb(0 0 0 / .35); }
+  .register:not(.practising) #pay:not([hidden]) { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: repeat(14, auto); align-content: center; gap: 0 48px; }
+  .register:not(.practising) #pay > * { grid-column: 2; margin-block: 6px; }
+  .register:not(.practising) #pay > .qr-box { grid-column: 1; grid-row: 1 / span 14; align-self: center; margin: 0; padding: 16px; }
+  .register:not(.practising) .qr { width: min(600px, 46vw, calc(100dvh - 150px)); }
+  .register:not(.practising) #pay .due { font-size: 56px; }
+}

@@ -58,6 +58,7 @@ function fake(id) {
     setAttribute() {}, removeAttribute() {}, focus() {}, closest() { return fake(); }, matches() { return false; },
     querySelector() { return fake(); }, querySelectorAll() { return []; }, replaceChildren(...children) { this.children = children; },
     append() {}, remove() {},
+    click() { (listeners[`${id}:click`] || []).forEach((fn) => fn({ target: this, preventDefault() {} })); },
     addEventListener(type, fn) { (listeners[`${id}:${type}`] ||= []).push(fn); (this.on ||= {})[type] = fn; } };
 }
 const element = (id) => (elements[id] ||= fake(id));
@@ -72,7 +73,9 @@ globalThis.document = {
   querySelectorAll: (s) => (given.copy && s.includes("script[src]") ? given.copy.scripts.map((src) => ({ src })) : []),
   addEventListener(type, fn) { (listeners[`document:${type}`] ||= []).push(fn); }, hidden: false, activeElement: null };
 globalThis.getComputedStyle = () => ({ backgroundColor: "rgb(0, 0, 0)", color: "rgb(255, 255, 255)", getPropertyValue: () => "" });
-globalThis.matchMedia = () => ({ addEventListener() {} });
+// A phone, unless a test says `wide = true`: a wide screen with a keyboard (static/register.js, WIDE)
+let wide = false;
+globalThis.matchMedia = () => ({ get matches() { return wide; }, addEventListener() {} });
 // The browser's answer on keeping the site's data (given.data.persisted), and how many times it was asked to
 let persistAsked = 0;
 Object.defineProperty(globalThis, "navigator", { value: { storage: { persisted: async () => given.data.persisted ?? true,

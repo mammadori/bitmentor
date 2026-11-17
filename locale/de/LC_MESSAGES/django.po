@@ -6338,3 +6338,18 @@ msgstr "Der Eintrag dieses Standorts auf OpenStreetMap, wie node/123456. Leer: n
 
 msgid "This element is already the entry of a shop."
 msgstr "Dieses Element ist bereits der Eintrag eines Geschäfts."
+
+msgid "Type the amount on the keyboard."
+msgstr "Geben Sie den Betrag über die Tastatur ein."
+
+msgid "Show the keys"
+msgstr "Tasten anzeigen"
+
+msgid "Hide the keys"
+msgstr "Tasten ausblenden"
+
+msgid "Today"
+msgstr "Heute"
+
+msgid "Your last sales"
+msgstr "Ihre letzten Verkäufe"

@@ -30,14 +30,16 @@
   <div class="amount-box">
     <output id="amount" tabindex="-1">0.00 {{ currency }}</output>
     <p id="hint" class="hint">{% translate "Type the cents too: 1, 5, 0 makes 1.50." %}</p>
-    <p class="discount-line"><button type="button" id="discount" class="linklike discount" aria-pressed="true" hidden></button><span id="discount-fixed" class="discount" hidden></span></p>
+    <p class="discount-line"><button type="button" id="discount" class="linklike discount" aria-pressed="true" aria-keyshortcuts="D" data-key="D" hidden></button><span id="discount-fixed" class="discount" hidden></span></p>
   </div>
   <div class="keys">
     <button>1</button><button>2</button><button>3</button>
     <button>4</button><button>5</button><button>6</button>
     <button>7</button><button>8</button><button>9</button>
-    <button class="clear" aria-label="{% translate 'Clear' %}"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M9 5h11v14H9l-6-7zM12.5 9.5l5 5m0-5l-5 5" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none"/></svg></button><button>0</button><button class="ok">OK</button>
+    <button class="clear" aria-label="{% translate 'Clear' %}"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M9 5h11v14H9l-6-7zM12.5 9.5l5 5m0-5l-5 5" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none"/></svg></button><button>0</button><button class="ok" aria-keyshortcuts="Enter" data-key="↵">OK</button>
   </div>
+  {# With a keyboard (static/register.js, typing) the keys leave the wide screen: only OK stays, and this line #}
+  <p class="keys-line no-print"><span class="typing-hint">{% translate "Type the amount on the keyboard." %}</span>{% if not staff %} <button type="button" id="keys-toggle" class="linklike" aria-pressed="false" data-show="{% translate 'Show the keys' %}" data-hide="{% translate 'Hide the keys' %}">{% translate "Show the keys" %}</button>{% endif %}</p>
   {# On-chain is an experimental feature (config/features.py): off, the page has none of it (register.chain_on, shops/register.py) #}
   {% if register.chain_on %}<p class="chain-ok-line"><button type="button" id="chain-ok" class="linklike" hidden>{% translate "OK, on-chain" %}</button></p>{% endif %}
 </section>
@@ -216,7 +218,7 @@
 <section id="rate" class="register-screen" hidden>
   <p id="question" tabindex="-1"></p>
   <div class="choices"></div>
-  <button id="rate-back" class="button button-quiet">{% translate "Cancel" %}</button>
+  <button id="rate-back" class="button button-quiet" aria-keyshortcuts="Escape" data-key="Esc">{% translate "Cancel" %}</button>
 </section>
 <section id="pay" class="register-screen" hidden>
   <h1 class="visually-hidden">{{ shop.name }}{% if staff %} · {{ staff.name }}{% endif %}</h1>
@@ -234,15 +236,23 @@
   <details class="destination"><summary>{% translate "The code does not scan? Show it as text" %}</summary>
     <p class="muted" id="pay-method">Lightning</p><p id="invoice" class="mono"></p>
     <button type="button" id="copy-invoice" class="button button-quiet" data-copied="{% translate 'Copied' %}" hidden>{% translate "Copy the text" %}</button></details>
-  <button id="cancel" class="button button-quiet">{% translate "Cancel" %}</button>
+  <button id="cancel" class="button button-quiet" aria-keyshortcuts="Escape" data-key="Esc">{% translate "Cancel" %}</button>
 </section>
 <section id="done" class="register-screen" hidden>
   <div class="tick" aria-hidden="true"></div>
   <h1 id="result"></h1>
   <p id="receipt" class="muted"></p>
-  <button id="print" class="button button-quiet no-print">{% translate "Print receipt" %}</button>
-  <button id="again" class="button no-print">{% translate "New payment" %}</button>
+  <button id="print" class="button button-quiet no-print" aria-keyshortcuts="P" data-key="P">{% translate "Print receipt" %}</button>
+  <button id="again" class="button no-print" aria-keyshortcuts="Enter" data-key="↵">{% translate "New payment" %}</button>
 </section>
+{# The day at a glance, on a wide screen and with the keypad only: never next to the code the customer scans #}
+{# A staff register shows its last sales only: what the day collected is in the history, at the end of the shift #}
+<aside id="today" class="today no-print" aria-labelledby="today-title" hidden>
+  <h2 id="today-title">{% if staff %}{% translate "Your last sales" %}{% else %}{% translate "Today" %}{% endif %}</h2>
+  {% if not staff %}<ul id="today-totals" class="day-totals"></ul>{% endif %}
+  <ul id="today-sales" class="today-sales"></ul>
+  <button type="button" class="linklike" data-history>{% if staff %}{% translate "History and end of shift" %}{% else %}{% translate "History and day closing" %}{% endif %}</button>
+</aside>
 {{ register|json_script:"register-data" }}
 <div id="register-modules" hidden data-qrcode="{% static 'vendor/qrcode/qrcode.js' %}" data-derive="{% static 'register-derive.js' %}"{% if register.chain_on %} data-chain="{% static 'register-chain.js' %}"{% endif %} data-nostr="{% static 'register-nostr.js' %}" data-relays="{% static 'register-relays.js' %}"></div>
 <p id="state" class="visually-hidden" role="status"></p>

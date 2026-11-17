@@ -6238,3 +6238,18 @@ msgstr "La scheda di questa sede su OpenStreetMap, come node/123456. Vuoto: non 
 
 msgid "This element is already the entry of a shop."
 msgstr "Questo elemento è già la scheda di un negozio."
+
+msgid "Type the amount on the keyboard."
+msgstr "Scrivi l'importo con la tastiera."
+
+msgid "Show the keys"
+msgstr "Mostra i tasti"
+
+msgid "Hide the keys"
+msgstr "Nascondi i tasti"
+
+msgid "Today"
+msgstr "Oggi"
+
+msgid "Your last sales"
+msgstr "Le tue ultime vendite"

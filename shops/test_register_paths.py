@@ -56,6 +56,33 @@ class Cancel(Paths):
           return ledger();""", confirm=False)
         self.assertEqual([sale["status"] for sale in out], ["pending"])
 
+    def test_escape_on_a_payment_asks_and_then_cancels_as_the_button(self):
+        out = self.lightning("""
+          await sell("1000");
+          key("Escape");
+          await until(() => ledger()[0].status !== "pending", 1000);
+          return { ledger: ledger(), confirmed };""")
+        self.assertEqual([sale["status"] for sale in out["ledger"]], ["cancelled"])
+        self.assertEqual(len(out["confirmed"]), 1)
+
+    def test_escape_not_confirmed_leaves_the_sale_waiting(self):
+        out = self.lightning("""
+          await sell("1000");
+          key("Escape");
+          await wait(50);
+          return { ledger: ledger(), confirmed };""", confirm=False)
+        self.assertEqual([sale["status"] for sale in out["ledger"]], ["pending"])
+        self.assertEqual(len(out["confirmed"]), 1)
+
+    def test_escape_held_down_asks_once(self):
+        out = self.lightning("""
+          await sell("1000");
+          for (const fn of listeners["document:keydown"]) fn({ key: "Escape", repeat: true, target: {}, preventDefault() {} });
+          await wait(50);
+          return { ledger: ledger(), confirmed };""")
+        self.assertEqual([sale["status"] for sale in out["ledger"]], ["pending"])
+        self.assertEqual(out["confirmed"], [])
+
     def test_a_payment_just_before_cancel_ends_the_sale_paid(self):
         out = self.lightning("""
           await sell("1000");

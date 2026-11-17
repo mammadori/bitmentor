@@ -29,3 +29,29 @@ register stops and says so, until the owner confirms the change was theirs.
 
 A community that turned on the experimental on-chain payments has an «On-chain (optional)» group too, and more under
 «Advanced»: see [On-chain at the register: design notes](onchain-notes.md#the-owners-settings-on-the-phone).
+
+## On a PC or a tablet
+
+The register is made for a phone. On a wide screen (900 px or more, and at least 560 px high: a PC or a tablet on the
+counter, not a phone held sideways) it becomes a till. Nothing to set: it follows the window.
+
+- **The day beside the keypad.** «Today»: what was collected, and the last sales with how each ended. The same lines
+  as the day closing, read from the phone's storage; nothing is sent. It is shown with the keypad only, never next to
+  the code the customer scans.
+- **The amount is typed.** Where there is a keyboard and a mouse, the keys leave the screen: the amount is typed
+  (digits, Backspace, Esc to clear) and Enter is OK. «Show the keys» under the amount brings them back, and the
+  choice stays on that device (`register-keys:<shop>`). A touch screen keeps the keys.
+- **Keys for the other screens**, shown on their buttons: Esc cancels a payment in wait (it asks first, as the
+  button does) or leaves the choice of the rate, Enter starts a new payment when one ends, P prints the receipt, D
+  turns the discount on and off where the owner allows it.
+- **The history opens beside the keypad**, which stays and still takes payments; a payment closes it. The settings
+  take the keypad's place, as on a phone: no sale starts while they are being changed.
+- **The menu is a panel on the right**; a click on the rest of the page closes it.
+- **The code to scan takes the height of the screen**, with the amount in large type: a PC's screen is often turned
+  to the customer.
+
+A [staff register](staff-registers.md) has less here too, as on a phone: beside the keypad it shows its last sales,
+without what the day collected (that is in «History and end of shift»); it has no «Show the keys», and follows the
+device it is on; it has no settings, and D works only if the owner lets the registers remove the discount.
+
+The practice register keeps its own wide layout, with the customer's phone beside it.
