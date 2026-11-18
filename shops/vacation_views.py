@@ -24,7 +24,7 @@ def owned(request, shop):
     """The owner's shop that can close for a while: on the site's map, not a historic one (closed for good) and not one
     still waiting for its wallet."""
     found = get_object_or_404(request.user.shops, pk=shop)
-    if found.closed_on or waits_for_wallet(found):
+    if found.closed or waits_for_wallet(found):
         raise Http404
     return found
 

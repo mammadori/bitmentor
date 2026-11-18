@@ -44,7 +44,8 @@ Rules:
   in `locale/<lang>/` (the sources are in English). A page missing in a language returns 404 and is left out of the
   sitemap and of the `hreflang` links, and the language switcher leads to that language's home page; a `community.yml`
   text without that language uses the default one. Visitors who reach `/` with the browser set to a listed language go
-  to `/<lang>/`: its home page must exist before the language is listed.
+  to `/<lang>/`: its home page must exist before the language is listed. A language the software does not carry:
+  [Adding a language](languages.md).
 - Pages go through the template engine: `{{ community.name }}` and `{{ tagline }}` follow `community.yml`, and
   `{% include "website/route.html" %}` puts stops and map where they are needed; the community's meetings have their
   own board ([Meetups](features/meetups.md)).
@@ -102,6 +103,12 @@ it. The one exception is a database that does not answer inside that function: t
 the database is away. A function may be asked more than once for a page: it should answer fast, and the same.
 `manage.py check` warns (`shops.W012`) when the setting is not a module's name, when the module cannot be imported,
 or when one of these names is not a function.
+
+A community that keeps its own copies of the software's templates follows their changes. From 0.1.9 a shop is historic
+only from the day after its closing day: copies of `shops/panel.html`, `shops/map_list.html` and `shops/shop.html` must
+test `shop.closed` instead of `shop.closed_on`; copies of `shops/map.html` take the new `data-closes` text and
+`data-today="{% now 'Y-m-d' %}"` (without it the map uses the phone's date). `shop.register_until` is now always empty
+(a historic shop's register has no end).
 
 ## Nostr profile
 

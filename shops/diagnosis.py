@@ -173,10 +173,17 @@ def check_shop(run):
         run.add("shop_awaiting_approval", WARNING,
                 _("The community looks at every new shop before it goes on the map: yours is waiting. The register "
                   "already works."), "approved_on empty")
-    if shop.closed_on:
+    if shop.closed:
         run.add("shop_historic", WARNING,
                 _("Your shop is marked as historic ({note}): it stays on the map but does not count among the places "
                   "to pay. The register and the sign still work.").format(note=shop.historic_note),
+                f"closed_on={shop.closed_on.isoformat()}")
+    elif shop.closed_on:
+        # Up to and including its closing day the shop is an ordinary one (Shop.closed)
+        run.add("shop_closing", WARNING,
+                _("Your shop has a closing day ({note}): until then nothing changes and it stays among the places to "
+                  "pay. From the day after it stays on the map as history. The register and the sign still "
+                  "work.").format(note=shop.historic_note),
                 f"closed_on={shop.closed_on.isoformat()}")
     if not shop.listed:
         run.add("shop_unlisted", WARNING,
@@ -188,7 +195,7 @@ def check_shop(run):
         run.add("shop_no_position", WARNING,
                 _("Your shop has no position, so it is not on the map. Add it in your shop page."),
                 "latitude or longitude empty")
-    elif not shop.closed_on and not directory.waits_for_wallet(shop):
+    elif not shop.closed and not directory.waits_for_wallet(shop):
         run.add("shop_visible", OK, _("Your shop is on the map."), f"id={shop.id}")
 
 
@@ -384,7 +391,7 @@ def closure_lines(run, shop):
         return
     today = vacation.day_of()
     detail = "; ".join(closure_line(closure) for closure in closures[-5:])
-    if shop.closed_on:
+    if shop.closed:
         run.add("closed_ignored", WARNING,
                 _("Your closure dates are saved, but your shop is marked as historic: the map says nothing about "
                   "them."), f"historic since {shop.closed_on}; {detail}",
@@ -467,8 +474,8 @@ def check_staff(run):
                   "person scans it with their phone. The code is never read out on the phone."))
     if waiting:
         run.add("staff_code_waiting", WARNING,
-                _("These registers wait for the person to scan their code: {names}. The code works once and lasts 24 "
-                  "hours.").format(names=names(waiting)),
+                _("These registers wait for the person to scan their code: {names}. The code works once, until "
+                  "the time shown.").format(names=names(waiting)),
                 "; ".join(f"{plain(register.name)} made {register.created:%Y-%m-%d %H:%M} UTC, code valid until "
                           f"{register.code_until:%Y-%m-%d %H:%M} UTC" for register in waiting[:10]),
                 _("Nothing is broken: the person scans the code with their phone before it expires. If it has "

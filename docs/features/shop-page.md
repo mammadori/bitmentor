@@ -21,7 +21,10 @@ name, discount, the details the owner chose to show ([What customers see of a sh
   foot. They are computed on the server from the shop's position: no request from the page, no visitor position.
   Suspended shops, shops off the maps, historic shops and shops without a position are left out.
 
-A historic shop and a suspended one have neither the steps nor the card.
+A historic shop and a suspended one have neither the steps nor the card. A shop is historic from the day after its
+closing day (`closed_on`, set by the association): up to and including that day it is a place to pay like the others,
+with its discount, its box and its place in the counts, and its page, its line in the list and its pin say «Closes on …». The register stays with the owner after the closing
+too, with no end.
 
 The community decides where the page sends people, in `community.yml`:
 

@@ -182,12 +182,14 @@ class Guide(Base):
         shop.refresh_from_db()
         self.assertEqual((shop.lightning_address, shop.awaiting_wallet), ("", True))
 
-    def test_suspended_or_historic_takes_no_register(self):
+    def test_suspended_takes_no_register_historic_does(self):
         shop = self.waiting()
-        for change in ({"suspended": True}, {"suspended": False, "closed_on": "2025-01-01"}):
-            Shop.objects.filter(pk=shop.pk).update(**change)
-            self.assertRedirects(self.client.get(f"/en/shops/wallet/{shop.id}/"), "/en/shops/",
-                                 fetch_redirect_response=False)
+        Shop.objects.filter(pk=shop.pk).update(suspended=True)
+        self.assertRedirects(self.client.get(f"/en/shops/wallet/{shop.id}/"), "/en/shops/",
+                             fetch_redirect_response=False)
+        # The register of a historic shop has no end, however long ago it closed
+        Shop.objects.filter(pk=shop.pk).update(suspended=False, closed_on="2025-01-01")
+        self.assertEqual(self.client.get(f"/en/shops/wallet/{shop.id}/").status_code, 200)
 
     def test_a_shop_with_a_register_never_opens_it(self):
         made = Shop.objects.create(name="Made", owner=self.user, lightning_address="a@example.org")
@@ -278,11 +280,10 @@ class MovedShop(Base):
         self.assertNotContains(panel, "Register for whoever works with you")
         self.assertContains(self.client.get(f"/en/shops/connect/{self.shop.id}/"), 'id="step-choose"')
 
-    def test_historic_is_on_the_map_with_its_pin_and_opens_nothing(self):
+    def test_historic_is_on_the_map_with_its_pin_and_may_still_connect_its_wallet(self):
         Shop.objects.filter(pk=self.shop.pk).update(closed_on="2020-01-01")
         self.assertIn(self.shop, public_shops())
-        self.assertRedirects(self.client.get(f"/en/shops/connect/{self.shop.id}/"), "/en/shops/",
-                             fetch_redirect_response=False)
+        self.assertEqual(self.client.get(f"/en/shops/connect/{self.shop.id}/").status_code, 200)
 
     def test_the_wallet_ends_the_wait(self):
         self.client.post(f"/en/shops/connect/{self.shop.id}/", {"lightning_address": "mario@example.org"})

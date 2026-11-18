@@ -346,7 +346,10 @@ class ThreeLanguages(TestCase):
         shop = Shop.objects.create(name="Alt", latitude=1, longitude=1, closed_on=date(2026, 11, 30))
         with patch("shops.models.timezone.localdate", return_value=date(2026, 11, 2)):
             page = self.client.get(f"/de/shops/s/{shop.id}/")
-        self.assertContains(page, "Historisch · schließt am 30. November 2026")
+        self.assertContains(page, "Schließt am 30. November 2026")
+        with patch("shops.models.timezone.localdate", return_value=date(2026, 12, 1)):
+            page = self.client.get(f"/de/shops/s/{shop.id}/")
+        self.assertContains(page, "Historisch · geschlossen am 30. November 2026")
         self.assertContains(self.client.get("/de/shops/map/"), 'data-closed="Historisch · geschlossen am {date}"')
 
     def test_money_is_written_the_german_way(self):

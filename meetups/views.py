@@ -31,12 +31,19 @@ def page(request):
 @require_safe
 def feed(request):
     """The same meetups as an iCalendar file, for whoever wants them in their own calendar. Public, read only, cached for
-    fifteen minutes, and limited per connection like the other public data of the site."""
+    fifteen minutes, and limited per connection like the other public data of the site. `?city=<name>` gives only the
+    meetups of a city the community or the board knows; any other name is not found."""
     if not conf.enabled():
         raise Http404
     if ratelimit.over_limit(f"meetups-ics:{ratelimit.client_ip(request)}", FEED_PER_HOUR, 3600):
         return HttpResponse(status=429)
-    response = HttpResponse(ical.calendar(), content_type="text/calendar; charset=utf-8")
+    city = None
+    if "city" in request.GET:
+        city = ical.known_city(request.GET["city"])
+        if city is None:
+            raise Http404
+    response = HttpResponse(ical.calendar() if city is None else ical.calendar(city=city),
+                            content_type="text/calendar; charset=utf-8")
     response["Cache-Control"] = f"public, max-age={ical.FEED_SECONDS}"
     response["Content-Disposition"] = 'inline; filename="meetups.ics"'
     response["X-Robots-Tag"] = "noindex"

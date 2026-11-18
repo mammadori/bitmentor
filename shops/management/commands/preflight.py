@@ -16,7 +16,8 @@ from django.utils import timezone
 from config import features, limits
 from config.community import community, page_path
 from shops import lightning_watch, training, vacation
-from shops.models import HAS_REGISTER, Closure, Shop, real
+from shops.models import HAS_REGISTER, Closure, Shop, real, still_trading
+from shops.notifications import moderators_emails
 
 YEAR = 31536000
 MIN_SECRET = 50
@@ -149,11 +150,13 @@ def team_notes():
                      "set ADMIN_ALLOWED_IPS (docs/features/team-access.md)")
     telegram = settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_MODERATION_CHAT
     address = community().get("email")
-    mail = isinstance(address, str) and "@" in address and (settings.EMAIL_HOST or settings.NETWORK != "mainnet")
+    # The moderators' mail goes to `moderators_emails` when it has an address, else to `email` (shops/notifications.py)
+    fallback = bool(moderators_emails()) or (isinstance(address, str) and "@" in address)
+    mail = fallback and (settings.EMAIL_HOST or settings.NETWORK != "mainnet")
     if not telegram and not mail:
         notes.append("team access: nobody will be told of new keys and of new browsers with a pass: the site has no "
-                     "moderators' chat (TELEGRAM_BOT_TOKEN, TELEGRAM_MODERATION_CHAT) and no mail (EMAIL_HOST, and `email` in "
-                     "community.yml)")
+                     "moderators' chat (TELEGRAM_BOT_TOKEN, TELEGRAM_MODERATION_CHAT) and no mail (EMAIL_HOST, and `email` or "
+                     "`moderators_emails` in community.yml)")
     elif not telegram and not settings.EMAIL_HOST:
         notes.append("team access: without Telegram and without EMAIL_HOST the notices of new keys and passes are only "
                      "written to the log of web (a test network's mail)")
@@ -207,7 +210,7 @@ def closure_notes():
     """The closures running today while the feature is off: one with no day to open again no longer keeps any alarm quiet
     (nobody could end it), one with a day keeps them quiet until that day, and at most MAX_CREDIT days from its first."""
     today = vacation.day_of()
-    running = Closure.objects.filter(first_day__lte=today, shop__closed_on__isnull=True).filter(
+    running = Closure.objects.filter(first_day__lte=today, shop__in=Shop.objects.filter(still_trading(today))).filter(
         Q(reopens_on__isnull=True) | Q(reopens_on__gt=today))
     undated = running.filter(reopens_on__isnull=True).count()
     dated = list(running.filter(reopens_on__isnull=False))

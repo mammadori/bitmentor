@@ -159,7 +159,7 @@ class ShopState(Base):
 
     def test_suspended_historic_unlisted(self):
         self.shop.suspended, self.shop.listed = True, False
-        self.shop.closed_on = timezone.localdate()
+        self.shop.closed_on = timezone.localdate() - timedelta(days=1)
         codes = self.codes(self.run_diagnosis())
         for code in ("shop_suspended", "shop_historic", "shop_unlisted"):
             self.assertEqual(codes[code].level, WARNING)

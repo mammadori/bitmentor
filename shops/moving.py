@@ -48,7 +48,7 @@ from config import features
 from . import approval, details
 from .forms import CanonicalEmailField, ShopDetailsForm
 from .lnurl_auth import LINKING_KEY
-from .models import Profile, Shop, WalletKey, claim_digest, keeps_register, real
+from .models import Profile, Shop, WalletKey, claim_digest, real
 
 FORMAT = "bitmentor-shops"
 # 2 has the business name, the VAT number and what the owner shows; 1 has none of them, and is read too.
@@ -101,16 +101,17 @@ def has_register(shop):
     """It had a register here, or it had one on the site it came from and still waits for its wallet, or its owner saved
     it before having a wallet (`awaiting_wallet`): on the other site it waits off the map for its wallet too, never a
     place to pay without a register. A historic shop takes no new register: it moves as a place of the map."""
-    return (shop.has_register or shop.moved_register or shop.awaiting_wallet) and not shop.closed_on
+    return (shop.has_register or shop.moved_register or shop.awaiting_wallet) and not shop.closed
 
 
 def waiting_for(shop, today=None):
     """What a shop moved here from another site still waits for, or None. "unclaimed": its owner has not opened the
     one-time link (which exists); "no_owner": nobody to give it to; "no_wallet": the owner took it, but it has no
-    register. A shop that has its register, a historic one past REGISTER_AFTER_CLOSING, or one that did not move here waits for
+    register. A shop that has its register, a historic one (Shop.closed: its owner may still take it and connect a
+    wallet, but it is no longer a place to pay the association looks after), or one that did not move here waits for
     nothing. The same rule as the dashboard's list of moved shops (`dashboard.moved_items`), for one shop already read:
-    a test keeps the two in step."""
-    if shop.moved_in is None or not keeps_register(shop, today):
+    a test keeps the two in step. `today` is no longer read: Shop.closed reads the local date."""
+    if shop.moved_in is None or shop.closed:
         return None
     if shop.has_register:
         return None
@@ -414,7 +415,7 @@ def import_row(row, now, made, new_codes=False):
         with transaction.atomic():
             shop = checked_shop(row, target or Shop(), outcome)
             shop.moved_in, shop.moved_from = now, row["id"]
-            shop.moved_register = row["register"] and shop.closed_on is None
+            shop.moved_register = row["register"] and not shop.closed
             shop.owner, shop.claim_hash = None, ""
             # Whoever runs the move brings it: approved here, and kept off the map if it came suspended
             approval.stamp(shop, "move")

@@ -16,6 +16,8 @@ from .models import Meetup
 PRODID = "-//bitmentor//meetups//EN"
 STAMP = "%Y%m%dT%H%M%SZ"
 FEED_SECONDS = 900
+# As long as a city can be (Meetup.city, `meetups.cities`)
+MAX_CITY = 100
 
 
 def escape(text):
@@ -67,32 +69,49 @@ def event(meetup, row, host):
     return lines
 
 
-def calendar(now=None):
+def known_city(value):
+    """The city of `/meetups.ics?city=` as the community writes it (`meetups.cities`) or, failing that, as a meetup shown on
+    the board has it; None for any other text. Capitals do not count. Only a known city gets a feed, and a cache entry,
+    of its own: whatever else a link says is not found."""
+    if not isinstance(value, str) or not value.strip() or len(value) > MAX_CITY or not value.isprintable():
+        return None
+    wanted = value.strip()
+    for city in conf.cities():
+        if city["name"].casefold() == wanted.casefold():
+            return city["name"]
+    return Meetup.objects.filter(visible=True, city__iexact=wanted).values_list("city", flat=True).first()
+
+
+def calendar(now=None, city=None):
     """The whole feed as text, with CRLF line ends, in the community's first language. Kept for FEED_SECONDS like the board
-    (unless `now` is given, the tests), and worked out again after any change of the meetups."""
+    (unless `now` is given, the tests), and worked out again after any change of the meetups. `city`, a name known_city
+    gave, keeps only the meetups of that city."""
     if now is not None:
-        return build(now)
-    key = board.cache_key("feed", settings.LANGUAGE_CODE, conf.past_months(), conf.default_link(settings.LANGUAGE_CODE))
+        return build(now, city)
+    key = board.cache_key("feed", settings.LANGUAGE_CODE, conf.past_months(), conf.default_link(settings.LANGUAGE_CODE),
+                          *((city.casefold(),) if city else ()))
     found = cache.get(key)
     if found is None:
-        found = build(timezone.now())
+        found = build(timezone.now(), city)
         cache.set(key, found, FEED_SECONDS)
     return found
 
 
-def chosen(now):
+def chosen(now, city=None):
     """What goes into the feed: every meetup still to come (the soonest, if they are more than FEED_LIMIT by themselves) and,
     with the room that is left under that ceiling, the most recent past ones. Read from the table no further than that."""
     coming, gone = board.sides(now)
+    if city:
+        coming, gone = coming.filter(city__iexact=city), gone.filter(city__iexact=city)
     ahead = board.collapse(list(coming[:board.FEED_LIMIT + board.MARGIN]))[:board.FEED_LIMIT]
     room = board.FEED_LIMIT - len(ahead)
     behind = board.collapse(list(gone[:room + board.MARGIN]))[-room:] if room > 0 else []
     return behind + ahead
 
 
-def build(now):
+def build(now, city=None):
     with override(settings.LANGUAGE_CODE):
-        meetups = chosen(now)
+        meetups = chosen(now, city)
         link = conf.default_link(settings.LANGUAGE_CODE)
         name = localized(community().get("name", ""), settings.LANGUAGE_CODE)
         lines = ["BEGIN:VCALENDAR", "VERSION:2.0", f"PRODID:{PRODID}", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",

@@ -56,6 +56,7 @@ from config.guard import comes_from_admin, current_request
 
 from .models import AccountChange, Profile, Shop, is_demo
 from .notifications import NotificationFailed, alert_name, telegram
+from .notifications import chats as split_chats
 
 logger = logging.getLogger(__name__)
 # Set by shops/address_change.py while it writes the owner's own change of an existing address
@@ -168,7 +169,8 @@ def record(user, codes, shops, chats, mark=True, deleting=False):
     if not shops:
         return None
     codes = set(codes)
-    chats = {chat for chat in chats if chat}
+    # Each chat apart, a shop's field holding several: told or not told is said of every one of them (MAX_CHATS)
+    chats = {one for chat in chats for one in split_chats(chat)}
     entry = pending().get(user.pk)
     # The row is looked for in the database, with its time: after a rollback the entry is left behind, and the row is not
     if entry and not deleting and AccountChange.objects.filter(pk=entry["row"], created=entry["created"]).exists():
@@ -296,7 +298,8 @@ def owned(user):
 
 
 def owned_chats(shops):
-    return sorted({shop.telegram_chat for shop in shops if shop.telegram_chat})
+    """Every chat of these shops, each on its own: a shop's field can hold several, separated by commas."""
+    return sorted({chat for shop in shops for chat in split_chats(shop.telegram_chat)})
 
 
 # --- Where a shop's money goes ------------------------------------------------------------------------------------------

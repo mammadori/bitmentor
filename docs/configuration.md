@@ -23,7 +23,7 @@ cannot use (`shops.W011`), and `manage.py preflight` says which are on.
 
 An open site that nobody watches every day must not fill up with spam or with data nobody asked for. The `limits` block of
 `community.yml` sets how much the site keeps and how often one visitor can ask; every key is optional, a missing or wrong
-value is the default (`manage.py check` says which is wrong), and `0` means no limit. The code reads them all from
+value is the default (`manage.py check` says which is wrong), and `0` means no limit (except `staff_code_hours`, from 1 to 72). The code reads them all from
 `config/limits.py`, which is also where the defaults are changed for everybody.
 
 | Key | Default | What it limits |
@@ -42,6 +42,7 @@ value is the default (`manage.py check` says which is wrong), and `0` means no l
 | `accounts_per_address_hour` | 20 | New accounts from one network address in an hour |
 | `shops_per_address_hour` | 30 | New shops or wallets connected from one network address in an hour |
 | `help_requests_per_shop_day` | 3 | Requests for help from one shop in a day |
+| `staff_code_hours` | 24 | Hours a [staff register](features/staff-registers.md)'s one-time pairing code works: from 1 to 72, and `0` is not allowed |
 
 The first seven are totals. When one is reached the site refuses, with a polite message, whatever would add one more (a
 new shop, a new account…), keeps and deletes everything it already has, and writes a line in the log of `web`.
@@ -263,6 +264,50 @@ The default is `off`, no log. After a change: `docker compose up -d caddy`. Cadd
 release, for one), always on, keeps the addresses the same way, /24 or /48, and drops from the query and the headers
 what opens something.
 
+## Logs of the containers
+
+Each container writes its lines to its output, and Docker keeps them. Where is a choice of the installation:
+
+- **In Docker's own files** (`json-file`), what `docker-compose.yml` says: at most `LOG_MAX_SIZE` for each file and
+  `LOG_MAX_FILE` files for each container. They belong to the container: **a release makes new containers, and the
+  lines of the old ones go with them**, so after a release that went wrong the lines from before it are gone.
+- **In the machine's systemd journal** (`journald`): the lines stay after a release, next to those of the timers
+  (`bitmentor-release@`, `bitmentor-backup@`…), and `journalctl` reads them by time. `deploy/install.sh` chooses this
+  for a new installation on a machine that has the journal and a Docker that can write to it (`--logs journal`;
+  `--logs files` keeps Docker's files). It writes the choice in the installation's `compose.locale.yml`.
+
+Reading them, with the journal:
+
+```bash
+journalctl CONTAINER_NAME=<project>-web-1 --since "1 hour ago"
+journalctl CONTAINER_NAME=<project>-caddy-1 -f
+```
+
+`bin/compose.sh logs web` works with both. Reading the journal needs root, or a user in the `systemd-journal` group.
+
+**An installation that exists** changes nothing by itself: its `compose.locale.yml` stays as it is. To move it to the
+journal, add to that file, under `services:` (in place of `services: {}`), the lines marked `@journal` in
+`deploy/examples/compose.locale.yml`, with the `caddy:` line marked `@caddy` when the file has no `caddy:` yet: one
+`logging:` under each service. Then `bin/compose.sh up -d`: the containers are
+made again, and the lines Docker kept for the old ones go with them, this once. From the sources
+([One machine](single-machine.md)) the same lines go in a file of yours named in `COMPOSE_FILE`, after
+`docker-compose.yml`. Docker Desktop and machines without systemd have no journal: keep Docker's files there.
+
+**How long the journal keeps them is the machine's choice**, not the site's, and with the journal `LOG_MAX_SIZE` and
+`LOG_MAX_FILE` do nothing. Set it in `/etc/systemd/journald.conf` (then `systemctl restart systemd-journald`): it
+holds for the whole journal of the machine, not only for the site.
+
+```
+[Journal]
+MaxRetentionSec=1month
+SystemMaxUse=1G
+```
+
+`MaxRetentionSec` is a limit in time, which Docker's files do not have: see what the lines hold in
+[Privacy](privacy.md#server-logs) before choosing it. The journal also drops lines when one service writes too many
+in a short time (`RateLimitIntervalSec`, `RateLimitBurst`), and it counts all the containers together, as Docker's
+own: on a busy site look for "Suppressed … messages" in the journal and raise the burst if you find it.
+
 ## Every variable
 
 The `.env` of the stack. Empty or missing means the default.
@@ -283,7 +328,7 @@ The `.env` of the stack. Empty or missing means the default.
 | `ACCESS_LOG_KEEP` | `168h` | How long Caddy keeps the access log (a Caddy duration) |
 | `ACCESS_LOG_SIZE`, `ACCESS_LOG_FILES` | `1MiB`, `10` | The size of each file of the access log and how many old ones stay. The log ends at whichever limit comes first: with the defaults a site that writes more than about 10 MiB in `ACCESS_LOG_KEEP` keeps fewer days than that, and raises these (for example `10MiB` and `20`) |
 | `LOG_IPV4_MASK`, `LOG_IPV6_MASK` | `24`, `48` | How much of a visitor's address Caddy's logs keep: the prefix length; `32` and `128` keep the whole address |
-| `LOG_MAX_SIZE`, `LOG_MAX_FILE` | `20m`, `5` | Docker's limit on each container's output, per file and number of files |
+| `LOG_MAX_SIZE`, `LOG_MAX_FILE` | `20m`, `5` | Docker's limit on each container's output, per file and number of files. They do nothing when the containers write to the journal: [Logs of the containers](#logs-of-the-containers) |
 | `COMMUNITY_DIR` | `./examples/community` | The community folder ([Architecture](architecture.md)) |
 | `SECRET_KEY` | none, required | Django's secret: `openssl rand -hex 32` |
 | `POSTGRES_PASSWORD` | none, required | The Postgres administrator's password, set for good at the first start |
@@ -301,7 +346,7 @@ The `.env` of the stack. Empty or missing means the default.
 | `EMAIL_REAL_BACKEND` | empty (SMTP with `EMAIL_HOST`) | A mail backend of the community, as a Python path ([A mail backend of the community](#a-mail-backend-of-the-community)) |
 | `BLOSSOM_HOSTS` | empty | The hosts that are only the read-only Blossom server, at their root, separated by commas; the first is the main one, the others the same server under another name ([Blossom](features/blossom.md)) |
 | `TELEGRAM_BOT_TOKEN` | empty | The bot that writes the site's messages |
-| `TELEGRAM_MODERATION_CHAT` | empty | The moderators' chat: a chat number or an `@name`. Alerts about Lightning addresses and requests for help, and the morning summary |
+| `TELEGRAM_MODERATION_CHAT` | empty | The moderators' chat: a chat number or an `@name`. Alerts about Lightning addresses and requests for help, and the morning summary. Several chats, separated by commas, receive the same messages: for example the private chat of each moderator with the bot (the number of the person, who must have written to the bot once), instead of a group. A message counts as delivered when at least one chat took it; the chats that did not are in the `web` log by their place in the list. When no chat took it, only the morning summary, the new shops, team access, OpenStreetMap and Blossom go by email instead: to the community's `email`, or to each address of `moderators_emails` (up to five, one message each: see examples/community/community.yml). Alerts about Lightning addresses and requests for help stay only in `/admin/`. A moderator's chat cannot also be the chat of a shop |
 | `TELEGRAM_API` | `https://api.telegram.org` | Another address for Telegram's API (a test server) |
 | `NOSTR_SECRET_KEY`, `NOSTR_RELAYS` | empty | The community's Nostr key and relays (separated by commas), for `manage.py publish_nostr` |
 | `OSM_TOKEN` | empty | For `manage.py osm_upload`, an experimental command that is off by default. Passed only by hand, never in the `.env`: [OpenStreetMap](features/openstreetmap.md) |

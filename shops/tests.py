@@ -1140,13 +1140,15 @@ class Map(TestCase):
 
 
 class Historic(TestCase):
-    """A former shop stays on the map as a place in history, but is no longer a place to pay."""
+    """A former shop stays on the map as a place in history, but is no longer a place to pay. One that closes later on is
+    an ordinary place to pay up to and including its closing day, and only says when it closes."""
 
     def setUp(self):
         self.open = Shop.objects.create(name="Open", city="Example", latitude=1, longitude=1, discount=5, lightning=True)
         self.closing = Shop.objects.create(name="Closing", city="Otherville", latitude=1, longitude=1, discount=9, lightning=True,
                                            closed_on=date(2026, 11, 30))
-        self.closed = Shop.objects.create(name="Closed", city="Otherville", latitude=1, longitude=1, closed_on=date(2026, 10, 1))
+        self.closed = Shop.objects.create(name="Closed", city="Otherville", latitude=1, longitude=1, discount=7,
+                                          lightning=True, closed_on=date(2026, 10, 1))
         today = patch("shops.models.timezone.localdate", return_value=date(2026, 11, 2))
         today.start()
         self.addCleanup(today.stop)
@@ -1154,20 +1156,27 @@ class Historic(TestCase):
     def test_a_shop_is_not_historic_by_default(self):
         self.assertIsNone(Shop.objects.create(name="New").closed_on)
         self.assertEqual(self.open.historic_note, "")
+        self.assertFalse(self.open.closed)
 
     def test_it_closes_until_the_day_then_it_is_closed(self):
         with override("it"):
-            self.assertEqual(self.closing.historic_note, "Storico · chiude il 30 novembre 2026")
+            self.assertEqual(self.closing.historic_note, "Chiude il 30 novembre 2026")
             self.assertEqual(self.closed.historic_note, "Storico · chiuso il 1 ottobre 2026")
             self.closing.closed_on = date(2026, 11, 2)
-            self.assertEqual(self.closing.historic_note, "Storico · chiude il 2 novembre 2026")
+            self.assertEqual(self.closing.historic_note, "Chiude il 2 novembre 2026")
+            self.assertFalse(self.closing.closed)
+            self.closing.closed_on = date(2026, 11, 1)
+            self.assertEqual(self.closing.historic_note, "Storico · chiuso il 1 novembre 2026")
+            self.assertTrue(self.closing.closed)
         with override("en"):
             self.assertEqual(self.closed.historic_note, "Historic · closed on 1 October 2026")
 
-    def test_the_json_has_the_date_and_no_discount(self):
+    def test_the_json_has_the_date_and_a_discount_until_the_closing_day(self):
         shops = {shop["name"]: shop for shop in self.client.get("/shops.json").json()["shops"]}
         self.assertEqual(set(shops), {"Open", "Closing", "Closed"})
-        self.assertEqual((shops["Closing"]["closed_on"], shops["Closing"]["discount"]), ("2026-11-30", 0))
+        self.assertEqual((shops["Closing"]["closed_on"], shops["Closing"]["discount"]), ("2026-11-30", 9))
+        self.assertEqual((shops["Closed"]["closed_on"], shops["Closed"]["discount"], shops["Closed"]["paid"]),
+                         ("2026-10-01", 0, None))
         self.assertEqual((shops["Open"]["closed_on"], shops["Open"]["discount"]), (None, 5))
 
     def test_suspended_still_hides_it(self):
@@ -1175,48 +1184,64 @@ class Historic(TestCase):
         self.assertNotIn("Closed", [shop["name"] for shop in self.client.get("/shops.json").json()["shops"]])
 
     def test_statistics_count_only_the_places_to_pay(self):
-        self.assertEqual(statistics(), {"shops": 1, "discounts": 1, "cities": 1})
+        self.assertEqual(statistics(), {"shops": 2, "discounts": 2, "cities": 2})
 
-    def test_it_is_never_featured(self):
-        self.assertEqual([shop.name for shop in featured_shops()], ["Open"])
-        self.assertEqual(list(featured_shops(city="Otherville")), [])
+    def test_a_historic_one_is_never_featured(self):
+        self.assertEqual([shop.name for shop in featured_shops()], ["Closing", "Open"])
+        self.assertEqual([shop.name for shop in featured_shops(city="Otherville")], ["Closing"])
 
-    def test_the_shop_page_says_it_and_does_not_invite_to_pay(self):
-        page = self.client.get(f"/it/shops/s/{self.closing.id}/")
-        self.assertContains(page, '<p class="notice shop-historic" role="note">Storico · chiude il 30 novembre 2026</p>')
-        self.assertContains(page, 'data-historic="Storico · chiude il 30 novembre 2026"')
+    def test_the_shop_page_says_it_and_a_historic_one_does_not_invite_to_pay(self):
+        page = self.client.get(f"/it/shops/s/{self.closed.id}/")
+        self.assertContains(page, '<p class="notice shop-historic" role="note">Storico · chiuso il 1 ottobre 2026</p>')
+        self.assertContains(page, 'data-historic="Storico · chiuso il 1 ottobre 2026"')
         self.assertNotContains(page, "se paghi in bitcoin")
-        self.assertNotContains(page, "-9%")
+        self.assertNotContains(page, "-7%")
         self.assertNotContains(page, "Accetta pagamenti Lightning")
         self.assertNotContains(page, "/register/")
-        self.assertContains(self.client.get(f"/en/shops/s/{self.closed.id}/"), "Historic · closed on 1 October 2026")
+        page = self.client.get(f"/it/shops/s/{self.closing.id}/")
+        self.assertContains(page, '<p class="notice shop-closing" role="note">Chiude il 30 novembre 2026</p>')
+        self.assertNotContains(page, "data-historic")
+        self.assertContains(page, "-9%")
+        self.assertContains(page, "Accetta pagamenti Lightning")
+        self.assertContains(page, 'id="shop-pay-title"')
         self.assertNotContains(self.client.get(f"/it/shops/s/{self.open.id}/"), "shop-historic")
 
     def test_the_map_counts_only_the_places_to_pay(self):
         page = self.client.get("/it/shops/map/")
-        self.assertContains(page, '<span id="shop-count">1</span>')
+        self.assertContains(page, '<span id="shop-count">2</span>')
         self.assertContains(page, "Storico · chiuso il 1 ottobre 2026")
+        self.assertContains(page, "Chiude il 30 novembre 2026")
         self.assertContains(page, "-5%")
-        self.assertNotContains(page, "-9%")
-        self.assertContains(page, 'data-closes="Storico · chiude il {date}"')
+        self.assertContains(page, "-9%")
+        self.assertNotContains(page, "-7%")
+        self.assertContains(page, 'data-closes="Chiude il {date}"')
         self.assertContains(page, 'data-closed="Storico · chiuso il {date}"')
+        self.assertContains(page, 'data-today="')
         html = page.content.decode()
-        self.assertLess(html.index("<strong>Open</strong>"), html.index("<strong>Closing</strong>"))
+        # The historic shop last, the one that closes later on among the places to pay, in their order (the discount)
+        self.assertLess(html.index("<strong>Closing</strong>"), html.index("<strong>Open</strong>"))
+        self.assertLess(html.index("<strong>Open</strong>"), html.index("<strong>Closed</strong>"))
+        self.assertEqual(html.count('class="historic"'), 1)
 
-    def test_on_nostr_it_has_the_date_and_no_discount(self):
+    def test_on_nostr_it_has_the_date_and_a_discount_until_the_closing_day(self):
         tags = dict(shop_event("01" * 32, self.closing, "https://x.test/s")["tags"])
-        self.assertEqual(tags["closed_on"], "2026-11-30")
+        self.assertEqual((tags["closed_on"], tags["discount"]), ("2026-11-30", "9"))
+        tags = dict(shop_event("01" * 32, self.closed, "https://x.test/s")["tags"])
+        self.assertEqual(tags["closed_on"], "2026-10-01")
         self.assertNotIn("discount", tags)
         self.assertEqual(dict(shop_event("01" * 32, self.open, "https://x.test/s")["tags"])["discount"], "5")
 
     def test_the_owner_keeps_register_and_sign(self):
         owner = get_user_model().objects.create(username="o")
-        Shop.objects.filter(pk=self.closing.pk).update(owner=owner, lightning_address="a@b.example")
+        Shop.objects.filter(pk__in=[self.closing.pk, self.closed.pk]).update(owner=owner, lightning_address="a@b.example")
         self.client.force_login(owner)
         panel = self.client.get("/it/shops/")
-        self.assertContains(panel, "Storico · chiude il 30 novembre 2026. Sulla mappa con un segnaposto suo")
+        self.assertContains(panel, "Chiude il 30 novembre 2026. Fino ad allora non cambia niente")
+        self.assertContains(panel, "Storico · chiuso il 1 ottobre 2026. Sulla mappa con un segnaposto suo")
         self.assertContains(panel, f"/it/shops/register/{self.closing.id}/")
+        self.assertContains(panel, f"/it/shops/register/{self.closed.id}/")
         self.assertContains(self.client.get(f"/it/shops/sign/{self.closing.id}/"), "Closing")
+        self.assertContains(self.client.get(f"/it/shops/sign/{self.closed.id}/"), "Closed")
 
     def test_only_the_admin_sets_it(self):
         self.assertNotIn("closed_on", ShopForm.base_fields)

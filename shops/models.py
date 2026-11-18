@@ -99,6 +99,9 @@ class AccountChange(models.Model):
 
 
 DESCRIPTION_LENGTH = 1000
+# The Telegram chats of one shop's notices: each holds a copy of them, so few
+SHOP_CHATS = 3
+SHOP_CHAT = r"(-?[0-9]+|@[A-Za-z0-9_]{5,})"
 
 
 class RequestCount(models.Model):
@@ -123,31 +126,46 @@ class LightningStatus(models.TextChoices):
 
 # The shops that have a register, as a filter: the same rule as Shop.has_register
 HAS_REGISTER = ~models.Q(lightning_address="")
-# A historic shop (`closed_on`) keeps its register, and may still connect a wallet or change its address, until this long
-# after its closing day: the owner settles the last accounts (liquidation can take a year)
+# Until 0.1.8 a historic shop kept its register for this long after its closing day. Nothing reads it any more: the
+# closing is about the map and the history, and the register stays with the owner for as long as they want. Kept, with
+# its value, for whoever imports it
 REGISTER_AFTER_CLOSING = timedelta(days=365)
 
 
 def register_kept(today=None):
-    """A filter for the shops whose register still works by date: not historic, or closed less than REGISTER_AFTER_CLOSING ago."""
-    from django.utils import timezone
-
-    today = today or timezone.localdate()
-    return models.Q(closed_on__isnull=True) | models.Q(closed_on__gte=today - REGISTER_AFTER_CLOSING)
+    """A filter for the shops whose register still works by date: every shop, historic ones too (the register of a closed
+    shop has no end). Kept for whoever imports it."""
+    return models.Q()
 
 
 def keeps_register(shop, today=None):
-    """register_kept for one shop already read."""
-    from django.utils import timezone
+    """register_kept for one shop already read: always true."""
+    return True
 
-    return shop.closed_on is None or shop.closed_on >= (today or timezone.localdate()) - REGISTER_AFTER_CLOSING
+
+def closed_for_good(today=None):
+    """A filter for the shops closed for good on `today` (the same rule as Shop.closed): their closing day has passed.
+    Up to and including that day a shop with a closing day is an ordinary one that says «closes on …»."""
+    return models.Q(closed_on__lt=today or timezone.localdate())
+
+
+def still_trading(today=None):
+    """The other shops: without a closing day, or with one still to come or today (the opposite of closed_for_good)."""
+    return models.Q(closed_on__isnull=True) | models.Q(closed_on__gte=today or timezone.localdate())
 
 
 # The shops whose owner changed the Lightning address and whose new one the guardian has not yet seen working
-# (shops/address_change.py): their certificate and the private part wait for it. The same rule as Shop.address_pending
+# (shops/address_change.py): their certificate and the private part wait for it. Without a date, kept for whoever
+# imports it: the site uses address_pending(), which leaves out the historic shops
 ADDRESS_PENDING = (models.Q(lightning_changed__isnull=False)
                    & (~models.Q(lightning_checked_address=models.F("lightning_address"))
                       | models.Q(lightning_worked__isnull=True)))
+
+
+def address_pending(today=None):
+    """ADDRESS_PENDING on `today`, the same rule as Shop.address_pending: a historic shop (closed_for_good) waits for
+    nothing, since the guardian no longer watches it and would never see its address work."""
+    return ADDRESS_PENDING & still_trading(today)
 
 
 class ShopQuerySet(models.QuerySet):
@@ -231,8 +249,11 @@ class Shop(models.Model):
     nostr_pubkey = models.CharField(_("Nostr public key (hex)"), max_length=64, blank=True,
                                     validators=[RegexValidator(r"^[0-9a-f]{64}$", _("64 hexadecimal characters."))])
     nip05_name = models.SlugField(_("Nostr name"), max_length=60, blank=True)
-    telegram_chat = models.CharField(_("Telegram chat for notifications"), max_length=40, blank=True, validators=[
-        RegexValidator(r"^(-?[0-9]+|@[A-Za-z0-9_]{5,})$", _("A chat number or a @name."))])
+    # Up to SHOP_CHATS chats, separated by commas: each one gets its own copy of the shop's notices (shops/forms.py
+    # refuses a repeated chat and the moderators' ones; shops/guard.py tells each chat apart)
+    telegram_chat = models.CharField(_("Telegram chat for notifications"), max_length=120, blank=True, validators=[
+        RegexValidator(rf"^{SHOP_CHAT}(\s*,\s*{SHOP_CHAT}){{0,{SHOP_CHATS - 1}}}$",
+                       _("Up to three chat numbers or @names, separated by commas."))])
     suspended = models.BooleanField(default=False, help_text="Hides from maps and lists, leaves the register alone")
     # No shop goes on the maps, the lists and the counts until someone of the community approved it (shops/approval.py).
     # The register works before that. Shops imported from a list, moved from another site or written in /admin/ are
@@ -245,8 +266,9 @@ class Shop(models.Model):
     awaiting_approval = models.BooleanField(default=False, db_default=False, editable=False)
     # Decided by the association, not by the owner: no form on the site shows it
     closed_on = models.DateField(null=True, blank=True, help_text=(
-        "History: stays on the map with a different marker, does not count among the places to pay. "
-        "A future date is fine too: it reads «closes on …». The register and the sign stay with the owner"))
+        "The last day of trading. From the day after, history: stays on the map with a different marker, does not "
+        "count among the places to pay. Up to and including that day nothing changes and the shop reads «closes on …». "
+        "The register and the sign stay with the owner"))
     created = models.DateTimeField(auto_now_add=True)
     # Every column below that cannot be NULL has a db_default, not only a default: when a release does not answer, deploy/release.sh
     # puts the previous image back on the migrated database, and that image does not know these columns, so its INSERTs
@@ -393,19 +415,28 @@ class Shop(models.Model):
 
     @property
     def address_pending(self):
-        """True while a Lightning address the owner changed has not been seen working by the guardian (ADDRESS_PENDING)."""
-        return bool(self.lightning_changed and (self.lightning_checked_address != self.lightning_address
-                                                or self.lightning_worked is None))
+        """True while a Lightning address the owner changed has not been seen working by the guardian (address_pending()).
+        Never for a historic shop (Shop.closed): nobody watches its address, so it would wait for ever."""
+        return bool(self.lightning_changed and not self.closed
+                    and (self.lightning_checked_address != self.lightning_address or self.lightning_worked is None))
+
+    @property
+    def closed(self):
+        """True from the day after `closed_on`: a historic shop, on the map as history and no longer a place to pay. Up
+        to and including its closing day it is an ordinary shop that says «closes on …» (closed_for_good for a queryset).
+        Nothing is saved at midnight: the date alone decides."""
+        return self.closed_on is not None and self.closed_on < timezone.localdate()
 
     @property
     def historic_note(self):
-        """The phrase of a past closure in the page's language: "closes" up to and including that day, then "closed"."""
+        """The phrase of a closing day in the page's language: «Closes on …» up to and including that day, then
+        «Historic · closed on …»."""
         if not self.closed_on:
             return ""
         # Translators: the closing date with the letters of Django's date filter, for example "j. F Y" in German
         day = dateformat.format(self.closed_on, gettext("j F Y"))
-        if self.closed_on >= timezone.localdate():
-            return gettext("Historic · closes on %(date)s") % {"date": day}
+        if not self.closed:
+            return gettext("Closes on %(date)s") % {"date": day}
         return gettext("Historic · closed on %(date)s") % {"date": day}
 
 
@@ -489,6 +520,10 @@ class StaffRegister(models.Model):
     code = models.CharField(max_length=64, blank=True, db_index=True, editable=False)
     code_until = models.DateTimeField(null=True, blank=True, editable=False)
     opened = models.DateTimeField(null=True, blank=True, editable=False)
+    # Which of the shop's other places it is used at, if the owner says: a label for the owner's list, nothing more. The
+    # pairing, the register's page and what its phone receives do not change with it
+    place = models.ForeignKey(ShopPlace, on_delete=models.SET_NULL, null=True, blank=True, related_name="staff_registers",
+                              verbose_name=_("place"))
 
     class Meta:
         ordering = ["retired", "-created"]

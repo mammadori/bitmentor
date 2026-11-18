@@ -294,7 +294,7 @@ blockquote { margin: 32px 0; padding: 0 0 0 20px; border-left: 4px solid var(--h
 .field-help p { font-size: 16px; line-height: 1.5; }
 .mono { font-family: ui-monospace, monospace; font-size: 14px; word-break: break-all; }
 .pick-tools { margin: 12px 0 0; }
-.pick-map { height: 300px; margin-top: 12px; border-radius: var(--radius); }
+.pick-map { position: relative; z-index: 0; height: 300px; margin-top: 12px; border-radius: var(--radius); }
 /* In the credits text links are recognisable even without colour (WCAG 1.4.1) */
 .pick-map .leaflet-control-attribution a { text-decoration: underline; }
 .panel-status { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
@@ -424,6 +424,12 @@ blockquote { margin: 32px 0; padding: 0 0 0 20px; border-left: 4px solid var(--h
 .certified-rule { margin: 4px 0 0; font-size: 15px; }
 /* The staff registers of a shop, and the card that puts one on a phone */
 .staff-list form { display: inline; }
+/* The place a group of registers is used at; the rename form sits in the register's own row, without a line of its own */
+.staff-place { margin: 32px 0 0; }
+h2 + .staff-place { margin-top: 8px; }
+.staff-rename { padding: 4px 0 0; border-bottom: 0; }
+.staff-rename form { margin-top: 8px; }
+.staff-names { margin-top: -6px; }
 .staff-card .qr-box { margin: 16px 0; }
 .staff-card .qr { width: min(280px, 100%); height: auto; }
 .staff-steps { padding-left: 22px; }

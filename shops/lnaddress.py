@@ -303,10 +303,10 @@ def known_domains():
     different owners, the most used first. Not what passed a check: anyone can make an address of their own pass, and a
     domain of theirs one slip away from a known provider would be offered as where the money goes. Not a shop's own
     domain either, which would tell it to others. No provider is named in the software."""
-    from .models import Shop
+    from .models import Shop, still_trading
 
     shops = (Shop.objects.exclude(lightning_address="").exclude(owner=None)
-             .filter(suspended=False, approved_on__isnull=False, closed_on=None))
+             .filter(still_trading(), suspended=False, approved_on__isnull=False))
     owners = {}
     for address, owner in shops.values_list("lightning_address", "owner")[:5000]:
         owners.setdefault(address.rpartition("@")[2], set()).add(owner)

@@ -27,7 +27,7 @@ MARKS_TEMPLATE = "shops/shop_marks.html"
 def applies(shop):
     """A shop with a register made on this site, still trading. An imported shop without a register, or a historic one,
     has no path to walk."""
-    return shop.has_register and not shop.closed_on
+    return shop.has_register and not shop.closed
 
 
 def marks_template():

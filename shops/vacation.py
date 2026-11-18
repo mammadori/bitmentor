@@ -114,7 +114,7 @@ def holds(shop, day):
 
 def is_closed(shop, day=None):
     """True if the shop is closed for a while on `day` (today). A historic shop is closed for good, not for a while."""
-    return not shop.closed_on and current(shop, day) is not None
+    return not shop.closed and current(shop, day) is not None
 
 
 def is_quiet(shop, day=None):
@@ -130,7 +130,7 @@ def is_quiet(shop, day=None):
     kept quiet is still a line for the association in the dashboard (`closed_lightning`), and is told when the closure
     ends (`welcome_back`)."""
     day = day or day_of()
-    if shop.closed_on:
+    if shop.closed:
         return False
     if not enabled():
         found = max((closure for closure in stored(shop) if closure.reopens_on is not None and covers(closure, day)
@@ -144,7 +144,7 @@ def long_closure(shop, day=None):
     """The closure in course when it has lasted more than MAX_CREDIT days, closures one after the other counted as one:
     the day the chain began, or None. For the association to ask whether the shop is coming back."""
     day = day or day_of()
-    found = None if shop.closed_on else current(shop, day)
+    found = None if shop.closed else current(shop, day)
     if found is None:
         return None
     first, others = found.first_day, closures(shop)
@@ -203,7 +203,7 @@ def open_days(shop, since, today):
 def info(shop, day=None):
     """What anyone may know: {"state": "closed" or "soon", "reason", "from", "back"} (dates), or None. Never a free
     text: the owner picks a reason from a list, and "personal reasons" says nothing more."""
-    if shop.closed_on:
+    if shop.closed:
         return None
     day = day or day_of()
     found = current(shop, day)
@@ -273,7 +273,7 @@ def welcome(shop, now=None):
     and the owner has not closed the card, None otherwise. `works`: the guardian found the Lightning address working
     on or after the day the shop reopened (`lightning_worked`)."""
     day = day_of(now)
-    if shop.closed_on or is_closed(shop, day):
+    if shop.closed or is_closed(shop, day):
         return None
     ended = [closure for closure in closures(shop) if closure.reopens_on and closure.reopens_on <= day
              and (day - closure.reopens_on).days <= WELCOME_DAYS and closure.seen is None]
@@ -464,7 +464,7 @@ def welcome_back(now=None):
         if not Closure.objects.filter(pk=closure.pk, welcomed__isnull=True).update(welcomed=now):
             continue
         shop = Shop.objects.get(pk=closure.shop_id)
-        if shop.closed_on or holds(shop, day):
+        if shop.closed or holds(shop, day):
             continue
         if not enabled():
             tell_association_if_broken(shop)

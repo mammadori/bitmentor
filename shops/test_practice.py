@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import subprocess
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.conf import settings
@@ -138,12 +139,12 @@ class Practice(TestCase):
 
     def test_a_historic_shop_practises_only_while_its_register_works(self):
         # Its register still takes payments: the practice stays, in the panel and on the page
-        self.shop.closed_on = timezone.now().date()
+        self.shop.closed_on = timezone.localdate() - timedelta(days=1)
         self.shop.save()
         self.assertContains(self.client.get("/en/shops/"), f'href="{self.url}"')
         self.assertEqual(self.open(self.url).status_code, 200)
         # Without a register a historic shop has nothing to learn: no link, and no page even for its owner
-        old = Shop.objects.create(owner=self.owner, name="Old", closed_on=timezone.now().date())
+        old = Shop.objects.create(owner=self.owner, name="Old", closed_on=timezone.localdate() - timedelta(days=1))
         self.assertNotContains(self.client.get("/en/shops/"), f'href="/en/shops/practice/{old.id}/"')
         self.assertEqual(self.client.get(f"/en/shops/practice/{old.id}/").status_code, 404)
 

@@ -45,8 +45,9 @@ from .models import HAS_REGISTER, StaffRegister
 from .register import options, preferences, register_data, relays
 
 KEY = re.compile(r"[A-Za-z0-9_-]{20,64}")
-# Long enough to print the card and hand it over the next day; once used, or after this, the code opens nothing
-CODE_LIFETIME = timedelta(hours=24)
+# Long enough to print the card and hand it over the next day; once used, or after this, the code opens nothing. The
+# default: `limits.staff_code_hours` in community.yml changes it, between 1 and 72 hours (code_lifetime())
+CODE_LIFETIME = timedelta(hours=limits.LIMITS["staff_code_hours"].default)
 REGISTER_CHANGES = 30
 REGISTER_CHANGE_WINDOW = 3600
 # Opening a code: whoever tries codes at random finds none (128 bits), the limit keeps the database quiet
@@ -57,17 +58,35 @@ RETIRED_GRACE = timedelta(hours=24)
 
 
 class StaffRegisterForm(forms.ModelForm):
+    """The name of a staff register and, for a shop with other places, the place it is used at: the choice is among
+    the places of `shop` only, so a place of another shop is refused as an invalid choice."""
     class Meta:
         model = StaffRegister
-        fields = ["name"]
-        labels = {"name": gettext_lazy("Who will use it")}
+        fields = ["name", "place"]
+        labels = {"name": gettext_lazy("Who will use it"), "place": gettext_lazy("Where it is used")}
         help_texts = {"name": gettext_lazy("A first name or a word you recognise, for example «Anna» or «evening shift». "
-                                           "It shows at the top of the register's screen.")}
+                                           "It shows at the top of the register's screen."),
+                      "place": gettext_lazy("Only to find it in this list: it changes nothing in the register.")}
+
+    def __init__(self, *args, shop=None, has_places=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.shop = shop
+        places = shop.places.all() if shop else None
+        if places is None or not (places.exists() if has_places is None else has_places):
+            del self.fields["place"]
+        else:
+            self.fields["place"].queryset = places
+            self.fields["place"].empty_label = _("No place chosen")
 
     def clean_name(self):
         name = " ".join(self.cleaned_data["name"].split())
         if not name:
             raise forms.ValidationError(_("Write a name."))
+        # A register takes the name of another one only by being renamed: the day closing tells the registers apart by
+        # name, and two with the same one would be counted together. Adding one is left as it was.
+        if self.shop and self.instance.pk and self.shop.staff_registers.filter(
+                retired__isnull=True, name__iexact=name).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError(_("Another register of this shop has this name: choose a different one."))
         return name
 
 
@@ -107,9 +126,14 @@ def private(response):
     return response
 
 
+def code_lifetime():
+    """How long a new one-time code opens its register: CODE_LIFETIME, or `limits.staff_code_hours` (1 to 72)."""
+    return timedelta(hours=limits.get("staff_code_hours"))
+
+
 def new_code(register):
     register.code = StaffRegister._meta.get_field("key").default()
-    register.code_until = timezone.now() + CODE_LIFETIME
+    register.code_until = timezone.now() + code_lifetime()
     register.save(update_fields=["code", "code_until"])
 
 
@@ -155,7 +179,7 @@ def owned_shop(request, shop):
 
 def summary(shop):
     """The staff registers of a shop for the owner, with whether their one-time code still opens them."""
-    registers = list(shop.staff_registers.all())
+    registers = list(shop.staff_registers.select_related("place"))
     for register in registers:
         register.code_alive = code_alive(register)
     return registers
@@ -166,7 +190,7 @@ def summary(shop):
 def manage(request, shop):
     """The owner's page of the staff registers: add one, show the code that opens it on a phone, turn it off."""
     shop = owned_shop(request, shop)
-    form = StaffRegisterForm(request.POST or None)
+    form = StaffRegisterForm(request.POST or None, shop=shop)
     if request.method == "POST":
         if ratelimit.over_limit(f"staff:{request.user.pk}", REGISTER_CHANGES, REGISTER_CHANGE_WINDOW):
             form.add_error(None, _("Too many changes in a short time: wait a few minutes."))
@@ -183,10 +207,32 @@ def manage(request, shop):
                 shop.register_shared = timezone.now()
                 shop.save(update_fields=["register_shared"])
             return redirect("staff_code", shop.id, register.id)
+    return list_page(request, shop, form)
+
+
+def list_page(request, shop, form, renamed=None):
+    """The list of the staff registers, with the form to add one and, for each register turned on, the form to rename
+    it: `renamed` is the bound form of a rename that was refused, shown with its errors in place of that register's."""
     registers = summary(shop)
+    has_places = "place" in form.fields
+    for register in registers:
+        if not register.retired:
+            register.rename_form = (renamed if renamed and renamed.instance.pk == register.pk else StaffRegisterForm(
+                instance=register, shop=shop, has_places=has_places, auto_id=f"rename-{register.pk}-%s"))
+    active = [r for r in registers if not r.retired]
     return render(request, "shops/staff_registers.html", {
-        "shop": shop, "form": form, "active": [r for r in registers if not r.retired],
+        "shop": shop, "form": form, "active": active, "groups": by_place(shop, active),
         "retired": [r for r in registers if r.retired], "owner_register": reverse("register", args=[shop.id])})
+
+
+def by_place(shop, registers):
+    """The registers turned on grouped by the place the owner chose, in the order of the places, the ones without a
+    place last: [(place or None, registers)]. One group with no place when none has one, as the list was."""
+    if not any(register.place_id for register in registers):
+        return [(None, registers)]
+    groups = [(place, [r for r in registers if r.place_id == place.pk]) for place in shop.places.all()]
+    rest = [r for r in registers if not r.place_id]
+    return [(place, found) for place, found in groups if found] + ([(None, rest)] if rest else [])
 
 
 @views.not_indexed
@@ -229,6 +275,33 @@ def retire(request, shop, register):
     messages.success(request, _("«{name}» is turned off: it takes no more payments. If the person needs a register "
                                 "again, add a new one.").format(name=register.name))
     return redirect("staff_registers", shop.id)
+
+
+@views.not_indexed
+@login_required(login_url="shops")
+@require_POST
+def rename(request, shop, register):
+    """A new name for a register turned on, checked as the name of a new one. The register's page shows it the next time
+    it loads from the site; the pairing carries no name, so no new code is needed, and the sales already made keep the
+    name they were made with. A register turned off keeps its name: it is the one its last sales carry."""
+    shop = owned_shop(request, shop)
+    with transaction.atomic():
+        register = get_object_or_404(shop.staff_registers.select_for_update().filter(retired__isnull=True), pk=register)
+        before = register.name
+        form = StaffRegisterForm(request.POST, instance=register, shop=shop, auto_id=f"rename-{register.pk}-%s")
+        if ratelimit.over_limit(f"staff:{request.user.pk}", REGISTER_CHANGES, REGISTER_CHANGE_WINDOW):
+            form.add_error(None, _("Too many changes in a short time: wait a few minutes."))
+        elif form.is_valid():
+            # Only what the form changes: never the code, the key or the state of the register
+            form.save(commit=False).save(update_fields=list(form.fields))
+            if register.name != before:
+                messages.success(request, _("«{before}» is now «{name}». Its phone shows the new name the next time "
+                                            "the register opens with the site; the sales already made keep the old "
+                                            "one.").format(before=before, name=register.name))
+            else:
+                messages.success(request, _("«{name}» is saved.").format(name=register.name))
+            return redirect("staff_registers", shop.id)
+    return list_page(request, shop, StaffRegisterForm(shop=shop), renamed=form)
 
 
 @views.not_indexed

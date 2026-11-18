@@ -7,6 +7,7 @@ the same answer at any hour, and across the change of summer time."""
 from datetime import date, datetime, time, timedelta
 from datetime import timezone as dt_timezone
 from io import StringIO
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -494,6 +495,15 @@ class Welcome(Base):
         make(self.shop, today() - days(14), today())
         with patch("shops.notifications.telegram", side_effect=NotificationFailed("500")):
             self.assertEqual(len(vacation.welcome_back(self.morning())), 1)
+
+    @override_settings(TELEGRAM_BOT_TOKEN="t")
+    def test_each_chat_of_the_shop_gets_its_copy_and_a_refusal_does_not_stop_the_others(self):
+        Shop.objects.filter(pk=self.shop.pk).update(telegram_chat="111,@bar_chat,222")
+        make(self.shop, today() - days(14), today())
+        with patch("shops.notifications.requests.post") as post, self.assertLogs("shops.notifications", "ERROR"):
+            post.side_effect = lambda url, json, timeout: SimpleNamespace(status_code=403 if json["chat_id"] == "111" else 200)
+            self.assertEqual(len(vacation.welcome_back(self.morning())), 1)
+        self.assertEqual([call.kwargs["json"]["chat_id"] for call in post.call_args_list], ["111", "@bar_chat", "222"])
 
     def test_the_message_does_not_say_today_when_it_is_late(self):
         make(self.shop, today() - days(20), today() - days(2))

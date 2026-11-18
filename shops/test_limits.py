@@ -46,6 +46,22 @@ class Values(TestCase):
             self.assertEqual([found.id for found in wrong_limits(None)], ["shops.W009"] * 4)
         self.assertEqual(limits.problems(), [])
 
+    def test_a_limit_with_bounds_takes_only_a_value_within_them(self):
+        self.assertEqual(limits.get("staff_code_hours"), 24)
+        for good in (1, 48, 72):
+            with set_limits(staff_code_hours=good):
+                self.assertEqual(limits.get("staff_code_hours"), good)
+                self.assertEqual(limits.problems(), [])
+        # 0 is not «no limit» here: a code that never expires is out of the bounds
+        for wrong in (0, 73, 1000, -1, "48", True, 2.5):
+            with set_limits(staff_code_hours=wrong):
+                self.assertEqual(limits.get("staff_code_hours"), 24)
+                self.assertEqual(limits.problems(), [
+                    f"`limits.staff_code_hours` is a whole number from 1 to 72: {wrong!r}; the default 24 counts"])
+        # The other limits keep 0 as no limit
+        with set_limits(staff_registers_per_shop=0):
+            self.assertEqual(limits.get("staff_registers_per_shop"), 0)
+
     def test_every_limit_is_documented_in_the_example_and_in_the_docs(self):
         root = Path(__file__).resolve().parent.parent
         example = (root / "examples/community/community.yml").read_text()

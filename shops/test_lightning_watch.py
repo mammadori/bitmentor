@@ -309,11 +309,11 @@ class Watched(TestCase):
 
     def test_who_is_watched(self):
         today = timezone.localdate()
-        watched = [self.shop(), self.shop(closed_on=today + timedelta(days=30)),
-                   self.shop(closed_on=today), self.shop(closed_on=today - timedelta(days=1)),
-                   self.shop(closed_on=today - timedelta(days=365))]
+        # Up to and including its closing day a shop is an ordinary one
+        watched = [self.shop(), self.shop(closed_on=today + timedelta(days=30)), self.shop(closed_on=today)]
         self.shop(suspended=True)
-        # A historic shop keeps its register for a year after its closing day (models.REGISTER_AFTER_CLOSING)
+        # A historic shop keeps its register with no end, but it is no longer a place to pay: nobody watches it
+        self.shop(closed_on=today - timedelta(days=1))
         self.shop(closed_on=today - timedelta(days=366))
         self.shop(lightning_address="")
         self.assertEqual(set(lightning_watch.watched()), set(watched))

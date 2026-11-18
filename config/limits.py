@@ -7,7 +7,8 @@ limit here has a default that suits a small community and can be changed in `com
       shops: 1000
       help_requests: 0         # 0 = no limit
 
-A value that is not a whole number of 0 or more counts as the default, and `manage.py check` says so. The keys, with
+A value that is not a whole number of 0 or more (or out of the bounds of a limit that has them, like
+`staff_code_hours`) counts as the default, and `manage.py check` says so. The keys, with
 their defaults and what they count, are in LIMITS; the same list is documented in examples/community/community.yml and
 in docs/configuration.md.
 
@@ -42,6 +43,9 @@ class Limit:
     what: str
     # True when `counters` counts what the limit is about; False for a rate
     total: bool = True
+    # A value that is not a count but a setting has bounds, and 0 is not «no limit» for it unless `low` is 0
+    low: int = 0
+    high: int | None = None
 
 
 LIMITS = {limit.key: limit for limit in (
@@ -59,6 +63,10 @@ LIMITS = {limit.key: limit for limit in (
     Limit("emails_per_sender_day", 10, gettext_lazy("emails one network address can make the site send in a day (three times as many for its wider network)"), total=False),
     Limit("emails_staff_factor", 3, gettext_lazy("times more emails (per address and per network address) for the staff and the allowed addresses, who may be testing"), total=False),
     Limit("help_requests_per_shop_day", 3, gettext_lazy("requests for help from one shop in a day"), total=False),
+    # Not a count: how long a staff register's one-time pairing code opens it (shops/staff.py). Capped, since a code
+    # that lives longer is longer of use to whoever finds a photo of it before the person scans it
+    Limit("staff_code_hours", 24, gettext_lazy("hours a staff register's one-time pairing code works (1 to 72)"),
+          total=False, low=1, high=72),
 )}
 
 # What whoever runs the Nostr relay should configure (docs/features/nostr-copies.md): kept here with the other numbers
@@ -71,8 +79,11 @@ def block():
     return data if isinstance(data, dict) else {}
 
 
-def valid(value):
-    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+def valid(value, key=None):
+    """A whole number of 0 or more; for a `key` with bounds, within them."""
+    limit = LIMITS.get(key)
+    low, high = (limit.low, limit.high) if limit else (0, None)
+    return isinstance(value, int) and not isinstance(value, bool) and value >= low and (high is None or value <= high)
 
 
 def default(key):
@@ -87,7 +98,7 @@ def default(key):
 def get(key):
     """The limit's value: the one in `community.yml`, or the default when it is missing or wrong. 0 means no limit."""
     value = block().get(key)
-    return value if value is not None and valid(value) else default(key)
+    return value if value is not None and valid(value, key) else default(key)
 
 
 def rate(key):
@@ -107,7 +118,10 @@ def problems():
     for key, value in data.items():
         if key not in LIMITS:
             found.append(f"`limits.{key}` is not a limit of this software (they are {', '.join(LIMITS)})")
-        elif not valid(value):
+        elif not valid(value, key) and LIMITS[key].high is not None:
+            found.append(f"`limits.{key}` is a whole number from {LIMITS[key].low} to {LIMITS[key].high}: {value!r}; "
+                         f"the default {default(key)} counts")
+        elif not valid(value, key):
             found.append(f"`limits.{key}` is a whole number, 0 or more (0 is no limit): {value!r}; "
                          f"the default {default(key)} counts")
     return found

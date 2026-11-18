@@ -29,7 +29,7 @@ from config.community import community
 from config.network import resolve
 
 from . import certified, lnaddress, public_cache, vacation
-from .models import HAS_REGISTER, keeps_register, register_kept, LightningStatus, Profile, Shop, real
+from .models import HAS_REGISTER, LightningStatus, Profile, Shop, real, still_trading
 from .notifications import NotificationFailed, alert_name, telegram
 
 logger = logging.getLogger(__name__)
@@ -70,13 +70,14 @@ NO_ANSWER_STATUS = LightningStatus.NO_ANSWER
 
 
 def watched():
-    """The shops whose Lightning address the register uses today: with a register and an address, not suspended. A
-    historic shop keeps its register, and stays watched, until REGISTER_AFTER_CLOSING after its closing day."""
-    return real(Shop.objects.filter(HAS_REGISTER)).filter(suspended=False).filter(register_kept())
+    """The shops whose Lightning address the guardian watches: with a register and an address, not suspended, still
+    trading. A historic shop (Shop.closed) keeps its register for as long as its owner wants, but it is no longer a place
+    to pay: nobody watches its address or writes about it."""
+    return real(Shop.objects.filter(HAS_REGISTER)).filter(suspended=False).filter(still_trading())
 
 
 def is_watched(shop):
-    return bool(shop.has_register and not shop.suspended and keeps_register(shop))
+    return bool(shop.has_register and not shop.suspended and not shop.closed)
 
 
 def due(now):

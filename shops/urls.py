@@ -46,6 +46,7 @@ urlpatterns = [
     path("registers/<uuid:shop>/", staff.manage, name="staff_registers"),
     path("registers/<uuid:shop>/<uuid:register>/", staff.code, name="staff_code"),
     path("registers/<uuid:shop>/<uuid:register>/retire/", staff.retire, name="staff_retire"),
+    path("registers/<uuid:shop>/<uuid:register>/rename/", staff.rename, name="staff_rename"),
     path("register/open/", staff.open_register, name="staff_open"),
     path("register/p/<uuid:register>/", staff.register, name="staff_register"),
     path("register/p/<uuid:register>/sw.js", staff.worker, name="staff_worker"),

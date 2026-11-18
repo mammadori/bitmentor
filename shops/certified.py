@@ -11,7 +11,7 @@ automatic: its owner sees it once a person of the association approved the shop 
 - `certified_month`: the first calendar month, in the community's time zone, in which all of it held. Once certified,
   always certified: it is a fact of the past. `refresh` writes it, after a probe that worked, after a basic pass, and at
   every run of the guardian (manage.py check_lightning).
-- A Lightning address the owner changed from the panel (shops/address_change.py, `ADDRESS_PENDING`) holds the badge and
+- A Lightning address the owner changed from the panel (shops/address_change.py, `address_pending()`) holds the badge and
   the private part back, without touching `certified_month` or the approval, until the guardian sees the new address work.
 - `certified_revoked`: the association took the certificate away from /admin/; the site does not give it back by itself.
 
@@ -34,7 +34,7 @@ from django.utils.translation import gettext_lazy as _
 from config import features
 
 from . import vacation
-from .models import ADDRESS_PENDING, LightningStatus, Shop
+from .models import LightningStatus, Shop, address_pending
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ def texts():
 def marks(shop, now=None):
     """The icons of a shop for a template: [{"kind", "band", "label"}]. None for a historic shop. On-chain, said by the
     owner, has the band «said»; not while on-chain at the register, an experimental feature, is off."""
-    if shop.closed_on:
+    if shop.closed:
         return []
     found = bands(shop, now) or {}
     icons = [{"kind": kind, "band": found[kind], "label": TEXTS[kind][found[kind]]} for kind in TEXTS if kind in found]
@@ -88,7 +88,7 @@ def owns_certified_shop(user):
         return False
     try:
         # A shop whose owner just changed its address waits for the guardian, as its badge (Shop.certified)
-        return Shop.objects.filter(owner=user, suspended=False, certified_month__isnull=False).exclude(ADDRESS_PENDING).exists()
+        return Shop.objects.filter(owner=user, suspended=False, certified_month__isnull=False).exclude(address_pending()).exists()
     except DatabaseError:
         return False
 
@@ -102,7 +102,7 @@ def sees_private_part(user):
         # A shop whose address is also another owner's opens nothing until that is resolved, as for the certificate
         return (Shop.objects.filter(owner=user, suspended=False, certified_month__isnull=False,
                                     private_approved__isnull=False).exclude(shared_with_another_owner())
-                .exclude(ADDRESS_PENDING).exists())
+                .exclude(address_pending()).exists())
     except DatabaseError:
         return False
 

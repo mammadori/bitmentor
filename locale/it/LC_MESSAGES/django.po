@@ -2713,8 +2713,8 @@ msgid "A closure is saved from {date}: the map starts to say it {days} days befo
 msgstr "È salvata una chiusura dal {date}: la mappa comincia a dirlo {days} giorni prima."
 
 #, python-brace-format
-msgid "These registers wait for the person to scan their code: {names}. The code works once and lasts 24 hours."
-msgstr "Queste casse aspettano che la persona inquadri il loro codice: {names}. Il codice vale una volta sola e dura 24 ore."
+msgid "These registers wait for the person to scan their code: {names}. The code works once, until the time shown."
+msgstr "Queste casse aspettano che la persona inquadri il loro codice: {names}. Il codice vale una volta sola, fino all'ora indicata."
 
 msgid "Nothing is broken: the person scans the code with their phone before it expires. If it has expired, the owner makes a new one. The code is never read out on the phone."
 msgstr "Non c'è niente di rotto: la persona inquadra il codice con il suo telefono prima che scada. Se è scaduto, il titolare ne crea uno nuovo. Il codice non si detta mai al telefono."
@@ -4497,8 +4497,8 @@ msgstr "Cambio password"
 msgid "On-chain payments too"
 msgstr "Anche pagamenti on-chain"
 
-msgid "The chat number or @name where the site writes to you: account changes, help answers, the reopening after a closure."
-msgstr "Il numero della chat o il @nome dove il sito ti scrive: modifiche all'account, risposte alle richieste di aiuto, la riapertura dopo una chiusura."
+msgid "The chat number or @name where the site writes to you: account changes, help answers, the reopening after a closure. Up to three, separated by commas: each chat gets its own copy."
+msgstr "Il numero della chat o il @nome dove il sito ti scrive: modifiche all'account, risposte alle richieste di aiuto, la riapertura dopo una chiusura. Fino a tre, separati da virgole: ogni chat riceve la sua copia."
 
 msgid "This chat cannot receive the site's messages."
 msgstr "Questa chat non può ricevere i messaggi del sito."
@@ -5414,8 +5414,8 @@ msgstr "3. Se è diverso, o il wallet non ne ha più uno, cambialo dalla pagina 
 msgid "Call the merchant: the panel already shows them what to do. If the wallet changed, only they can change the address, from their panel. Never change it for them."
 msgstr "Chiama il commerciante: il suo pannello gli dice già cosa fare. Se il wallet è cambiato, solo lui può cambiare l'indirizzo, dal suo pannello. Non cambiarlo mai al posto suo."
 
-msgid "The Lightning address of a suspended shop, or of one closed more than a year ago, cannot be changed."
-msgstr "L'indirizzo Lightning di un negozio sospeso, o chiuso da più di un anno, non si può cambiare."
+msgid "The Lightning address of a suspended shop cannot be changed."
+msgstr "L'indirizzo Lightning di un negozio sospeso non si può cambiare."
 
 msgid "This is already your shop's Lightning address."
 msgstr "Questo è già l'indirizzo Lightning del tuo negozio."
@@ -5437,14 +5437,6 @@ msgstr "La stessa attesa vale dopo un cambio dell'email di recupero del tuo acco
 
 msgid "Historic shop: no register."
 msgstr "Negozio storico: nessuna cassa."
-
-#, python-format
-msgid "On the map with its own pin, not among the places to pay. Register and payments keep working until %(until)s."
-msgstr "Sulla mappa con un segnaposto suo, non tra i posti dove pagare. Cassa e incassi continuano a funzionare fino al %(until)s."
-
-#, python-format
-msgid "On the map with its own pin, not among the places to pay. The register stopped on %(until)s, a year after closing."
-msgstr "Sulla mappa con un segnaposto suo, non tra i posti dove pagare. La cassa si è fermata il %(until)s, un anno dopo la chiusura."
 
 msgid "Suspended: no register can be added."
 msgstr "Sospeso: non si può aggiungere una cassa."
@@ -6143,7 +6135,6 @@ msgstr "Wallet collegato: d'ora in poi entra in questo account."
 msgid "A wallet was connected to your account"
 msgstr "Un wallet è stato collegato al tuo account"
 
-
 msgid "If it was not you, sign in and disconnect it:"
 msgstr "Se non sei stato tu, entra e scollegalo:"
 
@@ -6259,3 +6250,196 @@ msgstr "Versione in uso"
 
 msgid "This link was already used: each one works once. Ask for a new one here below."
 msgstr "Questo link è già stato usato: ognuno vale una volta sola. Chiedine uno nuovo qui sotto."
+
+msgid "The same, by register:"
+msgstr "Gli stessi, cassa per cassa:"
+
+msgid "Your own register"
+msgstr "La tua cassa"
+
+msgid "Change"
+msgstr "Cambia"
+
+msgid "Change a place"
+msgstr "Cambia una sede"
+
+msgid "Save this place"
+msgstr "Salva questa sede"
+
+msgid "Place saved."
+msgstr "Sede salvata."
+
+msgid "Rename"
+msgstr "Rinomina"
+
+msgid "Save the name"
+msgstr "Salva il nome"
+
+msgid "The register's phone shows the new name the next time it opens with the site: no new code is needed. The sales already made keep the old name."
+msgstr "Il telefono della cassa mostra il nuovo nome la prossima volta che si apre col sito: non serve un codice nuovo. Le vendite già fatte tengono il nome vecchio."
+
+msgid "«{before}» is now «{name}». Its phone shows the new name the next time the register opens with the site; the sales already made keep the old one."
+msgstr "«{before}» ora si chiama «{name}». Il suo telefono mostra il nuovo nome la prossima volta che la cassa si apre col sito; le vendite già fatte tengono quello vecchio."
+
+msgid "…and 1 more"
+msgid_plural "…and %(counter)s more"
+msgstr[0] "…e un'altra"
+msgstr[1] "…e altre %(counter)s"
+
+msgid "hours a staff register's one-time pairing code works (1 to 72)"
+msgstr "ore di validità del codice monouso che abbina una cassa per chi lavora col negozio (da 1 a 72)"
+
+msgid "Where it is used"
+msgstr "Dove si usa"
+
+msgid "Only to find it in this list: it changes nothing in the register."
+msgstr "Serve solo a ritrovarla in questo elenco: nella cassa non cambia nulla."
+
+msgid "No place chosen"
+msgstr "Nessuna sede scelta"
+
+msgid "Rename or change the place"
+msgstr "Rinomina o cambia la sede"
+
+msgid "«{name}» is saved."
+msgstr "«{name}» è salvata."
+
+msgid "Up to three chat numbers or @names, separated by commas."
+msgstr "Fino a tre numeri di chat o @nomi, separati da virgole."
+
+msgid "The same chat is written twice."
+msgstr "La stessa chat è scritta due volte."
+
+msgid "Another register of this shop has this name: choose a different one."
+msgstr "Un'altra cassa di questo negozio ha già questo nome: scegline uno diverso."
+
+#, python-format
+msgid "The same name as «%(other)s», a shop of another owner in the same area."
+msgstr "Lo stesso nome di «%(other)s», un negozio di un altro titolare nella stessa zona."
+
+#, python-format
+msgid "A name very like «%(other)s», a shop of another owner in the same area."
+msgstr "Un nome molto simile a «%(other)s», un negozio di un altro titolare nella stessa zona."
+
+#, python-format
+msgid "The two are only %(metres)d m apart."
+msgstr "I due sono a soli %(metres)d m di distanza."
+
+#, python-format
+msgid "The same contacts as «%(other)s», a shop of another owner: %(kinds)s."
+msgstr "Gli stessi contatti di «%(other)s», un negozio di un altro titolare: %(kinds)s."
+
+#, python-format
+msgid "«%(other)s» is paid at another Lightning address, at another provider."
+msgstr "«%(other)s» riceve i pagamenti a un altro indirizzo Lightning, presso un altro fornitore."
+
+#, python-format
+msgid "«%(other)s» is paid at another Lightning address."
+msgstr "«%(other)s» riceve i pagamenti a un altro indirizzo Lightning."
+
+msgid "The owner's account was opened just before the shop, with no recovery email and no other shop."
+msgstr "L'account del titolare è stato aperto poco prima del negozio, senza email di recupero e senza altri negozi."
+
+#, python-format
+msgid "A shop of another owner elsewhere has a name like this one: «%(other)s» (a chain, perhaps)."
+msgstr "Un negozio di un altro titolare, altrove, ha un nome simile: «%(other)s» (forse una catena)."
+
+msgid "Check before approving"
+msgstr "Controlla prima di approvare"
+
+#, python-format
+msgid "Not approved: %(count)d shops that look like a shop already on the site. Approve them one by one from /admin/today/, after checking."
+msgstr "Non approvati: %(count)d negozi che sembrano un negozio già presente sul sito. Approvali uno per uno da /admin/today/, dopo aver controllato."
+
+msgid "See that shop"
+msgstr "Vedi quel negozio"
+
+msgid "Approve anyway"
+msgstr "Approva comunque"
+
+#, python-format
+msgid "A shop of another owner %(km)s km away has a name like this one: «%(other)s»."
+msgstr "Un negozio di un altro titolare a %(km)s km ha un nome simile: «%(other)s»."
+
+#, python-format
+msgid "A shop of another owner in the same town has a name like this one: «%(other)s»."
+msgstr "Un negozio di un altro titolare nella stessa città ha un nome simile: «%(other)s»."
+
+#, python-format
+msgid "Ask the owner of «%(other)s» whether this new shop is theirs, or genuine."
+msgstr "Chiedi al titolare di «%(other)s» se questo nuovo negozio è suo, o autentico."
+
+msgid "Check this shop"
+msgstr "Controlla questo negozio"
+
+#, python-format
+msgid "%(name)s, already on the map, was changed by its owner and now looks like a shop already on the site."
+msgstr "%(name)s, già sulla mappa, è stato modificato dal titolare e ora sembra un negozio già presente sul sito."
+
+#, python-format
+msgid "%(name)s is not approved: it looks like a shop already on the site. Check what its line says, then tick the box and approve it."
+msgstr "%(name)s non è approvato: sembra un negozio già presente sul sito. Verifica quello che dice la sua riga, poi spunta la casella e approvalo."
+
+msgid "This new shop looks like a shop already on the site. Before approving it, check what the lines below say."
+msgstr "Questo nuovo negozio sembra un negozio già presente sul sito. Prima di approvarlo, verifica quello che dicono le righe qui sotto."
+
+msgid "Check first"
+msgstr "Prima controlla"
+
+msgid "I checked what the lines above say: this new shop is genuine."
+msgstr "Ho verificato quello che dicono le righe qui sopra: questo nuovo negozio è autentico."
+
+#, python-format
+msgid "«%(other)s» is on the site without an owner and waits for its claim link: if it is the same business, send that link to this merchant instead of approving a second shop."
+msgstr "«%(other)s» è sul sito senza titolare e attende il suo link per rivendicarlo: se è la stessa attività, manda quel link a questo commerciante invece di approvare un secondo negozio."
+
+#, python-format
+msgid "«%(other)s» is on the site without an owner: if it is the same business, give that shop to this owner in the administration instead of approving a second one."
+msgstr "«%(other)s» è sul sito senza titolare: se è la stessa attività, assegna quel negozio a questo titolare nell'amministrazione invece di approvarne un secondo."
+
+#, python-format
+msgid "«%(other)s» closes on %(date)s: this new shop may be its successor, or a move. Ask its owner."
+msgstr "«%(other)s» chiude il %(date)s: questo nuovo negozio potrebbe esserne il successore, o un trasloco. Chiedi al suo titolare."
+
+#, python-format
+msgid "«%(other)s» closed on %(date)s: check whether this new shop is its reopening."
+msgstr "«%(other)s» ha chiuso il %(date)s: verifica se questo nuovo negozio è la sua riapertura."
+
+#, python-format
+msgid "Not approved: %(count)d shops, because the checks for copies of other shops could not be run (whoever runs the site should look at the log). Approve them one by one from /admin/today/, after looking at each yourself."
+msgstr "Non approvati: %(count)d negozi, perché non è stato possibile cercare copie di altri negozi (chi gestisce il sito dovrebbe guardare il log). Approvali uno per uno da /admin/today/, dopo averli guardati tu stesso."
+
+#, python-format
+msgid "%(name)s is not approved: the checks for copies of other shops could not be run. Look at the shop yourself, then tick the box and approve it."
+msgstr "%(name)s non è approvato: non è stato possibile cercare copie di altri negozi. Guarda tu stesso il negozio, poi spunta la casella e approvalo."
+
+msgid "The checks could not be run"
+msgstr "Non è stato possibile fare i controlli"
+
+msgid "The site could not compare this new shop with the others to find copies: whoever runs the site should look at the log. Look at the shop yourself before approving it."
+msgstr "Il sito non ha potuto confrontare questo nuovo negozio con gli altri per trovare copie: chi gestisce il sito dovrebbe guardare il log. Guarda tu stesso il negozio prima di approvarlo."
+
+msgid "The checks could not be run: I looked at this shop myself."
+msgstr "Non è stato possibile fare i controlli: ho guardato io stesso questo negozio."
+
+#, python-format
+msgid "Closes on %(date)s"
+msgstr "Chiude il %(date)s"
+
+msgid "Until then nothing changes: it stays among the places to pay."
+msgstr "Fino ad allora non cambia niente: resta tra i posti dove pagare."
+
+msgid "Your shop has a closing day ({note}): until then nothing changes and it stays among the places to pay. From the day after it stays on the map as history. The register and the sign still work."
+msgstr "Il tuo negozio ha un giorno di chiusura ({note}): fino ad allora non cambia niente e resta tra i posti dove pagare. Dal giorno dopo resta sulla mappa come storia. La cassa e il cartello funzionano ancora."
+
+msgid "On the map with its own pin, not among the places to pay. The register stays yours and keeps working, for as long as you want."
+msgstr "Sulla mappa con un segnaposto suo, non tra i posti dove pagare. La cassa resta tua e continua a funzionare, finché vuoi."
+
+# Not used by the software any more: kept for a community's own copy of an older panel.html
+#, python-format
+msgid "On the map with its own pin, not among the places to pay. Register and payments keep working until %(until)s."
+msgstr "Sulla mappa con un segnaposto suo, non tra i posti dove pagare. Cassa e incassi continuano a funzionare fino al %(until)s."
+
+#, python-format
+msgid "On the map with its own pin, not among the places to pay. The register stopped on %(until)s, a year after closing."
+msgstr "Sulla mappa con un segnaposto suo, non tra i posti dove pagare. La cassa si è fermata il %(until)s, un anno dopo la chiusura."

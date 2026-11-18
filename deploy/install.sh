@@ -13,6 +13,9 @@
 #   --entry <how>          direct: Caddy holds ports 80 and 443 (default); shared: behind the entry point's Caddy on
 #                          the Docker network bitmentor-entry, which holds TLS (deploy/examples/entry), as when
 #                          two installations share the machine
+#   --logs <where>         journal: the containers write to the machine's systemd journal, where the lines outlive a
+#                          release; files: Docker's own files, as docker-compose.yml has them. Not asked: without
+#                          it, journal on a machine that has the journal and a Docker that can write to it
 #   --yes                  ask nothing
 #
 # It writes only the files that are missing: .env (with its secrets generated here and never printed), release.env,
@@ -25,7 +28,7 @@ CLONE=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 die() { echo "install.sh: $*" >&2; exit 2; }
 note() { echo "  - $*"; }
 
-DIR='' SITE='' NETWORK='' WEB_IMAGE='' CADDY_IMAGE='' TAG=active ENTRY='' YES=''
+DIR='' SITE='' NETWORK='' WEB_IMAGE='' CADDY_IMAGE='' TAG=active ENTRY='' LOGS='' YES=''
 while [ $# -gt 0 ]; do
   case "$1" in
     --site) SITE=${2:?}; shift ;;
@@ -34,6 +37,7 @@ while [ $# -gt 0 ]; do
     --caddy-image) CADDY_IMAGE=${2:?}; shift ;;
     --tag) TAG=${2:?}; shift ;;
     --entry) ENTRY=${2:?}; shift ;;
+    --logs) LOGS=${2:?}; shift ;;
     --yes) YES=1 ;;
     -h|--help) awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); print }' "${BASH_SOURCE[0]}"; exit 0 ;;
     -*) die "unknown option $1 (--help)" ;;
@@ -103,6 +107,14 @@ host_name='^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$'
 [[ $SITE =~ $host_name ]] || die "the site's name is a domain name in lowercase, like shops.example.org ($SITE)"
 case "$NETWORK" in mainnet|signet) ;; *) die "network: mainnet or signet ($NETWORK)" ;; esac
 case "$ENTRY" in direct|shared) ;; *) die "entry point: direct or shared ($ENTRY)" ;; esac
+journal_here() {  # the machine has the journal, and this Docker has the driver that writes to it
+  [ -d "${INSTALL_JOURNAL:-/run/systemd/journal}" ] && command -v docker >/dev/null &&
+    docker info --format '{{.Plugins.Log}}' 2>/dev/null | grep -qw journald
+}
+if [ -z "$LOGS" ]; then
+  if journal_here; then LOGS=journal; else LOGS=files; fi
+fi
+case "$LOGS" in journal|files) ;; *) die "logs: journal or files ($LOGS)" ;; esac
 image='^[a-z0-9]([a-z0-9._/:-]*[a-z0-9])?$'
 for name in WEB_IMAGE CADDY_IMAGE; do
   last=${!name##*/}
@@ -181,11 +193,15 @@ if [ ! -f "$DIR/release.env" ]; then
 fi
 
 if [ ! -f "$DIR/compose.locale.yml" ]; then
-  if [ "$ENTRY" = direct ]; then
-    sed -e '/^ *#@shared /d; s/^#@direct //' "$EXAMPLE"
-  else
-    sed -e '/^#@direct /d; s/#@shared //' "$EXAMPLE"
-  fi | sed -e "s/caddy-<project>/caddy-$PROJECT/" \
+  # Each line of the example carries one marker: the ones that apply lose it, the others go
+  on=() off=()
+  if [ "$ENTRY" = shared ]; then on+=(shared); else off+=(shared); fi
+  if [ "$LOGS" = journal ]; then on+=(journal); else off+=(journal); fi
+  if [ ${#on[@]} -gt 0 ]; then on+=(some caddy); off+=(none); else on+=(none); off+=(some caddy); fi
+  script=()
+  for marker in "${off[@]}"; do script+=(-e "/^ *#@$marker /d"); done
+  for marker in "${on[@]}"; do script+=(-e "s/#@$marker //"); done
+  sed "${script[@]}" "$EXAMPLE" | sed -e "s/caddy-<project>/caddy-$PROJECT/" \
     > "$DIR/compose.locale.yml.new"
   mv "$DIR/compose.locale.yml.new" "$DIR/compose.locale.yml"
   created+=(compose.locale.yml)
@@ -291,6 +307,11 @@ if [[ " ${missing[*]} " == *" email "* ]]; then
 fi
 if [[ " ${missing[*]} " == *" alerts "* ]]; then
   say "Alerts: alerts.env with TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_IDS, then $DIR/bin/check.sh $DIR --test \"hello\""
+fi
+if grep -q 'driver: journald' "$DIR/compose.locale.yml" 2>/dev/null; then
+  say "Logs: the containers write to the machine's journal, where the lines stay after a release." \
+    "journalctl CONTAINER_NAME=$PROJECT-web-1 -n 50    (or $DIR/bin/compose.sh logs web)" \
+    "How long the journal keeps them is the machine's choice, in /etc/systemd/journald.conf: docs/configuration.md, \"Logs of the containers\"."
 fi
 say "Check: $DIR/bin/compose.sh exec web python manage.py check" \
   "It says \"System check identified no issues\" when the configuration holds together."

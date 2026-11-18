@@ -3,6 +3,13 @@ name: Example community
 # The place: pages read it as {{ community.city }}
 city: Example
 email: info@example.org
+# Optional: where the moderators' messages go by email when Telegram does not take them (no bot or chat, or Telegram
+# refuses them): new shops, the morning summary, team access, OpenStreetMap. Up to 5 addresses, each one getting a message
+# of its own (no address sees the others). Without it they go to `email` above, which stays the public address of the
+# pages. An address that is not one, or repeated, is left out and `manage.py check` says so (`shops.W013`).
+# moderators_emails:
+#   - anna@example.org
+#   - bruno@example.org
 logo: logo.svg
 theme_color: "#224455"
 theme_color_dark: "#10181c"
@@ -313,7 +320,7 @@ route:
 #   comment: {en: "Update bitcoin payment tags"}
 # Limits on how much the site keeps or how often a visitor can ask (docs/configuration.md#limits), so that an open site nobody
 # watches every day does not fill up with spam or with data nobody asked for. All optional: what is not written has the default
-# below. A whole number; 0 means no limit. At the limit the site refuses politely whatever would add one more, deletes nothing,
+# below. A whole number; 0 means no limit (except staff_code_hours, from 1 to 72). At the limit the site refuses politely whatever would add one more, deletes nothing,
 # writes it in the log, and says so in /admin/today/ (a warning from 80%) and in `manage.py preflight`.
 # limits:
 #   shops: 500                       # shops on the site (the demo shops do not count)
@@ -330,3 +337,5 @@ route:
 #   accounts_per_address_hour: 20    # new accounts from one network address in an hour
 #   shops_per_address_hour: 30       # new shops or wallets connected from one network address in an hour
 #   help_requests_per_shop_day: 3    # requests for help from one shop in a day
+#   staff_code_hours: 24             # hours a staff register's one-time pairing code works, 1 to 72 (not 0): longer is
+#                                    # longer of use to whoever finds a photo or a forwarded link before the person scans it

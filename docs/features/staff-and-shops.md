@@ -35,6 +35,12 @@ filter or search of that admin shows is refused with a 400: the claim of a shop,
 hidden that way until the admin shows it. `config/test_admin_secrets.py` goes
 through every admin, for a superuser and for an account that can only see.
 
+**The search of the shops** (`/admin/shops/shop/`) finds a shop by what a helper hears on the phone: its name, city,
+business name, VAT number, Lightning address, email, `external_id` (the id of a list or of the old site), or the owner's
+sign-in name, all of them on the shop's page that a moderator reads. The owner's recovery email is on no page of the
+admin, so only a superuser searches by it, and only by the whole address: a search must never confirm a value its
+user cannot see.
+
 **Outside `/admin/`, never:** use the pages and actions of a merchant. A staff account (`is_staff` or `is_superuser`)
 and any session that was born from the admin's password are, on every page outside `/admin/`, a visitor who is not
 signed in. So the panel, the shop's edit form, the recovery email and its confirmation, the guide to connect the wallet,
@@ -110,14 +116,16 @@ Each change does four things, in the same transaction as the change:
    and no key is written there.
 2. **Marks the account**: `Profile.account_changed` takes the date.
 3. **Tells the owner**, once the change is saved for good: an email to the recovery email, and a message in the Telegram
-   chat of each of their shops (for a changed chat, the chat it *left*). In the community's first language, with the
+   chats of each of their shops, one by one (a shop can have up to three; for a changed chat, the chats it *left*). Of an owner with more than five chats in all,
+   only the first five are written to, and the register says «not told» for Telegram: the email still goes. In the community's first language, with the
    sentence in everyday words and what to do: «if you know why, nothing; if not, write to the association now».
 4. **Tells the association**, in `TELEGRAM_MODERATION_CHAT`, with the link to the register. Without the chat, or without
    the bot, it only stays in the register; the register says so («not told»).
 
 The association is told first, then the owner's email, then the owner's chats. «Told» means that the server took the
 message: Telegram that refuses it (a wrong chat, a blocked bot), does not answer, or is left without time counts as not
-told, and so do the chats beyond the first five of an owner with many shops. A round of messages starts no new attempt
+told, and so do the chats beyond the first five of an owner with many shops (counted chat by chat, not shop by shop);
+one chat that does not take it makes the owner's Telegram «not told». A round of messages starts no new attempt
 after 20 seconds, and after Telegram fails to answer it does not try the next chat; each channel fails on its own.
 
 One form of `/admin/` that saves the user and then the groups makes one row and one message, not two. A failed email or

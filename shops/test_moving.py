@@ -5,7 +5,7 @@ import json
 import os
 import stat
 import tempfile
-from datetime import date
+from datetime import date, timedelta
 from io import StringIO
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -14,6 +14,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.core.management import CommandError, call_command
 from django.test import TestCase, override_settings
+from django.utils import timezone
 
 from . import moving
 from .directory import public_shops
@@ -190,7 +191,10 @@ class Import(Files, TestCase):
 
     def test_a_waiting_shop_that_becomes_historic_is_back_on_the_map(self):
         self.run_import(self.document, "--apply")
-        Shop.objects.filter(name="Bookshop").update(closed_on=date(2026, 12, 31))
+        # A closing day still to come changes nothing: it waits for the wallet, off the map, until that day
+        Shop.objects.filter(name="Bookshop").update(closed_on=timezone.localdate())
+        self.assertNotIn("Bookshop", set(public_shops().values_list("name", flat=True)))
+        Shop.objects.filter(name="Bookshop").update(closed_on=timezone.localdate() - timedelta(days=1))
         self.assertIn("Bookshop", set(public_shops().values_list("name", flat=True)))
 
     def test_importing_twice_changes_nothing(self):
@@ -519,9 +523,10 @@ class ConnectWallet(TestCase):
                              fetch_redirect_response=False)
         self.assertEqual(Shop.objects.get(pk=self.shop.pk).lightning_address, "")
 
-    def test_a_historic_shop_takes_no_register(self):
+    def test_a_historic_shop_takes_a_register_however_old(self):
+        # Its register has no end: the closing is about the map and the history
         Shop.objects.filter(pk=self.shop.pk).update(closed_on=date(2020, 1, 1))
-        self.assertRedirects(self.client.get(self.url()), "/en/shops/", fetch_redirect_response=False)
+        self.assertContains(self.client.get(self.url()), 'name="lightning_address"')
 
     def test_a_refused_address_writes_nothing(self):
         with patch("shops.views.refusal", return_value="does not tell the register"):

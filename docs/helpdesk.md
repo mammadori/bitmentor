@@ -89,6 +89,7 @@ payments, how many shops to look at, how many are closed for a while. The same l
 | `lightning_no_confirmation` | Problem | The address receives, but does not tell the register: see call 1 |
 | `lightning_shared` | Problem | The shop's Lightning address is also on a shop of another owner: find out whose wallet it is; until then neither shop is certified |
 | `limit_<name>` | Problem at the limit, to look at near it | A total of the site (shops, requests, emails…) is at 80% of its limit or at it: clear what nobody needs, or raise `limits.<name>` in `community.yml`. Spam or growth: look before raising |
+| `approve` | To look at | A new shop waits for an approval. Under "Check before approving" it looks like a copy of a shop already there: do what its block says before ticking the box ([What to do today](features/dashboard.md)) |
 | `private_waiting` | To look at | A certified shop waits for a person to open the private part to its owner ([Certified shops](features/certified-shops.md)) |
 | `emails_one_address` | To look at | Some addresses received more emails today than `limits.emails_per_address_day`: a shop in trouble, or someone using the sign-in against an address |
 | `guardian_late` | To look at | `check_lightning` has not run for a while: the Lightning lines may be old |
@@ -201,7 +202,12 @@ off in «Registers for your staff».
 
 Nothing to run. The merchant deletes the shop from its page: the register stops and the shop leaves the map. The money
 already received stays in their wallet. For a shop that closed for good but should stay in the community's history,
-the association can mark it as historic in `/admin/` (`shop_historic`; needs an administrator): it stays on the map with its own marker.
+the association writes its last day of trading in `closed_on` in `/admin/` (needs an administrator). Up to and including
+that day nothing changes and the shop says «Closes on …» (`shop_closing`); from the day after it is historic
+(`shop_historic`): it stays on the map with its own marker, no longer a place to pay. The register, the staff
+registers, the wallet connection and the change of the Lightning address stay with the owner with no end: the site does
+not decide when a merchant stops taking payments. The guardian of the Lightning address and `/admin/today/` leave a
+historic shop alone.
 `shop_suspended` means the association took the shop off the map; the register still works.
 
 For a while only (holidays, works, an illness): the merchant uses "Closing for a while?" in the panel, or, if they phone, the
@@ -219,7 +225,7 @@ are never shown.
 - "…left and still has the register": the owner turns it off (`staff_off`). It cannot be turned on again; a new one is made.
 - "…says a customer paid": what counts is the merchant's wallet, not the phone.
 - `staff_code_waiting`: the register was made, and the code on its card still works: the person only has to scan it
-  with their phone (it works once and lasts 24 hours). Nobody makes another code while this one is valid.
+  with their phone (it works once, for 24 hours unless the community set `staff_code_hours`; the detail says until when). Nobody makes another code while this one is valid.
 - `staff_unopened`: the register was never opened on a phone and its code is gone (used or expired). The owner opens
   "Registers for your staff", chooses the register, presses to make a new code, and the person scans it. The code is not
   read out on the phone, and not even you can see it.
@@ -329,7 +335,8 @@ the address it has now) and the owner has the basic pass of the training ([Certi
 |---|---|---|
 | `shop_visible` | ✓ | The shop is on the map (not while it waits for its wallet) |
 | `shop_suspended` | ! | Taken off maps and lists by the association; the register works |
-| `shop_historic` | ! | Marked historic (`closed_on`) |
+| `shop_historic` | ! | Historic: its closing day (`closed_on`) has passed |
+| `shop_closing` | ! | A closing day still to come: until then an ordinary place to pay |
 | `shop_unlisted` | ! | The owner chose not to be on the map |
 | `shop_no_position` | ! | No coordinates: not on the map |
 | `shop_no_owner` | ! | Imported, nobody claimed it: no register |
@@ -354,7 +361,7 @@ the address it has now) and the owner has the basic pass of the training ([Certi
 | `closed_long` | ! | Closed for over three months |
 | `closed_ignored` | ! | Closures saved on a historic shop |
 | `staff_ok` | ✓ | Staff registers opened and working |
-| `staff_code_waiting` | ! | Staff registers never opened, with a code that still works (24 hours, once) |
+| `staff_code_waiting` | ! | Staff registers never opened, with a code that still works (once, until the time in the detail) |
 | `staff_unopened` | ! | Staff registers never opened on a phone, and the code is gone: make a new one |
 | `staff_off` | ! | Staff registers turned off |
 | `staff_no_register` | ✗ | Staff registers on a shop with no register of its own |

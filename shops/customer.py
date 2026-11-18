@@ -33,8 +33,8 @@ from django.views.decorators.http import require_safe
 from config.community import community, customer_links, shop_page_links
 
 from . import customer_art, views
-from .directory import WAITING_FOR_WALLET, waits_for_wallet
-from .models import Shop
+from .directory import waiting_for_wallet, waits_for_wallet
+from .models import Shop, still_trading
 
 STEPS = (1, 2, 3)
 # What a customer's bill is taken to be, to say in money what the discount is worth
@@ -50,7 +50,7 @@ def payable(shop):
     """How the shop takes bitcoin (views.till_methods) if a customer can pay there now, else None. The same
     shops as the "How to pay here" box of the shop page: not a suspended one, not a historic one, not one that waits for
     its owner's wallet."""
-    if shop.suspended or shop.needs_approval or shop.closed_on or waits_for_wallet(shop):
+    if shop.suspended or shop.needs_approval or shop.closed or waits_for_wallet(shop):
         return None
     return views.till_methods(shop)
 
@@ -186,7 +186,7 @@ def help_page(request, shop):
 def card(request, shop):
     """An A4 sheet for the merchant to print and keep at the till: "No wallet? Scan here", with a QR code that opens the
     first screen of the path, in the language of the page. Only for a shop where a customer can pay."""
-    shop = get_object_or_404(request.user.shops.exclude(WAITING_FOR_WALLET).filter(suspended=False, closed_on=None), pk=shop)
+    shop = get_object_or_404(request.user.shops.exclude(waiting_for_wallet()).filter(still_trading(), suspended=False), pk=shop)
     url = f"{settings.PUBLIC_URL}{reverse('customer', args=[shop.id])}"
     return render(request, "shops/customer_card.html", {
         "shop": shop, "methods": views.till_methods(shop), "url": url,

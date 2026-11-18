@@ -6,17 +6,23 @@
 <p>{% translate "Give each person who takes payments their own register. With it they can only take payments, which go to your wallet: they see where the money goes, and nothing else of your wallet, your sales or your settings." %}</p>
 <p>{% translate "When someone stops working with you, or loses the phone, turn off their register: it stops at once, the others keep working." %}</p>
 <h2>{% translate "Turned on" %}</h2>
-<div class="panel-list staff-list">{% for register in active %}
+{% for place, registers in groups %}{% if place or groups|length > 1 %}<h3 class="staff-place">{% if place %}{{ place }}{% else %}{% translate "No place chosen" %}{% endif %}</h3>{% endif %}
+<div class="panel-list staff-list">{% for register in registers %}
   <div class="panel-row">
     <div><strong>{{ register.name }}</strong>
       <p class="panel-status">{% if register.opened %}{% blocktranslate with date=register.opened|date:"SHORT_DATETIME_FORMAT" %}Opened on a phone on {{ date }}.{% endblocktranslate %}{% elif register.code_alive %}{% translate "Not opened on a phone yet: the code is waiting." %}{% else %}{% translate "Not opened on a phone yet." %}{% endif %}</p>
+      <details class="staff-rename" id="rename-{{ register.id }}"{% if register.rename_form.errors %} open{% endif %}><summary>{% if "place" in register.rename_form.fields %}{% translate "Rename or change the place" %}{% else %}{% translate "Rename" %}{% endif %}</summary>
+        <form method="post" class="shop-form" action="{% url 'staff_rename' shop.id register.id %}">{% csrf_token %}{{ register.rename_form.as_p }}
+          <p class="help">{% translate "The register's phone shows the new name the next time it opens with the site: no new code is needed. The sales already made keep the old name." %}</p>
+          <p><button class="button button-quiet">{% if "place" in register.rename_form.fields %}{% translate "Save" %}{% else %}{% translate "Save the name" %}{% endif %}</button></p></form>
+      </details>
     </div>
     <span class="panel-actions">
       <a class="button button-quiet" href="{% url 'staff_code' shop.id register.id %}">{% translate "Put it on a phone" %}</a>
       <form method="post" action="{% url 'staff_retire' shop.id register.id %}">{% csrf_token %}<button class="button button-quiet">{% blocktranslate with name=register.name %}Turn off «{{ name }}»{% endblocktranslate %}</button></form>
     </span>
   </div>
-{% empty %}<p class="muted">{% translate "None yet." %}</p>{% endfor %}</div>
+{% empty %}<p class="muted">{% translate "None yet." %}</p>{% endfor %}</div>{% endfor %}
 <h2 id="add">{% translate "Add a register" %}</h2>
 <form method="post" class="shop-form" action="#add">{% csrf_token %}{{ form.as_p }}
   <p><button class="button">{% translate "Add the register" %}</button></p></form>

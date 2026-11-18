@@ -70,3 +70,24 @@ class Translations(SimpleTestCase):
         self.assertGreater(len(ids), 500)
         # Django's own words, translated by Django
         untranslated(self, ids, exempt={"Home"})
+
+
+class Template(SimpleTestCase):
+    """locale/django.pot is what a community translates into a new language: the same texts as the catalogs, all empty."""
+
+    def test_the_template_follows_the_italian_catalog(self):
+        from config import pot
+
+        self.assertEqual(pot.TEMPLATE.read_text(), pot.template(pot.SOURCE.read_text()),
+                         "locale/django.pot is behind the catalogs: write it again with `python -m config.pot`")
+
+    def test_the_template_has_every_text_and_no_translation(self):
+        from config import pot
+
+        text, source = pot.TEMPLATE.read_text(), pot.SOURCE.read_text()
+        ids = r'^msgid(?:_plural)? (?:".*"\n)+'
+        self.assertEqual(re.findall(ids, text, re.MULTILINE)[1:], re.findall(ids, source, re.MULTILINE)[1:])
+        self.assertGreater(len(re.findall(ids, text, re.MULTILINE)), 1500)
+        self.assertEqual([line for line in text.split("\n\n", 1)[1].splitlines()
+                          if line.startswith("msgstr") and not line.endswith(' ""')], [])
+        self.assertNotIn("\n# ", text.split("\n\n", 1)[1])

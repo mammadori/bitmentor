@@ -1268,6 +1268,43 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
         self.assertIn("Marked as paid by hand on another phone", lines)
         self.assertNotIn("by you", lines)
 
+    def test_the_day_closing_splits_the_totals_by_register_only_with_several(self):
+        at = time.mktime((2026, 11, 9, 12, 0, 0, 0, 0, -1)) * 1000
+        base = {"currency": "EUR", "status": "paid", "label": "x"}
+        own = [{**base, "id": "o1", "at": at, "cents": 350, "sats": 3500},
+               {**base, "id": "o2", "at": at + 1000, "cents": 125, "sats": 1250, "method": "onchain"}]
+        staff = [{**base, "id": "a1", "at": at + 2000, "cents": 1000, "sats": 10000, "who": "Anna", "till": "shop-1:anna",
+                  "reported": "shop-1:anna"},
+                 {**base, "id": "a2", "at": at + 3000, "cents": 99, "sats": 990, "who": "Anna", "till": "shop-1:anna",
+                  "reported": "shop-1:anna", "status": "expired"}]
+
+        def closing(sales):
+            out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
+                "register-settings:shop-1": json.dumps({"lightning": ADDRESS}),
+                "register-ledger:shop-1": json.dumps(sales)}, show_day="2026-11-09")
+            return out["dayTotals"]
+
+        # The owner's sales only: the closing as before
+        alone = closing(own)
+        self.assertEqual(alone[:2], ["Lightning: 1 paid, €3.50 (3,500 sat)", "On-chain: 1 paid, €1.25 (1,250 sat)"])
+        self.assertNotIn("The same, by register:", alone)
+        self.assertFalse(any("Your own register" in item for item in alone))
+        # With a staff register's sales too: the day's lines and its counts, then the same lines register by register
+        both = closing(own + staff)
+        start = both.index("The same, by register:")
+        self.assertEqual(start, 3, both)  # the two lines of the day and what was not paid come first
+        self.assertEqual(len(both), start + 4, both)  # and nothing follows the registers
+        self.assertEqual(both[:2], [
+            ("Lightning: 2 paid, €13.50 (13,500 sat) Of these, 1 reported by a staff register: check them in your "
+             "wallet."),
+            "On-chain: 1 paid, €1.25 (1,250 sat)"])
+        self.assertEqual(both[start + 1:start + 4], [
+            "Your own register · Lightning: 1 paid, €3.50 (3,500 sat)",
+            "Your own register · On-chain: 1 paid, €1.25 (1,250 sat)",
+            "Anna · Lightning: 1 paid, €10.00 (10,000 sat)"])
+        # A register whose sales were not collected makes no group: one register collected, no split
+        self.assertNotIn("The same, by register:", closing(own + [{**staff[1]}]))
+
 
 class NostrFlow(RegisterRun):
     """A staff register paired with the owner's Nostr key sends its sale to the relay as the day's event, encrypted to the

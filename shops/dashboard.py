@@ -29,7 +29,7 @@ from django.utils.translation import ngettext
 from config import hooks, limits, mailbudget
 
 from . import certified, first_day, lightning_watch, osm, vacation
-from .models import HAS_REGISTER, register_kept, HelpRequest, LightningStatus, OsmRequest, Shop, is_demo
+from .models import HAS_REGISTER, HelpRequest, LightningStatus, OsmRequest, Shop, is_demo, still_trading
 from .notifications import plain  # noqa: F401 (the command's and the tests' name for it)
 
 PROBLEM = "problem"
@@ -71,9 +71,9 @@ class Item:
 
 
 def trading(now):
-    """Shops with a register that still works, as lightning_watch.watched: a historic shop keeps it until
-    REGISTER_AFTER_CLOSING after its closing day."""
-    return Shop.objects.filter(HAS_REGISTER).filter(register_kept(timezone.localdate(now)))
+    """Shops with a register, still trading, as lightning_watch.watched: a historic shop (Shop.closed) keeps its
+    register, but is no longer a place to pay the association looks after."""
+    return Shop.objects.filter(HAS_REGISTER).filter(still_trading(timezone.localdate(now)))
 
 
 def shops(now):
@@ -162,7 +162,7 @@ def moved_items(now):
     that has a register again is among the trading ones, with their items, and not here a second time."""
     found = []
     waiting = (Shop.objects.filter(moved_in__isnull=False).filter(Q(owner__isnull=True) | Q(lightning_address=""))
-               .filter(register_kept(timezone.localdate(now)))
+               .filter(still_trading(timezone.localdate(now)))
                .exclude(pk__in=trading(now).values("pk"))
                .only("pk", "name", "owner", "lightning_address", "claim_hash", "moved_in", "moved_register")
                .order_by("moved_in", "pk"))

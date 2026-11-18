@@ -87,8 +87,15 @@ const say = (message) => {
 };
 const plain = (value) => (value || "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 
-// A historic shop has closed or is closing: it stays on the map as a place of history, but is not a place to pay
-const historic = (shop) => Boolean(shop.closed_on);
+// Today as YYYY-MM-DD: the site's own day from the template (data-today), the same one that counted the places to pay,
+// or the phone's for a community copy of the template without it
+const pad = (number) => String(number).padStart(2, "0");
+const now = new Date();
+const today = /^\d{4}-\d{2}-\d{2}$/.test(element.dataset.today || "") ? element.dataset.today
+  : `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+// A historic shop has closed for good, from the day after its closing day: it stays on the map as a place of history,
+// but is not a place to pay. Up to and including that day it is an ordinary shop that says when it closes
+const historic = (shop) => Boolean(shop.closed_on) && shop.closed_on < today;
 // Recognizable without colors too: square and with a clock
 const CLOCK = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg>';
 
@@ -98,7 +105,9 @@ function label(shop) {
   // The pin shows the discount too: its name keeps it, and says the shop is closed for a while after it
   const name = shop.discount ? `${shop.name}, ${texts.discount.replace("{n}", shop.discount)}` : shop.name;
   const pause = breakNote(shop);
-  return pause ? `${name} · ${pause}` : name;
+  // A shop that closes later on says when, after the rest
+  const closing = shop.closed_on ? ` · ${closure(shop)}` : "";
+  return `${pause ? `${name} · ${pause}` : name}${closing}`;
 }
 
 const icon = (shop) => (historic(shop)
@@ -188,9 +197,6 @@ const card = (shop) => shop.url.replace(/^\/[^/]+\//, `/${language}/`);
 
 // «Closes on» up to and including that day, then «closed on». The sentences come from the template, with a fallback
 // for whoever has a copy without them; the date arrives as YYYY-MM-DD and is written in the page's language
-const pad = (number) => String(number).padStart(2, "0");
-const now = new Date();
-const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 // The first date format loads the language data: on a slow phone more than 100 ms. It is prepared the first time it is
 // needed, not on every map load: almost always no historic shop is in view at the start
 let longDate;
@@ -200,8 +206,8 @@ function dateText(iso) {
   return longDate.format(Date.UTC(year, month - 1, day));
 }
 function closure(shop) {
-  const phrase = shop.closed_on >= today
-    ? element.dataset.closes || "Historic · closes on {date}"
+  const phrase = !historic(shop)
+    ? element.dataset.closes || "Closes on {date}"
     : element.dataset.closed || "Historic · closed on {date}";
   return phrase.replace("{date}", dateText(shop.closed_on));
 }
@@ -259,7 +265,8 @@ function popup(shop, place = shop) {
   }
   const signs = marks(shop, true);
   if (signs) box.append(signs);
-  if (historic(shop)) box.append(note(shop, "p"));
+  // «Closes on …» for a shop that closes later on, «closed on …» for a historic one
+  if (shop.closed_on) box.append(note(shop, "p"));
   const pause = breakNote(shop);
   if (pause) {
     const line = document.createElement("p");
@@ -344,10 +351,8 @@ function entry(shop) {
     what.textContent = kind(shop);
     link.append(what);
   }
-  if (historic(shop)) {
-    item.className = "historic";
-    link.append(note(shop, "small"));
-  }
+  if (historic(shop)) item.className = "historic";
+  if (shop.closed_on) link.append(note(shop, "small"));
   const pause = breakNote(shop);
   if (pause) {
     const line = document.createElement("small");
@@ -441,6 +446,21 @@ function locate(found, refused) {
   }
   navigator.geolocation.getCurrentPosition(({ coords }) => found(L.latLng(coords.latitude, coords.longitude)), refused, { timeout: 10000 });
 }
+
+// A link may open the map already filtered: ?q=<text>&discount=1&lightning=1. The text goes into the search box only,
+// never into the page, and at most LINKED_TEXT characters; the address bar is never written. The first draw, after the
+// fetch, reads the boxes as it does when someone types
+const LINKED_TEXT = 100;
+function linkedFilters(search) {
+  const params = new URLSearchParams(search);
+  return { q: [...(params.get("q") || "")].slice(0, LINKED_TEXT).join("").trim(),
+           discount: params.get("discount") === "1", lightning: params.get("lightning") === "1" };
+}
+
+const linked = linkedFilters(location.search);
+if (linked.q) $("shop-search").value = linked.q;
+if (linked.discount) $("shop-discount").checked = true;
+if (linked.lightning) $("shop-lightning").checked = true;
 
 fetch(url).then((response) => response.json()).then((data) => {
   shops = data.shops.sort((a, b) => last(a, b) || b.discount - a.discount || byName(a, b));

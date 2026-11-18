@@ -8,8 +8,9 @@ no duplicate on the map. The code is in `shops/address_change.py`.
 **Who, and how.** Only the owner, from their own panel. The administration never changes where a shop's money goes
 ([Staff and shops kept apart](staff-and-shops.md)): staff and moderators who are asked tell the merchant where the button
 is. The page asks a sign-in of the last 15 minutes in that browser, with the wallet or with the email link: an open
-session left on a phone, or a stolen cookie, is not enough; the page offers «Sign in again» and comes back. A suspended shop, or one
-closed more than a year ago, cannot change it; a shop with no register yet connects its first wallet as before (`/shops/wallet/<id>/`).
+session left on a phone, or a stolen cookie, is not enough; the page offers «Sign in again» and comes back. A suspended shop cannot
+change it; a historic one can, however long ago it closed, and its new address is not waited for (the guardian does not
+watch a historic shop, so nothing is paused); a shop with no register yet connects its first wallet as before (`/shops/wallet/<id>/`).
 
 **The checks.** The new address goes through the same rules and the same live probe as the first one (LUD-16, and LUD-21
 `verify` so that the register sees payments arrive), and the rule «one Lightning address, one owner»

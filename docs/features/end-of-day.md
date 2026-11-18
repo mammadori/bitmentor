@@ -29,6 +29,10 @@ From the register's menu (the round button at the top of the keypad), **History 
   check in the wallet, and how many of its Lightning sales this register checked itself with the payment provider
   (counted apart: no need to look in the wallet); how many were paid after the merchant cancelled them, to settle with the customer; the sales still
   waiting for a payment or a confirmation, those not checked and those not paid (expired or cancelled), only counted;
+  when the day's collected sales come from more than one register (staff registers' copies, from a file or from Nostr),
+  the same lines again register by register, under each staff register's name and «Your own register» for the owner's
+  own sales (and old ones without a register's name): the same sales, so they add up to the day's lines; worked out on
+  the phone like the rest, never sent anywhere nor added to the copies or the CSV;
   the list of the day's sales, where a sale marked as paid by hand on a staff register says which one. **Close the day** (on a staff register **End the shift**) writes down when the day was closed.
 - **The copies.** The CSV for the accountant, for one month or all, and the full encrypted copy (below). With the
   owner's Nostr key, also a copy on Nostr and the staff registers' sales as they happen ([Copies on Nostr](nostr-copies.md)).

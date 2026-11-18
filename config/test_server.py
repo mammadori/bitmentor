@@ -205,6 +205,7 @@ class CaddyErrorLog(TestCase):
         "w": "the wallet a customer picked from the community's list, on the path for customers without one",
         "on": "the kind of phone a customer picked on that path",
         "shop": "the shop the merchant's training path is about, one of their own (shops/training_views.py): its id is public anyway",
+        "edit": "the number of one of the owner's own other places, to change it (shops/views.py, shop_places): it opens nothing",
         "a": "an address of the fake explorer of a test network (shops/explorer.py), never on mainnet",
     }
 

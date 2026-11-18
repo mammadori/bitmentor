@@ -28,7 +28,7 @@ only the days the shop was open.
 The shop stays on the map, in the counters and in the lists, with its own pin. It only says, kindly, "Closed for
 holidays · back on 17 November 2026" (or "back soon" when no day is set), in the list, in the map card and on the shop
 page. A closure still to come is said from 7 days before it starts ("Closed for holidays from 9 November · back on 23
-November"). A historic shop (`closed_on`) says nothing of this. `/shops.json` has a `break` object (`state` "closed" or
+November"). A historic shop (from the day after its `closed_on`) says nothing of this; one that closes later on may still close for a while until then. `/shops.json` has a `break` object (`state` "closed" or
 "soon", `reason`, `from`, `back`, ISO dates, or `null`) and the Nostr event of the shop a `["break", reason, back]` tag
 while it is closed (republished each time it changes, so the day the shop opens again the relays get it without the tag).
 There is never a free text: the reason comes from a list, and "personal reasons" says nothing more.

@@ -99,6 +99,15 @@ def wrong_hooks(app_configs, **kwargs):
             for problem in hooks.problems()]
 
 
+def wrong_moderators_emails(app_configs, **kwargs):
+    """An address of `moderators_emails` that cannot be used is left out (the community's `email` when none is left):
+    `manage.py check` and the log of `web` say so. A warning, like the others."""
+    from .notifications import read_moderators_emails
+
+    return [checks.Warning(problem, hint="The key is documented in examples/community/community.yml", id="shops.W013")
+            for problem in read_moderators_emails()[1]]
+
+
 class ShopsConfig(AppConfig):
     name = "shops"
 
@@ -113,6 +122,7 @@ class ShopsConfig(AppConfig):
         checks.register(wrong_relays)
         checks.register(wrong_register_numbers)
         checks.register(wrong_hooks)
+        checks.register(wrong_moderators_emails)
         from config import guard as staff_apart  # noqa: F401  (a new sign-in ends the admin's session)
 
         from django.db.models.signals import post_migrate

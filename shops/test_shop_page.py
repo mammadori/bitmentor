@@ -115,11 +115,16 @@ class Till(TestCase):
                              "Mit den 10\u00a0% Rabatt für die Zahlung mit Bitcoin, danke.")
 
     def test_neither_a_historic_shop(self):
-        for closed in (date(2020, 1, 1), date(2099, 1, 1)):
-            shop = Shop.objects.create(name="Bar", lightning=True, discount=5, closed_on=closed)
-            page = self.client.get(f"/en/shops/s/{shop.id}/")
-            for absent in ("How to pay here", "show-counter", "counter-card", "I would like to pay", "shop.js"):
-                self.assertNotContains(page, absent)
+        shop = Shop.objects.create(name="Bar", lightning=True, discount=5, closed_on=date(2020, 1, 1))
+        page = self.client.get(f"/en/shops/s/{shop.id}/")
+        for absent in ("How to pay here", "show-counter", "counter-card", "I would like to pay", "shop.js"):
+            self.assertNotContains(page, absent)
+
+    def test_but_one_that_closes_later_on_until_its_day(self):
+        shop = Shop.objects.create(name="Bar", lightning=True, discount=5, closed_on=date(2099, 1, 1))
+        page = self.client.get(f"/en/shops/s/{shop.id}/")
+        for present in ("How to pay here", "show-counter", "Closes on 1 January 2099"):
+            self.assertContains(page, present)
 
     def test_nor_a_suspended_one(self):
         shop = Shop.objects.create(name="Bar", lightning=True, discount=5, phone="123456",
@@ -176,7 +181,8 @@ class Nearby(TestCase):
         self.place("Far east", east=1300)
         self.place("East", east=1000)
         self.place("Open", north=80)
-        self.assertEqual([shop.name for shop in nearby_shops(self.here)], ["Open", "East"])
+        # A shop that closes later on is a place to pay until its closing day
+        self.assertEqual([shop.name for shop in nearby_shops(self.here)], ["Closing", "Open", "East"])
 
     def test_a_circle_not_a_square(self):
         # 900 m north and 900 m east: inside the box the query asks for, 1273 m away

@@ -48,7 +48,7 @@ COPY --chown=app . /community
 ```
 
 A `locale/` in the community folder needs its `.mo` files compiled before the build (`msgfmt`, or
-`manage.py compilemessages` with `COMMUNITY_DIR` set).
+`manage.py compilemessages` with `COMMUNITY_DIR` set): see [Adding a language](languages.md).
 
 And Caddy, with the community's own rules (optional) and its under-construction page:
 
@@ -83,6 +83,11 @@ It writes, only where they are missing:
 - `compose.locale.yml`, from `deploy/examples/compose.locale.yml`, for the local changes of this installation;
 - `bin/release.sh`, `bin/check.sh`, `bin/mode.sh`, which each release then replaces with its own, and
   `bin/compose.sh`, `docker compose` with the installed version's files and images.
+
+With `--logs journal` the lines for the containers' output in `compose.locale.yml` send it to the machine's systemd
+journal, where it stays after a release; `--logs files` leaves it in Docker's own files. Without the option it chooses
+the journal when the machine has one and Docker can write to it
+([Logs of the containers](configuration.md#logs-of-the-containers)).
 
 With `--entry shared` it also writes `SITE_SCHEME=http` and, in `TRUSTED_PROXIES`, the subnet of the Docker network
 `bitmentor-entry`: the entry point holds TLS and speaks HTTP to this Caddy, which must believe the visitor's address

@@ -12,7 +12,7 @@ Where the money goes is the most sensitive thing an account holds, so the change
 - the guardian writes it in its register (`AccountChange`) and tells the owner (email, the shop's chats) and the
   association (shops/guard.py, `destination_changed`); the panel says it for `NOTICE`;
 - the guardian of the addresses (shops/lightning_watch.py) starts again from scratch on the new address, and the badge
-  and the private part of the pages wait for it to see the new address work (`models.ADDRESS_PENDING`): the certificate
+  and the private part of the pages wait for it to see the new address work (`models.address_pending()`; never for a historic shop, which nobody watches): the certificate
   and the approval themselves are kept, they belong to the owner, who did not change;
 - the registers: the owner's phone remembers the address it takes payments into and stops until the owner confirms the
   new one; the staff registers stop until the owner gives them a new pairing code (static/register.js, `setUp`). The
@@ -43,7 +43,7 @@ from .certified import address_taken, same_address
 from .forms import WalletForm
 from .guard import OWNER_CHANGE, short_address
 from .lnaddress import refusal
-from .models import Profile, Shop, is_demo, keeps_register, register_kept
+from .models import Profile, Shop, is_demo
 from .register import lightning_parts
 
 SESSION_KEY = "signed_in_at"
@@ -98,9 +98,9 @@ def email_changed(user_id):
 
 
 def changeable(shop):
-    """A shop of the site with a register that still works: a suspended shop takes no new destination, nor does a historic
-    one past REGISTER_AFTER_CLOSING."""
-    return bool(shop.lightning_address and not shop.suspended and keeps_register(shop) and not is_demo(shop))
+    """A shop of the site with a register: a suspended shop takes no new destination. A historic one does: its register
+    stays with the owner for as long as they want."""
+    return bool(shop.lightning_address and not shop.suspended and not is_demo(shop))
 
 
 def apply(shop_pk, user, before, address, now=None):
@@ -113,7 +113,7 @@ def apply(shop_pk, user, before, address, now=None):
             return False
         mark = OWNER_CHANGE.set(True)
         try:
-            return bool(Shop.objects.filter(register_kept(), pk=shop_pk, owner=user, lightning_address=before, suspended=False)
+            return bool(Shop.objects.filter(pk=shop_pk, owner=user, lightning_address=before, suspended=False)
                     .filter(Q(lightning_changed__isnull=True) | Q(lightning_changed__lte=now - every()))
                     .update(lightning_address=address, lightning=True, awaiting_wallet=False, lightning_previous=before,
                             lightning_changed=now, **lightning_watch.BLANK))
@@ -154,7 +154,7 @@ def change(request, shop):
     if not shop.lightning_address:
         return redirect("wallet_steps", shop=shop.id)
     if not changeable(shop):
-        messages.error(request, _("The Lightning address of a suspended shop, or of one closed more than a year ago, cannot be changed."))
+        messages.error(request, _("The Lightning address of a suspended shop cannot be changed."))
         return redirect("edit_shop", shop=shop.id)
     before = shop.lightning_address
     wait = next_change(shop)

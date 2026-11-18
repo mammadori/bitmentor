@@ -26,7 +26,7 @@ from django.utils.translation import ngettext
 from config.community import community
 from shops.dashboard import INFO, PROBLEM, WARNING, plain, summary
 from shops.models import DashboardDigest, is_demo
-from shops.notifications import NotificationFailed, alert_text, telegram
+from shops.notifications import NotificationFailed, alert_text, moderators_emails, telegram
 
 SOMETHING_TO_DO = 2
 # Not 2, which argparse also uses for a wrong option: the unit counts this one as a success
@@ -162,7 +162,8 @@ class Command(BaseCommand):
         return True
 
     def deliver(self, subject, text):
-        """To the moderators' chat, else to the community's email: where it went, or CommandError."""
+        """To the moderators' chat, else by email (`moderators_emails` in community.yml, or the community's `email`): where
+        it went, or CommandError."""
         problems = []
         if settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_MODERATION_CHAT:
             try:
@@ -171,6 +172,23 @@ class Command(BaseCommand):
                 problems.append("Telegram refused it (a wrong chat, or a bot that is not in it)")
             except NotificationFailed as error:
                 problems.append(f"Telegram did not take it ({error})")
+        addresses = moderators_emails()
+        if addresses:
+            # `moderators_emails` in community.yml: one message to each, none sees the others' addresses
+            sent, before = False, len(problems)
+            for place, one in enumerate(addresses, 1):
+                try:
+                    send_mail(subject, text, None, [one], kind="staff")
+                    sent = True
+                except (OSError, SMTPException, ValueError) as error:
+                    problems.append(f"`moderators_emails`: address {place} of {len(addresses)} failed ({type(error).__name__})")
+            if sent:
+                if before:
+                    self.stderr.write(f"{problems[0]}: sent by email instead.")
+                for problem in problems[before:]:
+                    self.stderr.write(problem)
+                return "the community's email"
+            raise CommandError(f"The summary was not delivered: {'; '.join(problems)}. The next run tries again.")
         address = community().get("email")
         if isinstance(address, str) and "@" in address:
             try:

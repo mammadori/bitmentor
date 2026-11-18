@@ -1,3 +1,4 @@
+import copy
 import logging
 import mimetypes
 import re
@@ -17,7 +18,7 @@ from django.contrib.sessions.models import Session
 from django.core import signing
 from django.core.cache import cache
 from django.db import DatabaseError, IntegrityError, router, transaction
-from django.db.models import F
+from django.db.models import Case, Prefetch, Value, When
 from django.db.models.deletion import Collector, ProtectedError, RestrictedError
 from django.db.models.functions import Lower
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
@@ -61,7 +62,7 @@ from . import (
     training,
     vacation,
 )
-from .directory import WAITING_FOR_WALLET, nearby_shops, public_shops, waits_for_wallet
+from .directory import nearby_shops, public_shops, waiting_for_wallet, waits_for_wallet
 from .forms import (
     NewShopForm,
     ProfileForm,
@@ -86,15 +87,14 @@ from .lnaddress import (
 from .lnurl_auth import K1, encode_lnurl, verify
 from .models import (
     HAS_REGISTER,
-    REGISTER_AFTER_CLOSING,
     LoginChallenge,
     Profile,
     Shop,
     ShopPlace,
+    StaffRegister,
     WalletKey,
     claim_digest,
-    keeps_register,
-    register_kept,
+    closed_for_good,
 )
 from .nostr import public_key
 from .register import connect_origins, register_data
@@ -194,6 +194,10 @@ def claimed_name(request, target):
     return shop.name if shop else ""
 
 
+# The names of the staff registers the panel shows for a shop; the others are «…and N more»
+STAFF_NAMES_SHOWN = 5
+
+
 @not_indexed
 @no_store
 def index(request):
@@ -209,7 +213,10 @@ def index(request):
         if request.method == "POST" and form.is_valid():
             save_recovery_email(request, profile, form.cleaned_data["email"].lower())
             return redirect("shops")
-        shops = list(request.user.shops.order_by("-created").prefetch_related("closures"))
+        # The staff registers turned on of every shop in one query: their number and their names for the panel
+        staff_on = Prefetch("staff_registers", StaffRegister.objects.filter(retired__isnull=True).only(
+            "id", "shop_id", "name", "created", "retired"), to_attr="staff_on")
+        shops = list(request.user.shops.order_by("-created").prefetch_related("closures", staff_on))
         training.mark_trained(shops)
         # The answer to "Try again now" goes next to its shop, the other messages on top
         notices = list(messages.get_messages(request))
@@ -226,17 +233,23 @@ def index(request):
             # The path to a complete, verified shop: only what the site already knows, no other server asked
             shop.journey = journey.summary(shop, shop.first_day, shop.lightning_watch) if journey.applies(shop) else None
             shop.marks = shop.journey["card"].get("marks", []) if shop.journey else []
-            shop.staff_count = shop.staff_registers.filter(retired__isnull=True).count()
+            shop.staff_count = len(shop.staff_on)
+            # Their names, newest first as in their list: the panel shows the first STAFF_NAMES_SHOWN
+            shop.staff_names = [register.name for register in shop.staff_on]
+            shop.staff_shown = shop.staff_names[:STAFF_NAMES_SHOWN]
+            shop.staff_more = shop.staff_count - len(shop.staff_shown)
             # Without a register yet: the page to connect the wallet opens (needs_wallet), and a shop saved before
             # having a wallet or moved here waits off the map for it (waits_for_wallet), which the panel says first
             shop.needs_wallet = needs_wallet(shop)
-            # A historic shop keeps its register for a year after its closing day (models.REGISTER_AFTER_CLOSING)
-            shop.register_kept = keeps_register(shop)
-            shop.register_until = shop.closed_on + REGISTER_AFTER_CLOSING if shop.closed_on else None
+            # A historic shop keeps its register for as long as its owner wants: no end. Both stay for the community's
+            # copies of the panel's template
+            shop.register_kept = True
+            shop.register_until = None
             shop.waits_for_wallet = shop.needs_wallet and waits_for_wallet(shop)
             shop.waits_after_move = shop.waits_for_wallet and shop.moved_register
             # Closed for a while: the card to say so, and the welcome back after (shops/vacation.py)
-            shop.break_eligible = vacation.enabled() and not (shop.closed_on or shop.waits_for_wallet)
+            # A shop that closes for good later on may still close for a while until then
+            shop.break_eligible = vacation.enabled() and not (shop.closed or shop.waits_for_wallet)
             shop.break_state = vacation.panel(shop) if shop.break_eligible else None
             shop.welcome = vacation.welcome(shop) if shop.break_eligible else None
             # «Something wrong?»: the request still open, or the one solved in the last days (shops/helpdesk.py)
@@ -562,17 +575,20 @@ MAP_SHOP_FIELDS = ("id", "external_id", "name", "city", "closed_on", "discount")
 def map_shop(shop):
     found = {field: getattr(shop, field) for field in MAP_SHOP_FIELDS}
     found["id"] = str(shop.id)
-    # As in /shops.json: a historic shop has no discount
-    found["discount"] = 0 if shop.closed_on else shop.discount
+    # As in /shops.json: a historic shop has no discount, one that closes later on keeps it until its closing day
+    found["discount"] = 0 if shop.closed else shop.discount
     return found
 
 
 def map_listing():
     """What shop_map caches: the list rendered as HTML, the number of places to pay and the words for map.js. Nothing
     here reads a request or an account."""
-    # First the places to pay, the historic ones at the end: the counter counts only the first
+    # First the places to pay, those that close later on included, the historic ones at the end in the order of their
+    # closing days: the counter counts only the first
+    closed = closed_for_good()
     shops = list(public_shops().prefetch_related("closures", "places")
-                 .order_by(F("closed_on").asc(nulls_first=True), "-discount", "name"))
+                 .order_by(Case(When(closed, then=Value(1)), default=Value(0)), Case(When(closed, then="closed_on")),
+                           "-discount", "name"))
     now = timezone.now()
     training.mark_trained(shops, now)
     for shop in shops:
@@ -589,7 +605,7 @@ def map_listing():
         texts["break"] = vacation.texts()
     texts["trained"] = str(training.TRAINED)
     return {"html": render_to_string("shops/map_list.html", {"shops": shops}), "texts": texts,
-            "places": sum(1 for shop in shops if not shop.closed_on),
+            "places": sum(1 for shop in shops if not shop.closed),
             # Plain values, not the models: they go in the cache and every visitor gets them
             "shops": [map_shop(shop) for shop in shops]}
 
@@ -619,6 +635,7 @@ def shops_json_body():
     certificates, breaks = features.enabled(features.CERTIFIED), features.enabled(features.VACATION)
     onchain = features.enabled(features.ONCHAIN)
     # A historic shop is there, with its date, but without a discount: whoever reads the JSON must not send anyone to pay there.
+    # A shop that closes later on has its date and is a place to pay like the others until that day, that day included.
     # external_id is the shop's number in the imported list: it does not change from one installation to another, while the id
     # is new at every import. It is empty for whoever signed up alone.
     return JsonResponse({"shops": [
@@ -626,7 +643,7 @@ def shops_json_body():
          "city": shop.city,
          # The address and the website only when the owner shows them (shops/details.py): a hidden one is not there at all
          **details.api(shop),
-         "discount": 0 if shop.closed_on else shop.discount, "lightning": shop.lightning,
+         "discount": 0 if shop.closed else shop.discount, "lightning": shop.lightning,
          # What the owner says, no more: the site knows no on-chain address and no on-chain payment. Absent while
          # on-chain at the register, an experimental feature, is off
          **({"onchain": shop.onchain} if onchain else {}), "latitude": shop.latitude,
@@ -638,7 +655,7 @@ def shops_json_body():
          # Only the flag and the bands (shops/certified.py): never the dates, counts or amounts behind them
          **({"certified": shop.certified} if certificates else {}),
          "trained": shop.trained,
-         "paid": None if shop.closed_on else certified.bands(shop, now),
+         "paid": None if shop.closed else certified.bands(shop, now),
          # Closed for a while (holidays, works…): the reason from a list, the day it opens again, never a free text
          **({"break": vacation.api(shop)} if breaks else {})}
         for shop in shops]}).content
@@ -668,7 +685,7 @@ def shop_detail(request, shop):
     response = render(request, "shops/shop.html", {
         "shop": shop, "reduced": reduced, "facts": details.rows(shop, shown), "places": places,
         "place_points": ";".join(place["position"] for place in places),
-        "payment": None if reduced or shop.closed_on or waits_for_wallet(shop) else till_methods(shop),
+        "payment": None if reduced or shop.closed or waits_for_wallet(shop) else till_methods(shop),
         "waiting": waits_for_wallet(shop), "break_note": "" if reduced else vacation.note(shop),
         "main_language": settings.LANGUAGE_CODE, "language": language,
         "stories": [] if reduced else extras["stories"],
@@ -706,7 +723,7 @@ def shop_by_external(request, external):
     that opens their register."""
     # PostgreSQL refuses a text with a NUL in it: no shop has one
     shop = None if "\x00" in external else (
-        Shop.objects.filter(external_id=external, suspended=False, approved_on__isnull=False, listed=True).exclude(WAITING_FOR_WALLET)
+        Shop.objects.filter(external_id=external, suspended=False, approved_on__isnull=False, listed=True).exclude(waiting_for_wallet())
         .order_by("pk").first())
     if shop is None:
         raise Http404
@@ -809,7 +826,7 @@ def till_card(request, shop):
 @login_required(login_url="shops")
 def shop_sign(request, shop):
     # A shop waiting for its wallet takes no payments yet: a sign would send customers to a till that is not there
-    shop = get_object_or_404(request.user.shops.exclude(WAITING_FOR_WALLET), pk=shop)
+    shop = get_object_or_404(request.user.shops.exclude(waiting_for_wallet()), pk=shop)
     url = f"{settings.PUBLIC_URL}{reverse('shop_detail', args=[shop.id])}"
     return render(request, "shops/sign.html", {"shop": shop, "qr": segno.make(url, error="m").svg_data_uri(scale=10, border=1)})
 
@@ -920,9 +937,9 @@ def connect_wallet(request, shop, form):
     if problem:
         form.add_error("lightning_address", problem)
         return None
-    # Written only if the shop is still as it was: something changed meanwhile (the association suspended it, made
-    # it historic, a second submit connected it) and nothing is written, never a register for a shop that may not have one
-    saved = Shop.objects.filter(register_kept(), pk=shop.pk, owner=request.user, lightning_address="",
+    # Written only if the shop is still as it was: something changed meanwhile (the association suspended it, a second
+    # submit connected it) and nothing is written, never a register for a shop that may not have one
+    saved = Shop.objects.filter(pk=shop.pk, owner=request.user, lightning_address="",
                                 suspended=False).update(lightning_address=address, lightning=True, awaiting_wallet=False)
     if saved:
         return True
@@ -987,10 +1004,9 @@ def shop_saved():
 
 def needs_wallet(shop):
     """A shop of its owner with no register yet: a shop moved from another site, or a shop of the directory given to its
-    owner. A historic shop takes one until REGISTER_AFTER_CLOSING after its closing day (shops/models.py); one the
-    association suspended takes none. Once set, the owner changes the
-    address from its own page (shops/address_change.py): this page never opens again for it."""
-    return not (shop.lightning_address or shop.suspended) and keeps_register(shop)
+    owner. A historic shop takes one too, its register has no end; one the association suspended takes none. Once set,
+    the owner changes the address from its own page (shops/address_change.py): this page never opens again for it."""
+    return not (shop.lightning_address or shop.suspended)
 
 
 def guide():
@@ -1001,6 +1017,8 @@ def guide():
 @login_required(login_url="shops")
 def edit_shop(request, shop):
     shop = get_object_or_404(request.user.shops, pk=shop)
+    # The shop as it was: an approved shop that an edit makes look like a copy of another is told to the moderators
+    before = copy.copy(shop)
     form = ShopDetailsForm(request.POST or None, instance=shop)
     if request.method == "POST" and ratelimit.over_limit(f"edit-shop-user:{request.user.pk}", EDITS_PER_USER, OWNER_WINDOW):
         # Nothing saved; what was typed stays in the form
@@ -1011,6 +1029,7 @@ def edit_shop(request, shop):
     if request.method == "POST" and form.is_valid():
         # Only the form's columns: a wallet connected meanwhile, or any field written by someone else, stays as it is
         form.save(commit=False).save(update_fields=ShopDetailsForm.Meta.fields)
+        approval.watch_edit(before, shop)
         messages.success(request, _("Saved."))
         warn_about_vat(request, form)
         return redirect("shops")
@@ -1023,10 +1042,19 @@ def edit_shop(request, shop):
 @login_required(login_url="shops")
 def shop_places(request, shop):
     """The other places of a shop with several branches: the owner adds one, with its address and its point on the map,
-    or takes one away. One shop, one register, a point on the map for each place; the shop's own position is the first
-    and is changed with the shop's details."""
+    or takes one away, or changes one (`?edit=<place>` shows it in the form, which sends it back as `place`). One shop,
+    one register, a point on the map for each place; the shop's own position is the first and is changed with the
+    shop's details."""
     shop = get_object_or_404(request.user.shops, pk=shop)
-    form = ShopPlaceForm(request.POST or None if "remove" not in request.POST else None)
+    editing = None
+    if "remove" not in request.POST:
+        # Only a place of this shop, which is one of the signed-in owner's: any other number is not found
+        key = request.POST.get("place") if request.method == "POST" else request.GET.get("edit")
+        if key is not None:
+            if not (key.isascii() and key.isdecimal() and len(key) < 19):
+                raise Http404
+            editing = get_object_or_404(shop.places, pk=int(key))
+    form = ShopPlaceForm(request.POST or None if "remove" not in request.POST else None, instance=editing)
     if request.method == "POST":
         if ratelimit.over_limit(f"edit-shop-user:{request.user.pk}", EDITS_PER_USER, OWNER_WINDOW):
             messages.error(request, _("You saved many times in a short while: wait a few minutes and try again."))
@@ -1036,7 +1064,14 @@ def shop_places(request, shop):
             if number.isascii() and number.isdecimal() and len(number) < 19:
                 shop.places.filter(pk=int(number)).delete()
             return redirect("shop_places", shop=shop.id)
-        if shop.places.count() >= ShopPlace.MAX:
+        if editing is not None:
+            if form.is_valid():
+                # Only the owner's columns: the link to OpenStreetMap, written by the association, stays as it is, as it
+                # does when the owner moves the shop itself (edit_shop)
+                form.save(commit=False).save(update_fields=ShopPlaceForm.Meta.fields)
+                messages.success(request, _("Place saved."))
+                return redirect("shop_places", shop=shop.id)
+        elif shop.places.count() >= ShopPlace.MAX:
             form.add_error(None, _("This shop has %(count)s other places, the most it can have.") % {"count": ShopPlace.MAX})
         elif form.is_valid():
             place = form.save(commit=False)
@@ -1045,7 +1080,7 @@ def shop_places(request, shop):
             messages.success(request, _("Place added: it is a point of your shop on the map."))
             return redirect("shop_places", shop=shop.id)
     return render(request, "shops/shop_places.html", {"form": form, "shop": shop, "places": list(shop.places.all()),
-                                                       "full": shop.places.count() >= ShopPlace.MAX},
+                                                       "full": shop.places.count() >= ShopPlace.MAX, "editing": editing},
                   status=400 if form.is_bound and form.errors else 200)
 
 
@@ -1145,9 +1180,9 @@ def register(request, shop, staff=None):
     send refunds to the owner. Both say where the money goes («Paying to:»)."""
     shop = get_object_or_404(Shop.objects.filter(HAS_REGISTER), pk=shop)
     data = register_data(shop)
-    # A historic shop's register ends REGISTER_AFTER_CLOSING after its closing day, when the guardian stops watching it.
-    # A suspended shop keeps it: suspension is about the map and the lists, never the payments
-    if data is None or not keeps_register(shop):
+    # A historic shop keeps it, for as long as its owner wants: the closing is about the map and the history. A
+    # suspended shop keeps it too: suspension is about the map and the lists, never the payments
+    if data is None:
         raise Http404
     owner = not staff and request.user == shop.owner
     # The real till waits for the basic pass (shops/training.py), except the owner's quick start: the first sales up to a
@@ -1250,7 +1285,7 @@ def register_worker(request, shop, keep=True, staff=False):
     shop = get_object_or_404(Shop.objects.filter(HAS_REGISTER), pk=shop)
     # The owner's quick start keeps the register (and its copy on the phone) as a shop with the pass does
     open_till = not training.locked(shop) or (not staff and training.quick_start(shop, request.user) > 0)
-    name = ("register-sw.js" if keep and keeps_register(shop) and register_data(shop) and open_till
+    name = ("register-sw.js" if keep and register_data(shop) and open_till
             else "register-sw-gone.js")
     script = (settings.BASE_DIR / "static" / name).read_text()
     return HttpResponse(script, content_type="text/javascript", headers={"Cache-Control": "no-cache"})

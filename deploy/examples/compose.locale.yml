@@ -1,13 +1,26 @@
 # Example compose.locale.yml, for the local changes of one installation. deploy/install.sh copies it to
 # /opt/<project>/compose.locale.yml (docs/installation.md).
 # Entry point: as it is, Caddy publishes ports 80 and 443 itself. Behind a shared entry point (another Caddy on the
-# Docker network bitmentor-entry, which forwards each name to the alias caddy-<project>), the lines that start with
-# "#@shared " are uncommented: install.sh does it with --entry shared. Two installations on the same machine need it,
-# since only one Caddy can hold ports 80 and 443. The lines that start with "#@direct " are for the other case.
+# Docker network bitmentor-entry, which forwards each name to the alias caddy-<project>), the lines marked
+# @shared are uncommented: install.sh does it with --entry shared. Two installations on the same machine need it,
+# since only one Caddy can hold ports 80 and 443.
+# Logs: as it is, Docker keeps each container's output in its own files (json-file, LOG_MAX_SIZE and LOG_MAX_FILE),
+# which go away with the container at every release. With the lines marked @journal the output goes to
+# the machine's systemd journal instead, next to the timers' own lines: install.sh uncomments them with --logs journal,
+# its choice on a machine that has the journal. "!override" needs Docker Compose 2.24.4 or later.
+# The marks @none, @some and @caddy follow from the two choices: no change at all, at least one, and
+# something for Caddy.
 
-#@direct services: {}
-#@shared services:
-  #@shared caddy:
+#@none services: {}
+#@some services:
+  #@journal postgres:
+  #@journal   logging: !override {driver: journald, options: {tag: "{{.Name}}"}}
+  #@journal web:
+  #@journal   logging: !override {driver: journald, options: {tag: "{{.Name}}"}}
+  #@journal tor:
+  #@journal   logging: !override {driver: journald, options: {tag: "{{.Name}}"}}
+  #@caddy caddy:
+  #@journal   logging: !override {driver: journald, options: {tag: "{{.Name}}"}}
   #@shared   ports: !reset []
   #@shared   networks:
   #@shared     default: {}

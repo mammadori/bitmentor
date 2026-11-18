@@ -1,4 +1,5 @@
 import csv
+import logging
 
 from django.contrib import admin, messages
 from django.http import HttpResponse
@@ -120,10 +121,15 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
     list_editable = ("suspended", "closed_on")
     list_filter = (LightningFilter, CertifiedFilter, OsmFilter, VatFilter, ("approved_on", admin.EmptyFieldListFilter), "suspended", "closed_on", "listed", "lightning",
                    "awaiting_wallet")
-    search_fields = ("name", "city", "legal_name", "vat_number")
+    # What a helper needs when a merchant phones: all of it is on the shop's page, which a moderator reads (the owner as
+    # its sign-in name). The owner's recovery email is on no page of the admin: OWNER_EMAIL_SEARCH, superusers only
+    search_fields = ("name", "city", "legal_name", "vat_number", "lightning_address", "email", "external_id",
+                     "owner__username")
+    # The whole address only (iexact): a search by a piece of it would let the rest be guessed one letter at a time
+    OWNER_EMAIL_SEARCH = ("=owner__profile__email",)
     # Where the money goes is the owner's to change, from the panel. What the guardian found is written only by its probes
     # (manage.py check_lightning), and the certificate never from here
-    readonly_fields = ("approved_on", "approved_by", "lightning_address", "lightning_status", "lightning_since",
+    readonly_fields = ("approved_on", "approved_by", "approval_check", "lightning_address", "lightning_status", "lightning_since",
                        "lightning_checked", "lightning_worked", "certified_month", "certified_revoked", "private_approved",
                        "private_approved_by", "moved_in",
                        "moved_register", "awaiting_wallet", "osm_seen", "osm_page", "osm_proposal", "osm_offered", "osm_history")
@@ -139,6 +145,13 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
     def get_list_display(self, request):
         columns = super().get_list_display(request)
         return columns if features.enabled(features.CERTIFIED) else [name for name in columns if name != "certified_column"]
+
+    def get_search_fields(self, request):
+        """A search must not confirm a value its user cannot see: the owner's recovery email (shops.Profile, shown on no
+        page of the admin) is searched only for superusers, who may see everything. Not in `search_fields`, so it is
+        never askable in the address of the list either (config/admin_secrets.py)."""
+        found = list(super().get_search_fields(request))
+        return [*found, *self.OWNER_EMAIL_SEARCH] if request.user.is_superuser else found
 
     def get_list_filter(self, request):
         found = super().get_list_filter(request)
@@ -295,10 +308,34 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
     def approved_column(self, shop):
         return not shop.needs_approval
 
+    @admin.display(description=_("Check before approving"))
+    def approval_check(self, shop):
+        """On the page of a shop that waits: what makes it look like a copy of a shop already here (shops/approval_signals.py).
+        Not in the list: it would read every shop for each row that waits."""
+        from . import approval_signals
+
+        if shop is None or shop._state.adding or not shop.needs_approval:
+            return "–"
+        found = approval_signals.signals(shop)
+        if not found:
+            return "–"
+        lines = [signal.text for signal in found]
+        return format_html("<br>".join(["{}"] * len(lines)), *lines)
+
     @admin.action(description=_("Approve the new shops: on the map and the lists"), permissions=["change"])
     def approve_shops(self, request, queryset):
-        count = approval.approve(queryset, request.user)
-        self.message_user(request, _("Approved: %(count)d shops.") % {"count": count})
+        outcome = approval.approve_or_hold(queryset, request.user)
+        self.message_user(request, _("Approved: %(count)d shops.") % {"count": outcome.approved})
+        # The ones that look like a copy of a shop already here wait for a person, one by one (shops/approval_signals.py)
+        held = len(outcome.held)
+        if held and outcome.failed:
+            self.message_user(request, _("Not approved: %(count)d shops, because the checks for copies of other shops could "
+                                         "not be run (whoever runs the site should look at the log). Approve them one by one "
+                                         "from /admin/today/, after looking at each yourself.") % {"count": held},
+                              messages.WARNING)
+        elif held:
+            self.message_user(request, _("Not approved: %(count)d shops that look like a shop already on the site. Approve them "
+                                         "one by one from /admin/today/, after checking.") % {"count": held}, messages.WARNING)
 
     def log_each(self, request, shops, message):
         """The association's actions on the certificate and the private part go in the admin's history of each shop."""
@@ -626,6 +663,7 @@ def dashboard_view(request):
         raise PermissionDenied
     context = {**admin.site.each_context(request), "title": _("To do today"), **summary(),
                "can_approve": request.user.has_perm("shops.change_shop")}
+    flag_copies(context["items"])
     # What whoever runs the site changed in the accounts of shop owners lately (shops/guard.py): a line, with its register
     if request.user.has_perm("shops.view_accountchange"):
         context["account_changes"] = (AccountChange.objects.filter(created__gte=timezone.now() - RECENT)
@@ -636,6 +674,34 @@ def dashboard_view(request):
     return TemplateResponse(request, "admin/shops/dashboard.html", context)
 
 
+def flag_copies(items):
+    """The new shops that look like a copy of a shop already here (shops/approval_signals.py): their signals on their line
+    (`checks` ask for a check, `notes` only tell), and those with checks first among the shops waiting for an approval,
+    in the places those lines had. Only on the page: the text list and the morning message stay as they are."""
+    from . import approval_signals
+
+    places = [index for index, item in enumerate(items) if item.code == "approve" and item.shop is not None]
+    if not places:
+        return
+    # The page is shown all the same; the approval itself fails closed, so each waiting shop says the checks could not
+    # be run and asks the box of that case, which approves it with `confirmed`
+    try:
+        found = approval_signals.signals_of([items[index].shop for index in places])
+    except Exception:
+        logging.getLogger(__name__).exception("the approval signals could not be computed: /admin/today/ without them")
+        for index in places:
+            items[index].unchecked = True
+        return
+    waiting = [items[index] for index in places]
+    for item in waiting:
+        signals = found.get(item.shop.pk, [])
+        item.checks = signals if approval_signals.asks(signals) else []
+        item.notes = [] if item.checks else signals
+    waiting.sort(key=lambda item: not item.checks)
+    for index, item in zip(places, waiting):
+        items[index] = item
+
+
 @require_POST
 def approve_view(request, shop):
     """The one-click approval of a new shop on /admin/today/: staff with the permission to change shops."""
@@ -644,8 +710,17 @@ def approve_view(request, shop):
     if not request.user.has_perm("shops.change_shop"):
         raise PermissionDenied
     shop = get_object_or_404(Shop, pk=shop)
-    if approval.approve(Shop.objects.filter(pk=shop.pk), request.user):
+    # A shop that looks like a copy of another is approved only with the box ticked: a person says they checked
+    confirmed = request.POST.get("checked") == "1"
+    approved, held, failed = approval.approve_or_hold(Shop.objects.filter(pk=shop.pk), request.user, confirmed=confirmed)
+    if approved:
         messages.success(request, _("%(name)s is approved: it is on the map and the lists.") % {"name": shop.name})
+    elif held and failed:
+        messages.error(request, _("%(name)s is not approved: the checks for copies of other shops could not be run. Look "
+                                  "at the shop yourself, then tick the box and approve it.") % {"name": shop.name})
+    elif held:
+        messages.error(request, _("%(name)s is not approved: it looks like a shop already on the site. Check what its line "
+                                  "says, then tick the box and approve it.") % {"name": shop.name})
     else:
         messages.info(request, _("%(name)s was already approved.") % {"name": shop.name})
     return redirect("admin_dashboard")

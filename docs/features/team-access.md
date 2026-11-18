@@ -29,7 +29,7 @@ everything stays closed, as for the allowed addresses; in `production` the site 
 the onion address it does not exist.
 
 The team hears of every new key and of every new browser that gets a pass, in the moderators' chat
-(`TELEGRAM_MODERATION_CHAT`) or, without Telegram, at the community's email. Telegram is optional. The message leaves
+(`TELEGRAM_MODERATION_CHAT`) or, without Telegram, at the community's email (or `moderators_emails`). Telegram is optional. The message leaves
 after the person's answer has been sent, so a chat or a mail server that does not answer neither delays nor fails a
 sign-in: a message that cannot be sent is a line in the log of `web`. `manage.py preflight` says when the site has
 neither, and nobody would be told.

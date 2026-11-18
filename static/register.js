@@ -1530,6 +1530,22 @@
     if (pending + seen) lines.push(line(say(words.waiting_count, { count: pending + seen })));
     if (unchecked) lines.push(line(say(words.unchecked_count, { count: unchecked })));
     if (gone + cancelled) lines.push(line(say(words.not_paid, { count: gone + cancelled })));
+    // With sales collected by more than one register (the staff registers' copies), the same lines register by register,
+    // after the day's own lines and counts
+    if (totals.registers.length > 1) {
+      const heading = line(words.by_register);
+      heading.className = "by-register";
+      lines.push(heading);
+      for (const register of totals.registers) {
+        for (const total of register.lines) {
+          const one = line([register.who || words.own_register, say(words.day_line, {
+            method: methodName(total.method), count: total.count,
+            amount: amount(total.cents, total.currency), sats: sats(total.sats) })].join(" · "));
+          one.className = "of-register";
+          lines.push(one);
+        }
+      }
+    }
     $("day-totals").replaceChildren(...lines);
     $("day-sales").replaceChildren(...totals.sales.slice().reverse().map((entry) => line(
       saleLine(entry, new Date(entry.at).toLocaleTimeString(lang, { timeStyle: "short" }), states))));

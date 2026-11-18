@@ -78,7 +78,7 @@ def home(request):
                 "questions": len(item["module"].questions)} for item in state.modules]
     next_item = next((item for item in modules if not item["done"]), None)
     steps = [{**badge, "guide": training.guide_url(cfg, badge["key"], language) if badge["key"] != "practice" else
-              (reverse("practice", args=[shop.pk]) if shop and (shop.has_register or not shop.closed_on) else "")}
+              (reverse("practice", args=[shop.pk]) if shop and (shop.has_register or not shop.closed) else "")}
              for badge in state.badges if badge.get("step")]
     return render(request, "shops/training.html", {
         "state": state, "modules": modules, "next_item": next_item, "steps": steps, "shop": shop,

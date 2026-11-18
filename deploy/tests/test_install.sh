@@ -14,11 +14,13 @@ cat > "$TMP/bin/docker" <<'EOF'
 [ "$1 $2" = "volume ls" ] && { printf '%s\n' ${FAKE_VOLUMES:-}; exit 0; }
 # network inspect bitmentor-entry: the subnet in $FAKE_ENTRY, or no such network
 [ "$1 $2" = "network inspect" ] && { [ -n "${FAKE_ENTRY:-}" ] || exit 1; echo "$FAKE_ENTRY "; exit 0; }
+# info --format {{.Plugins.Log}}: the log drivers in $FAKE_LOG_DRIVERS, or a Docker that does not answer
+[ "$1" = "info" ] && { [ -n "${FAKE_LOG_DRIVERS:-}" ] || exit 1; echo "[$FAKE_LOG_DRIVERS]"; exit 0; }
 exit 1
 EOF
 chmod 755 "$TMP/bin/docker"
 mkdir -p "$TMP/systemd"
-export PATH="$TMP/bin:$PATH" FAKE_VOLUMES= FAKE_ENTRY= INSTALL_SYSTEMD=$TMP/systemd
+export PATH="$TMP/bin:$PATH" FAKE_VOLUMES= FAKE_ENTRY= FAKE_LOG_DRIVERS= INSTALL_SYSTEMD=$TMP/systemd INSTALL_JOURNAL=$TMP/no-journal
 
 no() { FAILED=$((FAILED + 1)); echo "  NO: $1"; printf '%s\n' "${OUT:-}" | tail -n 8 | sed 's/^/        | /'; }
 yes() { PASSED=$((PASSED + 1)); }
@@ -107,6 +109,50 @@ sed -i 's|^SITE_SCHEME=.*|SITE_SCHEME=http|' "$M/.env"
 if command -v python3 >/dev/null && python3 -c 'import yaml' 2>/dev/null; then
   holds "valid YAML" python3 -c 'import sys, yaml; yaml.compose(open(sys.argv[1]))' "$M/compose.locale.yml"
 fi
+
+echo "== where the containers' output goes"
+services=$(sed -nE '/^services:$/,$ s/^  ([a-z-]+):$/\1/p' "$(dirname "$(dirname "$INSTALL")")/docker-compose.yml" | sort | paste -sd' ')
+journal='logging: !override {driver: journald, options: {tag: "{{.Name}}"}}'
+L=$TMP/opt/logs-journal
+run "$L" --site j.example.org --network signet "${common[@]}" --logs journal
+holds "journal: it ends well" test "$CODE" = 0
+holds "journal: every service of docker-compose.yml ($services)" test \
+  "$(sed -nE 's/^  ([a-z-]+):$/\1/p' "$L/compose.locale.yml" | sort | paste -sd' ')" = "$services"
+holds "journal: one logging line for each" test \
+  "$(grep -cF "$journal" "$L/compose.locale.yml")" = "$(wc -w <<<"$services")"
+fails "journal, direct: Caddy keeps its ports" grep -q 'ports:' "$L/compose.locale.yml"
+fails "journal: no comment markers left" grep -q '#@' "$L/compose.locale.yml"
+has "journal: the closing lines say where to read" "$OUT" "journalctl CONTAINER_NAME=logs-journal-web-1"
+L=$TMP/opt/logs-both
+FAKE_ENTRY=172.30.0.0/16 run "$L" --site b.example.org --network signet "${common[@]}" --logs journal --entry shared
+holds "journal and shared: it ends well" test "$CODE" = 0
+holds "journal and shared: one caddy key" test "$(grep -c '^  caddy:$' "$L/compose.locale.yml")" = 1
+holds "journal and shared: Caddy without ports" grep -q 'ports: !reset \[\]' "$L/compose.locale.yml"
+holds "journal and shared: one logging line for each service" test \
+  "$(grep -cF "$journal" "$L/compose.locale.yml")" = "$(wc -w <<<"$services")"
+fails "journal and shared: no comment markers left" grep -q '#@' "$L/compose.locale.yml"
+L=$TMP/opt/logs-files
+mkdir -p "$TMP/journal"
+INSTALL_JOURNAL=$TMP/journal FAKE_LOG_DRIVERS="journald json-file" run "$L" --site f.example.org --network signet "${common[@]}" --logs files
+holds "files, asked for on a machine with the journal: no override" grep -qx 'services: {}' "$L/compose.locale.yml"
+lacks "files: nothing about the journal at the end" "$OUT" "journalctl CONTAINER_NAME"
+L=$TMP/opt/logs-auto
+INSTALL_JOURNAL=$TMP/journal FAKE_LOG_DRIVERS="awslogs journald json-file" run "$L" --site a.example.org --network signet "${common[@]}"
+holds "not said, journal and driver here: journal" grep -qF "$journal" "$L/compose.locale.yml"
+L=$TMP/opt/logs-nodriver
+INSTALL_JOURNAL=$TMP/journal FAKE_LOG_DRIVERS="json-file local" run "$L" --site n.example.org --network signet "${common[@]}"
+holds "not said, a Docker without the driver: files" grep -qx 'services: {}' "$L/compose.locale.yml"
+L=$TMP/opt/logs-nojournal
+FAKE_LOG_DRIVERS="journald json-file" run "$L" --site o.example.org --network signet "${common[@]}"
+holds "not said, a machine without the journal: files" grep -qx 'services: {}' "$L/compose.locale.yml"
+if python3 -c 'import yaml' 2>/dev/null; then
+  for folder in logs-journal logs-both; do
+    holds "$folder: valid YAML" python3 -c 'import sys, yaml; yaml.compose(open(sys.argv[1]))' "$TMP/opt/$folder/compose.locale.yml"
+  done
+fi
+run "$TMP/opt/logs-wrong" --site w.example.org --network signet "${common[@]}" --logs syslog
+holds "another word is refused" test "$CODE" = 2
+fails "and nothing is written" test -e "$TMP/opt/logs-wrong"
 
 echo "== what is refused"
 run "$TMP/opt/again" --site shops.example.org --network signet "${common[@]}"

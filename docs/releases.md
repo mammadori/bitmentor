@@ -98,6 +98,23 @@ docker buildx imagetools inspect --format '{{json .Manifest.Digest}}' <caddy rep
 Read them from a machine you trust, right after the CI pipeline of the tag, and write them with the tag in
 `release.env`. Signing the images (cosign) is a later step, not done yet.
 
+### From 0.1.8 to 0.1.9
+
+- The migrations `shops` 0007 to 0009 run by themselves: a staff register's place, up to three Telegram chats for a
+  shop, the help text of `closed_on`.
+- A shop with a closing day still to come is again a place to pay (map, counts, discount) until that day: it used to
+  be historic at once.
+- Shops closed more than a year ago get their register back, with the staff registers, the wallet connection and the
+  change of the Lightning address: the register of a closed shop has no end. From the day after its closing day a
+  shop is no longer watched by the Lightning guardian nor listed in `/admin/today/`, also when it closed less than a
+  year ago.
+- For a community's own code: `approval.approve()` skips the shops with a signal that asks for a check unless it is
+  called with `confirmed=True`, and logs how many it held. `register_kept()`, `keeps_register()` and
+  `REGISTER_AFTER_CLOSING` are kept for imports and no longer restrict anything. Copies of the software's templates:
+  see [The community's own code](architecture.md#the-communitys-own-code).
+- Existing installations keep Docker's own log files: moving to the machine's journal is by hand
+  ([Logs of the containers](configuration.md#logs-of-the-containers)).
+
 ### Going back
 
 When a release does not answer, `release.sh` puts the previous image back, **on the database the release has already
@@ -117,6 +134,8 @@ and it can.
 - **Limits.**
   - SQLite (development and tests) cannot change a constraint in place, so there the foreign keys stay plain:
     production runs PostgreSQL.
+  - Back on 0.1.8, a shop with several Telegram chats, or a `TELEGRAM_MODERATION_CHAT` with commas, gets no Telegram
+    messages (0.1.8 reads the list as one chat), and the owner's form refuses the value until it is one chat.
   - The unique constraints of the release stay: the previous image gets an IntegrityError where it used to let a
     duplicate through (a Nostr name, for one).
   - A table or a foreign key added after the previous release gets this care only if its migration does: a new NOT NULL

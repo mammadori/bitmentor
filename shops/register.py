@@ -494,6 +494,10 @@ def history_texts():
         "copy_now": _("Day closed. Now download the encrypted copy."),
         "closed": _("Closed at {time}."),
         "day_line": _("{method}: {count} paid, {amount} ({sats})"),
+        # The day closing split by register, when staff registers' sales came in: the owner's own register's sales
+        # (and old ones that carry no register name) under the words its page uses for it (staff_registers.html)
+        "by_register": _("The same, by register:"),
+        "own_register": _("Your own register"),
         "by_hand": _("Of these, {count} marked as paid by you: check them in your wallet."),
         "verified_count": _("Of these, {count} reported by a staff register and checked by this register with the payment "
                             "provider: no need to look in the wallet."),

@@ -103,3 +103,83 @@ class Places(TestCase):
         self.add()
         self.shop.delete()
         self.assertFalse(ShopPlace.objects.exists())
+
+
+class EditPlaces(TestCase):
+    """The owner changes a place in the same form, instead of removing it and adding it again."""
+    setUp = Places.setUp
+    add = Places.add
+    listed = Places.listed
+
+    def change(self, place=None, **fields):
+        return self.client.post(self.page, {"place": self.place.pk if place is None else place, "address": "New road 1",
+                                            "city": "Southvillage", "latitude": "45.95", "longitude": "11.05", **fields})
+
+    def mine(self):
+        self.add()
+        self.place = ShopPlace.objects.get()
+        return self.place
+
+    def test_the_owner_changes_a_place_and_its_link_stays(self):
+        place = self.mine()
+        ShopPlace.objects.filter(pk=place.pk).update(osm_ref="node/42")
+        page = self.client.get(f"{self.page}?edit={place.pk}")
+        self.assertContains(page, 'value="Side road 90"')
+        self.assertContains(page, f'name="place" value="{place.pk}"')
+        self.assertContains(page, "Save this place")
+        self.assertContains(self.client.get(self.page), f'href="?edit={place.pk}"')
+        self.assertEqual(self.listed()["Driving school"]["places"][0]["address"], "Side road 90")
+        self.assertRedirects(self.change(), self.page)
+        place.refresh_from_db()
+        self.assertEqual((place.address, place.latitude, place.longitude, place.osm_ref),
+                         ("New road 1", 45.95, 11.05, "node/42"))
+        self.assertEqual(ShopPlace.objects.count(), 1)
+        # The public list is built again, as when a place is added
+        self.assertEqual(self.listed()["Driving school"]["places"][0]["address"], "New road 1")
+
+    def test_a_change_is_checked_like_a_new_place(self):
+        place = self.mine()
+        for fields in ({"latitude": ""}, {"latitude": "200"}, {"address": "", "city": ""},
+                       {"address": " ".join(["abandon"] * 11 + ["about"])}):
+            self.assertEqual(self.change(**fields).status_code, 400, fields)
+        place.refresh_from_db()
+        self.assertEqual(place.address, "Side road 90")
+        self.change(address="New\u202e road", city="")
+        place.refresh_from_db()
+        self.assertEqual(place.address, "New road")
+
+    def test_a_full_shop_still_changes_its_places(self):
+        place = self.mine()
+        ShopPlace.objects.bulk_create([ShopPlace(shop=self.shop, city="X", latitude=1, longitude=1)] * (ShopPlace.MAX - 1))
+        self.assertContains(self.client.get(f"{self.page}?edit={place.pk}"), 'id="pick-map"')
+        self.assertRedirects(self.change(), self.page)
+        self.assertEqual(self.shop.places.count(), ShopPlace.MAX)
+
+    def test_only_a_place_of_the_owners_shop_is_changed(self):
+        place = self.mine()
+        other = get_user_model().objects.create(username="email:" + "b" * 32)
+        theirs = ShopPlace.objects.create(shop=Shop.objects.create(name="Other", owner=other), city="Far", latitude=1,
+                                          longitude=1)
+        for key in (theirs.pk, "9999", "x", "1e3", "²", "9" * 30):
+            self.assertEqual(self.client.get(f"{self.page}?edit={key}").status_code, 404, key)
+            self.assertEqual(self.change(place=key).status_code, 404, key)
+        theirs.refresh_from_db()
+        self.assertEqual(theirs.city, "Far")
+        self.assertEqual(ShopPlace.objects.count(), 2)  # nothing added either
+        # Somebody else, on my shop's page: not found; signed out: to the sign in
+        self.client.force_login(other)
+        self.assertEqual(self.change(place=place.pk).status_code, 404)
+        self.client.logout()
+        self.assertEqual(self.change(place=place.pk).status_code, 302)
+        place.refresh_from_db()
+        self.assertEqual(place.address, "Side road 90")
+
+    def test_a_change_needs_the_csrf_token(self):
+        from django.test import Client
+        place = self.mine()
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.owner)
+        self.assertEqual(client.post(self.page, {"place": place.pk, "address": "New road 1", "city": "",
+                                                 "latitude": "45.95", "longitude": "11.05"}).status_code, 403)
+        place.refresh_from_db()
+        self.assertEqual(place.address, "Side road 90")

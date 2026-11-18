@@ -60,6 +60,9 @@ A wrong value is left out, the rest stays, and `manage.py check` and the log of 
   `STATUS:CANCELLED`. It has no organiser, no attendees and no description from outside. It is public, kept for 15
   minutes (and worked out again after a change of the meetups) and limited to 120 requests an hour for each connection.
   It holds at most 1000 events: every meetup still to come and, with the room left, the most recent past ones.
+  `/meetups.ics?city=<name>` holds only the meetups of one city: a name in `cities`, or the city of a meetup shown on the
+  board, with capitals that do not count (at most 100 characters). Any other name answers 404, so a link cannot make the
+  site keep a calendar for every word; the same limit of requests applies. Without `city` the feed is the one above.
 
 A meetup that began less than three hours ago still counts as next. An hour is shown in the zone of the meetup, and the zone
 is named only when it is not the community's.

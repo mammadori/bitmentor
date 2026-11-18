@@ -91,6 +91,31 @@ class StaffRegisters(TestCase):
         self.assertContains(response, "This code opens nothing", status_code=404)
         self.assertNotContains(response, register.key, status_code=404)
 
+    def test_the_codes_lifetime_follows_the_community(self):
+        from .staff import CODE_LIFETIME
+
+        self.assertEqual(CODE_LIFETIME, timedelta(hours=24))
+        register = self.add()
+        self.assertAlmostEqual(register.code_until - timezone.now(), timedelta(hours=24), delta=timedelta(minutes=1))
+        with patch.dict(community(), {"limits": {"staff_code_hours": 72}}):
+            self.client.post(f"/en/shops/registers/{self.shop.id}/{register.id}/")
+        register.refresh_from_db()
+        self.assertAlmostEqual(register.code_until - timezone.now(), timedelta(hours=72), delta=timedelta(minutes=1))
+        # Out of its bounds the value is the default: never a code that lives for a week
+        with patch.dict(community(), {"limits": {"staff_code_hours": 24 * 7}}):
+            self.client.post(f"/en/shops/registers/{self.shop.id}/{register.id}/")
+        register.refresh_from_db()
+        self.assertAlmostEqual(register.code_until - timezone.now(), timedelta(hours=24), delta=timedelta(minutes=1))
+        # Short or long, the code is one-time and ends at code_until
+        with patch.dict(community(), {"limits": {"staff_code_hours": 1}}):
+            self.client.post(f"/en/shops/registers/{self.shop.id}/{register.id}/")
+        register.refresh_from_db()
+        self.assertAlmostEqual(register.code_until - timezone.now(), timedelta(hours=1), delta=timedelta(minutes=1))
+        with patch("shops.staff.timezone.now", return_value=timezone.now() + timedelta(hours=1, minutes=1)):
+            self.assertEqual(self.client_class().post("/en/shops/register/open/", {"code": register.code}).status_code, 404)
+        self.put_on_phone(register)
+        self.assertEqual(self.client_class().post("/en/shops/register/open/", {"code": register.code}).status_code, 404)
+
     def test_an_old_code_opens_nothing(self):
         register = self.add()
         StaffRegister.objects.filter(pk=register.pk).update(code_until=timezone.now() - timedelta(minutes=1))
@@ -231,11 +256,177 @@ class StaffRegisters(TestCase):
         codes = [phone.post("/en/shops/register/open/", {"code": "a" * 32}).status_code for _ in range(4)]
         self.assertEqual(codes, [404, 404, 404, 429])
 
+    def rename(self, register, name, client=None):
+        return (client or self.client).post(f"/en/shops/registers/{self.shop.id}/{register.id}/rename/", {"name": name})
+
+    def test_the_owner_renames_a_register_and_its_page_follows(self):
+        register = self.add()
+        phone = self.put_on_phone(register)
+        key = register.key
+        response = self.rename(register, "  Anna   morning ")
+        self.assertRedirects(response, self.manage, fetch_redirect_response=False)
+        register.refresh_from_db()
+        self.assertEqual(register.name, "Anna morning")
+        # Nothing else of the register changes: the same key on the phone, no new code
+        self.assertEqual((register.key, register.code), (key, ""))
+        self.assertContains(self.client.get(self.manage), "«Anna» is now «Anna morning»")
+        self.assertContains(phone.get(page(register)), 'data-till-name="Anna morning"')
+
+    def test_a_rename_is_checked_as_a_new_name(self):
+        register = self.add()
+        for wrong in ("   ", "x" * 41):
+            response = self.rename(register, wrong)
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, f'id="rename-{register.id}" open')
+        register.refresh_from_db()
+        self.assertEqual(register.name, "Anna")
+        # Put into the page as text
+        self.rename(register, "<b>Bo</b>")
+        self.assertContains(self.client.get(self.manage), "&lt;b&gt;Bo&lt;/b&gt;")
+        self.assertNotContains(self.client.get(self.manage), "<b>Bo</b>")
+
+    def test_a_rename_does_not_take_the_name_of_another_register_turned_on(self):
+        """The day closing tells the registers apart by name."""
+        anna, evening = self.add("Anna"), self.add("Evening")
+        response = self.rename(evening, " anna ")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Another register of this shop has this name")
+        evening.refresh_from_db()
+        self.assertEqual(evening.name, "Evening")
+        # its own name again, in other capitals, is not another register's
+        self.assertRedirects(self.rename(evening, "EVENING"), self.manage, fetch_redirect_response=False)
+        # the name of one turned off is free
+        self.client.post(f"/en/shops/registers/{self.shop.id}/{anna.id}/retire/")
+        anna.refresh_from_db()
+        self.assertIsNotNone(anna.retired)
+        self.assertRedirects(self.rename(evening, "Anna"), self.manage, fetch_redirect_response=False)
+
+    def test_only_the_owner_renames_and_only_a_register_turned_on(self):
+        register = self.add()
+        other = self.client_class()
+        other.force_login(get_user_model().objects.create(username="other"))
+        self.assertEqual(self.rename(register, "Mallory", other).status_code, 404)
+        self.assertEqual(self.rename(register, "Mallory", self.client_class()).status_code, 302)
+        # A register of another shop of someone else, through the owner's own shop
+        theirs = StaffRegister.objects.create(shop=Shop.objects.create(
+            owner=get_user_model().objects.get(username="other"), name="Other", lightning_address="o@ln.example.org"), name="Eve")
+        self.assertEqual(self.rename(theirs, "Mallory").status_code, 404)
+        self.assertEqual(self.client.get(f"/en/shops/registers/{self.shop.id}/{register.id}/rename/").status_code, 405)
+        self.client.post(f"/en/shops/registers/{self.shop.id}/{register.id}/retire/")
+        self.assertEqual(self.rename(register, "Mallory").status_code, 404)
+        register.refresh_from_db()
+        theirs.refresh_from_db()
+        self.assertEqual((register.name, theirs.name), ("Anna", "Eve"))
+
+    @patch("shops.staff.REGISTER_CHANGES", 1)
+    def test_renames_count_with_the_other_changes(self):
+        self.enterContext(steady_limits())
+        register = self.add()
+        response = self.rename(register, "Bruno")
+        self.assertContains(response, "Too many changes")
+        register.refresh_from_db()
+        self.assertEqual(register.name, "Anna")
+
+    def test_a_register_can_be_given_one_of_the_shops_places(self):
+        from .models import ShopPlace
+
+        # Without other places, no choice
+        self.assertNotContains(self.client.get(self.manage), 'name="place"')
+        harbour = ShopPlace.objects.create(shop=self.shop, address="Harbour 1", city="Town", latitude=1, longitude=2)
+        market = ShopPlace.objects.create(shop=self.shop, address="<b>Market</b>", latitude=3, longitude=4)
+        page = self.client.get(self.manage)
+        self.assertContains(page, '<option value="" selected>No place chosen</option>', html=True)
+        self.assertContains(page, f'<option value="{harbour.pk}">Harbour 1, Town</option>', html=True)
+        response = self.client.post(self.manage, {"name": "Anna", "place": harbour.pk})
+        anna = StaffRegister.objects.get(name="Anna")
+        self.assertRedirects(response, f"/en/shops/registers/{self.shop.id}/{anna.id}/")
+        self.assertEqual(anna.place, harbour)
+        bruno = self.add("Bruno")
+        self.assertIsNone(bruno.place)
+        # Grouped by place, the ones without one last; the place's address as text
+        page = self.client.get(self.manage).content.decode()
+        self.assertLess(page.index("Harbour 1, Town</h3>"), page.index("<strong>Anna</strong>"))
+        self.assertLess(page.index("<strong>Anna</strong>"), page.index("No place chosen</h3>"))
+        self.assertLess(page.index("No place chosen</h3>"), page.index("<strong>Bruno</strong>"))
+        self.assertNotIn("<b>Market</b>", page)
+        # The rename form moves it, and the name stays
+        response = self.client.post(f"/en/shops/registers/{self.shop.id}/{bruno.id}/rename/",
+                                    {"name": "Bruno", "place": market.pk})
+        self.assertRedirects(response, self.manage, fetch_redirect_response=False)
+        bruno.refresh_from_db()
+        self.assertEqual((bruno.name, bruno.place), ("Bruno", market))
+        # Removing the place leaves the register, without a place
+        market.delete()
+        bruno.refresh_from_db()
+        self.assertIsNone(bruno.place)
+        self.assertIsNone(bruno.retired)
+
+    def test_a_place_of_another_shop_is_refused(self):
+        from .models import ShopPlace
+
+        ShopPlace.objects.create(shop=self.shop, address="Harbour 1", latitude=1, longitude=2)
+        other = Shop.objects.create(owner=get_user_model().objects.create(username="other"), name="Other",
+                                    lightning_address="o@ln.example.org")
+        theirs = ShopPlace.objects.create(shop=other, address="Elsewhere", latitude=5, longitude=6)
+        response = self.client.post(self.manage, {"name": "Anna", "place": theirs.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(StaffRegister.objects.filter(name="Anna").exists())
+        register = self.add("Bruno")
+        response = self.client.post(f"/en/shops/registers/{self.shop.id}/{register.id}/rename/",
+                                    {"name": "Carla", "place": theirs.pk})
+        self.assertEqual(response.status_code, 200)
+        register.refresh_from_db()
+        self.assertEqual((register.name, register.place), ("Bruno", None))
+        # A shop without other places takes no place, whatever is sent
+        ShopPlace.objects.filter(shop=self.shop).delete()
+        self.client.post(f"/en/shops/registers/{self.shop.id}/{register.id}/rename/", {"name": "Bruno", "place": theirs.pk})
+        register.refresh_from_db()
+        self.assertIsNone(register.place)
+
+    def test_the_place_changes_nothing_for_the_register(self):
+        from .models import ShopPlace
+
+        place = ShopPlace.objects.create(shop=self.shop, address="Harbour 1", latitude=1, longitude=2)
+        response = self.client.post(self.manage, {"name": "Anna", "place": place.pk})
+        register = StaffRegister.objects.get(name="Anna")
+        self.assertRedirects(response, f"/en/shops/registers/{self.shop.id}/{register.id}/")
+        code_page = self.client.get(f"/en/shops/registers/{self.shop.id}/{register.id}/")
+        self.assertNotIn("Harbour", json.dumps(code_page.context["pairing"]))
+        phone = self.put_on_phone(register)
+        self.assertNotContains(phone.get(page(register)), "Harbour")
+
     def test_the_panel_leads_to_the_staff_registers(self):
         self.add()
         panel = self.client.get("/en/shops/")
         self.assertContains(panel, self.manage)
         self.assertContains(panel, "Registers for your staff: 1 turned on")
+
+    def test_the_panel_names_the_registers_turned_on(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        from .views import STAFF_NAMES_SHOWN
+
+        names = [f"P{n}" for n in range(STAFF_NAMES_SHOWN + 2)] + ["<i>Zed</i>"]
+        StaffRegister.objects.bulk_create(StaffRegister(shop=self.shop, name=name, created=timezone.now()) for name in names)
+        StaffRegister.objects.create(shop=self.shop, name="Gone", retired=timezone.now())
+        other = Shop.objects.create(owner=self.owner, name="Café", lightning_address="cafe@ln.example.org")
+        StaffRegister.objects.create(shop=other, name="Bruno")
+        with CaptureQueriesContext(connection) as queries:
+            panel = self.client.get("/en/shops/")
+        # One query for the registers of every shop, not one per shop
+        self.assertEqual(sum('"shops_staffregister"' in query["sql"] for query in queries.captured_queries), 1)
+        shops = {shop.name: shop for shop in panel.context["shops"]}
+        self.assertEqual(shops["Bar"].staff_count, len(names))
+        self.assertEqual(sorted(shops["Bar"].staff_names), sorted(names))
+        self.assertEqual(len(shops["Bar"].staff_shown), STAFF_NAMES_SHOWN)
+        self.assertContains(panel, f"Registers for your staff: {len(names)} turned on")
+        self.assertContains(panel, f"…and {len(names) - STAFF_NAMES_SHOWN} more")
+        self.assertNotContains(panel, "Gone")
+        self.assertContains(panel, f'<p class="muted staff-names" id="staff-names-{other.id}">Bruno</p>', html=True)
+        self.assertNotContains(panel, "<i>Zed</i>")
+        StaffRegister.objects.filter(name="<i>Zed</i>").update(created=timezone.now() + timedelta(days=1))
+        self.assertContains(self.client.get("/en/shops/"), "&lt;i&gt;Zed&lt;/i&gt;, ")
 
     def test_the_owners_pages_are_closed_to_search_engines(self):
         with self.settings(SITE_MODE="production"):

@@ -54,9 +54,9 @@ how you run the machine.
 | Data | Why | Where | Retention |
 |---|---|---|---|
 | **Account of a merchant or visitor who signs in**: a public key made by their wallet for this site only (LNURL-auth), an optional recovery email, the account's sign-in name | To let the person in and to give them access to their shop | Database (`shops.Profile`, the Django user) | As long as the account exists. Deleted by the staff on request (see [Rights](#rights-of-the-people-concerned)). The software does not delete idle accounts: **you decide** a policy |
-| **Shops**: name, description, address, position, phone, email, website, business name, VAT number, Lightning address, Nostr key, Telegram chat of the notices, opening and closure dates, the guardian's reading of the Lightning address | The shop page and map, the register, the notices to the owner | Database (`shops.Shop`) | As long as the shop is on the site. Phone, email, website, address, business name and VAT number are shown only if the owner ticks "show"; the owner can hide or remove the shop. The shop page is public by the owner's choice |
+| **Shops**: name, description, address, position, phone, email, website, business name, VAT number, Lightning address, Nostr key, Telegram chats of the notices (up to three; each chat gets its own copy of the shop's notices), opening and closure dates, the guardian's reading of the Lightning address | The shop page and map, the register, the notices to the owner | Database (`shops.Shop`) | As long as the shop is on the site. Phone, email, website, address, business name and VAT number are shown only if the owner ticks "show"; the owner can hide or remove the shop. The shop page is public by the owner's choice |
 | **Other places of a shop** (a shop with several branches): address, town and position of each | The map and the shop's page | Database (`shops.ShopPlace`) | As long as the owner keeps them; deleted with the shop |
-| **Requests for help** ("Something wrong?"): the shop, the symptom, the line the merchant wrote, a copy of what the site knew (Lightning address, last sign-in), the account that asked, who solved it | To help the merchant | Database (`shops.HelpRequest`); the line also goes to the moderators' Telegram chat (`TELEGRAM_MODERATION_CHAT`) | `privacy.help_requests_days` (default **365**, 30 to 3650) after the request was solved; then the personal part is emptied and the row stays for the counts ([how](features/help.md), [handbook](operations.md#forget-old-requests-for-help)). **Telegram copies are not reached**: turn on automatic deletion of messages in that chat. Backups keep older copies (see below) |
+| **Requests for help** ("Something wrong?"): the shop, the symptom, the line the merchant wrote, a copy of what the site knew (Lightning address, last sign-in), the account that asked, who solved it | To help the merchant | Database (`shops.HelpRequest`); the line also goes to the moderators' Telegram chat (`TELEGRAM_MODERATION_CHAT`) | `privacy.help_requests_days` (default **365**, 30 to 3650) after the request was solved; then the personal part is emptied and the row stays for the counts ([how](features/help.md), [handbook](operations.md#forget-old-requests-for-help)). **Telegram copies are not reached**: turn on automatic deletion of messages in that chat, and in each of them when `TELEGRAM_MODERATION_CHAT` lists several (every chat holds its own copy). Backups keep older copies (see below) |
 | **Email budget**: for each email sent, the time and a keyed hash of the recipient (never the address or the text) | To stay inside the mail provider's quota and cap what one address receives | Database (`shops.EmailSent`) | `privacy.email_prints_days` of `community.yml`, **62 days** when unset (older rows are dropped as new ones are written; 0 keeps them) |
 | **Request counters** (limits per network address, account or email) | To stop abuse | Database (`shops.RequestCount`), keyed by a hash | Each counter lasts its window (minutes to a day) and expired ones are deleted as new ones are written |
 | **Sign-in challenges** (LNURL-auth) | To sign in with a wallet | Database (`shops.LoginChallenge`) | Minutes: expired ones are deleted when a new one is made |
@@ -106,9 +106,15 @@ What is logged, verified in `Caddyfile`, `config/gunicorn.py` and `docker-compos
 - **Docker keeps container output** in `json-file` with `max-size: 20m` and `max-file: 5` (`LOG_MAX_SIZE`, `LOG_MAX_FILE`). This is a limit on **size, not on
   time**: up to 100 MB per service, overwritten only as it fills. On a quiet site the lines of months can stay there, so
   whatever is logged to the container output (the masked network addresses of Caddy's error log, the paths in gunicorn's
-  lines, a visitor's address if you add it to a log format) stays for months, not days. If that is too long for you,
+  lines, a visitor's address if you add it to a log format) stays for months, not days (until a release makes the
+  container again: then its lines go with it). If that is too long for you,
   rotate by time (a systemd timer that truncates the logs, or a logging driver with a time limit) or log less. Nothing in
   the software deletes them by date: **you decide**.
+- **Or the machine's journal keeps it**: a new installation made with `deploy/install.sh` (from 0.1.9) on a machine with
+  systemd and a Docker that has the journald driver sends the containers' output to the journal instead ([Logs of the containers](configuration.md#logs-of-the-containers)).
+  The same lines, then, are kept for as long as the journal is set to keep them, which without a setting is a limit on
+  size that can also mean months; `MaxRetentionSec` in `journald.conf` gives them a limit in time. They are read by
+  root and by the users in the `systemd-journal` group, and they go wherever the machine forwards its journal.
 - **What is outside the repository**: the hosting provider's own logs, the shared entry proxy of
   [the installation guide](installation.md#the-shared-entry-point) if you use one (it sees the full address of the
   visitor: check what it logs), the machine's systemd journal, and the firewall.
@@ -170,6 +176,10 @@ third party**, which then sees the visitor's IP address and the browser's detail
   what is asked. Choose them knowing this; the merchant's own wallet provider is the merchant's choice and
   responsibility.
 - **Telegram**, if you set a bot: the site sends it notices to merchants' chats and to the moderators' chat. See below.
+- **The moderators' messages by email**, when Telegram does not take them: to the community's `email`, or to each address
+  of `moderators_emails` in `community.yml` (up to five, one message each, so no moderator sees the others' addresses).
+  Every mailbox keeps its own copy of what the message says (shop names, the line of a request for help, a team member's
+  name): list only the people who need it, and remove an address when its person stops moderating.
 - **OpenStreetMap data** (if you turn on `osm`): the server reads the OpenStreetMap API once a month; no visitor data is
   involved.
 - **Meetups**, if turned on: the server reads the relays you list.
@@ -222,7 +232,7 @@ or another one). Check the provider's DPA, where the data is, and the sub-proces
 |---|---|---|
 | **Hosting provider / server** | Everything on the machine | DPA; choose the region; know who has root (the handbook asks for as few people as possible) |
 | **Mail provider** (SMTP) | Emails and recipients' addresses, sign-in links | DPA; sender domain with SPF, DKIM, DMARC; check where it processes the data |
-| **Telegram** | Notices to merchants and the moderators' chat, with the merchant's line | Telegram is a controller of its own and is outside the EU; the merchant who gives their chat id chooses it; tell the moderators; turn on automatic deletion of messages. Consider whether you need this feature |
+| **Telegram** | Notices to merchants and the moderators' chat, with the merchant's line | Telegram is a controller of its own and is outside the EU; the merchant who gives their chat ids chooses them (up to three per shop, and each chat holds its own copy of the shop's notices); tell the moderators; turn on automatic deletion of messages. Consider whether you need this feature |
 | **Backup destination** | The encrypted copies | DPA if it is a third party; you keep the keys; know the country |
 | **Nostr relay** (if you run the community's relay with a third-party host) | Encrypted copies, public events | DPA with the host; the other relays are independent parties |
 | **DNS / CDN / entry proxy** | The visitors' addresses | Check what it logs |

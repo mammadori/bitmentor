@@ -120,7 +120,7 @@ def practice(request, shop):
     shop = get_object_or_404(Shop, pk=shop)
     # Without a register, only the owner of a shop still trading: a historic shop has nothing left to learn (the panel
     # shows the link on the same terms)
-    if not shop.has_register and (shop.closed_on or not (request.user.is_authenticated and request.user == shop.owner)):
+    if not shop.has_register and (shop.closed or not (request.user.is_authenticated and request.user == shop.owner)):
         raise Http404
     response = render(request, "shops/practice.html", context(request, shop))
     response["Cache-Control"] = "no-store"

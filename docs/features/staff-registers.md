@@ -7,6 +7,9 @@ the money goes and nothing else of the owner's wallet, sales or settings, and ha
 the owner's register it keeps its sales on its own phone: the site never receives them. Always on; a shop can have
 `staff_registers_per_shop` of them turned on at once (30, [Limits](../configuration.md#limits)).
 
+In the panel, under «Register for whoever works with you», the button says how many are turned on, and under it go
+the names of the first five, newest first («…and 3 more» for the others).
+
 The code is in `shops/staff.py`, `static/staff-pair.js`, `static/staff-open.js` and `static/register-pairing.js`.
 
 ## Pairing one, with a one-time code
@@ -16,14 +19,23 @@ The code is in `shops/staff.py`, `static/staff-pair.js`, `static/staff-open.js` 
 2. **The owner shows its code**, on the phone with the owner's own register. The page draws a QR code in the browser
    (`static/staff-pair.js`): the site's one-time link, and after `#pair=` the pairing (below). The owner checks the
    summary under the code: the Lightning address, the discount, the currency. The code can be scanned from the screen,
-   printed as a card, or sent as a link in a private message. It works **once**, for **24 hours**: a photo of it is no
-   use afterwards. «Make a new code» replaces it.
+   printed as a card, or sent as a link in a private message. It works **once**, for **24 hours** unless the
+   community set another time (below): a photo of it is no use afterwards. «Make a new code» replaces it. The page
+   says until when it works.
 3. **The person scans it** with the camera of the phone that will take payments. The link opens a page with one
    button, «Open the register on this phone»: a page and not a redirect, because chats and camera apps open links by
    themselves to preview them and would use the code up. The first phone that presses gets the register; the code then
    opens nothing. The same address may try 30 codes in ten minutes.
 4. **The register stays on that phone**, at `/shops/register/p/<register>/?k=<key>`: the person adds the page to the
    home screen and opens it like an app.
+
+**How long a code works.** 24 hours by default; `staff_code_hours` in the `limits` of `community.yml` sets it from 1
+to 72 hours ([Limits](../configuration.md#limits)), for the codes made from then on. It is still one-time, and turning
+the register off still stops it at once. A longer time is for a card printed today and handed over in a few days; the
+price is that a photo of the card, or the link forwarded by mistake, opens the register for longer to whoever uses it
+first, and that phone then takes payments for the shop and holds its Lightning address. The owner sees it in the list
+(«Opened on a phone on…»), and the person's own scan then opens nothing: turn that register off and add a new one.
+Shorter is safer when the code is scanned on the spot.
 
 The key and the one-time code travel in the query and in the body of a form, never in a path: the logs of gunicorn and
 of bitmentor's Caddy drop them, and the register's pages are served with `Referrer-Policy: same-origin`, `no-store` and
@@ -57,6 +69,27 @@ shop's Lightning address is no longer the one in its pairing, a staff register t
 owner. To pair it again, after new settings or a new address ([Changing the Lightning address](address-change.md)),
 the owner makes a new code and the person scans it with the same phone. A new code does not take the register away
 from a phone that has it: for that, turn it off.
+
+## Renaming one
+
+«Rename» under a register turned on, in the list, gives it a new name, checked as the name of a new register (spaces
+tidied, not empty, 40 characters at most). Only the owner of the shop can do it, with a form (POST), and it counts with
+the other changes of the list (30 an hour). The site does not keep the old name. A rename cannot take the name of
+another register that is on: the day closing tells the registers apart by name.
+
+The name is not in the pairing: the register's page takes it from the site every time it opens. So no new code is
+needed: the phone shows the new name the next time the register opens with the site (offline, the copy kept on the
+phone still shows the old one). The sales already made keep the name they were made with, in the history, in the
+copies and on Nostr. A register turned off keeps its name.
+
+## The place of a register
+
+A shop with other places (one shop, several branches: «More than one place? Add the others» in its page) can say
+where each register is used: «Where it is used», when adding one and under «Rename or change the place». The choice is
+among the shop's other places only (the site refuses a place of another shop), or «No place chosen», the default. The
+list then groups the registers turned on by place, the ones without one last. It is a label for the owner's list and
+nothing more: the pairing, the register's page and what its phone receives do not change, and the person at the
+register does not see it. Removing a place leaves its registers on, without a place.
 
 ## Turning one off
 

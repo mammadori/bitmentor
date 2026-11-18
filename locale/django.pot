@@ -1,0 +1,6430 @@
+# The texts of bitmentor, to translate into a new language: see docs/languages.md.
+# A text left empty is shown in English. Set Language and Plural-Forms below to those of your language.
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: \n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Map"
+msgstr ""
+
+msgid "For shops"
+msgstr ""
+
+msgid "Where to pay in bitcoin"
+msgstr ""
+
+msgid "Your shops"
+msgstr ""
+
+msgid "Open register"
+msgstr ""
+
+msgid "No shops yet."
+msgstr ""
+
+msgid "Add a shop"
+msgstr ""
+
+msgid "Save"
+msgstr ""
+
+msgid "Never enter your seed phrase or a private key here."
+msgstr ""
+
+msgid "Cancel"
+msgstr ""
+
+msgid "New payment"
+msgstr ""
+
+msgid "Payment received"
+msgstr ""
+
+msgid "Payment expired"
+msgstr ""
+
+msgid "name"
+msgstr ""
+
+msgid "description"
+msgstr ""
+
+msgid "address"
+msgstr ""
+
+msgid "Lightning address"
+msgstr ""
+
+msgid "This is a private key: never share it. Use the public key of your wallet."
+msgstr ""
+
+msgid "This looks like a seed phrase: never share it. Use the public key of your wallet."
+msgstr ""
+
+msgid "city"
+msgstr ""
+
+msgid "discount for bitcoin payments (%)"
+msgstr ""
+
+msgid "Skip to content"
+msgstr ""
+
+msgid "Menu"
+msgstr ""
+
+msgid "Explore"
+msgstr ""
+
+msgid "This page is not here"
+msgstr ""
+
+msgid "The address may have changed."
+msgstr ""
+
+msgid "Back to the home page"
+msgstr ""
+
+msgid "places on the map."
+msgstr ""
+
+msgid "Search"
+msgstr ""
+
+msgid "Only with a discount"
+msgstr ""
+
+msgid "Near me"
+msgstr ""
+
+msgid "No shops match your search."
+msgstr ""
+
+msgid "if you pay in bitcoin"
+msgstr ""
+
+msgid "Website"
+msgstr ""
+
+msgid "Get directions"
+msgstr ""
+
+msgid "Bitcoin accepted here"
+msgstr ""
+
+msgid "Print"
+msgstr ""
+
+msgid "Printable sign"
+msgstr ""
+
+msgid "Clear"
+msgstr ""
+
+msgid "Waiting for payment"
+msgstr ""
+
+msgid "Print receipt"
+msgstr ""
+
+msgid "Nostr public key (hex)"
+msgstr ""
+
+msgid "Nostr name"
+msgstr ""
+
+msgid "Telegram chat for notifications"
+msgstr ""
+
+msgid "recovery email"
+msgstr ""
+
+msgid "Send link"
+msgstr ""
+
+msgid "Sign in with email"
+msgstr ""
+
+msgid "We sent a confirmation link to {email}: the address changes when you click it."
+msgstr ""
+
+msgid "This Lightning address cannot be reached from the internet."
+msgstr ""
+
+msgid "Public: it appears on the shop page."
+msgstr ""
+
+msgid "Only if you use Nostr: your public key in hex format, not the npub."
+msgstr ""
+
+msgid "The name for your Nostr address on this site."
+msgstr ""
+
+msgid "We send a link to confirm it. It is used to get back into your account, and to tell you if your register stops taking Lightning payments."
+msgstr ""
+
+msgid "Your email"
+msgstr ""
+
+msgid "64 hexadecimal characters."
+msgstr ""
+
+msgid "A chat number or a @name."
+msgstr ""
+
+msgid "latitude"
+msgstr ""
+
+msgid "longitude"
+msgstr ""
+
+msgid "website"
+msgstr ""
+
+msgid "Payment cancelled"
+msgstr ""
+
+msgid "Cancel this sale? If the customer has already paid, you will have to refund them."
+msgstr ""
+
+msgid "One last step"
+msgstr ""
+
+msgid "Continue"
+msgstr ""
+
+msgid "This link has expired or was already used: ask for a new one."
+msgstr ""
+
+msgid "This email is already used by another account."
+msgstr ""
+
+msgid "This account signs in from the administration, with its password: not by email."
+msgstr ""
+
+msgid "Suspended: not on the map or in the lists. Register and payments keep working."
+msgstr ""
+
+msgid "Suspended: not on the map or in the lists."
+msgstr ""
+
+msgid "Not on the map or in the lists."
+msgstr ""
+
+msgid "Not on the map: the position is missing."
+msgstr ""
+
+msgid "Add it"
+msgstr ""
+
+msgid "No register: payments for this shop are not set up on this site."
+msgstr ""
+
+msgid "Edit"
+msgstr ""
+
+msgid "Delete this shop?"
+msgstr ""
+
+msgid "The register, the shop page and the sales list stop working. The printed sign leads nowhere. Money already received stays in your wallet."
+msgstr ""
+
+msgid "Delete"
+msgstr ""
+
+msgid "Keep it"
+msgstr ""
+
+msgid "Page expired"
+msgstr ""
+
+msgid "Go back, reload the page and try again."
+msgstr ""
+
+msgid "How you want to get paid"
+msgstr ""
+
+msgid "Not sure? Read the guide."
+msgstr ""
+
+msgid "Advanced options"
+msgstr ""
+
+msgid "Where the money goes"
+msgstr ""
+
+msgid "Delete this shop"
+msgstr ""
+
+msgid "Only Lightning"
+msgstr ""
+
+msgid "All stops"
+msgstr ""
+
+msgid "Centre"
+msgstr ""
+
+msgid "shown"
+msgstr ""
+
+msgctxt "one place"
+msgid "shown"
+msgstr ""
+
+msgid "Type the cents too: 1, 5, 0 makes 1.50."
+msgstr ""
+
+msgid "Type the amount first."
+msgstr ""
+
+msgid "Code for the customer to scan"
+msgstr ""
+
+msgid "The code does not scan? Show it as text"
+msgstr ""
+
+msgid "Something needs fixing: look at the messages in red."
+msgstr ""
+
+msgid "Your shop"
+msgstr ""
+
+msgid "Where to find you"
+msgstr ""
+
+msgid "I cannot read your position: touch the place on the map."
+msgstr ""
+
+msgid "Looking for your position..."
+msgstr ""
+
+msgid "I am in the shop: use my position"
+msgstr ""
+
+msgid "Position chosen. Touch the map to move it."
+msgstr ""
+
+msgid "Type the coordinates"
+msgstr ""
+
+msgid "Is your shop already on the map? Do not add it again: write to <a href=\"mailto:%(email)s\">%(email)s</a>."
+msgstr ""
+
+msgid "Is your shop already on the map? To update its details, write to <a href=\"mailto:%(email)s\">%(email)s</a>."
+msgstr ""
+
+msgid "Is this your shop? To update these details, write to <a href=\"mailto:%(email)s\">%(email)s</a>."
+msgstr ""
+
+msgid "Creating your shop..."
+msgstr ""
+
+msgid "Create the shop"
+msgstr ""
+
+msgid "Saving..."
+msgstr ""
+
+msgid "Leave it at 0 if you do not offer one."
+msgstr ""
+
+msgid "This is not a Lightning address: it should look like name@provider.com."
+msgstr ""
+
+msgid "Email to get back in"
+msgstr ""
+
+msgid "Your shop is ready."
+msgstr ""
+
+msgid "Register for whoever works with you"
+msgstr ""
+
+msgid "Code that opens the register"
+msgstr ""
+
+msgid "Copy the link"
+msgstr ""
+
+msgid "Link copied"
+msgstr ""
+
+msgid "On the shop phone, add the page to the home screen from the browser menu: it opens like an app."
+msgstr ""
+
+msgid "Your account"
+msgstr ""
+
+msgid "Saved."
+msgstr ""
+
+msgid "Shop deleted."
+msgstr ""
+
+msgid "Your link to sign in"
+msgstr ""
+
+msgid "Open this link to sign in. It lasts 15 minutes and works once."
+msgstr ""
+
+msgid "Confirm your email"
+msgstr ""
+
+msgid ""
+"Open this link in the browser where you are signed in to the account that asked for it, to confirm this email for that account. It lasts 15 minutes."
+msgstr ""
+
+msgid "Open this link in the browser where you are signed in to the account that asked for it: only that account can confirm the email. If you did not ask for it, ignore it: nothing changes."
+msgstr ""
+
+msgid "If you did not ask for it, ignore this email."
+msgstr ""
+
+msgid "Email sent to %(email)s. Open your mail and tap the link: it lasts 15 minutes. Not there? Look in the spam folder."
+msgstr ""
+
+msgid "Nothing arrived? Ask again"
+msgstr ""
+
+msgid "We send you a link: open it and you are in. No password."
+msgstr ""
+
+msgid "Press the button to finish."
+msgstr ""
+
+msgid "Code that opens the shop page"
+msgstr ""
+
+msgid "Scan it to see the shop page. To pay, ask for the code at the till."
+msgstr ""
+
+msgid "Accepts Lightning payments"
+msgstr ""
+
+msgid "Enter the shops area"
+msgstr ""
+
+msgid "Or with your wallet"
+msgstr ""
+
+msgid "Code to sign in with the wallet"
+msgstr ""
+
+msgid "Name, town or what they sell"
+msgstr ""
+
+msgid "The list of shops did not load: reload the page."
+msgstr ""
+
+msgid "I cannot read your position: move the map by hand."
+msgstr ""
+
+msgid "The nearest shops are now first in the list."
+msgstr ""
+
+msgid "No password: we send you a link by email."
+msgstr ""
+
+msgid "If your Lightning wallet supports login, scan the code or tap it: this page opens by itself."
+msgstr ""
+
+msgid "Or touch the place on the map."
+msgstr ""
+
+msgid "More details: discount, description, contacts"
+msgstr ""
+
+msgid "Try it: open the register and pay yourself a small amount from another phone. Then print the sign."
+msgstr ""
+
+msgid "The email could not be sent: try again in a few minutes."
+msgstr ""
+
+msgid "It looks like an email: name@provider. You find it in your wallet, usually under Receive. Phoenix addresses, the ones with the ₿ sign, do not work here."
+msgstr ""
+
+msgid "This Lightning address does not answer: check it and try again. Phoenix addresses, the ones with the ₿ sign, cannot be used here."
+msgstr ""
+
+msgid "This address can receive, but it does not tell the register when a payment arrives. Use a wallet with a different Lightning address, or write to {email}."
+msgstr ""
+
+msgid "This address uses BOLT12, like the ones from Phoenix, and this register cannot read it. Use a wallet with a different Lightning address, or write to {email}."
+msgstr ""
+
+msgid "Show all the places"
+msgstr ""
+
+msgid "Back to note %d in the text"
+msgstr ""
+
+msgid "This name is already taken."
+msgstr ""
+
+msgid "Too many shops in a short time: wait a few minutes."
+msgstr ""
+
+msgid "Once you are in, you go straight back to where you were."
+msgstr ""
+
+msgid "What you already told us is written in: check it and change anything you like."
+msgstr ""
+
+msgid "status"
+msgstr ""
+
+msgid "place"
+msgstr ""
+
+msgid "Email"
+msgstr ""
+
+msgid "Historic · closes on %(date)s"
+msgstr ""
+
+msgid "Historic · closed on %(date)s"
+msgstr ""
+
+msgid "j F Y"
+msgstr ""
+
+msgid "On the map with its own pin, not among the places to pay."
+msgstr ""
+
+msgid "January"
+msgstr ""
+
+msgid "February"
+msgstr ""
+
+msgid "March"
+msgstr ""
+
+msgid "April"
+msgstr ""
+
+msgid "May"
+msgstr ""
+
+msgid "June"
+msgstr ""
+
+msgid "July"
+msgstr ""
+
+msgid "August"
+msgstr ""
+
+msgid "September"
+msgstr ""
+
+msgid "October"
+msgstr ""
+
+msgid "November"
+msgstr ""
+
+msgid "December"
+msgstr ""
+
+msgid "Status"
+msgstr ""
+
+msgid "Payment method"
+msgstr ""
+
+msgid "Description"
+msgstr ""
+
+msgid "Month"
+msgstr ""
+
+msgid "Map of the places"
+msgstr ""
+
+msgid "Zoom in"
+msgstr ""
+
+msgid "Zoom out"
+msgstr ""
+
+msgid "Close"
+msgstr ""
+
+msgid "A JavaScript library for interactive maps"
+msgstr ""
+
+#, python-format
+msgid "%(discount)s%% discount"
+msgstr ""
+
+#, python-format
+msgid "%(number)s places: zoom in"
+msgstr ""
+
+msgid "Skip the map: go to the list"
+msgstr ""
+
+msgid "Getting the exchange rate..."
+msgstr ""
+
+msgid "Asking your Lightning wallet for the invoice..."
+msgstr ""
+
+#, python-brace-format
+msgid "Exchange rate: {rate} ({sources})."
+msgstr ""
+
+#, python-brace-format
+msgid "The two sources do not agree: {first} and {second}. Which rate do you want to use?"
+msgstr ""
+
+#, python-brace-format
+msgid "Only one source answers: {first}. Use this rate?"
+msgstr ""
+
+#, python-brace-format
+msgid "No source answers. The last good rate is {first}, from {age} ago. Use it?"
+msgstr ""
+
+#, python-brace-format
+msgid "Use {rate}"
+msgstr ""
+
+msgid "Your Lightning wallet does not accept this amount: too high or too low."
+msgstr ""
+
+msgid "Your Lightning wallet sent a wrong invoice: do not use it."
+msgstr ""
+
+msgid "Cannot check the payment with your Lightning wallet right now: still trying."
+msgstr ""
+
+msgid "I see the payment in my wallet"
+msgstr ""
+
+msgid "Marked as paid by you"
+msgstr ""
+
+msgid "Waiting"
+msgstr ""
+
+msgid "Not checked: look in your wallet"
+msgstr ""
+
+#, python-brace-format
+msgid "{count} min"
+msgstr ""
+
+#, python-brace-format
+msgid "{count} h"
+msgstr ""
+
+#, python-brace-format
+msgid "Paid into {address}"
+msgstr ""
+
+#, python-format
+msgid "You are signing in as %(email)s."
+msgstr ""
+
+#, python-format
+msgid "This email will get you back into your account: %(email)s."
+msgstr ""
+
+msgid "Too many new accounts from here: try again later."
+msgstr ""
+
+msgid "How to pay here"
+msgstr ""
+
+msgid "Ask to pay in bitcoin, with Lightning."
+msgstr ""
+
+msgid "Ask to pay in bitcoin. Here it is on-chain: your wallet has to send on-chain, not with Lightning."
+msgstr ""
+
+msgid "Ask to pay in bitcoin."
+msgstr ""
+
+msgid "Ask to pay in bitcoin: Lightning or on-chain, whichever your wallet uses."
+msgstr ""
+
+msgid "The till shows a QR code with the amount."
+msgstr ""
+
+msgid "Scan it with your wallet, check the amount and confirm."
+msgstr ""
+
+msgid "Scan it with your wallet and confirm. With Lightning it takes a few seconds."
+msgstr ""
+
+msgid "Show at the till"
+msgstr ""
+
+msgid "In our story"
+msgstr ""
+
+msgid "Nearby"
+msgstr ""
+
+#, python-format
+msgid "%(distance)s, %(minutes)s min on foot"
+msgstr ""
+
+msgid "I would like to pay in bitcoin."
+msgstr ""
+
+msgid "I would like to pay in bitcoin, with Lightning."
+msgstr ""
+
+#, python-format
+msgid "With the %(discount)s%% discount for paying in bitcoin, thank you."
+msgstr ""
+
+msgid "Card for the till"
+msgstr ""
+
+msgid "The first day: {done} of {total} done"
+msgstr ""
+
+msgid "The first day: all done"
+msgstr ""
+
+msgid "Done"
+msgstr ""
+
+msgid "To do"
+msgstr ""
+
+msgid "Not up to you"
+msgstr ""
+
+msgid "A sale has been paid: the register works."
+msgstr ""
+
+msgid "Try the register"
+msgstr ""
+
+msgid "On the map"
+msgstr ""
+
+msgid "The sign and the card for the till"
+msgstr ""
+
+msgid "Whoever works with you has the register"
+msgstr ""
+
+#, python-format
+msgid "Open the register and pay yourself a small amount from another phone, as a customer would. When it says “%(paid)s”, the register works."
+msgstr ""
+
+msgid "Customers find the shop on the map."
+msgstr ""
+
+msgid "The position is missing: add it, and customers find the shop on the map."
+msgstr ""
+
+#, python-format
+msgid "The community has taken the shop off the map for now. To know why, write to <a href=\"mailto:%(email)s\">%(email)s</a>."
+msgstr ""
+
+msgid "The shop stays off the map and the lists, as agreed with the community."
+msgstr ""
+
+msgid "Printed. You can print them again whenever you like."
+msgstr ""
+
+msgid "Print the sign for the door or the counter, and the card for whoever stands at the till."
+msgstr ""
+
+msgid "Done. When someone new starts, give them the register and the card."
+msgstr ""
+
+#, python-format
+msgid "Whoever works with you opens the register on their phone: use “%(handover)s” here below. Nobody works with you? Mark it done anyway."
+msgstr ""
+
+msgid "Untick"
+msgstr ""
+
+msgid "Mark as done"
+msgstr ""
+
+msgid "At the till"
+msgstr ""
+
+msgid "Print it on an A4 sheet and keep it at the till, next to the shop phone. Whoever stands there finds everything on it, even without knowing anything about bitcoin."
+msgstr ""
+
+msgid "Language of the card:"
+msgstr ""
+
+msgid "Card without the register code"
+msgstr ""
+
+msgid "Add the register code, for whoever works with you"
+msgstr ""
+
+msgid "With the code on it, keep the card on your side of the counter: whoever scans it opens the register."
+msgstr ""
+
+msgid "Bitcoin at the till"
+msgstr ""
+
+msgid "The customer pays with an app on their phone, called a wallet. You only need the register: the page that opens on the shop phone."
+msgstr ""
+
+msgid "Taking a payment"
+msgstr ""
+
+msgid "Open the register on the shop phone."
+msgstr ""
+
+#, python-format
+msgid "Press OK. The register shows a code and “%(waiting)s”."
+msgstr ""
+
+msgid "Turn the phone towards the customer: they scan the code with their wallet and confirm."
+msgstr ""
+
+#, python-format
+msgid "If it does not scan, press “%(as_text)s”: the customer can copy it."
+msgstr ""
+
+msgid "How you know it has arrived"
+msgstr ""
+
+#, python-format
+msgid "The register says “%(paid)s”, with a tick. Only then hand over the goods, and press “%(again)s” for the next customer."
+msgstr ""
+
+msgid "Look at the register, not at the customer's phone: only the register knows that the money has arrived."
+msgstr ""
+
+msgid "With Lightning it takes a few seconds."
+msgstr ""
+
+msgid "If the network is down"
+msgstr ""
+
+msgid "Check that the shop phone has Wi-Fi or mobile data."
+msgstr ""
+
+msgid "At the end of the day"
+msgstr ""
+
+#, python-format
+msgid "Tell the owner about every sale that did not end with “%(paid)s”."
+msgstr ""
+
+msgid "Who to ask"
+msgstr ""
+
+msgid "Owner:"
+msgstr ""
+
+msgid "Phone:"
+msgstr ""
+
+#, python-format
+msgid "About the register and the site: %(email)s"
+msgstr ""
+
+#, python-format
+msgid "The guide for shops: %(guide)s"
+msgstr ""
+
+msgid "The register on your phone"
+msgstr ""
+
+msgid "Scan the code and add the page to the home screen. No sign-in needed: with it one can only take payments, which go to the shop."
+msgstr ""
+
+msgid "Too many changes in a short time: wait a few minutes."
+msgstr ""
+
+msgid "Page view"
+msgstr ""
+
+msgid "Private view"
+msgstr ""
+
+msgid "Public view"
+msgstr ""
+
+#, python-format
+msgid "site mode: %(mode)s"
+msgstr ""
+
+msgid "Hide the private part"
+msgstr ""
+
+msgid "Show the private part"
+msgstr ""
+
+msgid "Got it"
+msgstr ""
+
+#, python-brace-format
+msgid "It works: the register will know when a payment arrives. Provider: {provider}."
+msgstr ""
+
+#, python-brace-format
+msgid "I cannot find {provider}: check what you wrote after the @."
+msgstr ""
+
+#, python-brace-format
+msgid "Did you mean {address}?"
+msgstr ""
+
+msgid "This is a request for one payment, not your Lightning address: in your wallet, look for the address that looks like an email, name@provider."
+msgstr ""
+
+msgid "Too many checks in a short time. You can go on: the address is checked again when you create the shop."
+msgstr ""
+
+msgid "Trying the address..."
+msgstr ""
+
+#, python-brace-format
+msgid "Written as {address}."
+msgstr ""
+
+msgid "The check is taking too long. You can go on: the address is checked again when you create the shop."
+msgstr ""
+
+msgid "I could not check the address now. You can go on: it is checked again when you create the shop."
+msgstr ""
+
+msgid "Where do I find it?"
+msgstr ""
+
+msgid "Open your wallet and look under Receive: the Lightning address looks like an email, name@provider. Some wallets show it in the settings or in your profile."
+msgstr ""
+
+msgid "Not the long code that starts with lnbc: that one is good for a single payment."
+msgstr ""
+
+msgid "The wallet must tell the register when a payment arrives, and not all of them do. Paste the address here: we try it before creating the shop, and tell you if it does not work."
+msgstr ""
+
+msgid "The wallets that work with the register"
+msgstr ""
+
+msgid "today at {time}"
+msgstr ""
+
+msgid "yesterday at {time}"
+msgstr ""
+
+msgid "on {date} at {time}"
+msgstr ""
+
+msgid "Customers can pay and the money reaches your wallet, but the register keeps waiting and does not say it is paid. Until this is fixed, check in your wallet that each payment arrived before the customer leaves."
+msgstr ""
+
+msgid "The register cannot take Lightning payments: customers cannot pay you in bitcoin until it works again."
+msgstr ""
+
+msgid "{shop}: Lightning payments work again"
+msgstr ""
+
+msgid "Good news: the Lightning address of {shop}, {address}, works again. Customers can pay you with Lightning, and the register sees their payments."
+msgstr ""
+
+msgid "There is nothing to do."
+msgstr ""
+
+msgid "{shop}: the register does not see Lightning payments arrive"
+msgstr ""
+
+msgid "The Lightning address of {shop}, {address}, still receives payments, but {since} it stopped telling the register when one arrives."
+msgstr ""
+
+msgid "1. Open your wallet and check that your Lightning address is still exactly {address}."
+msgstr ""
+
+msgid "{shop}: the register cannot take Lightning payments"
+msgstr ""
+
+msgid "The Lightning address of {shop}, {address}, stopped answering {since}. We tried it twice, some time apart."
+msgstr ""
+
+msgid "1. Open your wallet and find your Lightning address, usually under Receive."
+msgstr ""
+
+msgid "2. Check that it is still exactly {address}."
+msgstr ""
+
+msgid "What happened"
+msgstr ""
+
+msgid "What your customers see"
+msgstr ""
+
+msgid "What to do now"
+msgstr ""
+
+msgid "We keep checking it, and we write to you when it works again."
+msgstr ""
+
+msgid "Your panel: {link}"
+msgstr ""
+
+msgid "Lightning addresses of the shops:"
+msgstr ""
+
+msgid "{shop}: works again"
+msgstr ""
+
+msgid "{shop}: stopped confirming payments {since}"
+msgstr ""
+
+msgid "{shop}: stopped answering {since}"
+msgstr ""
+
+msgid "…and {count} more"
+msgstr ""
+
+msgid "Shops with a problem: {link}"
+msgstr ""
+
+msgid "Works"
+msgstr ""
+
+msgid "Does not answer"
+msgstr ""
+
+msgid "Does not confirm payments"
+msgstr ""
+
+msgid "Lightning address status"
+msgstr ""
+
+msgid "Lightning status since"
+msgstr ""
+
+msgid "Lightning address last checked"
+msgstr ""
+
+msgid "Lightning address last worked"
+msgstr ""
+
+msgid "Not working"
+msgstr ""
+
+msgid "You already tried a few times: wait ten minutes and try again."
+msgstr ""
+
+msgid "You saved many times in a short while: wait a few minutes and try again."
+msgstr ""
+
+msgid "Too many checks right now: try again in a minute."
+msgstr ""
+
+msgid "Checked again just now: it works."
+msgstr ""
+
+msgid "Checked again just now: it still does not work."
+msgstr ""
+
+#, python-format
+msgid "Lightning address checked %(when)s: it works."
+msgstr ""
+
+msgid "Lightning: the register does not see payments arrive"
+msgstr ""
+
+msgid "Lightning: your address does not answer"
+msgstr ""
+
+#, python-format
+msgid "Your Lightning address still receives payments, but %(since)s it stopped telling the register when one arrives."
+msgstr ""
+
+#, python-format
+msgid "Your Lightning address stopped answering %(since)s."
+msgstr ""
+
+msgid "Checking… it can take half a minute"
+msgstr ""
+
+msgid "Try again now"
+msgstr ""
+
+#, python-format
+msgid "Last check: %(when)s."
+msgstr ""
+
+msgid "Not checked yet"
+msgstr ""
+
+msgid "We tried the Lightning address of {shop}, {address}, twice, some time apart: it receives payments, but it does not tell the register when one arrives."
+msgstr ""
+
+msgid "We tried the Lightning address of {shop}, {address}, twice, some time apart, and it did not answer."
+msgstr ""
+
+msgid "{failed} of {probed} addresses failed at the same time: probably the network of this server or a big provider, not the shops. Nothing was counted and no merchant was told; the next run tries again."
+msgstr ""
+
+msgid "{shop}: does not confirm payments"
+msgstr ""
+
+msgid "{shop}: does not answer"
+msgstr ""
+
+msgid "Your Lightning address receives payments, but it does not tell the register when one arrives: we tried it twice, some time apart."
+msgstr ""
+
+msgid "Your Lightning address does not answer: we tried it twice, some time apart."
+msgstr ""
+
+msgid "Your wallet's provider is slow or busy right now: try again in a few minutes."
+msgstr ""
+
+msgid "Your shop changed while it was being checked: look at it again."
+msgstr ""
+
+msgid "a first paid sale"
+msgstr ""
+
+msgid "the position on the map"
+msgstr ""
+
+msgid "the sign printed"
+msgstr ""
+
+msgid "the register shown to the staff"
+msgstr ""
+
+msgid "The association has taken your shop off the map and the lists for now. The register still works."
+msgstr ""
+
+msgid "Your shop is not shown on the map or in the lists, as you chose. The register works the same."
+msgstr ""
+
+msgid "Nobody has claimed this shop yet: it is on the map, but it has no register on this site."
+msgstr ""
+
+msgid "This shop belongs to a staff account, which signs in only from the administration and does not open the pages of a shop: the shop needs an ordinary account."
+msgstr ""
+
+msgid "You can sign in with a link sent to your email, even without the wallet."
+msgstr ""
+
+msgid "There is no email to get back in: if you lose or change the wallet you sign in with, you cannot open your shop any more. Add an email in your profile."
+msgstr ""
+
+msgid "Your Lightning wallet takes too long to answer: the customer would wait too long. Try again in a few minutes; if it stays so, check the wallet app."
+msgstr ""
+
+msgid "The first day is complete."
+msgstr ""
+
+msgid "Some checks did not finish in time: run it again in a minute."
+msgstr ""
+
+msgid "Your shop has no position, so it is not on the map. Add it in your shop page."
+msgstr ""
+
+#, python-brace-format
+msgid "The first day: {done} of {total} done. Still to do: {steps}."
+msgstr ""
+
+#, python-brace-format
+msgid "Your shop is marked as historic ({note}): it stays on the map but does not count among the places to pay. The register and the sign still work."
+msgstr ""
+
+msgid "Your shop is on the map."
+msgstr ""
+
+msgid "Your Lightning wallet is not answering: the register cannot show the Lightning payment code. Open the wallet app and check that it works."
+msgstr ""
+
+msgid "Your Lightning address answers and tells the register when a payment arrives."
+msgstr ""
+
+msgid "One check could not be done: run it again; if it repeats, tell whoever runs the server."
+msgstr ""
+
+#, python-brace-format
+msgid "No shop found for “{text}”."
+msgstr ""
+
+#, python-brace-format
+msgid "{count} shops found: run it again with the id of the right one."
+msgstr ""
+
+msgid "certified since the month of"
+msgstr ""
+
+msgid "Lightning, active in the last week"
+msgstr ""
+
+msgid "Lightning, active in the last month"
+msgstr ""
+
+msgid "Lightning, active in the last year"
+msgstr ""
+
+msgid "Lightning, not active in the last year"
+msgstr ""
+
+msgid "Certified shop"
+msgstr ""
+
+msgid "certified shop"
+msgstr ""
+
+msgid "Certified"
+msgstr ""
+
+msgid "Not yet"
+msgstr ""
+
+msgid "certificate revoked"
+msgstr ""
+
+msgid "Revoke the certificate"
+msgstr ""
+
+msgid "Allow the certificate again"
+msgstr ""
+
+msgid "Certificate revoked for %(count)d shops."
+msgstr ""
+
+msgid "Your card on the map, now"
+msgstr ""
+
+msgid "Not on the map for now: the community has taken the shop off it."
+msgstr ""
+
+msgid "Not on the map: the shop stays off it, as agreed with the community."
+msgstr ""
+
+msgid "Not on the map yet: the position is missing."
+msgstr ""
+
+msgid "Lightning address that works"
+msgstr ""
+
+msgid "The first day"
+msgstr ""
+
+msgid "The badge of a certified shop"
+msgstr ""
+
+msgid "Next step"
+msgstr ""
+
+msgid "Optional"
+msgstr ""
+
+msgid "Checked soon"
+msgstr ""
+
+msgid "Your Lightning address works: checked %(when)s."
+msgstr ""
+
+msgid "Your Lightning address is not working: the message above says what to do."
+msgstr ""
+
+msgid "The site tries your Lightning address within a few hours, the way the register uses it. Nothing to do."
+msgstr ""
+
+msgid "The shop is off the map for now: its Lightning address is not checked."
+msgstr ""
+
+msgid "The register works, the sign is up and whoever works with you has the register."
+msgstr ""
+
+msgid "Try the register, print the sign, give the register to whoever works with you: the steps are here below."
+msgstr ""
+
+msgid "Certified since %(month)s: the badge is on your card."
+msgstr ""
+
+msgid "The community has taken the badge off. To know why, write to <a href=\"mailto:%(email)s\">%(email)s</a>."
+msgstr ""
+
+msgid "Transaction"
+msgstr ""
+
+msgid "waiting"
+msgstr ""
+
+msgid "Who will use it"
+msgstr ""
+
+msgid "A first name or a word you recognise, for example «Anna» or «evening shift». It shows at the top of the register's screen."
+msgstr ""
+
+msgid "Write a name."
+msgstr ""
+
+msgid "Too many registers turned on: turn off the ones nobody uses any more."
+msgstr ""
+
+#, python-brace-format
+msgid "«{name}» is turned off: it takes no more payments. If the person needs a register again, add a new one."
+msgstr ""
+
+msgid "Asking the shop's Lightning wallet for the invoice..."
+msgstr ""
+
+msgid "The shop's Lightning wallet does not accept this amount: too high or too low."
+msgstr ""
+
+msgid "The shop's Lightning wallet sent a wrong invoice: do not use it."
+msgstr ""
+
+msgid "The owner sees the payment in the wallet"
+msgstr ""
+
+msgid "Marked as paid: the owner will check it"
+msgstr ""
+
+msgid "Not checked: tell the owner"
+msgstr ""
+
+#, python-format
+msgid "Registers for your staff: 1 turned on"
+msgid_plural "Registers for your staff: %(counter)s turned on"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Give a register to someone"
+msgstr ""
+
+msgid "Or share your own register"
+msgstr ""
+
+msgid "Cancel this sale? If the customer has already paid, tell the owner: they give the money back."
+msgstr ""
+
+msgid "Something is not right?"
+msgstr ""
+
+msgid "Did the customer pay?"
+msgstr ""
+
+msgid "Only when this screen shows the green tick and «Payment received». «Sent» on the customer's phone is not enough."
+msgstr ""
+
+msgid "I typed the wrong amount"
+msgstr ""
+
+msgid "If the customer has not paid yet: press Cancel and type it again. If they already paid: tell the owner the time and the amount, they give the difference back."
+msgstr ""
+
+msgid "The phone switched off, or I closed the page"
+msgstr ""
+
+msgid "Open the register again on the same phone: the sale comes back and says how it ended. On another phone it does not: tell the owner the time and the amount."
+msgstr ""
+
+msgid "The customer paid twice"
+msgstr ""
+
+msgid "This register only takes payments for the shop. The money goes to the owner, never to this phone."
+msgstr ""
+
+msgid "Registers for your staff"
+msgstr ""
+
+#, python-format
+msgid "The register for %(name)s"
+msgstr ""
+
+msgid "Open the camera of the phone that will take payments and point it at this code."
+msgstr ""
+
+msgid "Open the link and press «Open the register on this phone»."
+msgstr ""
+
+msgid "From the browser menu, add the page to the home screen: it opens like an app."
+msgstr ""
+
+msgid "Code that puts the register on a phone"
+msgstr ""
+
+#, python-format
+msgid "The code works once, until %(date)s. After that it opens nothing: a photo of it is no use to anyone."
+msgstr ""
+
+msgid "Send it as a link instead"
+msgstr ""
+
+msgid "Print the card"
+msgstr ""
+
+msgid "Give the card to the person, do not leave it at the till."
+msgstr ""
+
+#, python-format
+msgid "This register was opened on a phone on %(date)s."
+msgstr ""
+
+msgid "The code to open this register has expired."
+msgstr ""
+
+msgid "Need it on another phone, or the person lost it? Make a new code: the phones that already have the register keep it."
+msgstr ""
+
+msgid "Make a new code (this one stops working)"
+msgstr ""
+
+msgid "Make a new code"
+msgstr ""
+
+msgid "If the phone is lost or the person leaves, turn off the register instead: a new code does not take it away from the phones that have it."
+msgstr ""
+
+msgid "Too many tries"
+msgstr ""
+
+msgid "Wait ten minutes and try again."
+msgstr ""
+
+#, python-format
+msgid "The shop's register for %(name)s. With it you take payments for the shop: the money goes to the owner."
+msgstr ""
+
+msgid "Open the register on this phone"
+msgstr ""
+
+msgid "The code works only once: then the register stays on this phone. Add it to the home screen from the browser menu."
+msgstr ""
+
+msgid "This code opens nothing"
+msgstr ""
+
+msgid "It was already used, it expired, or the register was turned off. Ask the owner of the shop for a new code."
+msgstr ""
+
+msgid "When someone stops working with you, or loses the phone, turn off their register: it stops at once, the others keep working."
+msgstr ""
+
+msgid "Turned on"
+msgstr ""
+
+#, python-format
+msgid "Opened on a phone on %(date)s."
+msgstr ""
+
+msgid "Not opened on a phone yet: the code is waiting."
+msgstr ""
+
+msgid "Not opened on a phone yet."
+msgstr ""
+
+msgid "Put it on a phone"
+msgstr ""
+
+#, python-format
+msgid "Turn off «%(name)s»"
+msgstr ""
+
+msgid "None yet."
+msgstr ""
+
+msgid "Add a register"
+msgstr ""
+
+msgid "Add the register"
+msgstr ""
+
+#, python-format
+msgid "1 register turned off"
+msgid_plural "%(counter)s registers turned off"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(name)s, turned off on %(date)s"
+msgstr ""
+
+#, python-format
+msgid "<a href=\"%(url)s\">Your own register</a> is for you: it cannot be turned off, so do not give its link to anyone."
+msgstr ""
+
+msgid "moved here on"
+msgstr ""
+
+msgid "id on the other site"
+msgstr ""
+
+msgid "had a register on the other site"
+msgstr ""
+
+msgid "Its owner's email is not valid: left out."
+msgstr ""
+
+msgid "Its owner cannot be found here: assign it from the admin."
+msgstr ""
+
+msgid "A shop with the same external id is already set up here: left as it is."
+msgstr ""
+
+msgid "Another shop here has the same unique value (Nostr name or id)."
+msgstr ""
+
+#, python-format
+msgid "with your email %(email)s (we send you a link)"
+msgstr ""
+
+#, python-format
+msgid "Your shop %(name)s has moved to %(site)s. Sign in there %(how)s: your page and its details are already there."
+msgstr ""
+
+msgid "To take payments again, connect your wallet from your shops' page: your Lightning address, your on-chain key, or both, as before. Until then the shop is not on the map."
+msgstr ""
+
+msgid "To take payments again, connect your wallet from your shops' page, with your Lightning address, as before. Until then the shop is not on the map."
+msgstr ""
+
+msgid "Then print the new sign: the old one leads to the old site. If someone else takes payments with you, send them the new register link."
+msgstr ""
+
+msgid "Nothing else to do."
+msgstr ""
+
+msgid "Your shop has arrived here"
+msgstr ""
+
+msgid "Its page and details came with it. To take payments here, connect your wallet: it takes two minutes. Until then the shop is not on the map."
+msgstr ""
+
+msgid "Connect your wallet"
+msgstr ""
+
+msgid "If someone else takes payments with you, send them the new register link."
+msgstr ""
+
+#, python-format
+msgid "Its Nostr name %(name)s cannot be used here: it arrives without one."
+msgstr ""
+
+msgid "Its owner's email already has an account here: the shop waits for a one-time link."
+msgstr ""
+
+msgid "Its owner signs in with a wallet only, which has another key on another site: the shop waits for a one-time link."
+msgstr ""
+
+#, python-format
+msgid "%(count)s shops here have the external id %(id)s."
+msgstr ""
+
+msgid "with your wallet (scan the code on the sign-in page)"
+msgstr ""
+
+msgid "[the link is made with --apply]"
+msgstr ""
+
+#, python-format
+msgid "Your shop %(name)s has moved to %(site)s. Sign in there %(how)s, then open this link to take it back: %(link)s. It works once, for whoever opens it first: do not pass it on."
+msgstr ""
+
+#, python-format
+msgid "%(name)s is in your account now."
+msgstr ""
+
+msgid "Take back your shop"
+msgstr ""
+
+msgid "Too many tries in a short time: wait an hour and open the link again."
+msgstr ""
+
+#, python-format
+msgid "This link does not work: it was already used, or it is not complete. Write to <a href=\"mailto:%(email)s\">%(email)s</a>."
+msgstr ""
+
+#, python-format
+msgid "Take back %(name)s"
+msgstr ""
+
+msgid "Your shop has moved to this site. Confirm, and it goes into the account you are signed in with now: then connect your wallet to take payments."
+msgstr ""
+
+msgid "The link works once. If this is not your shop, do not confirm."
+msgstr ""
+
+msgid "Yes, it is my shop"
+msgstr ""
+
+msgid "To do today"
+msgstr ""
+
+msgid "The whole site"
+msgstr ""
+
+#, python-format
+msgid "%(count)d more thing to know: --all, or /admin/today/."
+msgid_plural "%(count)d more things to know: --all, or /admin/today/."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "The shop in the administration"
+msgstr ""
+
+msgid "The Lightning address receives payments but does not tell the register: sales stay waiting."
+msgstr ""
+
+msgid "The Lightning address has never answered: customers cannot pay with Lightning."
+msgstr ""
+
+msgid "The Lightning address stopped answering: customers cannot pay with Lightning."
+msgstr ""
+
+msgid "Open your wallet and check that your Lightning address is still the one in your shop page."
+msgstr ""
+
+msgid "The shop has no position, so it is not on the map."
+msgstr ""
+
+msgid "Moved here: the owner has not taken the shop yet."
+msgstr ""
+
+msgid "Your shop has moved to this site: open the link we sent you to take it back."
+msgstr ""
+
+msgid "Moved here without an owner to tell."
+msgstr ""
+
+msgid "Moved here: the owner took the shop but has not connected a wallet, so there is no register."
+msgstr ""
+
+msgid "Moved here: the owner took the shop, which has no register yet."
+msgstr ""
+
+msgid "Help the merchant connect a wallet from their panel: only they can."
+msgstr ""
+
+msgid "To take payments again, open your panel and connect your wallet."
+msgstr ""
+
+msgid "The Lightning addresses have not been checked for a while: what this page says about them may be old."
+msgstr ""
+
+msgid "The Lightning addresses have never been checked."
+msgstr ""
+
+msgid "Check the timer that runs check_lightning."
+msgstr ""
+
+msgid "To do today: the state of every register"
+msgstr ""
+
+msgid "shops to look at"
+msgstr ""
+
+msgid "Problem"
+msgstr ""
+
+msgid "To look at"
+msgstr ""
+
+msgid "To know"
+msgstr ""
+
+msgid "Now:"
+msgstr ""
+
+msgid "To the merchant:"
+msgstr ""
+
+msgid "Nothing to do: every register is fine, as far as the database knows."
+msgstr ""
+
+msgid "What this page does not see"
+msgstr ""
+
+msgid "The same list in text, for a daily message:"
+msgstr ""
+
+#, python-format
+msgid "%(count)s thing to do, the most urgent first"
+msgid_plural "%(count)s things to do, the most urgent first"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "Last time %(when)s, %(days)s day ago."
+msgid_plural "Last time %(when)s, %(days)s days ago."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "Last time %(when)s."
+msgstr ""
+
+#, python-format
+msgid "Started %(when)s, %(days)s day ago."
+msgid_plural "Started %(when)s, %(days)s days ago."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "Started %(when)s."
+msgstr ""
+
+msgid "Send the owner again the one-time link from the list of owners the import wrote. If that link is lost, the command below makes a new one for this shop only, from the same file of the import, in a new list of owners: the old link stops working, the other shops keep theirs."
+msgstr ""
+
+msgid "in the browser"
+msgstr ""
+
+msgid "I do not have a wallet yet: save my shop, I add the wallet afterwards"
+msgstr ""
+
+msgid "waiting for the owner's wallet"
+msgstr ""
+
+msgid "Last step: the wallet."
+msgstr ""
+
+msgid "Your shop's page is ready. It goes on the map, with its register, as soon as you add the wallet where the money arrives."
+msgstr ""
+
+msgid "Add the wallet"
+msgstr ""
+
+msgid "No wallet yet: your shop is not on the map and has no register."
+msgstr ""
+
+msgid "Last step: the wallet for %(name)s"
+msgstr ""
+
+msgid "Your shop is saved."
+msgstr ""
+
+msgid "It goes on the map, with its register, as soon as you add the wallet."
+msgstr ""
+
+msgid "The wallet is the app on your phone where the money arrives. Getting one is free and takes about ten minutes. You can stop and come back: this page is in your shops."
+msgstr ""
+
+msgid "Already have a wallet? Go to step 4."
+msgstr ""
+
+msgid "Choose a wallet"
+msgstr ""
+
+msgid "These wallets are free and the money stays yours: nobody else can move it, not even us. Any of them is fine."
+msgstr ""
+
+msgid "Pick one from our page: they are free, and the money stays yours."
+msgstr ""
+
+msgid "Ask us which wallet to use: write to <a href=\"mailto:%(email)s\">%(email)s</a>."
+msgstr ""
+
+msgid "Install it"
+msgstr ""
+
+msgid "Open the app store of your phone, look for the wallet by its name and install it, as you do with any app."
+msgstr ""
+
+msgid "Check the name of whoever makes it: it must be the same as on the wallet's page. There are fake copies."
+msgstr ""
+
+msgid "Create your wallet"
+msgstr ""
+
+msgid "Never write those words here, nor in a photo, a message or an email. Nobody from us will ever ask you for them."
+msgstr ""
+
+msgid "Copy your Lightning address"
+msgstr ""
+
+msgid "In the wallet, look under Receive, or in the settings or in your profile: the Lightning address looks like an email, name@provider. Copy it."
+msgstr ""
+
+msgid "Paste it here: we try it"
+msgstr ""
+
+msgid "The check is taking too long. You can go on: the address is checked again when you make the register."
+msgstr ""
+
+msgid "I could not check the address now. You can go on: it is checked again when you make the register."
+msgstr ""
+
+msgid "As soon as you paste it, we try the address and tell you here if it works. Not all wallets tell the register when a payment arrives: if yours does not, we say so, and you can pick another one from step 1."
+msgstr ""
+
+msgid "Make the register"
+msgstr ""
+
+msgid "When the address works, press the button: we try it once more and make your register. Then try it: pay yourself a small amount from another phone."
+msgstr ""
+
+msgid "Make my register"
+msgstr ""
+
+msgid "Making your register..."
+msgstr ""
+
+msgid "Your shop was already saved a moment ago, without a wallet. Paste the address here: we try it and make the register."
+msgstr ""
+
+msgid "This shop does not take bitcoin yet: it will soon."
+msgstr ""
+
+msgid "Once the wallet is connected, print the new sign from here: the old one leads to the old site."
+msgstr ""
+
+msgid "Your shop changed while the wallet was being connected: reload the page and look at it again."
+msgstr ""
+
+msgid "PRACTICE ONLY. This is not a payment: there is nothing to pay."
+msgstr ""
+
+msgid "The customer paid. Hand over the goods only when this screen shows the green tick and «Payment received»: the customer's phone does not count."
+msgstr ""
+
+msgid "No connection, as when the shop's Wi-Fi drops. The register says so and keeps the sale: do not cancel it and do not hand over the goods. Wait for the connection."
+msgstr ""
+
+msgid "The connection is back: the register asks at once how the sale went."
+msgstr ""
+
+msgid "The phone switched off and you opened the register again: the sale comes back by itself and says how it ended."
+msgstr ""
+
+msgid "Type an amount and press OK: then the pretend customer can pay."
+msgstr ""
+
+msgid "The customer has the code in front of them. Choose what they do."
+msgstr ""
+
+msgid "Exercise done: {name}."
+msgstr ""
+
+msgid "All the exercises are done. Now the real thing."
+msgstr ""
+
+msgid "The next sale is real. The first times, ask the owner to stay close."
+msgstr ""
+
+msgid "Back to the register"
+msgstr ""
+
+msgid "Open the real register"
+msgstr ""
+
+msgid "Now a real sale: open the register and pay yourself a small amount from another phone."
+msgstr ""
+
+msgid "Go to the first day"
+msgstr ""
+
+msgid "To take real payments the shop needs its wallet: it takes a few minutes."
+msgstr ""
+
+msgid "The next sale is real."
+msgstr ""
+
+msgid "Practice"
+msgstr ""
+
+msgid "No real money: nothing here is a payment."
+msgstr ""
+
+msgid "The pretend customer"
+msgstr ""
+
+msgid "Pays"
+msgstr ""
+
+msgid "Does not pay"
+msgstr ""
+
+msgid "The connection drops"
+msgstr ""
+
+msgid "The connection is back"
+msgstr ""
+
+msgid "The phone switches off"
+msgstr ""
+
+msgid "Without JavaScript the practice register does not move. Read the exercises here below: each one says what the register shows and what you do."
+msgstr ""
+
+msgid "Exercises"
+msgstr ""
+
+msgid "Take 3.50"
+msgstr ""
+
+msgid "Type 3, 5, 0 and press OK. Then press «Pays»."
+msgstr ""
+
+msgid "When do you hand over the goods?"
+msgstr ""
+
+msgid "When the register shows the green tick and «Payment received». Not before."
+msgstr ""
+
+msgid "The customer says they paid, but the register is waiting"
+msgstr ""
+
+msgid "Start a sale, press «The connection drops», then «Pays». The customer shows you «Sent» on their phone."
+msgstr ""
+
+msgid "What do you do?"
+msgstr ""
+
+msgid "Do not hand over the goods yet, and do not cancel the sale. Only the green tick on this screen counts. Wait for the connection: the register keeps the sale and says how it ended."
+msgstr ""
+
+msgid "The phone switches off during a sale"
+msgstr ""
+
+msgid "Start a sale, press «The phone switches off», then «Pays»."
+msgstr ""
+
+msgid "Now the real thing"
+msgstr ""
+
+msgid "Start the practice again"
+msgstr ""
+
+msgid "Practise without money"
+msgstr ""
+
+msgid "Practise first, without money"
+msgstr ""
+
+msgid "code for the customer to scan, which no wallet can pay"
+msgstr ""
+
+msgid "password"
+msgstr ""
+
+msgid "A password was set or changed on your account."
+msgstr ""
+
+msgid "access to the admin"
+msgstr ""
+
+msgid "Your account was given, or lost, access to the site's administration."
+msgstr ""
+
+msgid "all rights in the admin"
+msgstr ""
+
+msgid "Your account was given, or lost, all the rights over the site."
+msgstr ""
+
+msgid "switched on or off"
+msgstr ""
+
+msgid "Your account was switched on or off."
+msgstr ""
+
+msgid "name it signs in with"
+msgstr ""
+
+msgid "The name your account signs in with was replaced by another one."
+msgstr ""
+
+msgid "groups"
+msgstr ""
+
+msgid "The rights of your account were changed."
+msgstr ""
+
+msgid "permissions"
+msgstr ""
+
+msgid "owner of a shop"
+msgstr ""
+
+msgid "A shop of yours was handed to another account."
+msgstr ""
+
+msgid "Telegram chat of a shop"
+msgstr ""
+
+msgid "The Telegram chat that receives the notices of a shop of yours was changed."
+msgstr ""
+
+msgid "account deleted"
+msgstr ""
+
+msgid "Your account was deleted."
+msgstr ""
+
+msgid "the admin"
+msgstr ""
+
+msgid "the pages of the site"
+msgstr ""
+
+msgid "a command or the shell"
+msgstr ""
+
+#, python-brace-format
+msgid "If you know why, you do not need to do anything. If you do not, write to {email} now."
+msgstr ""
+
+msgid "If you know why, you do not need to do anything. If you do not, tell the association now."
+msgstr ""
+
+#, python-brace-format
+msgid "Someone who runs the site changed your account on {site}:"
+msgstr ""
+
+#, python-brace-format
+msgid "Shops on your account: {shops}."
+msgstr ""
+
+msgid "your account was changed"
+msgstr ""
+
+#, python-brace-format
+msgid "By {actor}, from {via}."
+msgstr ""
+
+#, python-brace-format
+msgid "From {via}."
+msgstr ""
+
+#, python-brace-format
+msgid "Account change: {shops}."
+msgstr ""
+
+#, python-brace-format
+msgid "Changed: {what}."
+msgstr ""
+
+#, python-brace-format
+msgid "The register: {link}"
+msgstr ""
+
+msgid "shops"
+msgstr ""
+
+msgid "what changed"
+msgstr ""
+
+msgid "who"
+msgstr ""
+
+msgid "when"
+msgstr ""
+
+msgid "account"
+msgstr ""
+
+msgid "told"
+msgstr ""
+
+msgid "not told"
+msgstr ""
+
+#, python-brace-format
+msgid "The account of {shops} was changed from {via} by {actor}."
+msgstr ""
+
+#, python-brace-format
+msgid "The account of {shops} was changed from {via}."
+msgstr ""
+
+#, python-format
+msgid "On %(when)s someone who runs the site changed your account:"
+msgstr ""
+
+msgid "You are signed in to the site's administration. Staff accounts do not open the pages of a shop, not even their own: to use a shop, sign out of the administration and sign in here as the shop."
+msgstr ""
+
+#, python-format
+msgid "%(count)s change to the account of a shop's owner in the last two weeks:"
+msgid_plural "%(count)s changes to the accounts of shops' owners in the last two weeks:"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "see the register"
+msgstr ""
+
+msgid "origin"
+msgstr ""
+
+msgid "email"
+msgstr ""
+
+msgid "Telegram chat of the shop"
+msgstr ""
+
+msgid "chat of the association"
+msgstr ""
+
+msgid "account change"
+msgstr ""
+
+msgid "account changes"
+msgstr ""
+
+msgid "No wallet yet, or not sure how to pay? Here is how, step by step."
+msgstr ""
+
+msgid "The first time takes a few minutes. After that, paying takes a few seconds."
+msgstr ""
+
+msgid "Which one is you?"
+msgstr ""
+
+msgid "I don't have a wallet"
+msgstr ""
+
+msgid "We take you through it, in three short steps. It is free."
+msgstr ""
+
+msgid "I have a wallet, but I'm not sure how to pay"
+msgstr ""
+
+msgid "What to scan, what to expect, and what to do if it says error."
+msgstr ""
+
+msgid "Nothing here asks for your name, your email or your phone number, and nothing is kept about you."
+msgstr ""
+
+msgid "More about wallets, from our community"
+msgstr ""
+
+msgid "Back to how to pay here"
+msgstr ""
+
+msgid "Paying with bitcoin at %(name)s"
+msgstr ""
+
+msgid "On a bill of %(bill)s, you save %(saving)s."
+msgstr ""
+
+msgid "Install your wallet"
+msgstr ""
+
+msgid "Get ready to pay"
+msgstr ""
+
+msgid "No wallet yet? Three short steps."
+msgstr ""
+
+msgid "The three steps"
+msgstr ""
+
+msgid "Choose"
+msgstr ""
+
+msgid "Install"
+msgstr ""
+
+msgid "Get ready"
+msgstr ""
+
+msgid "done"
+msgstr ""
+
+msgid "A wallet is an app on your phone. You keep your bitcoin in it and you pay with it. It is free, and the money stays yours: nobody else can move it, not even us."
+msgstr ""
+
+msgid "Any of these is fine. Pick one."
+msgstr ""
+
+msgid "Show the wallets for:"
+msgstr ""
+
+msgid "None of the wallets on our list is for this phone. Show all of them, or ask us."
+msgstr ""
+
+msgid "The wallets we suggest"
+msgstr ""
+
+msgid "I have chosen: next"
+msgstr ""
+
+msgid "I already have a wallet"
+msgstr ""
+
+msgid "Install your wallet and make it"
+msgstr ""
+
+msgid "Make your wallet"
+msgstr ""
+
+msgid "Write the words on paper"
+msgstr ""
+
+msgid "Write them in order, on paper, and keep the paper somewhere safe. With them you get your money back if you lose the phone."
+msgstr ""
+
+msgid "Never type those words anywhere else, and never photograph them or send them. Nobody will ever ask you for them: not the shop, not us, not the makers of the wallet. Whoever has the words has your money."
+msgstr ""
+
+msgid "My wallet is ready: next"
+msgstr ""
+
+msgid "Choose another wallet"
+msgstr ""
+
+msgid "Get your first sats"
+msgstr ""
+
+msgid "Put some bitcoin in it"
+msgstr ""
+
+msgid "Copy your address"
+msgstr ""
+
+msgid "In the wallet, press Receive. It shows a code and an address under it. Copy the address: on a test network it starts with %(start)s."
+msgstr ""
+
+msgid "Ask for a few sats"
+msgstr ""
+
+msgid "Wait for them"
+msgstr ""
+
+msgid "When the sats show in your wallet, you are ready."
+msgstr ""
+
+msgid "Your wallet is ready, and it is empty. To pay you need a little bitcoin in it: the price of a coffee is enough to try."
+msgstr ""
+
+msgid "Ask someone who has some"
+msgstr ""
+
+msgid "The simplest way: ask a friend who has bitcoin to send you a small amount. In your wallet press Receive and show them the code."
+msgstr ""
+
+msgid "Or find your own way"
+msgstr ""
+
+msgid "Where to get bitcoin is up to you: we do not sell it and we do not suggest any company."
+msgstr ""
+
+msgid "What our community can tell you about it"
+msgstr ""
+
+msgid "Then you can pay here"
+msgstr ""
+
+msgid "How to pay, step by step"
+msgstr ""
+
+msgid "Back to the previous step"
+msgstr ""
+
+msgid "Paying at %(name)s"
+msgstr ""
+
+msgid "Choose <span class=\"visually-hidden\">%(name)s</span>"
+msgstr ""
+
+msgid "Install %(name)s and make your wallet"
+msgstr ""
+
+msgid "The page of %(name)s"
+msgstr ""
+
+msgid "This site works on a test network, called %(network)s. Its sats are for trying: they are not worth anything. Your wallet has to be set to %(network)s too: look for “network” in its settings."
+msgstr ""
+
+msgid "This site has no faucet. Write to <a href=\"mailto:%(email)s\">%(email)s</a> and ask for a few test sats."
+msgstr ""
+
+msgid "Not sure? Write to <a href=\"mailto:%(email)s\">%(email)s</a>."
+msgstr ""
+
+msgid "At the till of %(name)s, ask to pay in bitcoin. The till shows a code: you scan it with your wallet and confirm."
+msgstr ""
+
+msgid "Back to %(name)s"
+msgstr ""
+
+msgid "What to scan, what to expect, and what to do if your wallet says error."
+msgstr ""
+
+msgid "You have a wallet. Here is what happens at the till, and what to do if something looks wrong."
+msgstr ""
+
+msgid "Ask to pay in bitcoin"
+msgstr ""
+
+msgid "Here it works with Lightning. Most wallets can do it."
+msgstr ""
+
+msgid "Here it works on-chain: your wallet has to send on-chain, not with Lightning."
+msgstr ""
+
+msgid "Lightning or on-chain, whichever your wallet uses."
+msgstr ""
+
+msgid "Look at the code on the till"
+msgstr ""
+
+msgid "The till shows a square code with the amount. It is the shop's phone: you do not need to touch it."
+msgstr ""
+
+msgid "Scan it with your wallet"
+msgstr ""
+
+msgid "Open your wallet and press Scan, Pay or Send: the name changes from one wallet to another. Point the camera at the code."
+msgstr ""
+
+msgid "Check the amount and confirm"
+msgstr ""
+
+msgid "The amount must be the price you were told. Then press the button that sends the payment."
+msgstr ""
+
+msgid "Wait for the tick"
+msgstr ""
+
+msgid "Your wallet shows a tick, or says the payment was sent. The cashier waits for the tick on the till: only the till knows that the money arrived."
+msgstr ""
+
+msgid "What to expect"
+msgstr ""
+
+msgid "On-chain, the bitcoin network needs about ten minutes to confirm the payment. The till says it is waiting: that is normal. Stay a moment, or ask the cashier."
+msgstr ""
+
+msgid "If your wallet says error"
+msgstr ""
+
+msgid "It does not scan"
+msgstr ""
+
+msgid "Use the scanner inside your wallet, not the camera of the phone. Hold the phone still, and make the screen of the shop's phone and yours brighter."
+msgstr ""
+
+msgid "Still nothing? Ask the cashier to show the code as text. You copy the text and paste it in your wallet."
+msgstr ""
+
+msgid "It says there is not enough money"
+msgstr ""
+
+msgid "Your wallet holds less than the price. An on-chain payment also needs a little more for the network's fee. Add some bitcoin to the wallet, or pay the rest another way."
+msgstr ""
+
+msgid "Your wallet holds less than the price. Add some bitcoin to the wallet, or pay the rest another way."
+msgstr ""
+
+msgid "It says the code is not valid, or the network is wrong"
+msgstr ""
+
+msgid "A wallet set to a test network cannot pay real bitcoin, and the other way round. In the settings of your wallet, switch to real bitcoin."
+msgstr ""
+
+msgid "It says the code has expired"
+msgstr ""
+
+msgid "A code lasts only a few minutes. Ask the cashier for a new one and scan it again. Nothing was charged."
+msgstr ""
+
+msgid "It says the payment failed"
+msgstr ""
+
+msgid "A Lightning payment sometimes cannot find its way. Check that your phone is online, wait a minute and try again. Nothing is charged for a payment that failed."
+msgstr ""
+
+msgid "Still failing? Tell the cashier: they know who to call."
+msgstr ""
+
+msgid "I paid, but the till shows nothing"
+msgstr ""
+
+msgid "Do not pay again. Wait half a minute: the till catches up. The cashier looks at the till, not at your phone."
+msgstr ""
+
+msgid "If it does not change, show the cashier the confirmation in your wallet. The owner of the shop can check the payment."
+msgstr ""
+
+msgid "I paid too little, or too much"
+msgstr ""
+
+msgid "With Lightning you pay the exact amount of the code: it cannot be too little or too much. If your wallet shows a little more, that is the fee of the wallet."
+msgstr ""
+
+msgid "A Lightning payment is always the exact amount of the code. With an on-chain payment the till shows the cashier how much arrived. Too little: the sale is not paid, and the cashier asks you for the rest or cancels it. Too much: the cashier checks the shop's wallet. Agree with the shop how you get back what you paid over, or what you paid for a cancelled sale: the site holds no money and cannot return it."
+msgstr ""
+
+msgid "I don't have a wallet yet"
+msgstr ""
+
+msgid "How to pay at %(name)s"
+msgstr ""
+
+msgid "This shop takes %(percent)s%% off when you pay in bitcoin: ask for it at the till. On a bill of %(bill)s, you save %(saving)s."
+msgstr ""
+
+msgid "This site works on a test network, called %(network)s. A wallet set to real bitcoin cannot pay it. In the settings of your wallet, switch to %(network)s."
+msgstr ""
+
+msgid "No wallet? Scan here"
+msgstr ""
+
+msgid "Print it on an A4 sheet and keep it at the till, where the customer can see it. When someone says they have no wallet, point at it: they scan the code and the phone takes them through, step by step. You do not need to explain anything."
+msgstr ""
+
+msgid "See what your customer sees"
+msgstr ""
+
+msgid "No wallet yet?"
+msgstr ""
+
+msgid "Scan this code with your phone. In a few minutes you can pay here in bitcoin."
+msgstr ""
+
+msgid "Code that opens the guide for customers"
+msgstr ""
+
+msgid "Choose a free wallet and install it"
+msgstr ""
+
+msgid "Get your first bitcoin in it"
+msgstr ""
+
+msgid "Scan the code at the till and pay"
+msgstr ""
+
+msgid "Never paid with bitcoin?"
+msgstr ""
+
+msgid "Card for customers without a wallet"
+msgstr ""
+
+msgid "All"
+msgstr ""
+
+msgid "Staff register"
+msgstr ""
+
+msgid "What to do, and the words for the merchant: {link}"
+msgstr ""
+
+msgid "%(site)s: %(count)d thing to do about the shops' registers"
+msgid_plural "%(site)s: %(count)d things to do about the shops' registers"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Nothing new since the summary of %(date)s: a reminder, once a week."
+msgstr ""
+
+msgid "New:"
+msgstr ""
+
+msgid "Still to do:"
+msgstr ""
+
+msgid "%(count)d thing solved since the last summary."
+msgid_plural "%(count)d things solved since the last summary."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Holidays"
+msgstr ""
+
+msgid "Building works"
+msgstr ""
+
+msgid "Personal reasons"
+msgstr ""
+
+msgid "Other"
+msgstr ""
+
+msgid "closed from"
+msgstr ""
+
+msgid "reopens on"
+msgstr ""
+
+msgid "reason"
+msgstr ""
+
+msgid "The shop reopens after the day it closes."
+msgstr ""
+
+msgid "Closed for holidays"
+msgstr ""
+
+msgid "Closed for works"
+msgstr ""
+
+msgid "Closed for personal reasons"
+msgstr ""
+
+msgid "Closed for a while"
+msgstr ""
+
+#, python-brace-format
+msgid "{what} · back on {date}"
+msgstr ""
+
+#, python-brace-format
+msgid "{what} · back soon"
+msgstr ""
+
+#, python-brace-format
+msgid "{what} from {date} · back on {back}"
+msgstr ""
+
+#, python-brace-format
+msgid "{what} from {date}"
+msgstr ""
+
+msgid "Why"
+msgstr ""
+
+msgid "Closed from"
+msgstr ""
+
+msgid "I open again on"
+msgstr ""
+
+msgid "The first day the shop is open."
+msgstr ""
+
+msgid "I will say when I open again"
+msgstr ""
+
+msgid "Say the first day of the closure."
+msgstr ""
+
+msgid "Choose today or a day to come."
+msgstr ""
+
+msgid "Say when you open again, or tick that you will say."
+msgstr ""
+
+msgid "You open again after the day you close."
+msgstr ""
+
+msgid "That is more than a year: choose an earlier day, or tick that you will say."
+msgstr ""
+
+#, python-brace-format
+msgid "{shop}: welcome back"
+msgstr ""
+
+msgid "The register worked while you were away, so there is nothing to turn on. To be sure that everything works, try a small payment of your own: open the register and pay it from another phone."
+msgstr ""
+
+msgid "Too many changes in a short time: try again in a while."
+msgstr ""
+
+msgid "Saved: the shop says it is closed."
+msgstr ""
+
+msgid "Saved: the shop will say it is closed."
+msgstr ""
+
+msgid "The shop is open."
+msgstr ""
+
+msgid "Welcome back! The shop says it is open again."
+msgstr ""
+
+msgid "Cancelled: the shop is open."
+msgstr ""
+
+msgid "Closing for holidays, for works or for any other reason? Say it here. The map and your shop page tell your customers, kindly, and the shop stays on the map. Nobody is worried: the icons on your card do not fade for the days you are away."
+msgstr ""
+
+msgid "Your register keeps working: if someone pays you while you are closed, it is paid as always. Your wallet and the way you get paid do not change."
+msgstr ""
+
+#, python-format
+msgid "Closed since %(date)s."
+msgstr ""
+
+msgid "If you do not know yet, tick «I will say when I open again»: the shop says it is closed for now, and you open it again from your panel when you are back."
+msgstr ""
+
+msgid "Save the changes"
+msgstr ""
+
+msgid "I am back: open the shop today"
+msgstr ""
+
+msgid "Cancel this closure"
+msgstr ""
+
+msgid "The days are those of the shop's town. Whoever looks at the map sees the reason you choose and the day you open again, nothing else."
+msgstr ""
+
+msgid "Welcome back!"
+msgstr ""
+
+msgid "The register worked while you were away: there is nothing to turn on. To be sure, try a small payment of your own: open the register and pay it from another phone."
+msgstr ""
+
+msgid "The map and your shop page say it. The register keeps working, and no alarm goes off for these days."
+msgstr ""
+
+msgid "Change the dates"
+msgstr ""
+
+msgid "I am back today"
+msgstr ""
+
+msgid "Closing for a while?"
+msgstr ""
+
+msgid "Holidays, works, a bad time: say it, and the map tells your customers kindly. The shop stays on the map, the register keeps working, and the icons on your card do not fade."
+msgstr ""
+
+msgid "Choose the days"
+msgstr ""
+
+msgid "Closed from today, until I say so"
+msgstr ""
+
+msgid "closed for a while: no alarms"
+msgstr ""
+
+msgid "Closed for a while for over three months."
+msgstr ""
+
+msgid "Is your shop coming back? If it is closed for good, tell us and we mark it as history on the map."
+msgstr ""
+
+#, python-brace-format
+msgid "Welcome back! Your shop {shop} is open again."
+msgstr ""
+
+msgid "One thing to look at: your Lightning address does not work now, and customers cannot pay you with it. Your panel says what to do."
+msgstr ""
+
+msgid "When it works again, try a small payment of your own: open the register and pay it from another phone."
+msgstr ""
+
+msgid "Closed for a while, and the Lightning address does not work: nobody is told until the shop opens again."
+msgstr ""
+
+msgid "Sign out of the administration"
+msgstr ""
+
+msgid "Help the merchant connect a wallet from their own panel: only they can. Never type an address or a key for them. «Practise without money» works meanwhile."
+msgstr ""
+
+msgid "Ask the merchant whether they expected it. If not, change nothing and tell whoever runs the site: «Account changes» in the administration says who changed what, from where, and who was told. Never ask for a password."
+msgstr ""
+
+msgid "Your closure dates are saved, but your shop is marked as historic: the map says nothing about them."
+msgstr ""
+
+msgid "A closure only counts for a shop that still trades: a historic shop is closed for good."
+msgstr ""
+
+msgid "The registers for your staff cannot work: your shop has no register of its own yet."
+msgstr ""
+
+msgid "Connect the wallet first (see the lines about the register): the staff registers open as soon as the shop has one."
+msgstr ""
+
+msgid "Nothing is broken: the owner turned them off. A turned-off register cannot be turned on again; the owner makes a new one."
+msgstr ""
+
+msgid "The owner opens «Registers for your staff», chooses the register and makes a new code, then the person scans it with their phone. The code is never read out on the phone."
+msgstr ""
+
+msgid "The association has taken the certificate away from your shop: ask them why."
+msgstr ""
+
+msgid "It was revoked in the administration and the site will not give it again until that is undone. Ask the association before saying more."
+msgstr ""
+
+msgid "Customers who scan the card for people without a wallet see only the shop page, because nobody can pay at this shop now."
+msgstr ""
+
+msgid "It follows from the lines about the shop: the guide opens again when the shop can take payments."
+msgstr ""
+
+msgid "Before the first real sale you can try the register with a pretend customer: «Practise without money» in your panel. Nothing is charged."
+msgstr ""
+
+msgid "Your shop is here, but nobody has taken it yet: tell us who you are and we help you take it."
+msgstr ""
+
+msgid "Nothing to fix. To change the dates the merchant uses «Change the dates» in their panel; the association edits the closure under the shop in the administration."
+msgstr ""
+
+msgid "You are marked as closed, but your shop is not on the map, so nobody reads the notice. The register works the same."
+msgstr ""
+
+msgid "Look at the shop_ lines: the notice shows only for a shop that is on the map."
+msgstr ""
+
+msgid "The guide for customers without a wallet has no wallet to suggest for the way you get paid."
+msgstr ""
+
+msgid "The list is in the community's settings (shop_page.wallets): manage.py check says what it left out."
+msgstr ""
+
+msgid "A customer without a wallet scans the card «Card for customers without a wallet» (in your panel) and the phone guides them in three steps."
+msgstr ""
+
+#, python-brace-format
+msgid "These registers are turned off, so they take no new payment: {names}. If the person still needs one, add a new one in «Registers for your staff»."
+msgstr ""
+
+#, python-brace-format
+msgid "These registers were never opened on a phone, and their code is no longer valid: {names}. The code on the card works once and lasts 24 hours: make a new one in «Registers for your staff»."
+msgstr ""
+
+#, python-brace-format
+msgid "These registers are working: {names}."
+msgstr ""
+
+#, python-brace-format
+msgid "Your shop is certified, since {month}."
+msgstr ""
+
+msgid "You saved your shop before having a wallet, so it has no register yet and it is not on the map. Open your panel and connect your wallet: it takes a few minutes."
+msgstr ""
+
+#, python-brace-format
+msgid "On the map and on your shop page it says: «{note}». The register keeps working, and no alarm goes off for these days."
+msgstr ""
+
+#, python-brace-format
+msgid "The map and your shop page already say: «{note}»."
+msgstr ""
+
+#, python-brace-format
+msgid "A closure is saved from {date}: the map starts to say it {days} days before."
+msgstr ""
+
+#, python-brace-format
+msgid "These registers wait for the person to scan their code: {names}. The code works once, until the time shown."
+msgstr ""
+
+msgid "Nothing is broken: the person scans the code with their phone before it expires. If it has expired, the owner makes a new one. The code is never read out on the phone."
+msgstr ""
+
+#, python-brace-format
+msgid "The administration changed something that concerns this shop on {date}: {what}. It was done to another account, not to the one signed in now."
+msgstr ""
+
+msgid "If the person on the phone is the one who had the shop before and got the email, ask whether they know why. If not, change nothing and tell whoever runs the site: «Account changes» in the administration says who did it. Never ask for a password."
+msgstr ""
+
+
+msgid "Something wrong?"
+msgstr ""
+
+msgid "Tell us what is happening. We show you what the site already knows about your shop and what to do now. If it is not enough, you ask the association for help with one tap."
+msgstr ""
+
+msgid "What is happening?"
+msgstr ""
+
+msgid "Your requests"
+msgstr ""
+
+msgid "The message to the association did not go out, but the request is saved."
+msgstr ""
+
+msgid "We never ask for the secret words of your wallet, for a key or for a password. If someone asks you, it is not us."
+msgstr ""
+
+msgid "You asked %(when)s. Waiting for the association."
+msgstr ""
+
+msgid "You asked %(when)s. Solved %(solved)s."
+msgstr ""
+
+msgid "The association has been told."
+msgstr ""
+
+msgid "The request is saved and the association will see it."
+msgstr ""
+
+msgid "What the site knows about your shop"
+msgstr ""
+
+msgid "Nothing wrong from here."
+msgstr ""
+
+msgid "The site also asked your Lightning wallet just now."
+msgstr ""
+
+msgid "This is what the site already has on file for your shop."
+msgstr ""
+
+msgid "Fine"
+msgstr ""
+
+msgid "Checked just now, with your Lightning wallet."
+msgstr ""
+
+msgid "This page shows only what the site already has. To ask your Lightning wallet now, it takes up to 20 seconds."
+msgstr ""
+
+msgid "Look again, asking your Lightning wallet"
+msgstr ""
+
+msgid "Ask the association for help"
+msgstr ""
+
+msgid "One tap and the association receives your request together with what you see above. We never ask for the secret words of your wallet, for a key or for a password."
+msgstr ""
+
+msgid "Please look at what is marked below."
+msgstr ""
+
+msgid "Optional. A few words are enough: what you see and since when."
+msgstr ""
+
+msgid "Ask for help"
+msgstr ""
+
+msgid "It can take a few seconds."
+msgstr ""
+
+msgid "You asked for help %(when)s."
+msgstr ""
+
+msgid "The request is saved and the association will see it, even if the message to them did not go out."
+msgstr ""
+
+msgid "The payment does not go through, the register does not open, a lost phone…"
+msgstr ""
+
+msgid "Solved %(when)s."
+msgstr ""
+
+msgid "Your request «%(symptom)s» is closed. Thank you."
+msgstr ""
+
+msgid "The code does not scan, the wallet refuses it, or the register shows no code."
+msgstr ""
+
+msgid "Start the sale again from the register: a new code appears. An old code can stop working."
+msgstr ""
+
+msgid "Ask the customer to scan the code from inside their bitcoin wallet app, not with the camera of the phone, and to check that they have enough in the wallet."
+msgstr ""
+
+msgid "A customer with no wallet at all: show them the card «Card for customers without a wallet» (in your panel, under your shop). The phone guides them."
+msgstr ""
+
+msgid "Do not keep the customer waiting: if nothing works, they can pay another way. Then ask us for help below."
+msgstr ""
+
+msgid "The customer says they paid, but the register keeps waiting."
+msgstr ""
+
+msgid "Do not ask the customer to pay again, and do not hand over the goods yet."
+msgstr ""
+
+msgid "Open your wallet app: did the money arrive? If it did, the payment is good even if the register is still waiting. Then ask us for help below: we find out why the register did not notice."
+msgstr ""
+
+msgid "The register page does not load, asks you to sign in, or a person of your staff cannot open theirs."
+msgstr ""
+
+msgid "Reload the page and look at the connection of the phone: wifi or data."
+msgstr ""
+
+msgid "If it asks you to sign in, sign in again from your panel: with your wallet, or with the link we send to your email."
+msgstr ""
+
+msgid "A register of your staff: the code on its card works once and lasts 24 hours. If it has expired, make a new one in «Registers for your staff»."
+msgstr ""
+
+msgid "You can no longer sign in from the phone you used, or someone else may have it."
+msgstr ""
+
+msgid "Your money is safe: it is in your wallet, not in the phone and not on this site."
+msgstr ""
+
+msgid "On the new phone, sign in here with your wallet, or with the link we send to your email, if you gave us one."
+msgstr ""
+
+msgid "Open your register from your panel and add it to the home screen of the new phone."
+msgstr ""
+
+msgid "If somebody else may use the old phone: turn off the registers of your staff that were on it, in «Registers for your staff». Your own register only takes payments, and they go to your wallet."
+msgstr ""
+
+msgid "If your wallet is new too, ask us for help below: only you can connect the new wallet, and we show you how."
+msgstr ""
+
+msgid "You gave back too much, or a customer paid more than the price."
+msgstr ""
+
+msgid "If you are not sure what happened, ask us for help below."
+msgstr ""
+
+msgid "Anything else: tell us in a line, and we look at everything the site knows."
+msgstr ""
+
+msgid "Write in a line what you see and when it started."
+msgstr ""
+
+msgid "If a customer is waiting, let them pay another way first: we answer afterwards."
+msgstr ""
+
+#, python-brace-format
+msgid "The site watches your Lightning address: it has not answered since {since} (checked {checked})."
+msgstr ""
+
+#, python-brace-format
+msgid "The site watches your Lightning address: it has never answered (checked {checked})."
+msgstr ""
+
+#, python-brace-format
+msgid "The site watches your Lightning address: it worked when it last checked, {checked}."
+msgstr ""
+
+#, python-brace-format
+msgid "By email, to {email}"
+msgstr ""
+
+msgid "On Telegram, in the chat of your shop"
+msgstr ""
+
+#, python-brace-format
+msgid "By phone, to {phone} (the one in your shop's details)"
+msgstr ""
+
+msgid "I will look at my panel: it says when it is solved"
+msgstr ""
+
+msgid "In a line: what do you see?"
+msgstr ""
+
+msgid "Please keep it to a line of up to %(limit_value)d characters."
+msgstr ""
+
+msgid "How do you want us to call you back?"
+msgstr ""
+
+msgid "This looks like a secret (a private key or the words of a wallet): never write it here. We never ask for it."
+msgstr ""
+
+#, python-brace-format
+msgid "{shop} asks for help."
+msgstr ""
+
+#, python-brace-format
+msgid "Symptom: {symptom}"
+msgstr ""
+
+#, python-brace-format
+msgid "Call back: {channel}"
+msgstr ""
+
+#, python-brace-format
+msgid "They wrote: «{note}»"
+msgstr ""
+
+#, python-brace-format
+msgid "Problems: {codes}"
+msgstr ""
+
+#, python-brace-format
+msgid "To look at: {codes}"
+msgstr ""
+
+msgid "The checks found nothing wrong."
+msgstr ""
+
+#, python-brace-format
+msgid "The request and its diagnosis: {link}"
+msgstr ""
+
+msgid "You have looked many times in a short while: wait a few minutes. Meanwhile, you can ask the association for help."
+msgstr ""
+
+msgid "Too many requests in a short time: try again in a while."
+msgstr ""
+
+#, python-brace-format
+msgid "You have already asked {count} times today, and the association has your requests: we answer them one by one. If it is urgent, write to {email}."
+msgstr ""
+
+msgid "You asked a moment ago, and we have your request."
+msgstr ""
+
+msgid "We have your request. The association has been told, and has what the site knows about your shop in front of it."
+msgstr ""
+
+#, python-brace-format
+msgid "We have your request and it is saved: the association sees it in its list. The message to them did not go out right now, so if it is urgent write to {email}."
+msgstr ""
+
+msgid "They asked to be called back by email."
+msgstr ""
+
+msgid "They asked to be called back on Telegram."
+msgstr ""
+
+msgid "They asked to be called back by phone: the number in their shop's details."
+msgstr ""
+
+msgid "They asked for no call: they wait on their panel."
+msgstr ""
+
+msgid "Asked for help: %(symptom)s."
+msgstr ""
+
+msgid "Start from the diagnosis in the request, and run the command below to probe the Lightning address again. When it is done, mark the request solved: the merchant sees «Solved» in their panel."
+msgstr ""
+
+msgid "We have your request and we are looking at it now."
+msgstr ""
+
+msgid "The request and its diagnosis"
+msgstr ""
+
+msgid "state"
+msgstr ""
+
+msgid "Solved"
+msgstr ""
+
+msgid "asked"
+msgstr ""
+
+msgid "call back"
+msgstr ""
+
+msgid "where to call back"
+msgstr ""
+
+msgid "Mark as solved"
+msgstr ""
+
+msgid "%(count)d requests marked as solved."
+msgstr ""
+
+msgid "Mark as waiting again"
+msgstr ""
+
+msgid "%(count)d requests marked as waiting again."
+msgstr ""
+
+msgid "A customer cannot pay"
+msgstr ""
+
+msgid "A payment stays on «waiting»"
+msgstr ""
+
+msgid "The register does not open"
+msgstr ""
+
+msgid "I lost my phone or changed phone"
+msgstr ""
+
+msgid "Too much change given, or a customer paid too much"
+msgstr ""
+
+msgid "Something else"
+msgstr ""
+
+msgid "by email"
+msgstr ""
+
+msgid "on Telegram"
+msgstr ""
+
+msgid "by phone"
+msgstr ""
+
+msgid "they will look at their panel"
+msgstr ""
+
+msgid "sent"
+msgstr ""
+
+msgid "refused by Telegram"
+msgstr ""
+
+msgid "no Telegram bot or chat"
+msgstr ""
+
+msgid "not delivered"
+msgstr ""
+
+msgid "symptom"
+msgstr ""
+
+msgid "what the merchant wrote"
+msgstr ""
+
+msgid "what the site knew"
+msgstr ""
+
+msgid "message to the association"
+msgstr ""
+
+msgid "solved"
+msgstr ""
+
+msgid "solved by"
+msgstr ""
+
+msgid "help request"
+msgstr ""
+
+msgid "help requests"
+msgstr ""
+
+msgid "What works: %(counter)s thing"
+msgid_plural "What works: %(counter)s things"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "The merchant wrote:"
+msgstr ""
+
+msgid "If the register shows no code or the page does not load, look at the phone's connection and reload the page."
+msgstr ""
+
+msgid "If the page does not load for anyone, the site may be resting for a few minutes."
+msgstr ""
+
+#, python-brace-format
+msgid "The site watches your Lightning address: it answers, but it does not tell the register when a payment arrives (since {since}, checked {checked})."
+msgstr ""
+
+msgid "You asked a moment ago: we added what you wrote to your request."
+msgstr ""
+
+msgid "Nothing wrong on file."
+msgstr ""
+
+msgid "This is only what the site already knows: to ask your Lightning wallet too, press «Look again»."
+msgstr ""
+
+msgid "Show"
+msgstr ""
+
+msgid "Open"
+msgstr ""
+
+msgid "The owner turned off this register: it takes no more payments, and within a day this page stops opening. Today, download the encrypted copy of its sales (History and end of shift) and give it to the owner."
+msgstr ""
+
+msgid "Next meetups"
+msgstr ""
+
+msgid "No meetup is announced yet."
+msgstr ""
+
+msgid "Latest meetups"
+msgstr ""
+
+msgid "Add the meetups to your calendar"
+msgstr ""
+
+msgid "Dates and places are given by the organisers and can change: check the group before you go."
+msgstr ""
+
+msgid "All the meetups"
+msgstr ""
+
+#, python-format
+msgid "Last change: %(date)s."
+msgstr ""
+
+msgid "Group and details"
+msgstr ""
+
+msgid "Next meetup:"
+msgstr ""
+
+msgid "Meetups"
+msgstr ""
+
+msgid "Where and when the community meets. Everybody is welcome."
+msgstr ""
+
+msgid "The dates change: the list is on the live site."
+msgstr ""
+
+msgid "Day"
+msgstr ""
+
+msgid "Hour"
+msgstr ""
+
+msgid "Local time at the meetup. Leave it empty if only the day is known."
+msgstr ""
+
+msgid "Write the hour, or tick “no time, only the day”."
+msgstr ""
+
+msgid "Write the city."
+msgstr ""
+
+msgid "Where and what"
+msgstr ""
+
+msgid "Is it on?"
+msgstr ""
+
+msgid "Where it comes from"
+msgstr ""
+
+msgid "source"
+msgstr ""
+
+msgid "Written here, by you."
+msgstr ""
+
+#, python-format
+msgid "Read from Nostr: author %(author)s, event %(event)s, published %(when)s."
+msgstr ""
+
+#, python-format
+msgid "Written by %(who)s on %(date)s."
+msgstr ""
+
+#, python-format
+msgid "Changed: %(count)d"
+msgstr ""
+
+msgid "Mark as confirmed"
+msgstr ""
+
+msgid "Mark as cancelled (it stays on the board as cancelled)"
+msgstr ""
+
+msgid "Show on the site"
+msgstr ""
+
+msgid "Take off the site"
+msgstr ""
+
+msgid "Help the merchant connect a wallet from their own panel: only they can. Never type an address or a key for them."
+msgstr ""
+
+msgid "Address"
+msgstr ""
+
+msgid "Phone"
+msgstr ""
+
+msgid "Business name"
+msgstr ""
+
+msgid "VAT number"
+msgstr ""
+
+msgid "phone"
+msgstr ""
+
+msgid "business name"
+msgstr ""
+
+msgid "show the website"
+msgstr ""
+
+msgid "show the address"
+msgstr ""
+
+msgid "show the phone"
+msgstr ""
+
+msgid "show the email"
+msgstr ""
+
+msgid "show the business name"
+msgstr ""
+
+msgid "show the VAT number"
+msgstr ""
+
+msgid "Start with the two letters of the country, like IT for Italy or DE for Germany."
+msgstr ""
+
+#, python-format
+msgid "The letters %(prefix)s are not those of a country of the EU (IT, DE, FR, ES…)."
+msgstr ""
+
+msgid "An Italian number is IT and eleven digits, the last one checks the others: one of them may be wrong."
+msgstr ""
+
+msgid "After the two letters of the country there are a few digits or letters, with no other signs."
+msgstr ""
+
+msgid "Customers see your website unless you hide it: see «What customers see»."
+msgstr ""
+
+msgid "Customers see your phone number only if you turn it on: see «What customers see»."
+msgstr ""
+
+msgid "Customers see your email only if you turn it on: see «What customers see»."
+msgstr ""
+
+msgid "The name of the business, as on your invoices. Customers see it only if you turn it on."
+msgstr ""
+
+msgid "With the two letters of the country, like IT01234567890. Customers see it only if you turn it on."
+msgstr ""
+
+msgid "This is longer than a VAT number can be."
+msgstr ""
+
+#, python-format
+msgid "We saved your VAT number, but it may have a mistake. %(why)s"
+msgstr ""
+
+msgid "Saved. This is what your customers see now."
+msgstr ""
+
+msgid "May have a mistake"
+msgstr ""
+
+msgid "Written"
+msgstr ""
+
+msgid "Not written"
+msgstr ""
+
+#, python-format
+msgid "The VAT number of %(shop)s may have a mistake: %(why)s It is saved as written."
+msgstr ""
+
+msgid "Its VAT number may have a mistake: look at it in the admin. It arrives as written."
+msgstr ""
+
+msgid "What customers see"
+msgstr ""
+
+msgid "Choose what customers read about your shop. The name of your shop is always there."
+msgstr ""
+
+msgid "Show to customers"
+msgstr ""
+
+msgid "Edit the details"
+msgstr ""
+
+msgid "The website and the address are also on the map. The phone, the email, the business name and the VAT number are only on your shop page. The pin stays on the map where you put it."
+msgstr ""
+
+msgid "Your shop page"
+msgstr ""
+
+msgid "It changes as you tick the boxes. Press Save to keep it."
+msgstr ""
+
+msgid "Press Save to see the change."
+msgstr ""
+
+msgid "Only the name and the town."
+msgstr ""
+
+msgid "See the page as customers see it"
+msgstr ""
+
+msgid "Business details: name on the invoices, VAT number"
+msgstr ""
+
+msgid "The association keeps them. Customers do not see them unless you choose so."
+msgstr ""
+
+msgid "Choose what customers see"
+msgstr ""
+
+msgid "Show the phone and the email of the selected shops with no owner"
+msgstr ""
+
+msgid "Hide the phone and the email of the selected shops with no owner"
+msgstr ""
+
+#, python-format
+msgid "%(count)d shops now show their phone and email."
+msgstr ""
+
+#, python-format
+msgid "%(count)d shops now hide their phone and email."
+msgstr ""
+
+msgid "The new password must be different from the old one."
+msgstr ""
+
+msgid "Your password is temporary. Choose a new one to go on."
+msgstr ""
+
+msgid "Not now? Log out: the next sign-in asks again."
+msgstr ""
+
+msgid "Too many wrong passwords. Wait a little and try again."
+msgstr ""
+
+msgid "Ask the merchant to add the address in their shop page, or ask an administrator to add the position."
+msgstr ""
+
+msgid "Ask the merchant whether the shop is coming back: an administrator can make a shop closed for good historic."
+msgstr ""
+
+msgid "Find the merchant: once they have signed in here, ask an administrator to assign the shop to their account in this administration."
+msgstr ""
+
+msgid "key"
+msgstr ""
+
+#, python-format
+msgid "%(count)d more authors are written in community.yml and count as well."
+msgstr ""
+
+#, python-format
+msgid "Postponed to %(date)s"
+msgstr ""
+
+#, python-format
+msgid "Meetup in %(city)s"
+msgstr ""
+
+msgid "Meetup"
+msgstr ""
+
+msgid "This is not a time zone name: write it like Europe/Rome."
+msgstr ""
+
+msgid "A link starts with https:// and has no spaces."
+msgstr ""
+
+msgid "A key is an npub1… or 64 hexadecimal digits."
+msgstr ""
+
+msgid "The npub1… of the organiser, or the same key in 64 hexadecimal digits."
+msgstr ""
+
+msgid "who certified it"
+msgstr ""
+
+msgid "Who vouches for this author, and since when: the next person to read the list has no one else to ask."
+msgstr ""
+
+msgid "read"
+msgstr ""
+
+msgid "Untick to stop reading it. What it published stays."
+msgstr ""
+
+msgid "added"
+msgstr ""
+
+msgid "trusted author"
+msgstr ""
+
+msgid "trusted authors"
+msgstr ""
+
+msgid "Staff"
+msgstr ""
+
+msgid "Nostr"
+msgstr ""
+
+msgid "starts"
+msgstr ""
+
+msgid "no time, only the day"
+msgstr ""
+
+msgid "time zone"
+msgstr ""
+
+msgid "The time is written and shown in this zone, like Europe/Rome."
+msgstr ""
+
+msgid "title or topic"
+msgstr ""
+
+msgid "link"
+msgstr ""
+
+msgid "The group or the page of the event, with https://. Without it, the board links the community's group, if it has one."
+msgstr ""
+
+msgid "postponed to"
+msgstr ""
+
+msgid "For a postponed meetup: the day it moves to, if it is already known."
+msgstr ""
+
+msgid "shown on the site"
+msgstr ""
+
+msgid "Untick to take it off the board and the calendar without losing it."
+msgstr ""
+
+msgid "corrected by hand"
+msgstr ""
+
+msgid "The reader of Nostr never overwrites a meetup the staff corrected. Untick to let it update this one again."
+msgstr ""
+
+msgid "changed"
+msgstr ""
+
+msgid "meetup"
+msgstr ""
+
+msgid "meetups"
+msgstr ""
+
+msgid "relays asked"
+msgstr ""
+
+msgid "relays that answered"
+msgstr ""
+
+msgid "events seen"
+msgstr ""
+
+msgid "new"
+msgstr ""
+
+msgid "updated"
+msgstr ""
+
+msgid "cancelled"
+msgstr ""
+
+msgid "rejected"
+msgstr ""
+
+msgid "detail"
+msgstr ""
+
+msgid "reading of Nostr"
+msgstr ""
+
+msgid "readings of Nostr"
+msgstr ""
+
+msgid "Where and when the community meets: the next meetups and the last ones, with their group."
+msgstr ""
+
+#, python-format
+msgid "Meetups of %(community)s"
+msgstr ""
+
+msgid "corrected"
+msgstr ""
+
+msgctxt "meetup state"
+msgid "Confirmed"
+msgstr ""
+
+msgctxt "meetup state"
+msgid "Postponed"
+msgstr ""
+
+msgctxt "meetup state"
+msgid "Informal get-together"
+msgstr ""
+
+msgid "Amount"
+msgstr ""
+
+msgid "Currency"
+msgstr ""
+
+
+msgid "Paying to:"
+msgstr ""
+
+msgid "nothing"
+msgstr ""
+
+msgid "the owner's panel"
+msgstr ""
+
+msgid "Lightning address of a shop"
+msgstr ""
+
+msgid "The Lightning address where a shop of yours gets paid was changed."
+msgstr ""
+
+msgid "You changed where a shop of yours gets paid, on {site}:"
+msgstr ""
+
+msgid "If it was you, you do not need to do anything. If it was not, write to {email} now."
+msgstr ""
+
+msgid "If it was you, you do not need to do anything. If it was not, tell the association now."
+msgstr ""
+
+msgid "you changed where your shop gets paid"
+msgstr ""
+
+msgid "Someone who runs the site changed where a shop of yours gets paid, on {site}:"
+msgstr ""
+
+msgid "where your shop gets paid was changed"
+msgstr ""
+
+msgid "Shop: {shop}."
+msgstr ""
+
+msgid "Destination change: {shop}."
+msgstr ""
+
+
+msgid "OpenStreetMap: the monthly reading"
+msgstr ""
+
+#, python-format
+msgid "OpenStreetMap: %(count)d changes proposed"
+msgstr ""
+
+msgid "No change to propose to OpenStreetMap."
+msgstr ""
+
+#, python-format
+msgid "%(count)d change proposed for OpenStreetMap, in %(shops)d shops: nothing is sent until a person runs the upload."
+msgid_plural "%(count)d changes proposed for OpenStreetMap, in %(shops)d shops: nothing is sent until a person runs the upload."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(count)d change proposed for OpenStreetMap, in %(shops)d shops: the site sends nothing, a person can make it by hand on openstreetmap.org."
+msgid_plural "%(count)d changes proposed for OpenStreetMap, in %(shops)d shops: the site sends nothing, a person can make them by hand on openstreetmap.org."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(count)d of our shops is marked as no longer taking bitcoin on OpenStreetMap:"
+msgid_plural "%(count)d of our shops are marked as no longer taking bitcoin on OpenStreetMap:"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(count)d shop may be the same place as an OpenStreetMap element, but it is not certain: not linked."
+msgid_plural "%(count)d shops may be the same place as an OpenStreetMap element, but it is not certain: not linked."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(count)d linked shop was not found on OpenStreetMap: deleted there, or no longer tagged for bitcoin."
+msgid_plural "%(count)d linked shops were not found on OpenStreetMap: deleted there, or no longer tagged for bitcoin."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-brace-format
+msgid "The full report and the proposals: {link}"
+msgstr ""
+
+#, python-brace-format
+msgid "{shop} asks the association to {what}."
+msgstr ""
+
+#, python-brace-format
+msgid "The request: {link}"
+msgstr ""
+
+msgid "We have your request. A person of the association does it by hand, and you see here when it is done."
+msgstr ""
+
+msgid "The association does it for me"
+msgstr ""
+
+msgid "There is nothing to send for this shop right now."
+msgstr ""
+
+msgid "Tick the box to send the request."
+msgstr ""
+
+#, python-brace-format
+msgid "You have already asked {count} times today, and the association has your requests: we do them one by one. If it is urgent, write to {email}."
+msgstr ""
+
+msgid "OpenStreetMap"
+msgstr ""
+
+msgid "Not linked: link it in the shop's page if it is already on OpenStreetMap."
+msgstr ""
+
+msgid "OpenStreetMap page"
+msgstr ""
+
+msgid "result"
+msgstr ""
+
+msgid "report"
+msgstr ""
+
+msgid "the shop's entry"
+msgstr ""
+
+msgid "Linked"
+msgstr ""
+
+msgid "Not linked"
+msgstr ""
+
+#, python-format
+msgid "%(count)d requests marked as done."
+msgstr ""
+
+msgid "Asked the association to put the shop on OpenStreetMap."
+msgstr ""
+
+msgid "Asked the association to update the shop's entry on OpenStreetMap."
+msgstr ""
+
+msgid "We have your request about OpenStreetMap: a person of the association does it by hand."
+msgstr ""
+
+#, python-format
+msgid "The last reading of OpenStreetMap failed: %(reason)s."
+msgstr ""
+
+msgid "Nothing was changed. The monthly timer tries again; to try now run the command below."
+msgstr ""
+
+msgid "The shops have not been compared with OpenStreetMap for a while."
+msgstr ""
+
+msgid "The shops have never been compared with OpenStreetMap."
+msgstr ""
+
+msgid "Check the timer that runs osm_sync."
+msgstr ""
+
+#, python-format
+msgid "%(count)d change proposed for OpenStreetMap waits for a person to send it."
+msgid_plural "%(count)d changes proposed for OpenStreetMap wait for a person to send them."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(count)d tag of our shops on OpenStreetMap is not what this site knows."
+msgid_plural "%(count)d tags of our shops on OpenStreetMap are not what this site knows."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Read them in the administration. To send them, run the command below with the OpenStreetMap account that signs the edits: it asks before it sends anything. The site never sends them by itself."
+msgstr ""
+
+msgid "Read them in the administration: they are what OpenStreetMap should say of each shop. A person can change them by hand on openstreetmap.org, with their own account. The site sends nothing."
+msgstr ""
+
+msgid "Add the shop in the editor with the lines of the request, or tell the merchant it cannot be done. Then mark the request done in the administration: the merchant sees it in the panel. The site never writes to OpenStreetMap by itself."
+msgstr ""
+
+msgid "Run the command below: it shows what would change, asks before it sends anything, and marks the request done. Or edit by hand with the lines of the request, then mark it done in the administration."
+msgstr ""
+
+msgid "Update the shop's entry in the editor with the lines of the request, or tell the merchant it cannot be done. Then mark the request done in the administration: the merchant sees it in the panel. The site never writes to OpenStreetMap by itself."
+msgstr ""
+
+msgid "The request"
+msgstr ""
+
+msgid "The reading and its proposals"
+msgstr ""
+
+msgid "OpenStreetMap element"
+msgstr ""
+
+msgid "seen on OpenStreetMap"
+msgstr ""
+
+msgid "OpenStreetMap reading"
+msgstr ""
+
+msgid "OpenStreetMap readings"
+msgstr ""
+
+msgid "what is asked"
+msgstr ""
+
+msgid "what to write"
+msgstr ""
+
+msgid "done on"
+msgstr ""
+
+msgid "done by"
+msgstr ""
+
+msgid "answer to the merchant"
+msgstr ""
+
+msgid "OpenStreetMap request"
+msgstr ""
+
+msgid "OpenStreetMap requests"
+msgstr ""
+
+msgid "The shop's entry on OpenStreetMap, like node/123456 (the last number of its address on openstreetmap.org). Empty: not linked."
+msgstr ""
+
+msgid "put the shop on OpenStreetMap"
+msgstr ""
+
+msgid "update the shop's entry on OpenStreetMap"
+msgstr ""
+
+msgid "could not be done"
+msgstr ""
+
+msgid "Write it like node/123456, way/123456 or relation/123456."
+msgstr ""
+
+msgid "Another shop is already linked to this element."
+msgstr ""
+
+msgid "Your shop on OpenStreetMap"
+msgstr ""
+
+msgid "OpenStreetMap is a free map that anyone can improve, like a shared notebook. Many apps show on it where to pay in bitcoin: if your shop is there with the right information, more people find you."
+msgstr ""
+
+msgid "A place on OpenStreetMap is described by tags: lines of information like name=Bar Aurora. Your shop needs a few of them to say that it takes bitcoin."
+msgstr ""
+
+msgid "A person does it by hand, with their own account: it can take a few days. You will see here when it is done."
+msgstr ""
+
+msgid "Your shop's entry on OpenStreetMap was updated by the association. Thank you."
+msgstr ""
+
+msgid "The association could not do it."
+msgstr ""
+
+msgid "Your shop is on OpenStreetMap"
+msgstr ""
+
+msgid "See your shop on OpenStreetMap"
+msgstr ""
+
+msgid "Compared with what we know about your shop, these lines are missing or different there:"
+msgstr ""
+
+msgid "missing"
+msgstr ""
+
+msgid "take it away"
+msgstr ""
+
+msgid "Nothing to do."
+msgstr ""
+
+msgid "Everything we know about your shop is already there."
+msgstr ""
+
+msgid "We have not compared it yet: it happens once a month. These are the lines it should have:"
+msgstr ""
+
+msgid "Your shop is not on OpenStreetMap, or we have not found it"
+msgstr ""
+
+msgid "To add it you need the name of the shop, its place on the map, and what kind of place it is (a bar, a bakery, a clothes shop…), which you choose in the editor. Then these lines about bitcoin:"
+msgstr ""
+
+msgid "Nothing to write on OpenStreetMap for this shop now: it is not on the map or in the lists of this site."
+msgstr ""
+
+msgid "Do it yourself, step by step"
+msgstr ""
+
+msgid "Open the editor on your shop."
+msgstr ""
+
+msgid "Open the editor"
+msgstr ""
+
+msgid "Click on your shop on the map: its details open on the left."
+msgstr ""
+
+msgid "Press «Point» at the top and click on your shop on the map. Choose what kind of place it is."
+msgstr ""
+
+msgid "Look for the tags box. In the editor it is called «Tags»: choose the text view, where each tag is a line."
+msgstr ""
+
+msgid "Write these lines, one for each tag. If a tag is already there with another value, change the value."
+msgstr ""
+
+msgid "The lines to write"
+msgstr ""
+
+msgid "Copied"
+msgstr ""
+
+msgid "Copy the lines"
+msgstr ""
+
+msgid "Press «Save», write a few words about what you changed (for example «bitcoin payments») and send it. You need a free OpenStreetMap account: the editor guides you."
+msgstr ""
+
+msgid "Or let the association do it"
+msgstr ""
+
+msgid "You have asked already: the request is waiting for a person of the association."
+msgstr ""
+
+msgid "A person of the association does it by hand, with their own account. You do not need an account on OpenStreetMap."
+msgstr ""
+
+msgid "Send the request"
+msgstr ""
+
+msgid "OpenStreetMap is public: everything you write there can be read by everybody. We never ask you for a password of yours, and we never write there without a person who looks at it."
+msgstr ""
+
+#, python-format
+msgid "You asked the association %(when)s."
+msgstr ""
+
+#, python-format
+msgid "Done %(when)s."
+msgstr ""
+
+#, python-format
+msgid "Write to %(email)s and we look at it together."
+msgstr ""
+
+#, python-format
+msgid "The last check did not find it there: it may have been moved or deleted. Write to %(email)s and we look at it together."
+msgstr ""
+
+#, python-format
+msgid "If your shop is already there, write to %(email)s with the address of its page on OpenStreetMap and we link it."
+msgstr ""
+
+msgid "A person does it by hand: you see here when it is done."
+msgstr ""
+
+msgid "Your shop on OpenStreetMap: the association could not do it."
+msgstr ""
+
+msgid "See what the map says about you, and update it."
+msgstr ""
+
+#, python-format
+msgid "You asked the association about OpenStreetMap %(when)s."
+msgstr ""
+
+#, python-format
+msgid "Your shop on OpenStreetMap: done %(when)s."
+msgstr ""
+
+
+#, python-format
+msgid "%(count)d shop has a link to its OpenStreetMap entry waiting for you to confirm it in the administration:"
+msgid_plural "%(count)d shops have a link to their OpenStreetMap entries waiting for you to confirm them in the administration:"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(count)d shop got empty details from OpenStreetMap (address, town, position), listed in the report."
+msgid_plural "%(count)d shops got empty details from OpenStreetMap (address, town, position), listed in the report."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(count)d shop has a website or a phone offered by OpenStreetMap, to accept in the administration:"
+msgid_plural "%(count)d shops have a website or a phone offered by OpenStreetMap, to accept in the administration:"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(count)d new place on OpenStreetMap takes bitcoin and is not among our shops (only to know):"
+msgid_plural "%(count)d new places on OpenStreetMap take bitcoin and are not among our shops (only to know):"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(count)d linked shop has an entry on OpenStreetMap that could not be read whole: nothing is proposed for it."
+msgid_plural "%(count)d linked shops have an entry on OpenStreetMap that could not be read whole: nothing is proposed for them."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Offered by OpenStreetMap"
+msgstr ""
+
+msgid "Confirm the OpenStreetMap link proposed"
+msgstr ""
+
+msgid "Refuse the OpenStreetMap link proposed"
+msgstr ""
+
+msgid "Accept the website and phone offered by OpenStreetMap"
+msgstr ""
+
+msgid "Decline the website and phone offered by OpenStreetMap"
+msgstr ""
+
+msgid "Link proposed"
+msgstr ""
+
+#, python-format
+msgid "%(proposals)d changes proposed, %(link_proposals)d links proposed, %(candidates)d new places, %(says_no)d marked as closed there"
+msgstr ""
+
+msgid "Link proposed, to confirm"
+msgstr ""
+
+#, python-format
+msgid "%(count)d links to OpenStreetMap confirmed."
+msgstr ""
+
+#, python-format
+msgid "%(count)d proposed links to OpenStreetMap refused: they are not proposed again."
+msgstr ""
+
+#, python-format
+msgid "%(count)d shops got the contacts OpenStreetMap offered."
+msgstr ""
+
+#, python-format
+msgid "%(count)d shops declined the contacts OpenStreetMap offered: they are not offered again."
+msgstr ""
+
+#, python-format
+msgid "%(count)d shop has a link to OpenStreetMap proposed, waiting for you to confirm it."
+msgid_plural "%(count)d shops have a link to OpenStreetMap proposed, waiting for you to confirm it."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Open the shops with a link proposed, look at the element in each shop's page, then use the action «Confirm the OpenStreetMap link proposed» (or «Refuse»). Nothing is read from an element, and nothing is written for it, until you confirm it."
+msgstr ""
+
+#, python-format
+msgid "%(count)d shop has a website or a phone offered by OpenStreetMap, waiting for you to accept it."
+msgid_plural "%(count)d shops have a website or a phone offered by OpenStreetMap, waiting for you to accept it."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "They are never written by the reading: a stranger can write a website on OpenStreetMap. Look at the offer in the shop's page, then use the action «Accept the website and phone offered by OpenStreetMap»."
+msgstr ""
+
+msgid "The shops"
+msgstr ""
+
+msgid "OpenStreetMap element proposed"
+msgstr ""
+
+msgid "OpenStreetMap says that your shop does not take bitcoin any more."
+msgstr ""
+
+msgid "If that is not true, ask the association below: we look at it with you."
+msgstr ""
+
+msgid "Something on OpenStreetMap is not like on this site, and a person of the association has to look at it. You do not need to do anything."
+msgstr ""
+
+msgid "We have not compared it for a while. These are the lines it should have:"
+msgstr ""
+
+#, python-format
+msgid "As of the check of %(date)s."
+msgstr ""
+
+msgid "OpenStreetMap link proposed"
+msgstr ""
+
+msgid "OpenStreetMap decisions"
+msgstr ""
+
+msgid "A ticked box stays on for a detail you write later: customers see it as soon as it is there."
+msgstr ""
+
+msgid "version of the text"
+msgstr ""
+
+msgid "Export the selected declarations as a spreadsheet (CSV)"
+msgstr ""
+
+msgid "basic pass earned"
+msgstr ""
+
+msgid "last review"
+msgstr ""
+
+msgid "merchant training"
+msgstr ""
+
+msgid "shop"
+msgstr ""
+
+msgid "statement"
+msgstr ""
+
+msgid "text shown"
+msgstr ""
+
+msgid "language"
+msgstr ""
+
+msgid "declaration"
+msgstr ""
+
+msgid "declarations"
+msgstr ""
+
+msgid "I did the exercises of the practice register. I know what the register says when a customer pays, says they paid but the payment has not arrived, or does not pay, and when the phone switches off."
+msgstr ""
+
+msgid "I checked my wallet's backup. My recovery words are written on paper, in a place only I know, and I checked them against the wallet."
+msgstr ""
+
+msgid "I tried a withdrawal. I sent a small amount from my wallet to another address, and I saw it arrive."
+msgstr ""
+
+msgid "Practice done"
+msgstr ""
+
+msgid "Backup checked"
+msgstr ""
+
+msgid "Withdrawal tried"
+msgstr ""
+
+msgid "Do the exercises of the practice register, then say so here."
+msgstr ""
+
+msgid "Check your backup with the guide, then say so here."
+msgstr ""
+
+msgid "Send a small amount to another address with the guide, then say so here."
+msgstr ""
+
+msgid "A sale is paid only when the register says so. The customer's phone and a screenshot do not count."
+msgstr ""
+
+msgid "Never give the recovery words of a wallet to anyone."
+msgstr ""
+
+msgid "If in doubt, call the owner."
+msgstr ""
+
+msgid "Trained merchant"
+msgstr ""
+
+msgid "The conditions of the help"
+msgstr ""
+
+msgid "I read the conditions of the help. I know what the volunteers do and what stays with me: my wallet, my recovery words, my backup and the count of my sales."
+msgstr ""
+
+msgid "Basic pass"
+msgstr ""
+
+msgid "Do the modules of the path: it takes a few minutes each."
+msgstr ""
+
+msgid "Too many tries in a short time: wait a few minutes."
+msgstr ""
+
+msgid "All the answers are right."
+msgstr ""
+
+msgid "Some answers are not right yet. Read the lines under them and try again: there is no penalty and no limit."
+msgstr ""
+
+msgid "You have the basic pass. Well done!"
+msgstr ""
+
+msgid "Saved. Thank you."
+msgstr ""
+
+msgid "Tick every statement you agree with, then press the button."
+msgstr ""
+
+msgid "Tick the box to say you did it, then press the button."
+msgstr ""
+
+msgid "Review done. See you next year!"
+msgstr ""
+
+msgid "Some answers are not right yet. Read the lines under them and try again."
+msgstr ""
+
+msgid "One more thing:"
+msgstr ""
+
+msgid "the badge also needs your basic pass. It takes a few minutes."
+msgstr ""
+
+msgid "Start the path"
+msgstr ""
+
+msgid "Register (waiting for the pass)"
+msgstr ""
+
+msgid "The register opens soon"
+msgstr ""
+
+msgid "The register that takes real money opens when you have the basic pass: a few short modules, with a little game. Your wallet and your recovery words are yours, and we want you to know what to do if something goes wrong."
+msgstr ""
+
+msgid "The owner has not finished the training yet: the register opens when they have. Tell them."
+msgstr ""
+
+msgid "The owner of the shop has not finished the training yet: the register opens when they have."
+msgstr ""
+
+msgid "Three rules of the counter"
+msgstr ""
+
+msgid "Before the first sale, read them. They are short."
+msgstr ""
+
+msgid "I understood"
+msgstr ""
+
+msgid "Your merchant pass"
+msgstr ""
+
+msgid "A few short modules, a little game, and you know what to do. Your shop is yours: so are the wallet and the recovery words. A wrong answer is never a problem: you read the line under it and try again."
+msgstr ""
+
+msgid "Steps and days for the shop"
+msgstr ""
+
+msgid "Your shop shows the «Trained merchant» sign."
+msgstr ""
+
+msgid "The register that takes real money opens with the basic pass. The practice register always works."
+msgstr ""
+
+msgid "The basic pass is not required to take payments, but we ask you to get it."
+msgstr ""
+
+msgid "The path to the basic pass"
+msgstr ""
+
+msgid "Steps with a guide"
+msgstr ""
+
+msgid "These steps are about a shop. Add your shop first."
+msgstr ""
+
+#, python-format
+msgid "For «%(name)s». You do each one by yourself, following a guide, then you say so here."
+msgstr ""
+
+msgid "Open the guide"
+msgstr ""
+
+msgid "I did the exercises of the practice register."
+msgstr ""
+
+msgid "I checked my wallet's backup."
+msgstr ""
+
+msgid "I tried a withdrawal."
+msgstr ""
+
+msgid "earned"
+msgstr ""
+
+msgid "The yearly review"
+msgstr ""
+
+#, python-format
+msgid "A short review, one question for each module, every year. The next is due on %(date)s. Nothing is locked if you are late: we only remind you."
+msgstr ""
+
+msgid "Do the review now"
+msgstr ""
+
+msgid "The register is waiting for you."
+msgstr ""
+
+#, python-format
+msgid "The register of «%(names)s» opens as soon as you have the basic pass. It takes a few minutes, and you can try the practice register meanwhile."
+msgstr ""
+
+msgid "The basic pass is not required, but we ask you to get it: a few short modules, and you know what to do if something goes wrong."
+msgstr ""
+
+msgid "A short review is coming."
+msgstr ""
+
+msgid "Time for the short review."
+msgstr ""
+
+msgid "One question for each module, whenever you like, no penalty."
+msgstr ""
+
+msgid "Start the review"
+msgstr ""
+
+msgid "Some texts changed."
+msgstr ""
+
+msgid "Read them again and confirm; your pass stays."
+msgstr ""
+
+msgid "Badges"
+msgstr ""
+
+msgid "not yet"
+msgstr ""
+
+msgid "Your path and badges"
+msgstr ""
+
+msgid "Go on with the path"
+msgstr ""
+
+msgid "Read the page"
+msgstr ""
+
+msgid "It opens in the same window; come back here when you finish."
+msgstr ""
+
+msgid "Questions"
+msgstr ""
+
+msgid "Not this one."
+msgstr ""
+
+msgid "Right"
+msgstr ""
+
+msgid "Try again"
+msgstr ""
+
+msgid "Check my answers"
+msgstr ""
+
+msgid "What you tell us"
+msgstr ""
+
+msgid "After the questions you confirm a few statements."
+msgstr ""
+
+msgid "We keep a note of what you confirm, with the date: it is the proof that you were told. Tick only what you agree with."
+msgstr ""
+
+msgid "This text changed since you confirmed it: read it again."
+msgstr ""
+
+msgid "Confirm what I ticked"
+msgstr ""
+
+msgid "This module is done."
+msgstr ""
+
+#, python-format
+msgid "Next: %(name)s"
+msgstr ""
+
+msgid "Back to your path"
+msgstr ""
+
+msgid "One question for each module. No penalty: a wrong answer comes with a line to read, and you try again."
+msgstr ""
+
+msgid "The owner has the basic pass of the training."
+msgstr ""
+
+msgid "The register is waiting for the owner's basic pass."
+msgstr ""
+
+msgid "The register page says «The register opens soon» and no new sale starts, by the community's choice. Tell the owner to open «Your merchant pass» in the panel: a few short modules. The practice register works meanwhile. Nothing else is wrong: do not change anything."
+msgstr ""
+
+msgid "The owner has not done the training yet."
+msgstr ""
+
+msgid "The register works for now. Remind the owner of the basic pass."
+msgstr ""
+
+#, python-format
+msgid "%(counter)s question"
+msgid_plural "%(counter)s questions"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(done)s of %(counter)s statement"
+msgid_plural "%(done)s of %(counter)s statements"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "ADMIN ZONE"
+msgstr ""
+
+msgid "The register is ready: it asks your Lightning wallet for each payment."
+msgstr ""
+
+msgid "Your Lightning wallet receives, but it does not tell the register when a payment arrives: check each payment in your wallet app before you confirm it on the register."
+msgstr ""
+
+msgid "The register cannot take payments: write to the association."
+msgstr ""
+
+msgid "A customer paid more than the price: the extra is theirs. Give it back from your wallet."
+msgstr ""
+
+msgid "The money is not in your wallet: a Lightning payment is instant, so ask the customer to look at their wallet and try again."
+msgstr ""
+
+msgid "You gave too much change: the register cannot take it back, and a payment already made does not change."
+msgstr ""
+
+#, python-format
+msgid "%(count)d shops can be certified again."
+msgstr ""
+
+msgid "A phone where the register was opened before keeps taking Lightning payments, even when the site does not answer."
+msgstr ""
+
+msgid "A shop is certified when its Lightning address works and its owner has earned the basic pass of the training."
+msgstr ""
+
+msgid "Certified shop: its Lightning address works, and its owner has done the community's training."
+msgstr ""
+
+msgid "Do not give money back yourself: tell the owner the time and the amount."
+msgstr ""
+
+msgid "Give each person their own register: you turn one off at once when someone leaves or loses the phone. Your own register is different: whoever knows its link can always open it."
+msgstr ""
+
+msgid "Give each person who takes payments their own register. With it they can only take payments, which go to your wallet: they see where the money goes, and nothing else of your wallet, your sales or your settings."
+msgstr ""
+
+msgid "Nothing to do now: the association hears about it the day the closure ends."
+msgstr ""
+
+msgid "Nothing to do now: the merchant and the association hear about it the day the shop opens again."
+msgstr ""
+
+#, python-format
+msgid "Registers: %(working)d with a Lightning address that works, %(to_look)d shops to look at."
+msgstr ""
+
+msgid "Scan this code with the other phone, or send the link. No sign-in needed: with it one can only take payments, which go to your wallet. Your settings stay yours."
+msgstr ""
+
+msgid "The certificate still waits for: {missing}."
+msgstr ""
+
+msgid "The list of sales at the bottom of the register, on the phone that took the sale, shows how each sale ended."
+msgstr ""
+
+msgid "The sales stay on the registers' phones and never reach the site, and the wallets are asked only by the diagnosis. When a merchant calls, ask it one shop at a time:"
+msgstr ""
+
+msgid "The site checked your Lightning address after you opened again: it works. Thank you for keeping the shop on the map."
+msgstr ""
+
+msgid "Then the badge “Certified shop” goes on your card by itself."
+msgstr ""
+
+msgid "This link cannot be turned off."
+msgstr ""
+
+msgid "You have everything for the certificate: the site gives it at its next check of your Lightning address."
+msgstr ""
+
+msgid "Your Lightning address has not passed the site's check yet: the first milestone says how it stands."
+msgstr ""
+
+msgid "a Lightning address that works"
+msgstr ""
+
+msgid "the owner's basic pass of the training"
+msgstr ""
+
+msgid "with a Lightning address that works"
+msgstr ""
+
+#, python-format
+msgid "%(count)d shop was checked on OpenStreetMap after our last check or closing date:"
+msgid_plural "%(count)d shops were checked on OpenStreetMap after our last check or closing date:"
+msgstr[0] ""
+msgstr[1] ""
+
+msgctxt "meetup state"
+msgid "Cancelled"
+msgstr ""
+
+msgid "Too many emails in a short time: wait a few minutes and try again."
+msgstr ""
+
+msgid "Too many requests from your connection in a short time: wait a few minutes and try again."
+msgstr ""
+
+#, python-format
+msgid "A link was already sent to %(email)s a few minutes ago. Look in your mail, and in the spam folder: each link lasts 15 minutes. To ask for a new one, wait a few minutes."
+msgstr ""
+
+msgid "Too many sign-in codes from your connection in a short time: in a few minutes the wallet code is back. The email works now."
+msgstr ""
+
+msgid "This register is turned off"
+msgstr ""
+
+msgid "Signed in as %(who)s."
+msgstr ""
+
+msgid "Not you? Sign out"
+msgstr ""
+
+msgid "Password change"
+msgstr ""
+
+msgid "On-chain payments too"
+msgstr ""
+
+msgid "The chat number or @name where the site writes to you: account changes, help answers, the reopening after a closure. Up to three, separated by commas: each chat gets its own copy."
+msgstr ""
+
+msgid "This chat cannot receive the site's messages."
+msgstr ""
+
+msgid "Only a sign for customers, on the map and on your page. Where on-chain payments go is set in your register, on your phone: the site never sees it."
+msgstr ""
+
+msgid "Add your Lightning address."
+msgstr ""
+
+msgid "I take on-chain payments too"
+msgstr ""
+
+msgid "The customer leaves without paying. The register says «Payment expired»: nothing was charged, the goods stay with you. In the real register it happens when the code expires."
+msgstr ""
+
+msgid "No connection: the shop's Lightning wallet cannot be reached."
+msgstr ""
+
+msgid "No connection: your Lightning wallet cannot be reached."
+msgstr ""
+
+#, python-brace-format
+msgid "The sources do not agree: {rates}. Which rate do you want to use?"
+msgstr ""
+
+msgid "No source answers and the last good rate is too old: the register cannot charge."
+msgstr ""
+
+msgid "No source answers: the register cannot calculate the amount in sats."
+msgstr ""
+
+msgid "Your Lightning wallet does not answer: the register cannot charge."
+msgstr ""
+
+msgid "Your Lightning wallet answers from another address: the register cannot use it."
+msgstr ""
+
+msgid "Your Lightning wallet sent an invoice that is old or already used for another sale: do not use it. Try again in a moment."
+msgstr ""
+
+msgid "Careful: your Lightning wallet does not tell the register when a payment arrives. Hand over the goods only after you see the payment in your wallet, then confirm here."
+msgstr ""
+
+msgid "Your Lightning wallet says an invoice was paid, but the register cannot check that it is this sale's. Look in your wallet: if you see the payment, tap «I see the payment in my wallet»."
+msgstr ""
+
+#, python-brace-format
+msgid "This phone's clock is {minutes} min away from the site's: set the date and time right in the phone's settings."
+msgstr ""
+
+#, python-brace-format
+msgid "Sales on this phone: {count}"
+msgstr ""
+
+msgid "Preparing a new on-chain address..."
+msgstr ""
+
+#, python-brace-format
+msgid "On-chain address …/{path} of your key: {address}"
+msgstr ""
+
+#, python-brace-format
+msgid "Your fixed on-chain address: {address}"
+msgstr ""
+
+#, python-brace-format
+msgid "On-chain, to the shop: {address}"
+msgstr ""
+
+msgid "Payment seen: waiting for a confirmation in a block. It can take ten minutes or more."
+msgstr ""
+
+#, python-brace-format
+msgid "Less than asked has arrived: {seen} of {sats}. Do not hand over the goods: ask the customer to pay the rest, or cancel."
+msgstr ""
+
+msgid "Next customer: check this sale later"
+msgstr ""
+
+msgid "The explorer does not answer: the register cannot see the payment. Look in your wallet."
+msgstr ""
+
+msgid "The explorer does not answer: with a fixed address the register cannot tell this sale's payment from earlier ones. Use Lightning, or try again in a moment."
+msgstr ""
+
+msgid "The on-chain key on this phone is not valid any more: check it in the settings."
+msgstr ""
+
+msgid "The on-chain key of this register's pairing does not give addresses any more: ask the owner for a new pairing code, and take this sale with Lightning."
+msgstr ""
+
+msgid "The register asked the explorer about many addresses of this chain and did not find one that is surely unused: the history on this phone may miss many sales. Take this sale with Lightning, or try again later."
+msgstr ""
+
+#, python-brace-format
+msgid "Too little for on-chain: the least is {sats}, below it wallets refuse the payment or its fee eats it. Take this amount with Lightning."
+msgstr ""
+
+msgid "Seen, waiting for a confirmation"
+msgstr ""
+
+#, python-brace-format
+msgid "Bitcoin discount −{percent}%: {amount} to pay. Tap to remove it for this sale."
+msgstr ""
+
+#, python-brace-format
+msgid "No discount on this sale. Tap to give the −{percent}% bitcoin discount."
+msgstr ""
+
+msgid "This register is not paired yet: ask the owner to show you the pairing code of this register, and scan it with this phone's camera."
+msgstr ""
+
+msgid "The shop's Lightning address changed after this register was paired: ask the owner for a new pairing code."
+msgstr ""
+
+#, python-brace-format
+msgid "Paired with the owner's code on {date}."
+msgstr ""
+
+msgid "On-chain: yes."
+msgstr ""
+
+#, python-brace-format
+msgid "Register paired. Payments go to {address}."
+msgstr ""
+
+msgid "This pairing code cannot be used: ask the owner for a new one."
+msgstr ""
+
+msgid "This register was paired, but its pairing no longer matches the site's settings: it cannot take payments. Ask the owner for a new pairing code."
+msgstr ""
+
+#, python-brace-format
+msgid "The shop's Lightning address changed: before it was {before}, now it is {after}. If you did not change it, do not take payments and tell the association."
+msgstr ""
+
+#, python-brace-format
+#, python-brace-format
+msgid "On-chain addresses of this register not paid in a row: {count}."
+msgstr ""
+
+msgid "A wallet stops looking after 20 unused addresses in a row (the gap limit): raise it in your wallet's settings, or the next payments may not show there. The money is safe all the same."
+msgstr ""
+
+msgid "A fixed address: every payment goes to the same address, so two sales of the same amount at the same time cannot be told apart, a payment arriving late for a cancelled sale or an earlier payment replaced by its sender can be taken for the sale on the screen, and anyone who sees it sees all your sales. An extended public key (zpub) is better. Tick the box to use it anyway."
+msgstr ""
+
+msgid "Tick the box to confirm."
+msgstr ""
+
+msgid "This is neither an extended public key nor an address of this network."
+msgstr ""
+
+msgid "This key or address is of another network."
+msgstr ""
+
+msgid "This is a private key: never write it anywhere. Use the public one (zpub, xpub…)."
+msgstr ""
+
+msgid "Choose at least two price sources."
+msgstr ""
+
+msgid "Write the currency as three letters, like EUR."
+msgstr ""
+
+msgid "Saved on this phone. Staff registers get the new settings only with a new pairing code."
+msgstr ""
+
+#, python-brace-format
+msgid "Careful: {count} on-chain sales of this copy were paid or asked for payment to addresses that are not of your current key: {times}. Check them in your wallet."
+msgstr ""
+
+msgid "Check the staff registers' on-chain sales in your wallet too: only the wallet shows that a payment really arrived."
+msgstr ""
+
+#, python-brace-format
+msgid "Last copy on Nostr: {date}, on {count} relays."
+msgstr ""
+
+msgid "No copy on Nostr yet."
+msgstr ""
+
+msgid "No relay took the copy: the register tries again after the next sale."
+msgstr ""
+
+msgid "This is not a Nostr public key (npub…)."
+msgstr ""
+
+msgid "This is not a Nostr private key (nsec…)."
+msgstr ""
+
+msgid "This private key is not the one of the public key in the settings."
+msgstr ""
+
+msgid "No relay answers: try again in a moment."
+msgstr ""
+
+#, python-brace-format
+msgid "From Nostr: {added} new sales, {updated} updated, {refused} copies that are not yours. The staff registers' sales keep arriving while this page is open."
+msgstr ""
+
+msgid "Forget the Nostr keys of all the staff registers paired from this phone? Their copies will no longer come into this register until you pair them again."
+msgstr ""
+
+msgid "The staff registers' Nostr keys are forgotten: pair them again to receive their sales."
+msgstr ""
+
+#, python-brace-format
+msgid "{count} copies from keys this phone does not know were left out."
+msgstr ""
+
+#, python-brace-format
+msgid "{copies} copies on Nostr ({sales} sales) come from {keys} keys this phone does not know. They may be your own, from a phone you no longer have, or written by anyone who knows your public key. Take them, every sale marked as reported, to check in your wallet?"
+msgstr ""
+
+#, python-brace-format
+msgid "From keys this phone does not know: {added} sales taken as reported, {left} left out (bring those back with the encrypted file)."
+msgstr ""
+
+msgid "The phone has no more room for the register's history: download a copy now."
+msgstr ""
+
+#, python-brace-format
+msgid "Last copy: {date}."
+msgstr ""
+
+msgid "No copy downloaded yet."
+msgstr ""
+
+msgid "It is older than the reminder you chose: download a copy now."
+msgstr ""
+
+msgid "Day closed. Now download the encrypted copy."
+msgstr ""
+
+#, python-brace-format
+msgid "Closed at {time}."
+msgstr ""
+
+#, python-brace-format
+msgid "{method}: {count} paid, {amount} ({sats})"
+msgstr ""
+
+#, python-brace-format
+msgid "Of these, {count} marked as paid by you: check them in your wallet."
+msgstr ""
+
+#, python-brace-format
+msgid "Of these, {count} reported by a staff register: check them in your wallet."
+msgstr ""
+
+#, python-brace-format
+msgid "Of these, {count} paid after you cancelled them: settle it with the customer."
+msgstr ""
+
+msgid "paid after it was cancelled"
+msgstr ""
+
+msgid "No paid sales on this day."
+msgstr ""
+
+#, python-brace-format
+msgid "Not checked: {count}. Look for them in your wallet."
+msgstr ""
+
+#, python-brace-format
+msgid "Not paid (expired or cancelled): {count}"
+msgstr ""
+
+#, python-brace-format
+msgid "The passphrase must be at least {count} characters long."
+msgstr ""
+
+msgid "The two passphrases are different."
+msgstr ""
+
+msgid "Just a moment..."
+msgstr ""
+
+msgid "This browser cannot encrypt the copy: try another browser."
+msgstr ""
+
+msgid "Copy downloaded. Keep it somewhere other than this phone, and keep the passphrase too."
+msgstr ""
+
+msgid "Wrong passphrase, or a damaged file."
+msgstr ""
+
+msgid "This copy comes from a newer version of the register: reload the page and try again."
+msgstr ""
+
+msgid "This file is not a copy of a register."
+msgstr ""
+
+#, python-brace-format
+msgid "Copy imported: {added} new sales, {updated} updated."
+msgstr ""
+
+msgid "Its sales came in as reported, to check in your wallet: this phone already has sales, and the box saying it is a copy of this register was not ticked."
+msgstr ""
+
+msgid "Date and time"
+msgstr ""
+
+msgid "Business day"
+msgstr ""
+
+msgid "Satoshis"
+msgstr ""
+
+msgid "Exchange rate (per BTC)"
+msgstr ""
+
+msgid "How the rate was chosen"
+msgstr ""
+
+msgid "Rate sources"
+msgstr ""
+
+msgid "Payment hash"
+msgstr ""
+
+msgid "Discount (%)"
+msgstr ""
+
+msgid "Price before the discount"
+msgstr ""
+
+msgid "On-chain address"
+msgstr ""
+
+msgid "Sale ID"
+msgstr ""
+
+msgid "two sources agreed"
+msgstr ""
+
+msgid "chosen at the register"
+msgstr ""
+
+msgid "last good rate, chosen at the register"
+msgstr ""
+
+#, python-brace-format
+msgid "Lightning: {address}"
+msgstr ""
+
+#, python-brace-format
+msgid "On-chain: the receive addresses of your wallet, …/{path}, counted with your other registers. The first one is {address}."
+msgstr ""
+
+#, python-brace-format
+msgid "On-chain: your fixed address {address}."
+msgstr ""
+
+msgid "On-chain: no. To add it, set it in your register's settings on this phone, then come back here."
+msgstr ""
+
+#, python-brace-format
+msgid "Discount {discount}%, currency {currency}, a confirmation above {above}."
+msgstr ""
+
+#, python-brace-format
+msgid "Discount {discount}%, currency {currency}."
+msgstr ""
+
+#, python-brace-format
+msgid "Sales sent to you on Nostr as they happen, encrypted to {owner}."
+msgstr ""
+
+#, python-brace-format
+msgid "The shop's Lightning address is {after}, but the register on this phone takes payments into {before}. Open your register first and check it: no code until they are the same."
+msgstr ""
+
+msgid "The code cannot be made on this browser: try another browser, or open this page on the phone with your register."
+msgstr ""
+
+msgid "The shop's Lightning wallet does not answer: the register cannot charge."
+msgstr ""
+
+msgid "The shop's Lightning wallet answers from another address: the register cannot use it."
+msgstr ""
+
+msgid "The shop's Lightning wallet sent an invoice that is old or already used for another sale: do not use it. Try again in a moment."
+msgstr ""
+
+msgid "Careful: this register cannot see when this payment arrives. Hand over the goods only after the owner sees the payment in their wallet, then confirm here."
+msgstr ""
+
+#, python-brace-format
+msgid "Of these, {count} marked as paid: the owner checks them in the wallet."
+msgstr ""
+
+#, python-brace-format
+msgid "Not checked: {count}. Tell the owner."
+msgstr ""
+
+#, python-brace-format
+msgid "Of these, {count} paid after they were cancelled: tell the owner."
+msgstr ""
+
+msgid "Shift ended. Now download the encrypted copy and give it to the owner."
+msgstr ""
+
+msgid "Log out"
+msgstr ""
+
+msgid "Home"
+msgstr ""
+
+#, python-format
+msgid "%(shops)s register in this site, as the database knows it now: nothing here asks the wallets."
+msgid_plural "%(shops)s registers in this site, as the database knows them now: nothing here asks the wallets."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "This register is the real one, with the same screens and the same words. The code it shows cannot be paid by any wallet, and nothing is sent anywhere."
+msgstr ""
+
+msgid "The customer does not pay"
+msgstr ""
+
+msgid "Start a sale and press «Does not pay»."
+msgstr ""
+
+msgid "Nothing was charged: keep the goods. The register says «Payment expired» and is ready for the next sale."
+msgstr ""
+
+msgid "Open the register again on the same phone: the sale comes back and says how it ended. On another phone it does not: look in your wallet."
+msgstr ""
+
+msgid "Sales stay only on this phone and in the copies you download. The site does not see or keep them: if you lose the phone without a copy, you lose the history (not the money, which is in the shop's wallet)."
+msgstr ""
+
+msgid "Sales stay only on this phone and in the copies you download. The site does not see or keep them: if you lose the phone without a copy, you lose the history (not the money, which is in your wallet)."
+msgstr ""
+
+msgid "Understood"
+msgstr ""
+
+msgid "I changed it: use the new address"
+msgstr ""
+
+msgid "OK, on-chain"
+msgstr ""
+
+msgid "Open the register again on the same phone: the sale comes back, or its line below says how it ended. On another phone it does not: tell the owner the time and the amount."
+msgstr ""
+
+msgid "Time to download a copy of your sales."
+msgstr ""
+
+msgid "Sales on this phone"
+msgstr ""
+
+msgid "This browser may delete the sales when it needs room: keep your copies up to date."
+msgstr ""
+
+msgid "End of shift"
+msgstr ""
+
+msgid "Day closing"
+msgstr ""
+
+msgid "Sales of the day"
+msgstr ""
+
+msgid "End the shift"
+msgstr ""
+
+msgid "Close the day"
+msgstr ""
+
+msgid "Copies"
+msgstr ""
+
+msgid "Remind me to download a copy"
+msgstr ""
+
+msgid "Never: I do it when I want"
+msgstr ""
+
+msgid "Every day"
+msgstr ""
+
+msgid "Every week"
+msgstr ""
+
+msgid "Every month"
+msgstr ""
+
+msgid "At the end of every shift"
+msgstr ""
+
+msgid "At every day closing"
+msgstr ""
+
+msgid "All the sales"
+msgstr ""
+
+msgid "Download the CSV for the accountant"
+msgstr ""
+
+msgid "The full copy is encrypted with a passphrase you choose: without it nobody can open the copy, not even you. Write it down somewhere safe."
+msgstr ""
+
+msgid "Passphrase (at least 10 characters)"
+msgstr ""
+
+msgid "The passphrase again"
+msgstr ""
+
+msgid "Download the encrypted copy"
+msgstr ""
+
+msgid "On a new phone: the sales already here stay, and each sale is counted once."
+msgstr ""
+
+msgid "On a new phone, or to add a staff register's sales at the end of a shift: the sales already here stay, and each sale is counted once."
+msgstr ""
+
+msgid "File of the copy"
+msgstr ""
+
+msgid "Its passphrase"
+msgstr ""
+
+msgid "It is a copy of this register, made on this phone or on the one it replaces"
+msgstr ""
+
+msgid "Import the copy"
+msgstr ""
+
+msgid "Copy on Nostr"
+msgstr ""
+
+msgid "Send the copy now"
+msgstr ""
+
+msgid "The sales of the staff registers paired from this phone arrive by themselves while this page is open. Your Nostr private key is needed only to bring back your own copies on a new phone, and to read the staff registers this phone no longer has the keys of: it stays on this page until you close it, never stored and never sent."
+msgstr ""
+
+msgid "Your Nostr private key (nsec)"
+msgstr ""
+
+msgid "Bring the sales from Nostr"
+msgstr ""
+
+msgid "Register settings"
+msgstr ""
+
+msgid "On-chain"
+msgstr ""
+
+msgid "I checked it: it is my wallet's"
+msgstr ""
+
+msgid "Price sources (at least two)"
+msgstr ""
+
+msgid "Colour of the register"
+msgstr ""
+
+msgid "A line on the register and on the staff registers (optional)"
+msgstr ""
+
+msgid "With your Nostr public key, this register keeps an encrypted copy of its sales on the community's relays, and the staff registers paired after this send you their sales as they happen. Only your private key opens them."
+msgstr ""
+
+msgid "Public relays to use too (optional)"
+msgstr ""
+
+msgid "Forget the staff registers' Nostr keys"
+msgstr ""
+
+msgid "Customers pay into your Lightning address."
+msgstr ""
+
+msgid "No problem: leave the address empty. Your shop is saved, and a guide shows you how to get a free wallet in a few minutes. Your shop goes on the map, with its register, when the wallet is added."
+msgstr ""
+
+msgid "The code pairs the register with yours: it carries where the money goes and your preferences, read from this phone. Open this page on the phone with your register, so that on-chain and your settings come along. The site never sees them."
+msgstr ""
+
+msgid "The code pairs the register with yours: it carries where the money goes and your preferences, read from this phone. Open this page on the phone with your register, so that your settings come along. The site never sees them."
+msgstr ""
+
+msgid "The code is drawn by the browser: turn JavaScript on."
+msgstr ""
+
+msgid "Send it only to the person, in a private message: the link carries where the money goes."
+msgstr ""
+
+msgid "Changed your settings, the on-chain key or the Lightning address? Make a new code and scan it with the register's phone: it is paired again."
+msgstr ""
+
+msgid "Changed your settings or the Lightning address? Make a new code and scan it with the register's phone: it is paired again."
+msgstr ""
+
+msgid "If the wallet does not tell the register"
+msgstr ""
+
+#, python-format
+msgid "Some wallets do not tell the register when a payment arrives: then the register says so in red, under the code. Hand over the goods only after the owner sees the payment in the shop's wallet, then press “%(seen)s”."
+msgstr ""
+
+#, python-format
+msgid "“%(expired)s”: the time ran out, nothing was charged. Start again."
+msgstr ""
+
+#, python-format
+msgid "“%(cancel)s” only if the customer has not paid."
+msgstr ""
+
+msgid "Too much or too little: a Lightning payment is always the exact amount of the code."
+msgstr ""
+
+#, python-format
+msgid "“%(check_failed)s” Wait: do not cancel and do not start over."
+msgstr ""
+
+msgid "The register works even when the site does not answer: the sales stay on the phone, and the site never sees them."
+msgstr ""
+
+msgid "Under the keypad the register lists the sales made on this phone, with how each one ended."
+msgstr ""
+
+msgid "Copy the text"
+msgstr ""
+
+msgid "Reported by (check in the wallet)"
+msgstr ""
+
+msgid "This is a copy of the practice register: its sales are pretend, and it does not come into the real register."
+msgstr ""
+
+msgid "This is a copy of a real register: it does not come into the practice."
+msgstr ""
+
+#, python-brace-format
+msgid "Marked as paid by {who}"
+msgstr ""
+
+msgid "Marked as paid by hand on another phone"
+msgstr ""
+
+#, python-brace-format
+msgid "Still waiting for a payment or a confirmation: {count}. The register looks again by itself."
+msgstr ""
+
+msgid "Write the amount as a number, like 50 or 49.90."
+msgstr ""
+
+msgid "Many addresses after the last one this phone knows look used (by the explorer's answers). If your wallet really used them, set the starting number in Settings; otherwise ask the community about its explorer. Take this sale with Lightning."
+msgstr ""
+
+#, python-brace-format
+msgid "{count} sales of this register's own were left as they were. If the file is a copy of this register, and only if you made it yourself on this register, tick «It is a copy of this register» and import it again."
+msgstr ""
+
+msgid "Many addresses after the last one this register knows look used (by the explorer's answers). Tell the owner: if the wallet really used them, the owner adds this register again and pairs it (a new path of addresses); otherwise ask the community about its explorer. Take this sale with Lightning."
+msgstr ""
+
+#, python-brace-format
+msgid "On-chain address …/{path} of your key: {address}. Check that your wallet shows the same one at that number, then tick the box and save."
+msgstr ""
+
+#, python-brace-format
+msgid "The next on-chain sale uses the address …/{path}."
+msgstr ""
+
+msgid "Write the starting number as a whole number, like 120."
+msgstr ""
+
+msgid "The starting number needs an extended public key of your wallet (zpub, xpub…)."
+msgstr ""
+
+msgid "private part approved on"
+msgstr ""
+
+msgid "private part approved by"
+msgstr ""
+
+msgid "Certified, private part waiting for approval"
+msgstr ""
+
+msgid "Open the private part to the owner"
+msgstr ""
+
+msgid "Close the private part to the owner"
+msgstr ""
+
+msgid "Private part opened for %(count)d shops."
+msgstr ""
+
+msgid "Private part closed for %(count)d shops."
+msgstr ""
+
+msgid "This Lightning address is already used by another shop. Use the address of your own wallet."
+msgstr ""
+
+msgid "Certified: the private part waits for your approval."
+msgstr ""
+
+msgid "Look at the shop and its owner; if all is well, open the private part with the action «Open the private part to the owner»."
+msgstr ""
+
+msgid "Its Lightning address is also on a shop of another owner."
+msgstr ""
+
+msgid "Find out whose wallet it is: the other owner's shop must change its address. Until then the site certifies neither shop."
+msgstr ""
+msgid "More than asked has arrived: {seen} of {sats}. It may be a payment for something else to the same address: look in your wallet, and confirm by hand only if it is this sale's."
+msgstr ""
+
+msgid "A payment of {seen} reached this address before this sale or long after it: it is not counted for this sale. Look in your wallet."
+msgstr ""
+
+msgid "The customer looks at the code and does not know what to do: their wallet does not read Lightning codes. Maybe it pays only on-chain: do not despair. Cancel this sale, type the amount again and press «OK, on-chain»."
+msgstr ""
+
+msgid "An on-chain code: the customer's wallet pays it as an ordinary bitcoin payment. Wait for «Payment received» here, as with Lightning."
+msgstr ""
+
+msgid "With a key, each sale takes the next unused receive address of your wallet, so the payments show in any wallet. These are the same addresses your wallet may give to someone else: a payment to one of them may be for something else. The register counts a payment only if it is the sale's amount and arrives during the sale, and otherwise shows what arrived: check it in your wallet. Never give out the wallet's receive addresses elsewhere while you use the register."
+msgstr ""
+
+msgid "Only when the register says that many addresses after the last one it knows look used, and your wallet really used them (a wallet in use for a long time, or a phone restored with too little history): read the number of the last used receive address (…/0) in your wallet (for example in Sparrow's address list) and type the next one. The register then uses that number, the next one, and so on. Empty: no change. All the registers of the shop then go on from there."
+msgstr ""
+
+msgid "Path of the on-chain addresses after your key (optional)"
+msgstr ""
+
+msgid "Empty: 0, the receive chain of a standard wallet (…/0/0, …/0/1, …). Change it only if your wallet receives on another path after the key you pasted, for example 0/5: whole numbers separated by «/», at most four, none hardened (no ' or h). All the registers of the shop use it; a staff register after you pair it again. Sales already made keep their addresses."
+msgstr ""
+
+msgid "To take on-chain sales here, sign in on this phone as the shop's owner: all the shop's registers share one count of the addresses, kept by the site, so that none is given twice. Take this sale with Lightning."
+msgstr ""
+
+msgid "The site does not answer, and the shop's registers share one count of the on-chain addresses through it: no address without it. Take this sale with Lightning, or try again in a moment."
+msgstr ""
+
+#, python-brace-format
+msgid "On-chain addresses in use: …/{path} of your key."
+msgstr ""
+
+msgid "Not a path: whole numbers separated by «/», at most four, none hardened (no ' or h)."
+msgstr ""
+
+msgid "A path needs an extended public key, not a fixed address."
+msgstr ""
+
+#, python-brace-format
+msgid "First address of this key at …/{path}: {address}. Check that your wallet shows the same one, then tick the box."
+msgstr ""
+
+msgid "The shop's on-chain addresses are not ready for this register yet: ask the owner to open this register's code page on the owner's phone once more. Take this sale with Lightning."
+msgstr ""
+
+msgid "the explorer does not say whether it spends unconfirmed payments"
+msgstr ""
+
+msgid "Advanced"
+msgstr ""
+
+msgid "The exchange rate is the average of two of these sources that agree. Your choice goes to the staff registers with their pairing code: they cannot change it."
+msgstr ""
+
+msgid "Does not understand the code"
+msgstr ""
+
+msgid "The customer does not understand your code"
+msgstr ""
+
+msgid "Start a sale and press «Does not understand the code». Cancel the sale, type the amount again, press «OK, on-chain», then «Pays»."
+msgstr ""
+
+msgid "Do not despair: some wallets pay only on-chain. If the owner set up on-chain for this register, press «OK, on-chain» instead of OK. Wait for «Payment received» as usual: it can take ten minutes or more."
+msgstr ""
+
+msgid "Do not despair: maybe the customer's wallet pays only on-chain. With on-chain set up in the register's settings, press «OK, on-chain» instead of OK. It has advantages for you too: the money arrives straight in your wallet, with no channel to look after. Wait for «Payment received»: it can take ten minutes or more."
+msgstr ""
+
+msgid "Confidence: sure ({why})."
+msgstr ""
+
+msgid "Confidence: probable ({why})."
+msgstr ""
+
+msgid "Confidence: low, wait for a confirmation ({why})."
+msgstr ""
+
+msgid "confirmed in a block"
+msgstr ""
+
+msgid "confirmations: {count}"
+msgstr ""
+
+msgid "fee {rate} sat/vB, at least the next block's {target}"
+msgstr ""
+
+msgid "fee {rate} sat/vB, at least the half hour's {target}"
+msgstr ""
+
+msgid "fee {rate} sat/vB, below the half hour's {target}: it may take up to an hour"
+msgstr ""
+
+msgid "fee {rate} sat/vB, below the next hour's {target}: it may wait long, or be dropped or replaced"
+msgstr ""
+
+msgid "the sender marked it as replaceable (RBF)"
+msgstr ""
+
+msgid "not marked as replaceable (no RBF)"
+msgstr ""
+
+msgid "it spends a payment not confirmed yet: if that one is dropped, this goes with it"
+msgstr ""
+
+msgid "no unconfirmed parent"
+msgstr ""
+
+msgid "Confidence: sure"
+msgstr ""
+
+msgid "Confidence: probable"
+msgstr ""
+
+msgid "Confidence: low"
+msgstr ""
+
+msgid "the explorer does not say the fee level"
+msgstr ""
+
+msgid "Change the Lightning address"
+msgstr ""
+
+msgid "Payments go now to:"
+msgstr ""
+
+#, python-format
+msgid "The address can be changed once a day."
+msgid_plural "The address can be changed once every %(days)s days: next time from %(when)s."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "If you need it sooner, write to <a href=\"mailto:%(email)s\">%(email)s</a>."
+msgstr ""
+
+#, python-format
+msgid "To keep your money safe, the address changes only after a sign-in of the last %(minutes)s minutes. Sign out and sign in again, with your wallet or with the email link, then come back here."
+msgstr ""
+
+msgid "Sign in again"
+msgstr ""
+
+msgid "The check is taking too long. You can go on: the address is checked again when you save."
+msgstr ""
+
+msgid "I could not check the address now. You can go on: it is checked again when you save."
+msgstr ""
+
+msgid "What happens"
+msgstr ""
+
+msgid "We try the new address, as the first time. Your shop, its page and its sign stay the same: the sign's code leads to the shop's page, so you do not need to print it again."
+msgstr ""
+
+msgid "Open your register again and confirm the new address. The registers of your staff stop until you give each one a new pairing code."
+msgstr ""
+
+msgid "Sales already started on the old address are still recognised for a few days: keep the old wallet until they are settled."
+msgstr ""
+
+#, python-format
+msgid "We send you a confirmation and tell the association. The address can be changed again after a day."
+msgid_plural "We send you a confirmation and tell the association. The address can be changed again after %(days)s days."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "If your shop is certified, the badge comes back as soon as we see the new address work, usually within the hour."
+msgstr ""
+
+msgid "Change the address"
+msgstr ""
+
+#, python-format
+msgid "On %(when)s you changed the Lightning address from %(before)s to %(after)s. Open each register again and confirm it; give your staff new pairing codes. The printed sign stays valid. If it was not you, write to the association now."
+msgstr ""
+
+msgid "We are checking the new address: until then the certified badge is paused."
+msgstr ""
+
+msgid "To use another wallet later, you change the address from the shop's page in your panel: the shop and its sign stay the same."
+msgstr ""
+
+#, python-format
+msgid "Open your wallet and check that your Lightning address is still this one. If your wallet changed it, or changed how it works, <a href=\"%(new_shop)s\">change it</a> to an address that tells the register when a payment arrives, or write to <a href=\"mailto:%(email)s\">%(email)s</a>."
+msgstr ""
+
+#, python-format
+msgid "Open your wallet and check that your Lightning address is still this one. If it changed, <a href=\"%(new_shop)s\">change it here</a>. If it is the same, your wallet's provider may be having trouble: try again later, or write to <a href=\"mailto:%(email)s\">%(email)s</a>."
+msgstr ""
+
+msgid "2. If your wallet changed it, or changed how it works, the register needs a Lightning address that tells it when a payment arrives: change it from your shop's page in your panel, or write to {email} and we help you."
+msgstr ""
+
+msgid "3. If it is different, or your wallet no longer has one, change it from your shop's page in your panel: the shop and its sign stay the same. If you need help, write to {email}."
+msgstr ""
+
+msgid "Call the merchant: the panel already shows them what to do. If the wallet changed, only they can change the address, from their panel. Never change it for them."
+msgstr ""
+
+msgid "The Lightning address of a suspended shop cannot be changed."
+msgstr ""
+
+msgid "This is already your shop's Lightning address."
+msgstr ""
+
+msgid "Done: payments now go to {address}. Open each register again and confirm the new address."
+msgstr ""
+
+msgid "Your shop changed while you were saving: look at it again."
+msgstr ""
+
+msgid "Lightning address changed by the owner"
+msgstr ""
+
+msgid "previous Lightning address"
+msgstr ""
+
+msgid "The same wait follows a change of your account's recovery email."
+msgstr ""
+
+msgid "Historic shop: no register."
+msgstr ""
+
+msgid "Suspended: no register can be added."
+msgstr ""
+
+msgid "answered by your own explorer"
+msgstr ""
+
+msgid "answered by {host}: your own explorer did not answer"
+msgstr ""
+
+msgid "answered by {host}"
+msgstr ""
+
+msgid "Saved. Reload the register for the new explorer to be used."
+msgstr ""
+
+msgid "Your own explorer must be an https address (https://host/api): no password in it, no query."
+msgstr ""
+
+msgid "The site could not save your own explorer: try again."
+msgstr ""
+
+msgid "Your own explorer (optional)"
+msgstr ""
+
+msgid "The https address of the API of an Esplora or mempool explorer on your own node, for example the mempool app. The registers (yours and the staff's) ask it first to check on-chain payments, and the community's explorers only when it does not answer. It must allow this site's address in its CORS settings and have a valid https certificate; the Bitcoin Core RPC alone cannot be used."
+msgstr ""
+
+msgid "{count} copies of staff registers cannot be read on this phone (it no longer holds their keys): give your Nostr private key below to read them."
+msgstr ""
+
+msgid "Of these, {count} reported by a staff register and checked by this register with the payment provider: no need to look in the wallet."
+msgstr ""
+
+msgid "checked with the provider"
+msgstr ""
+
+msgid "shops on the site (the demo shops do not count)"
+msgstr ""
+
+msgid "shops saved without a wallet yet (sign-ups not finished)"
+msgstr ""
+
+msgid "accounts of merchants and visitors who signed in (staff left out)"
+msgstr ""
+
+msgid "requests for help kept, solved ones too (delete the old ones in /admin/)"
+msgstr ""
+
+msgid "meetups copied from Nostr and kept"
+msgstr ""
+
+msgid "staff registers turned on at the same time in one shop"
+msgstr ""
+
+msgid "new accounts from one network address in an hour"
+msgstr ""
+
+msgid "new shops or wallets connected from one network address in an hour"
+msgstr ""
+
+msgid "requests for help from one shop in a day"
+msgstr ""
+
+msgid "This site cannot take more of this for now: the association has been told. Please try again later."
+msgstr ""
+
+msgid "The association cannot take more requests here right now. Please write to {email}."
+msgstr ""
+
+msgid "%(what)s: %(used)d of %(limit)d. The limit is reached: the site refuses new ones, and keeps all it has."
+msgstr ""
+
+msgid "%(what)s: %(used)d of %(limit)d, close to the limit."
+msgstr ""
+
+msgid "Clear what nobody needs any more in the administration, or raise the limit: `limits.%(key)s` in community.yml, then restart the site. Spam and a site that grows are the two reasons for a full limit: look before raising it."
+msgstr ""
+
+msgid "Limits"
+msgstr ""
+
+msgid "What the site keeps, against its limit. At the limit it refuses what would add one more and deletes nothing. The limits are the ones in community.yml (limits), or the defaults."
+msgstr ""
+
+msgid "no limit"
+msgstr ""
+
+msgid "default"
+msgstr ""
+
+msgid "set in community.yml"
+msgstr ""
+msgid "Quick start: {left} of {limit} left before the training."
+msgstr ""
+
+msgid "This sale is {amount} and only {left} of the quick start is left. Type less, or finish the training to take any amount."
+msgstr ""
+
+msgid "Quick start used up. Finish the training to keep taking payments."
+msgstr ""
+
+msgid "The quick start counts in {currency}: set that currency in the settings."
+msgstr ""
+
+msgid "Start the training"
+msgstr ""
+
+msgid "Open register (quick start)"
+msgstr ""
+
+msgid "Quick start."
+msgstr ""
+
+msgid "The register of «%(names)s» already takes your first payments, up to a small amount in total. The rest opens as soon as you have the basic pass: it takes a few minutes. The staff registers wait for it."
+msgstr ""
+
+msgid "emails sent this month (the mail provider's quota; see config/mailbudget.py)"
+msgstr ""
+
+msgid "emails sent today (by default a tenth of the month's limit)"
+msgstr ""
+
+msgid "emails a visitor can make the site send to the same address in a day"
+msgstr ""
+
+msgid "times more emails (per address and per network address) for the staff and the allowed addresses, who may be testing"
+msgstr ""
+
+msgid "This site cannot send more emails for now. Please try again later. If you made your account with a Lightning wallet, you can sign in with it."
+msgstr ""
+
+msgid "Too many emails asked from your connection today: try again tomorrow."
+msgstr ""
+
+msgid "emails one network address can make the site send in a day (three times as many for its wider network)"
+msgstr ""
+
+#, python-format
+msgid "%(what)s: %(used)d of %(limit)d. The limit is reached: only the security notices still go out, up to the total."
+msgstr ""
+
+#, python-format
+msgid "Look in the web log for who asks for so many links (limits.emails_per_month, limits.emails_per_day): many addresses at once is an attack, and the quota of the mail provider is what it uses up. Raise the limit only if the provider allows more."
+msgstr ""
+
+#, python-format
+msgid "A shop with many notices may be in trouble (its Lightning address, a change of address): look at its page in the administration. Many sign-in links to one address are someone using the site against it."
+msgstr ""
+
+#, python-format
+msgid "%(count)d address received more than %(cap)d emails today."
+msgid_plural "%(count)d addresses received more than %(cap)d emails today."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "The owner turned off this register: it takes no more payments. Ask the owner for a new register."
+msgstr ""
+
+msgid "0: always wait."
+msgstr ""
+
+msgid "0: no discount."
+msgstr ""
+
+msgid "Bitcoin discount −{percent}%: {amount} to pay."
+msgstr ""
+
+#, python-format
+msgid "Discount for paying in bitcoin (%%)"
+msgstr ""
+
+msgid "Empty: Lightning only."
+msgstr ""
+
+msgid "Empty: found by itself. Only to correct it."
+msgstr ""
+
+msgid "Empty: no copy on Nostr."
+msgstr ""
+
+msgid "First receive address of this key: {address}. Check that your wallet shows the same one, then tick the box and save."
+msgstr ""
+
+msgid "History and day closing"
+msgstr ""
+
+msgid "History and end of shift"
+msgstr ""
+
+msgid "How on-chain works"
+msgstr ""
+
+msgid "It is the shop's address on the site: you change it there."
+msgstr ""
+
+msgid "Let the registers remove the discount on a sale"
+msgstr ""
+
+msgid "Look"
+msgstr ""
+
+msgid "Looking for the first unused address of your wallet…"
+msgstr ""
+
+msgid "On-chain (optional)"
+msgstr ""
+
+msgid "On-chain addresses"
+msgstr ""
+
+msgid "Prices"
+msgstr ""
+
+msgid "Sales started and never paid use addresses too: after 20 unpaid in a row, raise the wallet's gap limit. Use this register on one phone only: another phone takes a staff register."
+msgstr ""
+
+msgid "Sales stay only on this phone: download a copy now and then."
+msgstr ""
+
+msgid "Saved on this phone. Staff registers get them with their pairing code."
+msgstr ""
+
+msgid "Settings"
+msgstr ""
+
+msgid "Start at address number"
+msgstr ""
+
+msgid "The explorer did not answer: the register looks for the first unused address at the first on-chain sale."
+msgstr ""
+
+msgid "Three letters, for example EUR."
+msgstr ""
+
+msgid "Wait for a block above this amount"
+msgstr ""
+
+msgid "What it is"
+msgstr ""
+
+msgid "When to change it"
+msgstr ""
+
+msgid "When to set it"
+msgstr ""
+
+msgid "When you save a new key, the register asks the explorer once for the first unused address of your wallet, keeps it on this phone and goes on from there, one address per sale."
+msgstr ""
+
+msgid "Write the discount as a whole number from 0 to 100."
+msgstr ""
+
+msgid "Your Nostr public key (npub)"
+msgstr ""
+
+msgid "Your wallet has used many addresses: the register would start at number {index}."
+msgstr ""
+
+msgid "Your wallet's public key (zpub, xpub…) or a fixed address"
+msgstr ""
+
+#, python-format
+msgid "Towards the basic pass: %(value)s of %(total)s modules done"
+msgstr ""
+
+#, python-format
+msgid "Towards the next badge: %(value)s of %(total)s steps done"
+msgstr ""
+
+#, python-format
+msgid "Basic pass since %(date)s."
+msgstr ""
+
+msgid "No basic pass yet."
+msgstr ""
+
+#, python-format
+msgid "You have the basic pass since %(date)s."
+msgstr ""
+
+msgid "The modules stay open: read them again whenever you like."
+msgstr ""
+
+msgid "To read again"
+msgstr ""
+
+msgid "To confirm"
+msgstr ""
+
+msgid "To finish"
+msgstr ""
+
+#, python-format
+msgid "Setting up the shop: %(done)s of %(total)s done"
+msgstr ""
+
+msgid "Setting up the shop: all done. Well done!"
+msgstr ""
+
+msgid "To print"
+msgstr ""
+
+msgid "Your page"
+msgstr ""
+
+msgid "Leave the panel (the register stays open)"
+msgstr ""
+
+msgid "Handing over your own phone? Open the register and press «Leave the panel (the register stays open)»."
+msgstr ""
+
+#, python-format
+msgid "Exercise %(number)s of %(total)s: %(title)s"
+msgstr ""
+
+msgid "All exercises done: read «Now the real thing» below."
+msgstr ""
+
+msgid "Exercises below"
+msgstr ""
+
+#, python-format
+msgid "One detail is not written yet."
+msgid_plural "%(counter)s details are not written yet."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Add them"
+msgstr ""
+
+msgid "not written yet"
+msgstr ""
+
+msgid "The rest you can add whenever you want: you need none of it to create the shop."
+msgstr ""
+
+msgid "Source code (AGPLv3)"
+msgstr ""
+msgid "Training"
+msgstr ""
+
+msgid "This part of the register did not load: check the connection and try again."
+msgstr ""
+
+msgid "Sound when a payment arrives"
+msgstr ""
+
+msgid "Your register keeps working."
+msgstr ""
+
+#, python-format
+msgid "The last day is %(date)s. After that the register opens only with the basic pass."
+msgstr ""
+
+#, python-format
+msgid "You have %(days)s more day, until %(date)s, to get the basic pass. After that the register opens only with it."
+msgid_plural "You have %(days)s more days, until %(date)s, to get the basic pass. After that the register opens only with it."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Team access"
+msgstr ""
+
+msgid "team"
+msgstr ""
+
+msgid "staff"
+msgstr ""
+
+msgid "moderator"
+msgstr ""
+
+msgid "linking key"
+msgstr ""
+
+msgid "role"
+msgstr ""
+
+msgid "created"
+msgstr ""
+
+msgid "last sign-in"
+msgstr ""
+
+msgid "revoked"
+msgstr ""
+
+msgid "team key"
+msgstr ""
+
+msgid "team keys"
+msgstr ""
+
+msgid "expires"
+msgstr ""
+
+msgid "used"
+msgstr ""
+
+msgid "team invite"
+msgstr ""
+
+msgid "team invites"
+msgstr ""
+
+msgid "active"
+msgstr ""
+
+msgid "open"
+msgstr ""
+
+msgid "expired"
+msgstr ""
+
+msgid "Revoke the selected keys: their passes stop at once"
+msgstr ""
+
+msgid "End the passes of the selected keys: every browser signs in again"
+msgstr ""
+
+#, python-format
+msgid "%(count)d key revoked."
+msgid_plural "%(count)d keys revoked."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "The passes of %(count)d key ended."
+msgid_plural "The passes of %(count)d keys ended."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "The invite for %(name)s (%(role)s)"
+msgstr ""
+
+#, python-format
+msgid "Send this link, or the code, to that person by a channel you trust. Whoever opens it first and signs with a Lightning wallet becomes a team key: it works once, and until %(expires)s."
+msgstr ""
+
+msgid "The link of the invite"
+msgstr ""
+
+msgid "The link of the invite as a QR code"
+msgstr ""
+
+msgid "It is shown only now: the site keeps a hash of it, not the link. If it gets lost, delete the invite and make another."
+msgstr ""
+
+msgid "Back to the invites"
+msgstr ""
+
+#, python-format
+msgid "Join the team of %(site)s"
+msgstr ""
+
+#, python-format
+msgid "This invitation is for %(name)s (%(role)s)."
+msgstr ""
+
+msgid "Scan the code with your Lightning wallet, or tap it if the wallet is on this phone. The wallet makes a key for this site only: from then on, that wallet opens the site under construction for you, from any connection."
+msgstr ""
+
+msgid "Code to join the team with the wallet"
+msgstr ""
+
+msgid "The invitation works once: use the wallet you will keep."
+msgstr ""
+
+msgid "Waiting for your wallet…"
+msgstr ""
+
+msgid "This page needs JavaScript to notice your wallet's signature."
+msgstr ""
+
+msgid "Done: this browser now sees the site. Opening it…"
+msgstr ""
+
+msgid "This wallet was not accepted: the invitation was used by another one, or this wallet already has a key here. Ask whoever invited you."
+msgstr ""
+
+msgid "The code expired."
+msgstr ""
+
+msgid "Get a new one"
+msgstr ""
+
+msgid "From now on, never scan a sign-in code somebody else sends you, whatever they say: your wallet would open the site for them."
+msgstr ""
+
+msgid "Too many requests from your connection: try again in a few minutes."
+msgstr ""
+
+msgid "This invitation is not valid: it was used already, or it expired. Ask for a new one."
+msgstr ""
+
+msgid "Invalid sign-in"
+msgstr ""
+
+msgid "This invite is not valid any more."
+msgstr ""
+
+msgid "This wallet already has a team key here, or had one: ask whoever invited you."
+msgstr ""
+
+msgid "This wallet is not in the team of this site."
+msgstr ""
+
+msgid "{name} joined the team ({role}): from now on their wallet opens the site under construction. The team's keys:"
+msgstr ""
+
+msgid "{name} ({role}) opened the site under construction in a new browser. If it was not them, revoke the key or end its passes:"
+msgstr ""
+
+msgid "Revoked: the wallet signs in no more, its passes stopped."
+msgstr ""
+
+msgid "Passes ended: every browser signs in again."
+msgstr ""
+
+msgid "Tap the wallet's name above: it opens its official page or the right app in the store. Install it from there, as you do with any app. Do not search for the name in the store: other apps have similar names."
+msgstr ""
+
+msgid "Open the app and create a new wallet. Depending on the wallet, it shows you some recovery words (12 or 24) or it saves a passkey in your phone's password manager. Write the words on paper, in order, and keep the paper somewhere safe: with a passkey, look for the recovery words in the wallet's settings (often under Backup) and write them down too. With them you get your money back if you lose the phone."
+msgstr ""
+
+msgid "On an iPhone, if the page opened inside Gmail or another app, first open it in Safari (the share button, then «Open in Safari»), then add it to the home screen from there."
+msgstr ""
+
+#, python-format
+msgid "You are taking %(name)s: sign in with any email of yours, or with your wallet. Then you confirm that it is your shop."
+msgstr ""
+
+#, python-format
+msgid "You are taking %(name)s. Write your email: we send you a second email, with the link to sign in. It lasts 15 minutes; then you confirm that it is your shop."
+msgstr ""
+
+msgid "This looks like an email, not a Lightning address. You need the wallet's Lightning address: open the wallet and look under Receive."
+msgstr ""
+
+msgid "Tap the button below: it opens the wallet's official page or the right app in the store. Install it from there, as you do with any app. Do not search for the name in the store: other apps have similar names."
+msgstr ""
+
+msgid "Open the app and create a new wallet. It shows you some recovery words, 12 or 24; if it saves a passkey instead, find the words in the wallet's settings (often under Backup)."
+msgstr ""
+
+msgid "part of the series"
+msgstr ""
+
+msgid "The community's regular meetups. Untick for a one-off event: the board then shows its own title, and links only its own page, not the community's group."
+msgstr ""
+
+msgid "awaiting approval"
+msgstr ""
+
+msgid "A new shop written by its owner: off maps and lists until someone approves it. The register works."
+msgstr ""
+
+#, python-format
+msgid "A new shop waits for your approval: %(name)s"
+msgstr ""
+
+msgid "New shop"
+msgstr ""
+
+msgid "Approve the new shops: on the map and the lists"
+msgstr ""
+
+#, python-format
+msgid "Approved: %(count)d shops."
+msgstr ""
+
+#, python-format
+msgid "%(name)s is approved: it is on the map and the lists."
+msgstr ""
+
+msgid "The community looks at every new shop before it goes on the map: until then the register works, and the shop is not on the map and the lists."
+msgstr ""
+
+msgid "Not on the map yet: the community looks at every new shop first. The register already works."
+msgstr ""
+
+msgid "The community looks at every new shop before it goes on the map: it will be there once approved."
+msgstr ""
+
+msgid "A new shop waits for your approval before it goes on the map."
+msgstr ""
+
+msgid "Look at the shop and its owner; if all is well, approve it."
+msgstr ""
+
+msgid "Approve: on the map and the lists"
+msgstr ""
+
+msgid "The community looks at every new shop before it goes on the map: yours is waiting. The register already works."
+msgstr ""
+
+#, python-format
+msgid "%(name)s was already approved."
+msgstr ""
+
+msgid "approved"
+msgstr ""
+
+msgid "approved on"
+msgstr ""
+
+msgid "approved by"
+msgstr ""
+
+msgid "Empty: the shop waits for an approval, off maps and lists. The register works all the same."
+msgstr ""
+
+msgid "The block explorer does not answer. Try again in a minute; meanwhile you can take this sale with Lightning."
+msgstr ""
+
+msgid "The register reaches neither the site nor the explorer: check the phone's network, then try again."
+msgstr ""
+
+msgid "Blossom: %(count)s different user in the last 30 days."
+msgid_plural "Blossom: %(count)s different users in the last 30 days."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Round the discounted price down to a whole amount"
+msgstr ""
+
+msgid "For round prices: 12.60 becomes 12.00. Never rounded up, and never to more than twice the discount."
+msgstr ""
+
+msgid "This wallet is not connected to any shop. If you registered your shop with an email, sign out, sign in with that email, then open «Your account» and choose «Sign in with a wallet too»: from then on this wallet opens your shop."
+msgstr ""
+
+msgid "Sign in with a wallet too"
+msgstr ""
+
+#, python-format
+msgid "%(wallets)s connected"
+msgstr ""
+
+msgid "To sign in to this account with your Lightning wallet too."
+msgstr ""
+
+msgid "A Lightning wallet that supports login can sign in to this account, like your email. Without this step the wallet would open a new, empty account."
+msgstr ""
+
+msgid "Scan the code with the wallet, or tap it: this page updates by itself."
+msgstr ""
+
+#, python-format
+msgid "This account has %(limit)s wallets, the most it can have: disconnect one to connect another."
+msgstr ""
+
+msgid "Too many codes from your connection in a short time: in a few minutes the code is back."
+msgstr ""
+
+msgid "Wallets that sign in to this account"
+msgstr ""
+
+msgid "the wallet this account was opened with"
+msgstr ""
+
+msgid "Disconnect"
+msgstr ""
+
+msgid "After a wallet is connected, the Lightning address of your shops cannot be changed for some days: a safeguard in case it was not you."
+msgstr ""
+
+msgid "Code to connect the wallet"
+msgstr ""
+
+msgid "Wallet disconnected: it no longer signs in to this account."
+msgstr ""
+
+msgid "This wallet is the only way into this account: add a recovery email first."
+msgstr ""
+
+msgid "This wallet already signs in to this account."
+msgstr ""
+
+msgid "This wallet already has an account of its own with a shop or an email, or is connected to another account: it cannot be connected here."
+msgstr ""
+
+msgid "Too many wallets on this account: disconnect one first."
+msgstr ""
+
+msgid "This wallet was connected to another account just now."
+msgstr ""
+
+msgid "Wallet connected: from now on it signs in to this account."
+msgstr ""
+
+msgid "A wallet was connected to your account"
+msgstr ""
+
+msgid "If it was not you, sign in and disconnect it:"
+msgstr ""
+
+#, python-format
+msgid "Your wallet was connected to this account (%(who)s) on %(when)s. If you did that, all is well. If you did not, this is somebody else's account: whatever you write here would be theirs too."
+msgstr ""
+
+msgid "It is my account"
+msgstr ""
+
+msgid "Not mine: disconnect my wallet and sign out"
+msgstr ""
+
+#, python-format
+msgid "The wallet %(signed)s signed the code. Connect it only if your own wallet just said that it worked: if it said that the sign-in failed, somebody else scanned the code first."
+msgstr ""
+
+msgid "Connect this wallet"
+msgstr ""
+
+#, python-format
+msgid "From now on the wallet %(key)s signs in to your account, like your email."
+msgstr ""
+
+msgid "A wallet was disconnected from your account"
+msgstr ""
+
+#, python-format
+msgid "The wallet %(key)s no longer signs in to your account."
+msgstr ""
+
+msgid "If it was not you, sign in and check the wallets of your account:"
+msgstr ""
+
+msgid "This email is the only way into this account: it cannot be removed."
+msgstr ""
+
+msgid "More than one place? Add the others"
+msgstr ""
+
+msgid "The other places of your shop"
+msgstr ""
+
+msgid "A shop with several branches is one shop here: one register, one Lightning address, and a point on the map for each place. The first place is the shop's own position, which you change with its details."
+msgstr ""
+
+msgid "Remove"
+msgstr ""
+
+msgid "No other place yet."
+msgstr ""
+
+msgid "This shop has the most places it can have: remove one to add another."
+msgstr ""
+
+msgid "Add a place"
+msgstr ""
+
+msgid "Where it is"
+msgstr ""
+
+msgid "I am there: use my position"
+msgstr ""
+
+msgid "Touch the place on the map."
+msgstr ""
+
+msgid "Add this place"
+msgstr ""
+
+msgid "Also here"
+msgstr ""
+
+#, python-format
+msgid "This shop has %(count)s other places, the most it can have."
+msgstr ""
+
+msgid "Place added: it is a point of your shop on the map."
+msgstr ""
+
+msgid "Write the address or the town of this place."
+msgstr ""
+
+msgid "other place"
+msgstr ""
+
+msgid "other places"
+msgstr ""
+
+msgid "This place's entry on OpenStreetMap, like node/123456. Empty: not linked."
+msgstr ""
+
+msgid "This element is already the entry of a shop."
+msgstr ""
+
+msgid "Type the amount on the keyboard."
+msgstr ""
+
+msgid "Show the keys"
+msgstr ""
+
+msgid "Hide the keys"
+msgstr ""
+
+msgid "Today"
+msgstr ""
+
+msgid "Your last sales"
+msgstr ""
+
+msgid "Version in use"
+msgstr ""
+
+msgid "This link was already used: each one works once. Ask for a new one here below."
+msgstr ""
+
+msgid "The same, by register:"
+msgstr ""
+
+msgid "Your own register"
+msgstr ""
+
+msgid "Change"
+msgstr ""
+
+msgid "Change a place"
+msgstr ""
+
+msgid "Save this place"
+msgstr ""
+
+msgid "Place saved."
+msgstr ""
+
+msgid "Rename"
+msgstr ""
+
+msgid "Save the name"
+msgstr ""
+
+msgid "The register's phone shows the new name the next time it opens with the site: no new code is needed. The sales already made keep the old name."
+msgstr ""
+
+msgid "«{before}» is now «{name}». Its phone shows the new name the next time the register opens with the site; the sales already made keep the old one."
+msgstr ""
+
+msgid "…and 1 more"
+msgid_plural "…and %(counter)s more"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "hours a staff register's one-time pairing code works (1 to 72)"
+msgstr ""
+
+msgid "Where it is used"
+msgstr ""
+
+msgid "Only to find it in this list: it changes nothing in the register."
+msgstr ""
+
+msgid "No place chosen"
+msgstr ""
+
+msgid "Rename or change the place"
+msgstr ""
+
+msgid "«{name}» is saved."
+msgstr ""
+
+msgid "Up to three chat numbers or @names, separated by commas."
+msgstr ""
+
+msgid "The same chat is written twice."
+msgstr ""
+
+msgid "Another register of this shop has this name: choose a different one."
+msgstr ""
+
+#, python-format
+msgid "The same name as «%(other)s», a shop of another owner in the same area."
+msgstr ""
+
+#, python-format
+msgid "A name very like «%(other)s», a shop of another owner in the same area."
+msgstr ""
+
+#, python-format
+msgid "The two are only %(metres)d m apart."
+msgstr ""
+
+#, python-format
+msgid "The same contacts as «%(other)s», a shop of another owner: %(kinds)s."
+msgstr ""
+
+#, python-format
+msgid "«%(other)s» is paid at another Lightning address, at another provider."
+msgstr ""
+
+#, python-format
+msgid "«%(other)s» is paid at another Lightning address."
+msgstr ""
+
+msgid "The owner's account was opened just before the shop, with no recovery email and no other shop."
+msgstr ""
+
+#, python-format
+msgid "A shop of another owner elsewhere has a name like this one: «%(other)s» (a chain, perhaps)."
+msgstr ""
+
+msgid "Check before approving"
+msgstr ""
+
+#, python-format
+msgid "Not approved: %(count)d shops that look like a shop already on the site. Approve them one by one from /admin/today/, after checking."
+msgstr ""
+
+msgid "See that shop"
+msgstr ""
+
+msgid "Approve anyway"
+msgstr ""
+
+#, python-format
+msgid "A shop of another owner %(km)s km away has a name like this one: «%(other)s»."
+msgstr ""
+
+#, python-format
+msgid "A shop of another owner in the same town has a name like this one: «%(other)s»."
+msgstr ""
+
+#, python-format
+msgid "Ask the owner of «%(other)s» whether this new shop is theirs, or genuine."
+msgstr ""
+
+msgid "Check this shop"
+msgstr ""
+
+#, python-format
+msgid "%(name)s, already on the map, was changed by its owner and now looks like a shop already on the site."
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not approved: it looks like a shop already on the site. Check what its line says, then tick the box and approve it."
+msgstr ""
+
+msgid "This new shop looks like a shop already on the site. Before approving it, check what the lines below say."
+msgstr ""
+
+msgid "Check first"
+msgstr ""
+
+msgid "I checked what the lines above say: this new shop is genuine."
+msgstr ""
+
+#, python-format
+msgid "«%(other)s» is on the site without an owner and waits for its claim link: if it is the same business, send that link to this merchant instead of approving a second shop."
+msgstr ""
+
+#, python-format
+msgid "«%(other)s» is on the site without an owner: if it is the same business, give that shop to this owner in the administration instead of approving a second one."
+msgstr ""
+
+#, python-format
+msgid "«%(other)s» closes on %(date)s: this new shop may be its successor, or a move. Ask its owner."
+msgstr ""
+
+#, python-format
+msgid "«%(other)s» closed on %(date)s: check whether this new shop is its reopening."
+msgstr ""
+
+#, python-format
+msgid "Not approved: %(count)d shops, because the checks for copies of other shops could not be run (whoever runs the site should look at the log). Approve them one by one from /admin/today/, after looking at each yourself."
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not approved: the checks for copies of other shops could not be run. Look at the shop yourself, then tick the box and approve it."
+msgstr ""
+
+msgid "The checks could not be run"
+msgstr ""
+
+msgid "The site could not compare this new shop with the others to find copies: whoever runs the site should look at the log. Look at the shop yourself before approving it."
+msgstr ""
+
+msgid "The checks could not be run: I looked at this shop myself."
+msgstr ""
+
+#, python-format
+msgid "Closes on %(date)s"
+msgstr ""
+
+msgid "Until then nothing changes: it stays among the places to pay."
+msgstr ""
+
+msgid "Your shop has a closing day ({note}): until then nothing changes and it stays among the places to pay. From the day after it stays on the map as history. The register and the sign still work."
+msgstr ""
+
+msgid "On the map with its own pin, not among the places to pay. The register stays yours and keeps working, for as long as you want."
+msgstr ""
+
+#, python-format
+msgid "On the map with its own pin, not among the places to pay. Register and payments keep working until %(until)s."
+msgstr ""
+
+#, python-format
+msgid "On the map with its own pin, not among the places to pay. The register stopped on %(until)s, a year after closing."
+msgstr ""

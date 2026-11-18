@@ -83,6 +83,7 @@ people there; check the law of your own country): read [Privacy and data protect
 - [Going to mainnet](docs/mainnet.md): the decisions and the steps; moving shops from signet as the exception.
 - [Backup and restore](docs/backup.md): the nightly encrypted copy, taking it off the machine, the full restore.
 - [Choosing wallets for your community](docs/wallets.md): what a wallet must do, what we suggest, how to try one.
+- [Adding a language](docs/languages.md): the pages, the list in `community.yml`, and the software's texts from `locale/django.pot`.
 - [Privacy and data protection](docs/privacy.md): who is the controller, what the software stores and for how long, the GDPR checklist and the privacy page template; the disclaimer.
 - [Configuration of the site](docs/configuration.md): the network, the site's name, who sees the site,
   [Behind another proxy](docs/configuration.md#behind-another-proxy), [IPv6](docs/configuration.md#ipv6),

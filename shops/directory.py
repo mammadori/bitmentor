@@ -1,15 +1,16 @@
 """Public list of the shops: a suspended shop, one awaiting approval (shops/approval.py), or one without consent, never
 appears.
 
-A historic shop (with `closed_on`) stays on the map as a place of history, but is not a place to pay:
-it does not enter the counts, the discounts or the shop window.
+A historic shop (closed for good: from the day after its `closed_on`, Shop.closed) stays on the map as a place of
+history, but is not a place to pay: it does not enter the counts, the discounts or the shop window. Up to and including
+its closing day it is a place to pay like the others.
 """
 from math import asin, ceil, cos, degrees, radians, sin, sqrt
 
 from django.db.models import Q
 from django.db.models.functions import Lower
 
-from .models import Shop
+from .models import Shop, still_trading
 
 # Nearby shops on a shop page: within a walk, the closest first
 NEARBY_SHOPS = 4
@@ -22,24 +23,32 @@ EARTH_METRES = 6371000
 
 # A shop that waits for its owner's wallet, without a register: one saved before having a wallet (Shop.awaiting_wallet)
 # or one moved here with a register on the other site (shops/moving.py). Until then it would be a place to pay where
-# nobody can pay. Once historic it is a place of the map again, with its own pin, and waits for nothing.
+# nobody can pay. Once historic (Shop.closed) it is a place of the map again, with its own pin, and waits for nothing.
+def waiting_for_wallet(today=None):
+    """The filter of the shops waiting for their owner's wallet on `today` (today when None)."""
+    return Q(lightning_address="") & still_trading(today) & (Q(awaiting_wallet=True) | Q(moved_register=True))
+
+
+# The same filter without a date, kept for whoever imports it: it counts a shop with any closing day, one still to come
+# too, as historic. The site itself uses waiting_for_wallet()
 WAITING_FOR_WALLET = Q(lightning_address="", closed_on=None) & (Q(awaiting_wallet=True) | Q(moved_register=True))
 
 
 def waits_for_wallet(shop):
-    """WAITING_FOR_WALLET for one shop already read."""
-    return not shop.has_register and not shop.closed_on and (shop.awaiting_wallet or shop.moved_register)
+    """waiting_for_wallet for one shop already read."""
+    return not shop.has_register and not shop.closed and (shop.awaiting_wallet or shop.moved_register)
 
 
 def public_shops():
-    """A shop waiting for its owner's wallet (WAITING_FOR_WALLET) is not a place of the map yet."""
+    """A shop waiting for its owner's wallet (waiting_for_wallet) is not a place of the map yet."""
     return (Shop.objects.filter(suspended=False, approved_on__isnull=False, listed=True).exclude(latitude=None).exclude(longitude=None)
-            .exclude(WAITING_FOR_WALLET))
+            .exclude(waiting_for_wallet()))
 
 
 def payable_shops():
-    """The public ones minus the historic ones, including those that close later on."""
-    return public_shops().filter(closed_on=None)
+    """The public ones minus the historic ones: a shop that closes later on is still a place to pay until its closing
+    day, that day included."""
+    return public_shops().filter(still_trading())
 
 
 def statistics():

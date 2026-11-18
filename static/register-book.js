@@ -201,30 +201,43 @@
   }
 
   // The day's closing: the sales of a business day, and what was collected by method and currency. «confirmed» is
-  // counted, but apart too: the merchant marked it as paid, nobody checked it; so is a sale reported by another register
+  // counted, but apart too: the merchant marked it as paid, nobody checked it; so is a sale reported by another register.
+  // `registers` splits the same lines by the register that took each sale (`who`, a staff register's name; "" for the
+  // owner's own register and for old sales without one), in the order of each register's first sale of the day: the
+  // same sales and the same whole units, so for each method and currency they add up to `lines`
   function dayTotals(list, day) {
     const sales = list.filter((entry) => businessDay(entry.at) === day).sort((a, b) => a.at - b.at);
     const lines = new Map();
+    const registers = new Map();
     const counts = {};
     for (const entry of sales) {
       counts[entry.status] = (counts[entry.status] || 0) + 1;
       if (!COLLECTED.includes(entry.status)) continue;
-      const method = entry.method || "lightning";
-      const key = `${method} ${entry.currency}`;
-      const line = lines.get(key) || { method, currency: entry.currency, count: 0, cents: 0, sats: 0, byHand: 0, reported: 0,
-        verified: 0, late: 0 };
-      line.count += 1;
-      line.cents += entry.cents;
-      line.sats += Number.isFinite(entry.sats) ? entry.sats : 0;
-      if (entry.status === "confirmed") line.byHand += 1;
-      // A staff register's sale this register checked itself with the payment provider is counted apart from the ones
-      // still to check in the wallet
-      if (entry.reported && entry.verified === true && entry.status === "paid") line.verified += 1;
-      else if (entry.reported) line.reported += 1;
-      if (entry.late) line.late += 1;
-      lines.set(key, line);
+      const who = typeof entry.who === "string" ? entry.who : "";
+      if (!registers.has(who)) registers.set(who, new Map());
+      addLine(lines, entry);
+      addLine(registers.get(who), entry);
     }
-    return { day, sales, lines: [...lines.values()], counts };
+    return { day, sales, lines: [...lines.values()], counts,
+      registers: [...registers].map(([who, own]) => ({ who, lines: [...own.values()] })) };
+  }
+
+  // A collected sale added to its method and currency's line
+  function addLine(lines, entry) {
+    const method = entry.method || "lightning";
+    const key = `${method} ${entry.currency}`;
+    const line = lines.get(key) || { method, currency: entry.currency, count: 0, cents: 0, sats: 0, byHand: 0, reported: 0,
+      verified: 0, late: 0 };
+    line.count += 1;
+    line.cents += entry.cents;
+    line.sats += Number.isFinite(entry.sats) ? entry.sats : 0;
+    if (entry.status === "confirmed") line.byHand += 1;
+    // A staff register's sale this register checked itself with the payment provider is counted apart from the ones
+    // still to check in the wallet
+    if (entry.reported && entry.verified === true && entry.status === "paid") line.verified += 1;
+    else if (entry.reported) line.reported += 1;
+    if (entry.late) line.late += 1;
+    lines.set(key, line);
   }
 
   // The amount to charge with the discount for paying in bitcoin (in %), in cents, rounded to the cent. With `whole`

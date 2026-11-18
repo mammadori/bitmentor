@@ -92,10 +92,11 @@ def shop_event(secret, shop, url):
             # The street only if the owner shows the address (shops/details.py); the town otherwise. Nothing else of the
             # shop's details goes out: not the phone, the email, the business name or the VAT number, shown or not
             ["location", details.place(shop)], ["g", geohash(shop.latitude, shop.longitude)]]
-    # A historic shop stays, with its date and without a discount: the new event replaces the one that had it
+    # A historic shop stays, with its date and without a discount: the new event replaces the one that had it. One that
+    # closes later on has its date, and its discount until its closing day
     if shop.closed_on:
         tags.append(["closed_on", shop.closed_on.isoformat()])
-    elif shop.discount:
+    if shop.discount and not shop.closed:
         tags.append(["discount", str(shop.discount)])
     # Closed for a while (shops/vacation.py): the reason from a list and the day it opens again, empty if not said. The
     # event is signed again each time it changes, so the day it ends the relays get the shop without it

@@ -231,6 +231,24 @@ const at = (text) => new Date(text).getTime();
   out.openMerge = book.merge([open], [{ ...open, status: "seen" }, { id: "x", at: 1, cents: 1, status: "unchecked" }]).list;
   out.closedMerge = book.merge([{ ...open, expires: 2 }], [{ ...open, status: "seen" }]).list;
   out.lateTotals = book.dayTotals([{ ...sales[0], late: true }], "2026-11-09").lines[0].late;
+  // The owner's register (no `who`) and two staff registers' copies, two methods and two currencies, with sales that
+  // were not collected: split by register
+  const mixed = [
+    { id: "m1", at: at("2026-11-09T09:00:00"), cents: 333, currency: "EUR", status: "paid", sats: 3331 },
+    { id: "m2", at: at("2026-11-09T09:10:00"), cents: 101, currency: "EUR", status: "paid", sats: 1007, who: "Anna",
+      reported: "shop:a" },
+    { id: "m3", at: at("2026-11-09T09:20:00"), cents: 999, currency: "EUR", status: "confirmed", sats: 9989, who: "Anna",
+      reported: "shop:a" },
+    { id: "m4", at: at("2026-11-09T09:30:00"), cents: 250, currency: "CHF", status: "paid", sats: 2603, who: "Bruno",
+      reported: "shop:b", verified: true },
+    { id: "m5", at: at("2026-11-09T09:40:00"), cents: 1205, currency: "EUR", status: "paid", sats: 12001, method: "onchain",
+      who: "Bruno", reported: "shop:b" },
+    { id: "m6", at: at("2026-11-09T09:50:00"), cents: 77, currency: "EUR", status: "confirmed", who: "", late: true },
+    { id: "m7", at: at("2026-11-09T10:00:00"), cents: 5000, currency: "EUR", status: "expired", sats: 50000, who: "Carla" },
+    { id: "m8", at: at("2026-11-09T10:10:00"), cents: 4000, currency: "EUR", status: "unchecked", who: "Anna" },
+    { id: "m9", at: at("2026-11-08T10:00:00"), cents: 8000, currency: "EUR", status: "paid", who: "Bruno" },
+  ];
+  out.mixedTotals = book.dayTotals(mixed, "2026-11-09");
   out.lateCsv = book.csv([{ ...sales[0], late: true }], { lang: "en", columns: ["a"], states: { paid: "Paid" }, late: "after cancel" });
   const row = [{ id: "1", at: at("2026-11-09T09:05:03"), cents: 350, currency: "EUR", status: "paid", sats: 3500, rate: 81234.5,
     how: "agreed", sources: [{ source: "kraken", price: 81200, at: Date.UTC(2026, 10, 9, 8, 5) }, { source: "coinbase", price: 81269 }],
@@ -331,6 +349,35 @@ class Running(SimpleTestCase):
              "reported": 0, "verified": 0, "late": 0}])
         self.assertEqual(totals["counts"], {"paid": 1, "expired": 1, "unchecked": 1, "confirmed": 1})
         self.assertEqual(self.out["dayList"], ["2026-11-10", "2026-11-09"])
+        # One register only: one group, the same lines
+        self.assertEqual(totals["registers"], [{"who": "", "lines": totals["lines"]}])
+
+    def test_the_day_closing_splits_the_same_totals_by_register(self):
+        totals = self.out["mixedTotals"]
+        line = {"count": 0, "cents": 0, "sats": 0, "byHand": 0, "reported": 0, "verified": 0, "late": 0}
+        self.assertEqual(totals["registers"], [
+            {"who": "", "lines": [{**line, "method": "lightning", "currency": "EUR", "count": 2, "cents": 410, "sats": 3331,
+                                   "byHand": 1, "late": 1}]},
+            {"who": "Anna", "lines": [{**line, "method": "lightning", "currency": "EUR", "count": 2, "cents": 1100,
+                                       "sats": 10996, "byHand": 1, "reported": 2}]},
+            {"who": "Bruno", "lines": [
+                {**line, "method": "lightning", "currency": "CHF", "count": 1, "cents": 250, "sats": 2603, "verified": 1},
+                {**line, "method": "onchain", "currency": "EUR", "count": 1, "cents": 1205, "sats": 12001, "reported": 1}]},
+        ])
+        # The subtotals add up to the day's lines, for every method and currency and every count, in the same whole units
+        summed = {}
+        for register in totals["registers"]:
+            for sub in register["lines"]:
+                key = (sub["method"], sub["currency"])
+                into = summed.setdefault(key, dict.fromkeys(line, 0))
+                for field in line:
+                    self.assertIsInstance(sub[field], int)
+                    into[field] += sub[field]
+        self.assertEqual(summed, {(day["method"], day["currency"]): {field: day[field] for field in line}
+                                  for day in totals["lines"]})
+        self.assertEqual(len(totals["lines"]), 3)
+        # Sales not collected are only counted, as before: they make no register's subtotal
+        self.assertEqual(totals["counts"], {"paid": 4, "confirmed": 2, "expired": 1, "unchecked": 1})
 
     def test_a_sale_cancelled_while_its_invoice_lasts_is_still_looked_at(self):
         still, over, unchecked = self.out["cancelled"]

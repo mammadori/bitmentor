@@ -15,6 +15,7 @@ from . import details
 from .certified import address_taken
 from .details import INVISIBLE_CONTROLS
 from .models import Shop, ShopPlace
+from .notifications import chats
 
 PRIVATE_KEY = re.compile(r"[xyztuv]prv[1-9a-z]{20,}|nsec1[0-9a-z]{50,}", re.I)
 SEED_WORDS = frozenset((Path(__file__).parent / "bip39_english.txt").read_text().split())
@@ -166,6 +167,12 @@ class ShopPlaceForm(forms.ModelForm):
         return data
 
 
+def same_chat(chat):
+    """What tells two chats apart: a number whatever its zeros in front, a @name whatever its capitals."""
+    chat = chat.strip().lower()
+    return str(int(chat)) if re.fullmatch(r"-?[0-9]+", chat) else chat
+
+
 class ShopDetailsForm(VatNumberMixin, forms.ModelForm):
     """The shop data the owner can change: the destination of the funds is not among them."""
     # Plain text: whoever writes www.example.it must not see the form refused by the browser
@@ -190,7 +197,7 @@ class ShopDetailsForm(VatNumberMixin, forms.ModelForm):
             "discount": _("Leave it at 0 if you do not offer one."),
             "nostr_pubkey": _("Only if you use Nostr: your public key in hex format, not the npub."),
             "nip05_name": _("The name for your Nostr address on this site."),
-            "telegram_chat": _("The chat number or @name where the site writes to you: account changes, help answers, the reopening after a closure."),
+            "telegram_chat": _("The chat number or @name where the site writes to you: account changes, help answers, the reopening after a closure. Up to three, separated by commas: each chat gets its own copy."),
         }
 
     def __init__(self, *args, **kwargs):
@@ -202,14 +209,20 @@ class ShopDetailsForm(VatNumberMixin, forms.ModelForm):
         return self.cleaned_data["discount"] or 0
 
     def clean_telegram_chat(self):
-        """The bot writes where the owner says: not in the moderators' chat, where a shop name chosen on purpose
-        would look like a message from the community."""
-        chat = self.cleaned_data["telegram_chat"].strip()
-        moderators = settings.TELEGRAM_MODERATION_CHAT.strip().lower()
-        same_number = chat.lstrip("-").isdigit() and moderators.lstrip("-").isdigit() and int(chat) == int(moderators)
-        if chat and (chat.lower() == moderators or same_number):
-            raise forms.ValidationError(_("This chat cannot receive the site's messages."))
-        return chat
+        """The bot writes where the owner says, up to SHOP_CHATS chats separated by commas (the model checks how each is
+        written and how many): not twice to the same chat, and not in a moderators' chat, where a shop name chosen on
+        purpose would look like a message from the community. Kept as `a,b`, the way shops/notifications.py reads it."""
+        written = chats(self.cleaned_data["telegram_chat"])
+        moderators = chats(settings.TELEGRAM_MODERATION_CHAT.lower())
+        seen = set()
+        for chat in written:
+            key = same_chat(chat)
+            if key in seen:
+                raise forms.ValidationError(_("The same chat is written twice."))
+            seen.add(key)
+            if any(key == same_chat(other) for other in moderators):
+                raise forms.ValidationError(_("This chat cannot receive the site's messages."))
+        return ",".join(written)
 
     def clean_nip05_name(self):
         """The name is an identity: `_` is the community's, and two shops do not share one. Names that a Nostr

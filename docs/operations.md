@@ -80,12 +80,23 @@ nothing to do, 2 when there is something to do, 1 when the command itself failed
 **If something is there.** Each code is explained in [helpdesk.md](helpdesk.md#before-the-phone-rings). Call or write
 to the merchant with the words on the line. For more about one shop, run `diagnose_shop` (below).
 
+**A new shop under "Check before approving".** It looks like a copy of a shop already on the site: the same name nearby,
+the same website, phone or email ([the signals](features/dashboard.md)). Do what the block says about the existing shop
+(the link on the line opens it): ask its owner whether the new one is theirs or genuine; for a shop without an owner
+and the same business, give that shop to this owner in `/admin/` (or send its claim link, for a moved shop) instead of
+approving a second one; for a shop that closes later, ask its owner whether this is a successor or a move; for one
+that closed already, check that this is its reopening. Then tick the box and press **Approve anyway**, or leave it
+waiting. "The checks could not be run" on every waiting shop means an error: look at the log, and approve a shop only
+after looking at it yourself. The tick is recorded in the shop's history with the signals; the
+signals are hints, and a copy with another name, website and street has none. A message "⚠ Check this shop" is about a
+shop already on the map that its owner changed to look like another one: it stays on the map until you act.
+
 **If the page says the guardian is late** (`guardian_late`): `check_lightning` has not run for a while, so the
 Lightning lines may be old. See
 [The timers](#check-the-timers) below.
 
 The list comes by itself: every morning `bitmentor-dashboard@<project>.timer` runs `manage.py dashboard --send`,
-which writes a short summary to `TELEGRAM_MODERATION_CHAT` (or to the `email` of `community.yml`, without Telegram or
+which writes a short summary to `TELEGRAM_MODERATION_CHAT` (or by email, to `moderators_emails` or else `email` of `community.yml`, without Telegram or
 when Telegram refuses it) only when the things to do changed since the last summary, the new ones first, and again a
 week later if nothing changed: the site, the shops' names, what happened, and the link to `/admin/today/`. Nothing
 else about the shops or their owners. No message means nothing new. To see the whole list, without sending:
@@ -388,8 +399,8 @@ with its `.service`, started for one project as `bitmentor-<name>@<project>.time
 | `release` | 2 minutes after boot, then a minute after each run | Installs the version the `active` tag points to, and goes back if it does not start ([releases.md](releases.md#releases-from-images)) | `release.env` and the registry | `check` alerts: "the automatic release stopped with an error" |
 | `check` | 5 minutes after boot, then 10 minutes after each run | The machine checks itself and writes to Telegram only when the problems change ([Read the alerts](#read-the-alerts)) | `alerts.env` with `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_IDS`; without it, it only writes its log | Nobody: this is the watcher. Use an external check on `/health/` |
 | `sentinel` | 15 minutes after boot, then an hour after each run | `check_lightning`: tries the Lightning addresses of the shops that are due, tells the merchant by email and the moderators on Telegram when one stops or starts working ([guardian](features/lightning-guardian.md)) | The email settings in the `.env` (`EMAIL_HOST`…), and `TELEGRAM_BOT_TOKEN` and `TELEGRAM_MODERATION_CHAT` in the `.env`. Without them the status is written all the same, and nobody is told | `/admin/today/` says `guardian_late`. No alert from `check` |
-| `dashboard` | Every day at 06:30 UTC (up to 15 minutes late); at boot if the machine was off | `dashboard --send`: the morning summary of [what to do today](features/dashboard.md), only when it changed, and again a week later | `TELEGRAM_BOT_TOKEN` and `TELEGRAM_MODERATION_CHAT` in the `.env`, or else `email` in `community.yml` with the email settings. With none of them it cannot deliver | It tries again every 10 minutes, four times; then `check` alerts: "the morning summary … did not arrive" |
-| `osm` | The first of every month at 03:30 UTC (up to 2 hours late); at boot if missed | `osm_sync --send`: reads OpenStreetMap, proposes links and the tags it should have, fills what the shops have empty, and sends the moderators a summary of what is new; never writes there ([OpenStreetMap](features/openstreetmap.md)). Does nothing, and exits 0, without an `osm` section in `community.yml` | An `osm` section in `community.yml`; `TELEGRAM_BOT_TOKEN` and `TELEGRAM_MODERATION_CHAT` in the `.env`, or else `email` in `community.yml` | It tries again every hour; the fifth start within twelve hours is refused, and `check` alerts: "the monthly reading of OpenStreetMap failed" |
+| `dashboard` | Every day at 06:30 UTC (up to 15 minutes late); at boot if the machine was off | `dashboard --send`: the morning summary of [what to do today](features/dashboard.md), only when it changed, and again a week later | `TELEGRAM_BOT_TOKEN` and `TELEGRAM_MODERATION_CHAT` in the `.env`, or else `moderators_emails` or `email` in `community.yml` with the email settings. With none of them it cannot deliver | It tries again every 10 minutes, four times; then `check` alerts: "the morning summary … did not arrive" |
+| `osm` | The first of every month at 03:30 UTC (up to 2 hours late); at boot if missed | `osm_sync --send`: reads OpenStreetMap, proposes links and the tags it should have, fills what the shops have empty, and sends the moderators a summary of what is new; never writes there ([OpenStreetMap](features/openstreetmap.md)). Does nothing, and exits 0, without an `osm` section in `community.yml` | An `osm` section in `community.yml`; `TELEGRAM_BOT_TOKEN` and `TELEGRAM_MODERATION_CHAT` in the `.env`, or else `moderators_emails` or `email` in `community.yml` | It tries again every hour; the fifth start within twelve hours is refused, and `check` alerts: "the monthly reading of OpenStreetMap failed" |
 | `meetups` | Every day at 05:40 UTC (up to 20 minutes late); at boot if missed | `read_meetups`: reads from the relays the calendar events (NIP-52) of the trusted authors and updates the board of the meetups; it only reads ([Meetups](features/meetups.md)) | The `meetups` block of `community.yml` with its relays and its trusted authors. Without the block it does nothing | It tries again every 30 minutes, three times, when no relay answered; then `check` alerts: "the reading of the meetups from Nostr failed" |
 | `backup` | Every night at 03:30 UTC (up to 30 minutes late); at boot if missed | The encrypted copy of the folder and the database, sent off the machine ([Backup and restore](backup.md)) | `backup.env`, `age`, `rsync` and the keys: see [Turn on the backup](backup.md#turn-on-the-backup) | `check` alerts when the last copy is more than 26 hours old |
 

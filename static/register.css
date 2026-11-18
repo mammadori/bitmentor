@@ -116,6 +116,9 @@
 .history select, .history input { width: 100%; }
 .history-form { display: flex; flex-direction: column; gap: 8px; }
 .day-totals { margin: 0; padding-left: 18px; }
+/* The day's lines again, register by register: a quiet heading and smaller lines under it */
+.day-totals .by-register { margin: 10px 0 2px -18px; list-style: none; color: var(--muted); font-size: 15px; }
+.day-totals .of-register { font-size: 15px; }
 .copy-due { color: var(--error); font-weight: 600; }
 .keep-first, .copy-reminder { margin: 0; text-align: left; }
 .keep-first p { margin: 0 0 8px; }

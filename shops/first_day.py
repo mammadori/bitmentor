@@ -11,7 +11,7 @@ TICKED = {"sale": "first_sale", "sign": "sign_printed", "staff": "register_share
 
 def applies(shop):
     """A shop with a register, still trading: a historic shop is long past its first day."""
-    return shop.has_register and not shop.closed_on
+    return shop.has_register and not shop.closed
 
 
 def steps(shop):

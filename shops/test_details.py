@@ -285,7 +285,10 @@ class PublicOutputs(TestCase):
                  ("static/map.js", "shop", "address"), ("static/map.js", "shop", "website"),
                  ("website/views.py", "shop.shop", "phone"), ("static/register-derive.js", "found", "address"),
                  # OpenStreetMap fills a field only when the shop has it empty: it reads the column to see that it is empty
-                 ("shops/osm.py", "shop", "address"), ("shops/osm.py", "shop", "website"), ("shops/osm.py", "shop", "phone")}
+                 ("shops/osm.py", "shop", "address"), ("shops/osm.py", "shop", "website"), ("shops/osm.py", "shop", "phone"),
+                 # The approval's signals compare the contacts of two shops for the association and name only the kind
+                 *(("shops/approval_signals.py", receiver, detail) for receiver in ("shop", "other")
+                   for detail in ("website", "phone", "email"))}
         found = []
         for folder in ("shops", "website", "templates", "config", "static"):
             for path in (root / folder).rglob("*"):

@@ -12,13 +12,18 @@ except a shop saved with `update_fields` that are all in NOT_PUBLIC (the guardia
 or marked with `same_list` (a probe that moves the last time the address worked within the same day). So does a Shop
 queryset.update() (ShopQuerySet: admin actions, the Lightning guardian, the certificates), unless it only touches the
 bookkeeping in NOT_PUBLIC, and the updates of a trainee's pass (shops/training.py). Other updates that skip the signals
-show within PUBLIC_LIST_SECONDS."""
+show within PUBLIC_LIST_SECONDS.
+
+Some of the body changes with the day alone, with nothing saved: a shop becomes historic the day after its closing day
+(Shop.closed), a closure for a while starts or ends, the icons' bands count whole days. The key has the local date in it,
+so a body is never given out after its day, however long PUBLIC_LIST_SECONDS is."""
 import secrets
 
 from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
 from django.db.models.signals import post_delete, post_save
+from django.utils import timezone
 from django.utils.translation import get_language
 
 GENERATION = "public-shops:generation"
@@ -62,7 +67,7 @@ def cached(name, build):
     timeout = seconds()
     if timeout <= 0:
         return build()
-    key = f"public-shops:{name}:{get_language()}:{generation()}"
+    key = f"public-shops:{name}:{get_language()}:{timezone.localdate().isoformat()}:{generation()}"
     found = cache.get(key)
     if found is None:
         found = build()

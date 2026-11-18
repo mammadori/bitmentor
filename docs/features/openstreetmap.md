@@ -84,7 +84,8 @@ openstreetmap.org). Two shops never share an element.
 A shop with several branches is one shop with a point on the map for each place
 ([the features](README.md)); on OpenStreetMap each branch is an element of its own. The shop's link (`Shop.osm_ref`)
 is the element of its own position. Each other place can have its link too, written by the association on the place,
-in the shop's page of `/admin/` («other places»); never by the owner.
+in the shop's page of `/admin/` («other places»); never by the owner. An owner who changes a place (its address, town
+or point) keeps its link, as a shop that moves keeps its own: the association changes or clears it in `/admin/`.
 
 - **Linked**, the element is the shop: it is not listed among the strangers that take bitcoin, it is never proposed as
   another shop's match, and the reading prepares for it the same tags as for the shop's own element. Those changes are
@@ -241,7 +242,7 @@ only (no server is asked while it loads):
   knows" while there are some, for a person to change by hand (with `osm_upload` turned on: "changes proposed for
   OpenStreetMap wait for a person to send them", and the command); a line for the links proposed and one for the contacts offered that wait for the
   association; a line when the last reading failed, or none worked for 45 days.
-- The monthly message (`TELEGRAM_MODERATION_CHAT`, else the community's email, **only when there is something new since
+- The monthly message (`TELEGRAM_MODERATION_CHAT`, else the community's email or `moderators_emails`, **only when there is something new since
   the last summary**; at most 3900 characters): how many changes are proposed in all, and by name what is new: links
   proposed, fields written, contacts offered, the new places, the shops OpenStreetMap marks as no longer taking bitcoin,
   the shops checked there after our last check. The same proposals month after month are not news: they wait on

@@ -120,7 +120,7 @@ class Items(TestCase):
         self.assertEqual(dashboard.summary()["counts"]["to_look"], 0)
 
     def test_historic_shops_and_shops_without_register_are_left_out(self):
-        # A historic shop keeps its register for a year after its closing day (models.REGISTER_AFTER_CLOSING)
+        # A historic shop keeps its register with no end, but is no longer a place to pay the dashboard looks after
         register("Bar", closed_on=timezone.localdate() - timedelta(days=400))
         Shop.objects.create(name="Pub")
         self.assertEqual(dashboard.summary()["shops"], 0)

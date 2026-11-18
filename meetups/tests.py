@@ -884,3 +884,67 @@ class Kept(TestCase):
             self.assertIn(b"SUMMARY:Second", self.client.get("/meetups.ics").content)
             self.assertEqual(built.call_count, 2)
         self.assertNotIn(b"Second", first)
+
+
+class FeedByCity(TestCase):
+    """`/meetups.ics?city=<name>`: only the meetups of a city the community or the board knows."""
+    CITIES = ({"name": "Example", "latitude": 41.9, "longitude": 12.5}, {"name": "Northtown", "latitude": 45.9, "longitude": 11})
+
+    def setUp(self):
+        reset_limits()
+        cache.clear()
+        make(3, title="Here", city="Example")
+        make(4, title="There", city="Northtown")
+        make(5, title="Elsewhere", city="Southvillage")
+
+    def get(self, query=""):
+        with on(cities=list(self.CITIES)):
+            return self.client.get(f"/meetups.ics{query}")
+
+    def titles(self, query):
+        response = self.get(query)
+        self.assertEqual(response.status_code, 200, query)
+        return [line[8:] for line in response.content.decode().split("\r\n") if line.startswith("SUMMARY:")]
+
+    def test_a_city_gives_its_meetups_only(self):
+        self.assertEqual(self.titles(""), ["Here", "There", "Elsewhere"])
+        self.assertEqual(self.titles("?city=Example"), ["Here"])
+        # Capitals and spaces around do not count; a city known only from the meetups counts too
+        self.assertEqual(self.titles("?city=%20northTOWN%20"), ["There"])
+        self.assertEqual(self.titles("?city=southvillage"), ["Elsewhere"])
+        response = self.get("?city=Example")
+        self.assertEqual((response["Content-Type"], response["Cache-Control"], response["Content-Disposition"]),
+                         ("text/calendar; charset=utf-8", "public, max-age=900", 'inline; filename="meetups.ics"'))
+
+    def test_a_city_known_to_the_community_with_no_meetups_is_an_empty_calendar(self):
+        with on(cities=[*self.CITIES, {"name": "Quiet", "latitude": 1, "longitude": 1}]):
+            response = self.client.get("/meetups.ics?city=quiet")
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(b"BEGIN:VEVENT", response.content)
+
+    def test_any_other_city_is_not_found_and_gets_no_cache_entry(self):
+        make(6, title="Hidden", city="Secret", visible=False)
+        with patch("meetups.ical.build", wraps=ical.build) as built:
+            for query in ("?city=", "?city=Nowhere", "?city=Secret", "?city=Exam", "?city=%25", "?city=Exampl_",
+                          "?city=" + "x" * 101, "?city=Example%0D%0AX-EVIL:1", "?city=%3Cb%3EExample"):
+                self.assertEqual(self.get(query).status_code, 404, query)
+            self.assertEqual(built.call_count, 0)
+            # Each known city, once, whatever the capitals
+            for query in ("?city=Example", "?city=EXAMPLE", "?city=example"):
+                self.get(query)
+            self.assertEqual(built.call_count, 1)
+
+    def test_without_the_city_the_feed_is_the_same_bytes_under_the_same_key(self):
+        with on(cities=list(self.CITIES)):
+            before = ical.calendar(now=timezone.now())
+            key = board.cache_key("feed", settings.LANGUAGE_CODE, conf.past_months(), conf.default_link(settings.LANGUAGE_CODE))
+            whole = self.client.get("/meetups.ics").content
+            self.assertEqual(cache.get(key), whole.decode())
+            self.client.get("/meetups.ics?city=Example")
+            self.assertEqual(cache.get(key), whole.decode())
+        self.assertEqual(whole.decode().count("BEGIN:VEVENT"), before.count("BEGIN:VEVENT"))
+
+    def test_the_city_counts_against_the_same_limit(self):
+        with on(cities=list(self.CITIES)), patch("meetups.views.FEED_PER_HOUR", 2):
+            statuses = [self.client.get(f"/meetups.ics{query}").status_code for query in ("?city=Example", "?city=Nowhere", "", "?city=Example")]
+        self.assertEqual(statuses, [200, 404, 429, 429])

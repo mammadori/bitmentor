@@ -15,5 +15,16 @@
 .dashboard-since, .dashboard-label { color: var(--body-quiet-color); }
 .dashboard-command code { display: inline-block; max-width: 100%; white-space: pre-wrap; word-break: break-all; }
 .dashboard-entry { font-size: 1rem; margin: 0 0 1rem; }
+/* A new shop that looks like a copy of a shop already here (shops/approval_signals.py): a block of its own, not a note */
+.dashboard-items li.dashboard-suspect { border: 2px solid var(--neon-orange, #b8860b); border-left-width: 8px; border-left-color: var(--neon-orange, #b8860b) !important; }
+.approval-check { margin: .5rem 0 .75rem; padding: .75rem; border: 2px solid var(--neon-orange, #b8860b); border-radius: 4px; background: var(--message-warning-bg); }
+.approval-check h3 { margin: 0 0 .5rem; color: var(--neon-orange, var(--body-loud-color)); font-size: 1rem; text-transform: uppercase; }
+.approval-check ul { margin: 0; padding-left: 1.25rem; }
+.approval-check li { list-style: disc; margin: 0 0 .35rem; overflow-wrap: anywhere; }
+.approval-note { color: var(--body-quiet-color); }
+.dashboard-suspect .approval-level { color: var(--neon-orange, #b8860b); }
+.approval-check li.approval-advice { list-style: none; margin-left: -1.25rem; font-weight: bold; }
+.approval-confirm label { display: flex; gap: .5rem; align-items: flex-start; font: inherit; font-weight: bold; color: inherit; padding: 0; float: none; width: auto; }
+.approval-confirm input { flex: none; margin-top: .2rem; }
 /* Only on this page: the link home is told apart from the title by more than its colour */
 .breadcrumbs a { text-decoration: underline; }
