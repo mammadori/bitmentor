@@ -175,6 +175,7 @@ email link), when they last did, and the recovery email masked (`m***@e***.org`)
 
 - With a recovery email: "On the site, choose to sign in with email, and open the link we send you. It lasts 15
   minutes and works once." Ask them to look in the spam folder.
+  A link opened a second time says that it was already used, with the form to ask for a new one.
 - Without one, and the wallet they signed in with is lost: the account cannot be recovered from here. The register
   still works on the phones that have it, and the money still arrives in their wallet. Tell whoever runs the site:
   giving someone access to a shop is a decision to take in person, never on the phone.

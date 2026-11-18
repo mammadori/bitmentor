@@ -468,7 +468,7 @@ class SignIn(TestCase):
         token = self.sign_in("loaf")
         self.assertEqual(self.client.get(reverse("shops")).status_code, 200)
         self.client.logout()
-        self.assertEqual(self.client.post(reverse("recovery_login"), {"token": token}).status_code, 404)
+        self.assertEqual(self.client.post(reverse("recovery_login"), {"token": token}).status_code, 410)
         # A new run makes a new link
         self.sign_in("loaf")
 

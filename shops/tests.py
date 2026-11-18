@@ -653,11 +653,13 @@ class EmailLogin(TestCase):
     def follow(self, address):
         return self.client.post(self.request_link(address), follow=True)
 
-    def test_a_mail_server_failure_is_told(self):
-        with patch("shops.views.send_mail", side_effect=OSError):
+    def test_a_mail_server_failure_goes_to_the_log_not_to_the_page(self):
+        """The email leaves after the answer: the page is the same whatever the mail server does, and the log has the error."""
+        sent = self.client_class().post("/en/shops/recovery/", {"email": "a@example.org"})
+        with patch("config.mail.send_mail", side_effect=OSError), self.assertLogs("config.mail", "ERROR") as log:
             response = self.client.post("/en/shops/recovery/", {"email": "a@example.org"})
-        self.assertContains(response, "could not be sent")
-        self.assertNotContains(response, "Email sent")
+        self.assertEqual((response.status_code, response.content), (sent.status_code, sent.content))
+        self.assertIn("could not be sent: OSError", log.output[0])
 
     def test_the_page_says_where_the_link_went(self):
         """Whoever mistyped the address notices. With or without an account the page is the same."""
@@ -736,7 +738,16 @@ class EmailLogin(TestCase):
     def test_link_works_once(self):
         link = self.request_link("d@example.org")
         self.client.post(link)
-        self.assertEqual(self.client_class().post(link).status_code, 404)
+        for again in (self.client_class().post(link), self.client_class().get(link)):
+            # Said as it is, with the form to ask for another; nothing of the account on the page
+            self.assertContains(again, "This link was already used", status_code=410)
+            self.assertContains(again, 'action="/en/shops/recovery/"', status_code=410)
+            self.assertNotContains(again, "d@example.org", status_code=410)
+            self.assertNotIn("_auth_user_id", again.wsgi_request.session)
+
+    def test_a_link_never_signed_says_nothing_of_use(self):
+        response = self.client.get("/en/shops/recovery/sign-in/?token=made-up")
+        self.assertContains(response, "has expired or was already used", status_code=404)
 
     def test_the_button_goes_off_at_the_first_click(self):
         """The link is valid once: a second click would find it already used. A script turns the button off at the first submit;

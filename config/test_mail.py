@@ -45,7 +45,10 @@ class EveryMail(SimpleTestCase):
             text = path.read_text(encoding="utf-8")
             self.assertNotIn("from django.core.mail import send_mail", text, path)
             self.assertNotIn("send_mass_mail", text, path)
-        self.assertIs(importlib.import_module("shops.views").send_mail, config.mail.send_mail)
+        views = importlib.import_module("shops.views")
+        # The communities' own code sends from here too, and patches these names in its tests: they stay
+        self.assertIs(views.send_mail, config.mail.send_mail)
+        self.assertIs(views.send_later, config.mail.send_later)
 
 
 class Parentheses(SimpleTestCase):
@@ -104,3 +107,119 @@ class Kinds(SimpleTestCase):
         for call in calls:
             kind = re.search(r'kind="(\w+)"', call)
             self.assertTrue(kind and kind.group(1) in KINDS, call)
+
+
+@override_settings(MAIL_IN_BACKGROUND=True, EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class Later(SimpleTestCase):
+    """The emails that leave after the page has answered (send_later). No database here: the thread has its own connections."""
+
+    def wait(self):
+        import threading
+        for thread in threading.enumerate():
+            if thread.name == "mail":
+                thread.join(5)
+                self.assertFalse(thread.is_alive())
+
+    def free(self):
+        import config.mail
+        taken = 0
+        while config.mail.WAITING.acquire(blocking=False):
+            taken += 1
+        for _ in range(taken):
+            config.mail.WAITING.release()
+        return taken
+
+    def test_the_caller_does_not_wait_for_the_mail_server(self):
+        import threading
+        from unittest.mock import patch
+
+        import config.mail
+        hold, started, callers = threading.Event(), threading.Event(), []
+
+        def slow(*args, **kwargs):
+            callers.append(threading.current_thread().name)
+            started.set()
+            hold.wait(5)
+            return 1
+
+        with patch("config.mail.send_mail", side_effect=slow):
+            config.mail.send_later("Subject", "Text", ["a@example.org"], kind="link")
+            # Back here while the mail server still has not answered
+            self.assertTrue(started.wait(5))
+            self.assertEqual([thread.is_alive() for thread in threading.enumerate() if thread.name == "mail"], [True])
+            hold.set()
+            self.wait()
+        self.assertEqual(callers, ["mail"])
+        self.assertEqual(self.free(), 8)
+
+    def test_it_arrives_with_its_html_and_kind(self):
+        import config.mail
+        mail.outbox = []
+        config.mail.send_later("Subject", "Open https://example.org/x", ["a@example.org"], kind="link")
+        self.wait()
+        self.assertEqual([(m.subject, m.to, m.kind) for m in mail.outbox], [("Subject", ["a@example.org"], "link")])
+        self.assertIn('href="https://example.org/x"', mail.outbox[0].alternatives[0][0])
+
+    def test_one_that_does_not_leave_is_an_error_in_the_log_and_is_told_to_the_caller(self):
+        from smtplib import SMTPDataError, SMTPRecipientsRefused
+        from unittest.mock import patch
+
+        import config.mail
+        # A mail server's refusal quotes the address, and so does Django's «Invalid address»
+        for refusal in ({"side_effect": OSError("no route to a@example.org")},
+                        {"side_effect": SMTPRecipientsRefused({"a@example.org": (550, b"<a@example.org>: user unknown")})},
+                        {"side_effect": SMTPDataError(554, b"a@example.org refused")},
+                        {"side_effect": ValueError("Invalid address a@example.org")}, {"return_value": 0}):
+            told = []
+            with patch("config.mail.send_mail", **refusal), self.assertLogs("config.mail", "ERROR") as log:
+                config.mail.send_later("Subject", "Text", ["a@example.org"], kind="link", failed=lambda told=told: told.append(1))
+                self.wait()
+            self.assertEqual((len(log.output), told), (1, [1]), refusal)
+            # The log says which email, not to whom
+            self.assertIn("Subject", log.output[0])
+            self.assertNotIn("a@example.org", "\n".join(log.output))
+            self.assertEqual(self.free(), 8)
+
+    def test_what_follows_a_failure_cannot_break_the_thread(self):
+        from unittest.mock import patch
+
+        import config.mail
+
+        def broken():
+            raise RuntimeError
+
+        with patch("config.mail.send_mail", return_value=0), self.assertLogs("config.mail", "ERROR") as log:
+            config.mail.send_later("Subject", "Text", ["a@example.org"], failed=broken)
+            self.wait()
+        self.assertEqual(len(log.output), 2)
+        self.assertEqual(self.free(), 8)
+
+    def test_with_too_many_on_their_way_the_request_sends_its_own(self):
+        import threading
+        from unittest.mock import patch
+
+        import config.mail
+        callers = []
+        for _ in range(8):
+            config.mail.WAITING.acquire()
+        try:
+            with patch("config.mail.send_mail", side_effect=lambda *a, **k: callers.append(threading.current_thread().name) or 1):
+                config.mail.send_later("Subject", "Text", ["a@example.org"])
+        finally:
+            for _ in range(8):
+                config.mail.WAITING.release()
+        self.assertEqual(callers, [threading.current_thread().name])
+
+    def test_the_text_is_fixed_in_the_request_s_language(self):
+        """The thread has no active language: a lazy text must be read before it starts."""
+        from unittest.mock import patch
+
+        from django.utils.translation import gettext_lazy, override
+
+        import config.mail
+        seen = []
+        with patch("config.mail.send_mail", side_effect=lambda subject, *a, **k: seen.append(subject) or 1):
+            with override("it"):
+                config.mail.send_later(gettext_lazy("Today"), "Text", ["a@example.org"])
+            self.wait()
+        self.assertEqual(seen, ["Oggi"])

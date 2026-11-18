@@ -98,13 +98,14 @@ Disallow: /
 }
 
 # ACCESS_LOG=on: the access log, to understand what happened after an incident. It lives in Caddy's volume,
-# in /data/access: a new file every MiB, old ones compressed and removed after 7 days. Of the addresses only the network
+# in /data/access: a new file every MiB (ACCESS_LOG_SIZE), at most 10 old ones (ACCESS_LOG_FILES), compressed and removed after
+# 7 days (ACCESS_LOG_KEEP): whichever comes first, so a busy site raises the first two to really keep its days. Of the addresses only the network
 # stays, /24 or /48, never the whole address. No query string, where tokens and signatures live, and no headers.
 (access-on) {
 	log {
 		output file /data/access/access.log {
-			roll_size 1MiB
-			roll_keep 10
+			roll_size {$ACCESS_LOG_SIZE:1MiB}
+			roll_keep {$ACCESS_LOG_FILES:10}
 			roll_keep_for {$ACCESS_LOG_KEEP:168h}
 		}
 		format filter {

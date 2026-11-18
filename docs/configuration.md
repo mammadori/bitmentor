@@ -92,7 +92,13 @@ when it is not `mainnet`.
 Without `EMAIL_HOST` a test network (`signet`) does not send emails: it writes them to the log of the `web` container,
 sign-in links included, so a test site works without a mail server. Whoever reads that log (`docker compose logs web`,
 or a log collector) can then sign in as any shop, for 15 minutes per link. A signet site that real people use needs
-`EMAIL_HOST`. On mainnet, without it, sending fails and the page says so: no link reaches the log.
+`EMAIL_HOST`. On mainnet, without it, sending fails: no link reaches the log, only the error.
+
+The sign-in and confirmation links, and the notices about a wallet connected or taken away, leave after the page has
+answered: the page does not wait for the mail server, and it answers the same whether the email leaves or not (with
+more than eight emails on their way in one process, the next request sends its own and waits, as a brake). An email that does not leave is an error in the log of `web` (`email: a "link" email (…) could not be
+sent: SMTPRecipientsRefused`, with the subject and the kind of error, never the recipient or the link): `manage.py preflight` checks the mail server. A `web`
+that is stopped waits for the emails on their way; one that is killed loses them, and the person asks for a new link.
 
 ## A mail backend of the community
 
@@ -275,6 +281,7 @@ The `.env` of the stack. Empty or missing means the default.
 | `SOURCE_URL` | `https://github.com/mammadori/bitmentor` | The link to the source code on every page (the footer of the site and of the admin, the register's menu, the tools of the printable sheets), as section 13 of the AGPLv3 asks: point it to your version if you changed the code |
 | `ACCESS_LOG` | `off` | `on`: Caddy's access log, addresses reduced to their network, 7 days |
 | `ACCESS_LOG_KEEP` | `168h` | How long Caddy keeps the access log (a Caddy duration) |
+| `ACCESS_LOG_SIZE`, `ACCESS_LOG_FILES` | `1MiB`, `10` | The size of each file of the access log and how many old ones stay. The log ends at whichever limit comes first: with the defaults a site that writes more than about 10 MiB in `ACCESS_LOG_KEEP` keeps fewer days than that, and raises these (for example `10MiB` and `20`) |
 | `LOG_IPV4_MASK`, `LOG_IPV6_MASK` | `24`, `48` | How much of a visitor's address Caddy's logs keep: the prefix length; `32` and `128` keep the whole address |
 | `LOG_MAX_SIZE`, `LOG_MAX_FILE` | `20m`, `5` | Docker's limit on each container's output, per file and number of files |
 | `COMMUNITY_DIR` | `./examples/community` | The community folder ([Architecture](architecture.md)) |
@@ -298,9 +305,14 @@ The `.env` of the stack. Empty or missing means the default.
 | `TELEGRAM_API` | `https://api.telegram.org` | Another address for Telegram's API (a test server) |
 | `NOSTR_SECRET_KEY`, `NOSTR_RELAYS` | empty | The community's Nostr key and relays (separated by commas), for `manage.py publish_nostr` |
 | `OSM_TOKEN` | empty | For `manage.py osm_upload`, an experimental command that is off by default. Passed only by hand, never in the `.env`: [OpenStreetMap](features/openstreetmap.md) |
+| `SHOW_VERSION` | `1` | `0`: the footer does not show the version in use (`/health/` still does) |
 | `BITMENTOR_DEMO` | empty | `1`: a training site in maintenance mode ([demo](features/demo.md)) |
 | `FAKE_EXPLORER` | empty | `1`: the fake on-chain explorer, on a signet test site only, with on-chain turned on |
 
 Not in the `.env`: `SITE_VERSION`, a version of the community's own that `/health/` shows next to the software's, goes
-in the community's image (`ENV SITE_VERSION=…`); `POSTGRES_HOST`, `POSTGRES_USER`, `POSTGRES_DB`, `SQLITE_PATH` and
+in the community's image (`ENV SITE_VERSION=…`). The footer of every page shows the version in use: `SITE_VERSION`,
+otherwise the software's; without a release version the git commit (`-dirty` with uncommitted changes), or
+`no-version`. A community with its own footer includes `partials/version.html` or uses `{{ version_in_use }}`.
+
+Also not in the `.env`: `POSTGRES_HOST`, `POSTGRES_USER`, `POSTGRES_DB`, `SQLITE_PATH` and
 `DEBUG` are for development and tests outside Docker Compose.

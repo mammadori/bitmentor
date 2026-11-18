@@ -131,6 +131,7 @@ TEMPLATES = [{
             "django.contrib.messages.context_processors.messages",
             "config.community.context",
             "website.visibility.context",
+            "config.version.context",
         ],
     },
 }]
@@ -197,6 +198,8 @@ PUBLIC_URL = f"https://{SITE_HOST}" if os.environ.get("SITE_HOST") or not DEBUG 
 # Version of the software and, if a release image adds the community, of the site: /health/ shows them
 BITMENTOR_VERSION = os.environ.get("BITMENTOR_VERSION", "")
 SITE_VERSION = os.environ.get("SITE_VERSION", "")
+# The footer of every page shows the version in use; SHOW_VERSION=0 hides it (/health/ shows it all the same)
+SHOW_VERSION = os.environ.get("SHOW_VERSION", "1") != "0"
 # Where the source of the version this site runs is (AGPLv3, section 13): the upstream repository by default
 SOURCE_URL = os.environ.get("SOURCE_URL", "https://github.com/mammadori/bitmentor")
 # The community's own code, where the software asks for it: the dotted name of a module (config/hooks.py). Empty here;
@@ -218,6 +221,9 @@ EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = True
 EMAIL_TIMEOUT = 10
+# The sign-in and confirmation links and the notices about wallets leave in a thread, after the page has answered
+# (config/mail.py, send_later). Off in the tests, which read the outbox right after the request
+MAIL_IN_BACKGROUND = True
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@localhost")
 # The sender of the emails to a shop's owner, where a reply makes sense; empty = DEFAULT_FROM_EMAIL
 MERCHANT_FROM_EMAIL = os.environ.get("MERCHANT_FROM_EMAIL", "")

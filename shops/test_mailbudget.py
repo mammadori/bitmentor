@@ -234,7 +234,7 @@ class Pages(TestCase):
     def test_an_email_that_does_not_leave_is_not_counted(self):
         """The mail server refuses: the address keeps its day, and the mailbox its count of the last minutes."""
         with set_limits(emails_per_sender_day=2):
-            with patch("shops.views.send_link", return_value=False):
+            with patch("config.mail.send_mail", side_effect=OSError), self.assertLogs("config.mail", "ERROR"):
                 for number in range(4):
                     self.client.post(reverse("recovery"), {"email": f"made-up-{number}@example.org"}, REMOTE_ADDR="203.0.113.7")
             answers = [self.client.post(reverse("recovery"), {"email": f"real-{number}@example.org"},

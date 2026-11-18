@@ -65,11 +65,11 @@ class RecoveryAddress(TestCase):
         self.assertContains(response, "This site cannot send more emails for now")
         self.assertEqual(mail.outbox, [])
 
-    def test_a_link_that_cannot_be_sent_is_said(self):
-        with patch("shops.views.send_link", return_value=False):
+    def test_a_link_that_cannot_be_sent_goes_to_the_log(self):
+        """The page does not wait for the mail server, so it cannot say: the error is in the log."""
+        with patch("config.mail.send_mail", side_effect=OSError), self.assertLogs("config.mail", "ERROR"):
             response = self.client.post("/en/shops/", {"email": "new@example.org"}, follow=True)
-        self.assertContains(response, "The email could not be sent")
-        self.assertNotContains(response, "We sent a confirmation link")
+        self.assertContains(response, "We sent a confirmation link")
 
     def test_an_empty_address_removes_the_email_at_once(self):
         self.client.post("/en/shops/", {"email": ""})
@@ -165,3 +165,15 @@ class TrainingTries(TestCase):
         self.assertLess(Trainee.objects.get().reviewed, timezone.now() - timedelta(days=399))
 
 
+
+
+class LinkForACommunity(TestCase):
+    """`send_link` waits and answers whether the email left: a community's own page tells the person at once."""
+
+    def test_true_when_it_left_false_when_not(self):
+        from shops import views
+        self.assertIs(views.send_link("Subject", "Intro", "https://example.org/x", "a@example.org"), True)
+        self.assertEqual(mail.outbox[-1].to, ["a@example.org"])
+        for refusal in ({"side_effect": OSError}, {"return_value": 0}):
+            with patch("shops.views.send_mail", **refusal):
+                self.assertIs(views.send_link("Subject", "Intro", "https://example.org/x", "a@example.org"), False)

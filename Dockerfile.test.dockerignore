@@ -1,0 +1,3 @@
+# Dockerfile.test takes only the README from the tree: the rest is in the site image it starts from
+*
+!README.md

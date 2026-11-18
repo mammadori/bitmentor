@@ -98,7 +98,7 @@ What is logged, verified in `Caddyfile`, `config/gunicorn.py` and `docker-compos
 - **Caddy access log**: **off by default** (`ACCESS_LOG=off`). With `ACCESS_LOG=on` it is written to Caddy's volume
   (`/data/access/`): time, method, host, path, status, duration and size; of the visitor's address only the network
   (`/24` on IPv4, `/48` on IPv6 by default: `LOG_IPV4_MASK`, `LOG_IPV6_MASK`; 32 and 128 keep the whole address); no query string and no headers (so no cookies and no referer). Files of 1 MiB, at most
-  10, old ones removed after **7 days** (`ACCESS_LOG_KEEP`, a Caddy duration such as `24h` or `720h`).
+  10 (`ACCESS_LOG_SIZE`, `ACCESS_LOG_FILES`), old ones removed after **7 days** (`ACCESS_LOG_KEEP`, a Caddy duration such as `24h` or `720h`): whichever limit comes first, so a busy site keeps fewer days unless it raises the first two.
 - **Caddy error log**: always on, to the container's output. It keeps the same masked network and removes from the query
   and headers what opens something (tokens, register keys, `next`, referer, `X-Forwarded-For`).
 - **Gunicorn (the Django container)**: an access line for each request with time, method, path (no query), status and

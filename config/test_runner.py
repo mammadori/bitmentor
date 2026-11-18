@@ -46,6 +46,8 @@ class Runner(DiscoverRunner):
         # from a visitor without the private view, and those about it choose the addresses (website/test_visibility.py)
         super().setup_test_environment(**kwargs)
         settings.DEV_ALLOWED_IPS = ""
+        # The emails leave before the request answers: the tests read the outbox right after it (config/test_mail.py tests the thread)
+        settings.MAIL_IN_BACKGROUND = False
         # A shop made in a test is approved, as one imported or written in /admin/ is: the tests about the map do not
         # each approve their shops. Those about the approval make it wait (approved_on=None, shops/test_approval.py),
         # and /shops/new/ sets it itself (shops/views.py)

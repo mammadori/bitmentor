@@ -6253,3 +6253,9 @@ msgstr "Oggi"
 
 msgid "Your last sales"
 msgstr "Le tue ultime vendite"
+
+msgid "Version in use"
+msgstr "Versione in uso"
+
+msgid "This link was already used: each one works once. Ask for a new one here below."
+msgstr "Questo link è già stato usato: ognuno vale una volta sola. Chiedine uno nuovo qui sotto."

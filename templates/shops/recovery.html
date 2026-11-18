@@ -4,7 +4,7 @@
 {% if not sent %}<p>{% translate "We send you a link: open it and you are in. No password." %}</p>
 {% if claiming %}<p class="notice" role="status">{% blocktranslate with name=claiming %}You are taking {{ name }}. Write your email: we send you a second email, with the link to sign in. It lasts 15 minutes; then you confirm that it is your shop.{% endblocktranslate %}</p>{% endif %}{% endif %}</header>
 {% if expired %}<p class="notice">{% translate "This link has expired or was already used: ask for a new one." %}</p>{% endif %}
-{% if failed %}<p class="notice" role="alert">{% translate "The email could not be sent: try again in a few minutes." %}</p>{% endif %}
+{% if used %}<p class="notice">{% translate "This link was already used: each one works once. Ask for a new one here below." %}</p>{% endif %}
 {% if taken %}<p class="notice">{% translate "This email is already used by another account." %}</p>{% endif %}
 {% if busy %}<p class="notice" role="alert">{% translate "Too many requests from your connection in a short time: wait a few minutes and try again." %}</p>{% endif %}
 {% if recent %}<p class="notice" role="alert">{% blocktranslate %}A link was already sent to {{ email }} a few minutes ago. Look in your mail, and in the spam folder: each link lasts 15 minutes. To ask for a new one, wait a few minutes.{% endblocktranslate %}</p>{% endif %}

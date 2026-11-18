@@ -12,14 +12,13 @@ from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import SESSION_KEY, get_user_model, login, logout
-from django.contrib.sessions.models import Session
 from django.contrib.auth.decorators import login_required
+from django.contrib.sessions.models import Session
 from django.core import signing
 from django.core.cache import cache
-from config.mail import send_mail
 from django.db import DatabaseError, IntegrityError, router, transaction
-from django.db.models.deletion import Collector, ProtectedError, RestrictedError
 from django.db.models import F
+from django.db.models.deletion import Collector, ProtectedError, RestrictedError
 from django.db.models.functions import Lower
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.middleware.csrf import get_token
@@ -27,27 +26,76 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.formats import number_format
 from django.utils.cache import patch_vary_headers
+from django.utils.formats import number_format
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.safestring import mark_safe
-from django.utils.translation import get_language
+from django.utils.translation import get_language, gettext_lazy
 from django.utils.translation import gettext as _
-from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from config import features, limits, mailbudget, ratelimit
-from config.community import community, page_path, private_page, shop_form_links, shop_page_links
+from config.community import (
+    community,
+    page_path,
+    private_page,
+    shop_form_links,
+    shop_page_links,
+)
+from config.mail import send_later, send_mail
 from config.middleware import csp_with_connect
 
-from . import address_change, approval, certified, details, first_day, guard, journey, lightning_watch, vacation
-from . import helpdesk, osm, osm_request, public_cache, training
+from . import (
+    address_change,
+    approval,
+    certified,
+    details,
+    first_day,
+    guard,
+    helpdesk,
+    journey,
+    lightning_watch,
+    osm,
+    osm_request,
+    public_cache,
+    training,
+    vacation,
+)
 from .directory import WAITING_FOR_WALLET, nearby_shops, public_shops, waits_for_wallet
-from .forms import NewShopForm, ProfileForm, RecoveryForm, ShopDetailsForm, ShopDisplayForm, ShopForm, ShopPlaceForm, WalletForm, prefill, tidy_lightning_address
-from .lnaddress import BUSY, NO_ANSWER, UNKNOWN_DOMAIN, checked_live, explanation, refusal, suggestion
+from .forms import (
+    NewShopForm,
+    ProfileForm,
+    RecoveryForm,
+    ShopDetailsForm,
+    ShopDisplayForm,
+    ShopForm,
+    ShopPlaceForm,
+    WalletForm,
+    prefill,
+    tidy_lightning_address,
+)
+from .lnaddress import (
+    BUSY,
+    NO_ANSWER,
+    UNKNOWN_DOMAIN,
+    checked_live,
+    explanation,
+    refusal,
+    suggestion,
+)
 from .lnurl_auth import K1, encode_lnurl, verify
-from .models import HAS_REGISTER, REGISTER_AFTER_CLOSING, keeps_register, register_kept, LoginChallenge, Profile, Shop, claim_digest
-from .models import ShopPlace, WalletKey
+from .models import (
+    HAS_REGISTER,
+    REGISTER_AFTER_CLOSING,
+    LoginChallenge,
+    Profile,
+    Shop,
+    ShopPlace,
+    WalletKey,
+    claim_digest,
+    keeps_register,
+    register_kept,
+)
 from .nostr import public_key
 from .register import connect_origins, register_data
 
@@ -353,16 +401,14 @@ def short_key(key):
 
 
 def tell_about_wallet(user, subject, lines):
-    """The owner hears by email of a wallet connected or taken away, when the account has an email. Never fails the act."""
+    """The owner hears by email of a wallet connected or taken away, when the account has an email. Never fails the act,
+    and does not make it wait for the mail server."""
     email = Profile.objects.filter(user=user).values_list("email", flat=True).first()
     if not email:
         return
     subject = f"{community()['name']}: {subject}"
     body = "\n\n".join([*lines, f"{settings.PUBLIC_URL}{reverse('link_wallet')}"])
-    try:
-        send_mail(subject, body, None, [email], kind="link")
-    except (OSError, SMTPException):
-        logger.warning("account %s: the email about its wallets could not be sent", user.pk)
+    send_later(subject, body, [email], kind="link")
 
 
 def wallet_changed(user):
@@ -1229,14 +1275,26 @@ def site_link(name, token):
     return f"{settings.PUBLIC_URL}{reverse(name)}?{urlencode({'token': token})}"
 
 
+def link_email(subject, intro, link):
+    return f"{community()['name']}: {subject}", "\n\n".join([intro, link, _("If you did not ask for it, ignore this email.")])
+
+
 def send_link(subject, intro, link, email):
-    """True if the email left; False if the mail server did not take it or the email budget kept it back."""
-    name = community()["name"]
-    body = "\n\n".join([intro, link, _("If you did not ask for it, ignore this email.")])
+    """True if the email left; False if the mail server did not take it or the email budget kept it back. It waits for
+    the mail server: for a community's own code that must tell the person at once (the site's pages use
+    `send_link_later`). Kept stable, with `send_mail` in this module, for the code of the communities."""
+    subject, body = link_email(subject, intro, link)
     try:
-        return bool(send_mail(f"{name}: {subject}", body, None, [email], kind="link"))
+        return bool(send_mail(subject, body, None, [email], kind="link"))
     except (OSError, SMTPException):
         return False
+
+
+def send_link_later(subject, intro, link, email, failed=None):
+    """The email leaves after the page has answered: the answer, and the time it takes, say nothing about the mailbox or
+    the mail server. One that does not leave is an error in the log, and `failed` is called."""
+    subject, body = link_email(subject, intro, link)
+    send_later(subject, body, [email], kind="link", failed=failed)
 
 
 @not_indexed
@@ -1244,7 +1302,7 @@ def send_link(subject, intro, link, email):
 def recovery(request):
     form = RecoveryForm(request.POST or None)
     target = local_path(request.POST.get("next") or request.GET.get("next", ""))
-    sent = failed = busy = recent = budget = daily = False
+    sent = busy = recent = budget = daily = False
     email = ""
     if request.method == "POST" and form.is_valid():
         email = form.cleaned_data["email"].lower()
@@ -1265,13 +1323,11 @@ def recovery(request):
             ratelimit.give_back(f"mail:{email}", RECOVERY_LIFETIME)
         else:
             token = signing.dumps({"email": email, "state": login_state(email), "next": target}, salt="recovery")
-            failed = not send_link(_("Your link to sign in"), _("Open this link to sign in. It lasts 15 minutes and works once."),
-                                   site_link("recovery_login", token), email)
-            sent = not failed
-            if failed:
-                mailbudget.sender_give_back(request)
+            send_link_later(_("Your link to sign in"), _("Open this link to sign in. It lasts 15 minutes and works once."),
+                            site_link("recovery_login", token), email, failed=lambda: mailbudget.sender_give_back(request))
+            sent = True
     # The address as written, with or without an account: whoever got it wrong notices, and nobody finds out who is signed up
-    response = render(request, "shops/recovery.html", {"form": form, "sent": sent, "failed": failed, "busy": busy,
+    response = render(request, "shops/recovery.html", {"form": form, "sent": sent, "busy": busy,
                                                          "recent": recent, "next": target, "email": email,
                                                          "claiming": claimed_name(request, target)
                                                          if target and request.method == "GET" else "",
@@ -1292,8 +1348,13 @@ def recovery_login(request):
         data = signing.loads(token, salt="recovery", max_age=RECOVERY_LIFETIME)
     except signing.BadSignature:
         data = None
-    if not data or data["state"] != login_state(data["email"]):
+    if not data:
         return render(request, "shops/recovery.html", {"form": RecoveryForm(), "expired": True}, status=404)
+    if data["state"] != login_state(data["email"]):
+        # A link opened twice, or an older one after a sign-in. Only who holds the signed link reads this, and it says
+        # nothing more about the account than the link itself; the form below asks for a new one
+        return render(request, "shops/recovery.html", {"form": RecoveryForm(), "used": True, "next": local_path(data.get("next", ""))},
+                      status=410)
     if request.method != "POST":
         # Whoever opens the link sees which account they are entering: a link forwarded by someone else would lead into theirs
         return render(request, "shops/link_confirm.html", {"token": token, "action": reverse("recovery_login"), "account": data["email"]})
@@ -1349,13 +1410,10 @@ def save_recovery_email(request, profile, email):
         messages.error(request, mailbudget.sender_message())
         return
     token = signing.dumps({"user": request.user.pk, "email": email, "current": profile.email}, salt="confirm-email")
-    if not send_link(_("Confirm your email"),
-                     _("Open this link in the browser where you are signed in to the account that asked for it, to "
-                       "confirm this email for that account. It lasts 15 minutes."),
-                     site_link("confirm_email", token), email):
-        mailbudget.sender_give_back(request)
-        messages.error(request, _("The email could not be sent: try again in a few minutes."))
-        return
+    send_link_later(_("Confirm your email"),
+                    _("Open this link in the browser where you are signed in to the account that asked for it, to "
+                      "confirm this email for that account. It lasts 15 minutes."),
+                    site_link("confirm_email", token), email, failed=lambda: mailbudget.sender_give_back(request))
     messages.success(request, _("We sent a confirmation link to {email}: the address changes when you click it.").format(email=email))
 
 
