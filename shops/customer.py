@@ -187,6 +187,9 @@ def card(request, shop):
     """An A4 sheet for the merchant to print and keep at the till: "No wallet? Scan here", with a QR code that opens the
     first screen of the path, in the language of the page. Only for a shop where a customer can pay."""
     shop = get_object_or_404(request.user.shops.exclude(waiting_for_wallet()).filter(still_trading(), suspended=False), pk=shop)
+    if views.sign_waits(shop):
+        # Its code leads to the shop's page, which shows how to pay only once approved: like the sign, it waits
+        return render(request, "shops/sign_waiting.html", {"shop": shop, "customer_card": True})
     url = f"{settings.PUBLIC_URL}{reverse('customer', args=[shop.id])}"
     return render(request, "shops/customer_card.html", {
         "shop": shop, "methods": views.till_methods(shop), "url": url,

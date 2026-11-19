@@ -17,11 +17,17 @@ goes, and the register is never blocked by it.
 - **Not the server's fault.** A provider answering 429 or 5xx is "do not know", not a failure. If this server resolves
   no names at all, the run is skipped. If more than half of the addresses of a run fail at once (at least 4, the ones
   already broken left out), nothing is counted and no merchant is told: only the association hears it. At most 4
-  emails a day per shop, and 4 lines to the association, for an address that goes up and down.
+  notices a day per shop to the merchant (the email and the chats together), and 4 lines to the association, for an
+  address that goes up and down.
 - **Who hears about it, only when the status changes.** The merchant by email, in the community's main language:
   what happened, what customers see, what to do now; and a short email when it works again. Only to the email to get
-  back in, confirmed with a link: not to the shop's public email, where anyone can write any address. The
-  association on Telegram in
+  back in, confirmed with a link: not to the shop's public email, where anyone can write any address. With
+  `TELEGRAM_BOT_TOKEN`, the same notice also goes to the shop's own Telegram chats («Advanced options», up to three,
+  each its own copy), short: the shop's name, the Lightning address cut (`ba…@provider.example`) and the link to the
+  panel, which says what to do. The email and the chats follow one rule: told at the same change, never again for the
+  same fault, and «works again» the same way. A chat that refuses, or Telegram not answering, stops neither the email
+  nor the run. An owner with no confirmed email but with a chat is now told there (before, nobody was). A shop of the
+  training site writes to no chat. The association on Telegram in
   `TELEGRAM_MODERATION_CHAT`, one message per run with the shops and the reason, and the link to the shops with a
   problem in `/admin/`.
 - **Where it shows.** In the merchant's panel, a warning on the shop with what to do and a "Try again now" button

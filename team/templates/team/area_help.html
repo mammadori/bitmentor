@@ -1,0 +1,25 @@
+{% extends "team/area_base.html" %}{% load i18n %}
+{% block area %}
+<h2 id="open">{% translate "Requests for help" %}</h2>
+{% if open %}<ol class="help-facts" aria-labelledby="open">
+{% for entry in open %}{% with row=entry.row %}<li class="help-fact help-problem" id="request-{{ row.pk }}">
+  <p><strong>{{ row.shop.name }}</strong> · {{ row.get_symptom_display }}</p>
+  <p class="muted">{% blocktranslate with when=entry.when %}Asked {{ when }}.{% endblocktranslate %}</p>
+  {% if entry.note %}<p><span class="muted">{% translate "The merchant wrote:" %}</span> <q>{{ entry.note }}</q></p>{% endif %}
+  <p><span class="muted">{% translate "Call back:" %}</span> {{ row.get_channel_display }}{% if entry.contact %}: <strong>{{ entry.contact }}</strong>{% elif row.channel == "email" %}. {% translate "The address is not shown here: whoever has the administration writes to it." %}{% endif %}</p>
+  {% if entry.summary %}<details><summary>{% translate "What the site knew when they asked" %}</summary><pre>{{ entry.summary }}</pre></details>{% endif %}
+  {% if can_change %}<form method="post" action="{% url 'team_help_solved' row.pk %}">{% csrf_token %}<button type="submit" class="button">{% translate "Mark as solved" %}</button></form>{% endif %}
+</li>{% endwith %}
+{% endfor %}</ol>
+{% else %}<p class="notice">{% translate "No request for help is waiting." %}</p>{% endif %}
+{% if solved %}<h2 id="solved">{% translate "Solved in the last days" %}</h2>
+<ol class="help-facts" aria-labelledby="solved">
+{% for entry in solved %}{% with row=entry.row %}<li class="help-fact" id="request-{{ row.pk }}">
+  <p><strong>{{ row.shop.name }}</strong> · {{ row.get_symptom_display }}</p>
+  <p class="muted">{% if entry.solved_by %}{% blocktranslate with when=entry.when solved=entry.solved_when who=entry.solved_by %}Asked {{ when }}, solved {{ solved }} by {{ who }}.{% endblocktranslate %}{% else %}{% blocktranslate with when=entry.when solved=entry.solved_when %}Asked {{ when }}, solved {{ solved }} from the administration.{% endblocktranslate %}{% endif %}</p>
+  {% if entry.note %}<p><span class="muted">{% translate "The merchant wrote:" %}</span> <q>{{ entry.note }}</q></p>{% endif %}
+  {% if can_change %}<form method="post" action="{% url 'team_help_waiting' row.pk %}">{% csrf_token %}<button type="submit" class="button button-quiet">{% translate "Mark as waiting again" %}</button></form>{% endif %}
+</li>{% endwith %}
+{% endfor %}</ol>{% endif %}
+<p class="muted">{% translate "The merchant sees «Solved» in their panel. Never ask a merchant for the secret words of their wallet, for a key or for a password." %}</p>
+{% endblock %}

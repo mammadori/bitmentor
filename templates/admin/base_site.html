@@ -1,4 +1,5 @@
 {% extends "admin/base_site.html" %}{% load static i18n %}
 {% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'admin-theme.css' %}">{% endblock %}
 {% block branding %}<div class="staff-zone" role="note"><span>{% translate "ADMIN ZONE" %}</span></div>{{ block.super }}{% endblock %}
+{% block userlinks %}{% if user.is_active and user.is_staff %}<a href="{% url 'admin_second_factor' %}">{% translate "Second factor" %}</a> / {% endif %}{{ block.super }}{% endblock %}
 {% block footer %}{{ block.super }}<p class="source-link">{% include "partials/source_link.html" %}</p>{% endblock %}

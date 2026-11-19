@@ -13,7 +13,7 @@ from django.views.decorators.http import require_POST
 from config import features
 from config.admin_secrets import HidesSecrets
 
-from . import approval, certified, details, guard, osm
+from . import approval, certified, details, events, guard, osm
 from .forms import ShopAdminForm
 from .guard import CHANNELS, RECENT, VIA, words
 from .lightning_watch import BROKEN
@@ -95,6 +95,24 @@ class VatFilter(admin.SimpleListFilter):
         return queryset
 
 
+class SetAsideFilter(admin.SimpleListFilter):
+    """The shops set aside from /admin/today/ (shops/approval.py, `set_aside`): not approved, not asked about. A shop
+    approved afterwards by a release that did not know the fields (docs/releases.md, "Going back") keeps them, and is
+    simply approved: it is not among those set aside."""
+    title = _("set aside")
+    parameter_name = "set_aside"
+
+    def lookups(self, request, model_admin):
+        return [("yes", _("Set aside: not for the map")), ("no", _("Not set aside"))]
+
+    def queryset(self, request, queryset):
+        if self.value() == "yes":
+            return queryset.filter(set_aside_on__isnull=False, approved_on__isnull=True)
+        if self.value() == "no":
+            return queryset.exclude(set_aside_on__isnull=False, approved_on__isnull=True)
+        return queryset
+
+
 class PlaceInline(admin.TabularInline):
     """The other places of a shop with several branches (ShopPlace): one shop and one register, a point on the map for
     each. The shop's own position is the first."""
@@ -119,7 +137,7 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
     list_display = ("name", "city", "lightning_column", "certified_column", "osm_proposal_column", "discount", "listed", "suspended",
                     "approved_column", "closed_on", "owner")
     list_editable = ("suspended", "closed_on")
-    list_filter = (LightningFilter, CertifiedFilter, OsmFilter, VatFilter, ("approved_on", admin.EmptyFieldListFilter), "suspended", "closed_on", "listed", "lightning",
+    list_filter = (LightningFilter, CertifiedFilter, OsmFilter, VatFilter, ("approved_on", admin.EmptyFieldListFilter), SetAsideFilter, "suspended", "closed_on", "listed", "lightning",
                    "awaiting_wallet")
     # What a helper needs when a merchant phones: all of it is on the shop's page, which a moderator reads (the owner as
     # its sign-in name). The owner's recovery email is on no page of the admin: OWNER_EMAIL_SEARCH, superusers only
@@ -129,7 +147,8 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
     OWNER_EMAIL_SEARCH = ("=owner__profile__email",)
     # Where the money goes is the owner's to change, from the panel. What the guardian found is written only by its probes
     # (manage.py check_lightning), and the certificate never from here
-    readonly_fields = ("approved_on", "approved_by", "approval_check", "lightning_address", "lightning_status", "lightning_since",
+    readonly_fields = ("approved_on", "approved_by", "approval_check", "set_aside",
+                       "lightning_address", "lightning_status", "lightning_since",
                        "lightning_checked", "lightning_worked", "certified_month", "certified_revoked", "private_approved",
                        "private_approved_by", "moved_in",
                        "moved_register", "awaiting_wallet", "osm_seen", "osm_page", "osm_proposal", "osm_offered", "osm_history")
@@ -262,6 +281,8 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
         # Another owner: Shop.save takes the approval of the private part away, written here in the shop's history
         approved = change and "owner" in form.changed_data and obj.private_approved is not None
         super().save_model(request, obj, form, change)
+        if not change:
+            events.send(events.shop_created, Shop, shop=obj, user=request.user, source="admin")
         if approved:
             self.log_change(request, obj, "Private part revoked: the shop changed owner")
         why = details.vat_doubt(obj.vat_number) if "vat_number" in form.changed_data else ""
@@ -321,6 +342,55 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
             return "–"
         lines = [signal.text for signal in found]
         return format_html("<br>".join(["{}"] * len(lines)), *lines)
+
+    @staticmethod
+    def is_set_aside(shop):
+        """Set aside and still not approved: a shop approved afterwards (by a release that did not know the fields) is
+        simply approved."""
+        return shop is not None and not shop._state.adding and shop.set_aside_on is not None and shop.needs_approval
+
+    @admin.display(description=_("set aside"))
+    def set_aside(self, shop):
+        """When and by whom the shop was set aside, while it is (`is_set_aside`)."""
+        if not self.is_set_aside(shop):
+            return "–"
+        when = date_format(timezone.localtime(shop.set_aside_on), "SHORT_DATETIME_FORMAT")
+        return _("%(when)s, by %(who)s: not for the map") % {"when": when, "who": shop.set_aside_by or "?"}
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        """A shop set aside gets «Put back among the waiting shops» among the page's tools, for whoever may change shops:
+        a small form of its own (templates/admin/shops/shop/change_form.html), outside the shop's form, so the Enter key
+        of an edit never presses it."""
+        from django.urls import reverse
+
+        extra_context = dict(extra_context or {})
+        shop = self.get_object(request, object_id)
+        if self.is_set_aside(shop) and request.user.has_perm("shops.change_shop"):
+            extra_context["put_back_url"] = reverse("admin:shops_shop_put_back", args=[shop.pk])
+        return super().change_view(request, object_id, form_url, extra_context)
+
+    def get_urls(self):
+        from django.urls import path
+
+        return [path("<uuid:shop>/put-back/", self.admin_site.admin_view(self.put_back_view), name="shops_shop_put_back"),
+                *super().get_urls()]
+
+    def put_back_view(self, request, shop):
+        """A shop set aside goes back among the waiting ones: POST, staff with the permission to change shops."""
+        from django.core.exceptions import PermissionDenied
+        from django.http import HttpResponseNotAllowed
+
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST"])
+        if not request.user.has_perm("shops.change_shop"):
+            raise PermissionDenied
+        found = get_object_or_404(Shop, pk=shop)
+        if approval.put_back(found, request.user):
+            self.message_user(request, _("%(name)s waits for an approval again: it is on the list of the day.")
+                              % {"name": found.name})
+        else:
+            self.message_user(request, _("%(name)s was not set aside.") % {"name": found.name}, messages.WARNING)
+        return redirect("admin:shops_shop_change", found.pk)
 
     @admin.action(description=_("Approve the new shops: on the map and the lists"), permissions=["change"])
     def approve_shops(self, request, queryset):
@@ -721,6 +791,26 @@ def approve_view(request, shop):
     elif held:
         messages.error(request, _("%(name)s is not approved: it looks like a shop already on the site. Check what its line "
                                   "says, then tick the box and approve it.") % {"name": shop.name})
+    else:
+        messages.info(request, _("%(name)s was already approved.") % {"name": shop.name})
+    return redirect("admin_dashboard")
+
+
+@require_POST
+def set_aside_view(request, shop):
+    """«Not for the map: set aside» on /admin/today/, next to the approval: a shop that waits and is not for the map (a
+    trial, a duplicate, written by mistake) stays off it and is no longer asked about (shops/approval.py, `set_aside`).
+    Staff with the permission to change shops; a shop with signals too, since nothing goes on the map."""
+    from django.core.exceptions import PermissionDenied
+
+    if not request.user.has_perm("shops.change_shop"):
+        raise PermissionDenied
+    shop = get_object_or_404(Shop, pk=shop)
+    if approval.set_aside(shop, request.user):
+        messages.success(request, _("%(name)s is set aside: it stays off the map and is not asked about again. Its page in "
+                                    "the admin puts it back among the waiting shops.") % {"name": shop.name})
+    elif shop.needs_approval:
+        messages.info(request, _("%(name)s was already set aside.") % {"name": shop.name})
     else:
         messages.info(request, _("%(name)s was already approved.") % {"name": shop.name})
     return redirect("admin_dashboard")

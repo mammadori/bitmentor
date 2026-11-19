@@ -1,0 +1,2 @@
+{% extends "admin/change_form.html" %}{% load i18n %}
+{% block object-tools-items %}{% if put_back_url %}<li><form method="post" action="{{ put_back_url }}" class="put-back">{% csrf_token %}<button type="submit" class="button">{% translate "Put back among the waiting shops" %}</button></form></li>{% endif %}{{ block.super }}{% endblock %}

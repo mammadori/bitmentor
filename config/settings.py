@@ -49,9 +49,34 @@ TEAM_ACCESS = os.environ.get("TEAM_ACCESS") or "off"
 if TEAM_ACCESS not in ("on", "off"):
     raise ImproperlyConfigured(f"TEAM_ACCESS is {TEAM_ACCESS}: it must be on or off")
 TEAM_ACCESS = TEAM_ACCESS == "on"
+# The volunteers' area (team/area.py, docs/features/team-access.md): with TEAM_ACCESS on, a team key with the role
+# `moderator` signs in at /team/, in development and in production, and its pass opens the day's list and the requests
+# for help. Only Django reads it: Caddy already lets the area through where it may be reached
+TEAM_AREA = os.environ.get("TEAM_AREA") or "off"
+if TEAM_AREA not in ("on", "off"):
+    raise ImproperlyConfigured(f"TEAM_AREA is {TEAM_AREA}: it must be on or off")
+TEAM_AREA = TEAM_AREA == "on"
 # Who reaches /admin/ is Caddy's rule (Caddyfile, `admin`); here the variable is only read by `manage.py preflight`,
 # which says when team access is on and /admin/ is open from anywhere
 ADMIN_ALLOWED_IPS = os.environ.get("ADMIN_ALLOWED_IPS", "")
+# The second factor of /admin/ (config/second_factor.py): `optional`, each staff account adds one (a code from an app,
+# passkeys, or both) for itself; `required`, a staff account without one is sent to add one right after the password
+# and reaches nothing else; `passkey`, the same, and only passkeys sign in: the mode that resists phishing
+ADMIN_SECOND_FACTOR = os.environ.get("ADMIN_SECOND_FACTOR") or "optional"
+if ADMIN_SECOND_FACTOR not in ("optional", "required", "passkey"):
+    raise ImproperlyConfigured(f"ADMIN_SECOND_FACTOR is {ADMIN_SECOND_FACTOR!r}: it must be optional, required or passkey")
+# How long a session of /admin/ opened with the second factor lasts, whatever the activity: then password and code again
+ADMIN_SESSION_HOURS = os.environ.get("ADMIN_SESSION_HOURS") or "24"
+if not (ADMIN_SESSION_HOURS.isascii() and ADMIN_SESSION_HOURS.isdigit() and int(ADMIN_SESSION_HOURS) >= 1):
+    raise ImproperlyConfigured(f"ADMIN_SESSION_HOURS is {ADMIN_SESSION_HOURS!r}: it must be a whole number of hours, 1 or more")
+ADMIN_SESSION_HOURS = int(ADMIN_SESSION_HOURS)
+# Sign-in to /admin/ with a Lightning wallet (config/admin_wallet.py), the hobby level: on, a staff account may link its
+# own wallet, and with ADMIN_SECOND_FACTOR=optional that wallet alone opens /admin/ for an account without a second
+# factor (one step, as the password alone). With required or passkey a wallet never opens /admin/. off: none of it exists
+ADMIN_WALLET_SIGN_IN = os.environ.get("ADMIN_WALLET_SIGN_IN") or "off"
+if ADMIN_WALLET_SIGN_IN not in ("on", "off"):
+    raise ImproperlyConfigured(f"ADMIN_WALLET_SIGN_IN is {ADMIN_WALLET_SIGN_IN!r}: it must be on or off")
+ADMIN_WALLET_SIGN_IN = ADMIN_WALLET_SIGN_IN == "on"
 # manage.py demo_data (shops/demo.py) fills a site with made-up shops: it runs only on an empty site in development mode,
 # or in maintenance mode when this is set on purpose. Never on mainnet, in production, or beside a real shop or account
 DEMO_ALLOWED = os.environ.get("BITMENTOR_DEMO") == "1"
@@ -65,6 +90,10 @@ BLOSSOM_HOSTS = tuple(dict.fromkeys(
     name.strip().lower().rstrip(".")
     for name in os.environ.get("BLOSSOM_HOSTS", "").replace(",", " ").split()))
 ALLOWED_HOSTS = [SITE_HOST, "localhost", "127.0.0.1", "web", ".onion", *BLOSSOM_HOSTS]
+# Caddy's own settings (Caddyfile), read here only by the settings watch (website/settings_watch.py): the moderators
+# hear when they change. The defaults are the compose file's
+REFUSE_PROBES = os.environ.get("REFUSE_PROBES") or "on"
+TRUSTED_PROXIES = os.environ.get("TRUSTED_PROXIES") or "127.0.0.1/32"
 CSRF_TRUSTED_ORIGINS = [f"https://{SITE_HOST}"]
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = not DEBUG
@@ -102,6 +131,10 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "config.guard.StaffApart",  # right after the accounts: outside /admin/ the staff is a visitor, never a merchant
     "config.temporary.TemporaryPassword",  # after it: a staff member with a temporary password goes to change it
+    # After it: an admin session the second factor no longer holds ends, also on the change of password; with
+    # ADMIN_SECOND_FACTOR required or passkey a staff account without one goes to add one, once its password is not
+    # temporary
+    "config.second_factor.Gate",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "website.visibility.VisibilityMiddleware",  # after the accounts: the owner of a certified shop sees the private part
@@ -162,14 +195,18 @@ if sys.argv[1:2] == ["test"]:
 # tests, which change shops and switches between two requests; the tests of the cache turn it on
 PUBLIC_LIST_SECONDS = 0 if sys.argv[1:2] == ["test"] else 60
 
-# Django and the libraries say only their errors; the site's own apps also say their warnings (an address the guardian
-# cannot reach, a mail not sent), which an operator wants to find in the logs
+# Warnings and errors are written, whoever says them: the site's own apps (an address the guardian cannot reach, a mail
+# not sent) and a community's own code, which needs no line of its own here. The libraries say only their errors:
+# their warnings are about things an operator cannot act on. Django keeps its own levels, as before: its «Not Found»
+# and «Forbidden» lines are written (django.request), with the paths that open something cut by the filter below
+QUIET_LOGGERS = ("py.warnings", "asyncio", "urllib3", "requests", "websockets", "psycopg", "MARKDOWN", "PIL", "whitenoise")
 LOGGING = {"version": 1, "disable_existing_loggers": False,
            # A path that opens something (the token of a team invite) is never written whole: config/quiet.py
            "filters": {"quiet_paths": {"()": "config.quiet.QuietPaths"}},
            "handlers": {"console": {"class": "logging.StreamHandler", "level": "WARNING", "filters": ["quiet_paths"]}},
-           "root": {"handlers": ["console"], "level": "ERROR"},
-           "loggers": {app: {"level": "WARNING"} for app in ("config", "shops", "website", "meetups", "team")}}
+           "root": {"handlers": ["console"], "level": "WARNING"},
+           "loggers": {**{name: {"level": "ERROR"} for name in QUIET_LOGGERS},
+                       **{app: {"level": "WARNING"} for app in ("config", "shops", "website", "meetups", "team")}}}
 
 LANGUAGES = [(code, name) for code, name in community()["languages"].items()]
 LANGUAGE_CODE = LANGUAGES[0][0]

@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a></nav>
+<header class="page-head"><h1>{% if customer_card %}{% blocktranslate with name=shop.name %}The card for customers of {{ name }}{% endblocktranslate %}{% else %}{% blocktranslate with name=shop.name %}The sign of {{ name }}{% endblocktranslate %}{% endif %}</h1></header>
+{% if shop.set_aside_on %}<p class="notice" role="status" id="sign-waits">{% include "shops/set_aside_note.html" %}</p>{% else %}<p class="notice" role="status" id="sign-waits">{% translate "The community looks at every new shop before it goes on the map. The codes of the sign and of the card for customers open pages that show how to pay only once the shop is approved: both come then. You will hear from us, if your account has an email or the shop a Telegram chat." %}</p>{% endif %}
+{% if shop.has_register %}<p>{% translate "The register already works, and so does the card for the till." %}</p>
+<p><a class="button" href="{% url 'till_card' shop.id %}">{% translate "Card for the till" %}</a>{% else %}<p>{% endif %}
+  <a class="button button-quiet" href="{% url 'shops' %}">{% translate "Your shops" %}</a></p>
+{% endblock %}

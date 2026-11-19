@@ -97,6 +97,25 @@ Disallow: /
 	respond @admin_outside 403
 }
 
+# REFUSE_PROBES=on (the default): the requests of the robots that try every site for what this one does not have
+# (WordPress, PHP, a forgotten .env or .git, phpMyAdmin, Spring's actuator...) get a 404 from here and never reach Django.
+# The site has no address of these shapes (config/test_server.py checks it against every address and every static
+# file); /static/, /theme/ and /.well-known/ are left alone whatever the name. Not a defence: these requests got a 404
+# anyway, this one costs less and keeps them out of the web log. REFUSE_PROBES=off sends them on as before.
+# Only shapes no site of this software has: a bare word such as /wp/ or /vendor/ can be a community's page, and is left.
+(probes-on) {
+	@probes {
+		path *.php *.php5 *.php7 *.php/* *.phtml *.asp *.aspx *.jsp *.jspx *.cgi *.sql *.bak *.swp
+		path */.env* */.git */.git/* */.svn/* */.hg/* */.aws/* */.ssh/* */.vscode/* */.idea/* */.DS_Store */.htaccess */.htpasswd
+		path /wp-* */wp-admin/* */wp-content/* */wp-includes/* */wp-json/* */wp-login* /wordpress* /xmlrpc*
+		path */cgi-bin/* */phpmyadmin* /pma/* /myadmin/* */vendor/phpunit/* /actuator/* /_profiler/* /telescope/* /solr/* /boaform/* /HNAP1* /owa/* /ecp/* /autodiscover/* /server-status* /server-info*
+		not path /static/* /theme/* /.well-known/*
+	}
+	respond @probes 404
+}
+(probes-off) {
+}
+
 # ACCESS_LOG=on: the access log, to understand what happened after an incident. It lives in Caddy's volume,
 # in /data/access: a new file every MiB (ACCESS_LOG_SIZE), at most 10 old ones (ACCESS_LOG_FILES), compressed and removed after
 # 7 days (ACCESS_LOG_KEEP): whichever comes first, so a busy site raises the first two to really keep its days. Of the addresses only the network
@@ -243,6 +262,7 @@ Disallow: /
 	import /etc/caddy/mode/{$SITE_MODE:development}.caddy
 	import /etc/caddy/local/*.caddy
 	import admin
+	import probes-{$REFUSE_PROBES:on}
 	import access-{$ACCESS_LOG:off}
 	import anonymous
 	encode zstd gzip
@@ -256,6 +276,7 @@ http://:8081 {
 	import /etc/caddy/mode/{$SITE_MODE:development}.caddy
 	import /etc/caddy/local/*.caddy
 	import admin
+	import probes-{$REFUSE_PROBES:on}
 	import access-{$ACCESS_LOG:off}
 	import anonymous
 	encode zstd gzip

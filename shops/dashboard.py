@@ -11,7 +11,7 @@ Nothing here asks a Lightning provider: the periodic command already writes what
 sees no sale, so nothing here is about sales or money.
 
 The rules are the ones of the modules that own them, never copied here: `lightning_watch.panel` for the Lightning
-address, `first_day.steps` for the first day."""
+address, `first_day.steps` for the first day, `training.stuck` for the owners stuck in the merchant's training."""
 import hashlib
 import logging
 import re
@@ -30,7 +30,7 @@ from config import hooks, limits, mailbudget
 
 from . import certified, first_day, lightning_watch, osm, vacation
 from .models import HAS_REGISTER, HelpRequest, LightningStatus, OsmRequest, Shop, is_demo, still_trading
-from .notifications import plain  # noqa: F401 (the command's and the tests' name for it)
+from .notifications import alert_text, plain  # noqa: F401 (plain: the command's and the tests' name for it)
 
 PROBLEM = "problem"
 WARNING = "warning"
@@ -197,12 +197,15 @@ def moved_items(now):
 
 
 def approval_items():
-    """The new shops waiting for someone to approve them (shops/approval.py), the oldest first: one line each, with the
-    button on the page. Read on their own: a shop without a wallet yet waits too, and is not among the trading ones."""
+    """The new shops waiting for someone to approve them (shops/approval.py, `waiting`: not those set aside), the oldest
+    first: one line each, with the buttons on the page. Read on their own: a shop without a wallet yet waits too, and is
+    not among the trading ones."""
+    from .approval import waiting
+
     return [Item(WARNING, "approve", _("A new shop waits for your approval before it goes on the map."), shop=shop,
                  since=shop.created, do=_("Look at the shop and its owner; if all is well, approve it."),
                  links=[shop_link(shop)])
-            for shop in Shop.objects.filter(approved_on=None).order_by("created")[:50]]
+            for shop in waiting().order_by("created")[:50]]
 
 
 def certificate_items(found_shops):
@@ -228,6 +231,51 @@ def certificate_items(found_shops):
                               shop=shop, do=_("Find out whose wallet it is: the other owner's shop must change its address. "
                                               "Until then the site certifies neither shop."),
                               links=[shop_link(shop)]))
+    return found
+
+
+# The owners stuck in the training shown at most: the oldest first
+NUDGES_SHOWN = 50
+
+
+def training_items(found_shops, now):
+    """The owners stuck in the merchant's training (shops/training.py, `stuck`, with its rules): one item each, to call
+    them, naming their shops and the step they stopped at. Nothing about their account, nothing sent to them: a person
+    calls. Only where the community has the training and `nudge_days` is not 0."""
+    from . import training
+
+    cfg = training.parse()
+    if not cfg or not cfg.nudge_days:
+        return []
+    # Not a shop the community set aside (a trial, a duplicate): nobody to call for it. One that only waits for its
+    # approval is: its register is locked all the same
+    candidates = [shop for shop in found_shops if shop.owner_id and not shop.suspended and not is_demo(shop)
+                  and not (shop.set_aside_on and not shop.approved_on)]
+    found = []
+    for row in sorted(training.stuck(cfg, candidates, now), key=lambda row: row.since)[:NUDGES_SHOWN]:
+        # Names chosen by the owners, as an alert shows them: the line also goes to Telegram and to a terminal
+        names = ", ".join(alert_text(shop.name) for shop in sorted(row.shops, key=lambda shop: (shop.name.lower(), shop.pk)))
+        shop = min(row.shops, key=lambda shop: (shop.created, shop.pk))
+        if not row.waiting:
+            what = _("The owner stopped half-way through the basic pass of the training: %(shops)s.")
+            do = _("Call them: in their panel «Your merchant pass» goes on from where they stopped, the step "
+                   "«%(step)s». Without the basic pass their register will wait for it.")
+        else:
+            what = _("The real register waits for the owner's basic pass of the training: %(shops)s.")
+            if not row.step:
+                do = _("Call them: their register waits for the basic pass, and «Your merchant pass» in their panel "
+                       "says what is left.")
+            elif cfg.quick_start:
+                do = _("Call them: in their panel «Your merchant pass» goes on from where they stopped, the step "
+                       "«%(step)s». Until the basic pass their register takes only the quick start, then waits; the "
+                       "practice register works meanwhile.")
+            else:
+                do = _("Call them: in their panel «Your merchant pass» goes on from where they stopped, the step "
+                       "«%(step)s». Until the basic pass their register says «The register opens soon» and takes no "
+                       "new sale; the practice register works meanwhile.")
+        found.append(Item(WARNING, "training_register_waits" if row.waiting else "training_stopped",
+                          what % {"shops": names}, do % {"step": row.step}, shop=shop, since=row.since, last=True,
+                          links=[shop_link(shop)]))
     return found
 
 
@@ -435,6 +483,8 @@ def summary(now=None):
     items = freshness(found_shops, now)
     counts = {"working": 0}
     closed_now = 0
+    # The shops open today: the training's items are about them (a shop closed for a while is not called about it)
+    open_shops = []
     today = vacation.day_of(now)
     for shop in found_shops:
         # Closed for a while (holidays, works…): no alarm for these days for the Lightning address, which the guardian
@@ -453,9 +503,11 @@ def summary(now=None):
             else:
                 items += closed_lightning_items(shop)
             continue
+        open_shops.append(shop)
         if not shop.suspended and shop.lightning_status == LightningStatus.OK:
             counts["working"] += 1
     items += moved_items(now)
+    items += training_items(open_shops, now)
     items += certificate_items(found_shops)
     items += approval_items()
     limit_rows = limits.rows()

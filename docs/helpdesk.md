@@ -91,6 +91,7 @@ payments, how many shops to look at, how many are closed for a while. The same l
 | `limit_<name>` | Problem at the limit, to look at near it | A total of the site (shops, requests, emails…) is at 80% of its limit or at it: clear what nobody needs, or raise `limits.<name>` in `community.yml`. Spam or growth: look before raising |
 | `approve` | To look at | A new shop waits for an approval. Under "Check before approving" it looks like a copy of a shop already there: do what its block says before ticking the box ([What to do today](features/dashboard.md)) |
 | `private_waiting` | To look at | A certified shop waits for a person to open the private part to its owner ([Certified shops](features/certified-shops.md)) |
+| `training_register_waits`, `training_stopped` | To look at | An owner stuck in the merchant's training for more than `training.nudge_days` days: their real register waits for the basic pass, or they stopped half-way through the basic modules. Call them: the line says the step they stopped at ([The merchant's training](features/merchant-training.md#what-the-association-sees-and-exports)) |
 | `emails_one_address` | To look at | Some addresses received more emails today than `limits.emails_per_address_day`: a shop in trouble, or someone using the sign-in against an address |
 | `guardian_late` | To look at | `check_lightning` has not run for a while: the Lightning lines may be old |
 | `osm_request` | To look at, on top | The merchant asked the association to put the shop on OpenStreetMap ([OpenStreetMap](features/openstreetmap.md)) |

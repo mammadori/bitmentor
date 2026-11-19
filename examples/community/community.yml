@@ -64,6 +64,10 @@ menu:
 # community; the panel and the registers never. `embed_from`: only these https sites (every site when missing).
 # embeddable: [game-*]
 # embed_from: [https://blog.example.org]
+# Files of theme/ whose downloads the community's own code hears of (the event `theme_file_served`, docs/architecture.md,
+# "The community's own code"), with shell patterns relative to theme/: up to 50, of at most 200 characters each. Without
+# it no event is sent; a value that cannot be used is left out and `manage.py check` says so (`shops.W014`).
+# announced_files: [media/*.zip, books/*.epub]
 footer_menu:
   - slug: contact
     labels: {it: Contatti, en: Contacts}
@@ -87,7 +91,7 @@ footer_menu:
 #   - https://blossom.example.net
 # Optional features (docs/features/README.md, "Turning features off"): all on unless you write `false`. Off, a feature leaves
 # the merchant's panel, the public pages, the messages and the commands, its addresses answer 404, and nothing is deleted:
-# turned on again, everything is back. The names are these four; `manage.py check` warns about anything else.
+# turned on again, everything is back. The names are these five; `manage.py check` warns about anything else.
 # features:
 #   certified: false        # the badge of certified shops: on the map and the shop page, `certified` in /shops.json, the private part of
 #                           # the pages for their owners, the certificate in the merchant's path and /admin/. The icons of
@@ -97,6 +101,7 @@ footer_menu:
 #                           # keeps the alarms quiet until that day (at most 92 days), and /admin/ keeps the Closures table
 #   practice: false         # the practice register: the buttons, the links and the two addresses
 #   approval: false         # new shops go on the map at once, without waiting for someone to approve them
+#   stages: false           # the owner's panel shows everything at once, as before, without each shop's stage on top
 # Experimental features (docs/features/README.md, "Experimental features"): all off unless you write `true`. They work and are
 # tested, but had less review and less real use, and may change or go: not what a community starts with. Off, one is as quiet
 # as a feature turned off, and nothing is deleted. The names are these two; `manage.py check` warns about anything else.
@@ -120,6 +125,9 @@ footer_menu:
 #   training on for shops that already sell writes a `since` ahead and tells its merchants first.
 # - `review_months`: the short review comes every this many months (12); `refresh_days`: days after it is due before the
 #   «Trained merchant» sign goes (30). Nothing is ever locked by a review or by a changed text.
+# - `nudge_days`: the day's list (/admin/today/, the morning summary, the volunteers' area) asks someone to call an owner
+#   whose real register has waited for the pass, or who stopped half-way through the basic modules, for more than this many
+#   days (3; from 1 to 60; 0 or false: never). Nothing is sent to the merchant: a person calls.
 # - `public_sign`: the «Trained merchant» sign on the shop page, the map and /shops.json; true by default. The certificate
 #   of a shop always needs the basic pass.
 # - `guides`: the pages of the three steps declared after a guide: `practice` (the practice register has its own page),
@@ -131,6 +139,7 @@ footer_menu:
 #   gate: unlock
 #   gate_imported: reminder   # the shops of the community's list (external_id): `reminder` unless written, `unlock` locks them too
 #   quick_start: 20
+#   nudge_days: 3
 #   review_months: 12
 #   refresh_days: 30
 #   public_sign: true
@@ -223,6 +232,27 @@ footer_menu:
 # privacy:
 #   help_requests_days: 365
 #   email_prints_days: 62
+# The volunteers' area (TEAM_AREA, docs/features/team-access.md). `staff_register_names`: whether the copy of the diagnosis
+# in a request for help shows the names of the merchant's staff registers, often the first names of their employees
+# (personal data). False when unset: one neutral line says there is something about them, and whoever has /admin/ sees it.
+# true or false; anything else counts as false (`manage.py check` says so).
+# team_area:
+#   staff_register_names: false
+# The settings watch (docs/configuration.md, "The settings watch"): when the site starts with a security setting changed
+# since the previous start, the moderators get one message (with no moderators' channel nothing is sent). On when unset;
+# `false` turns it off and deletes what it recorded. true or false; anything else counts as true (`manage.py check` says so).
+# settings_watch:
+#   enabled: false
+# The owner's panel by stages (docs/features/panel-stages.md): on top, each shop's current stage with one step; the rest
+# closed below. The routine (closing the day, the file for the accountant, staff registers) opens `routine_days` after the
+# first sale, the training beyond the basic pass `game_days` after it; on the owner's phone also after `routine_sales` and
+# `game_sales` sales, counted by the panel from the register's own history on that phone (the site never counts sales).
+# Days from 1 to 365, sales from 1 to 1000; a wrong value counts as its default (`manage.py check` says so).
+# stages:
+#   routine_days: 7
+#   routine_sales: 5
+#   game_days: 30
+#   game_sales: 20
 # The stops appear where a page writes {% include "website/route.html" %}. You find the coordinates by clicking on openstreetmap.org
 route:
   - name: {it: Il primo bar, en: The first bar}

@@ -7,6 +7,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 
+from config.community import community
 
 COMMAND = "shops.management.commands.preflight"
 
@@ -131,3 +132,86 @@ class PrivacyPageNote(TestCase):
         notes = privacy_notes()  # the example community ships the template
         self.assertEqual(len(notes), 1)
         self.assertIn("docs/privacy.md", notes[0])
+
+
+TELEGRAM = {"TELEGRAM_BOT_TOKEN": "t", "TELEGRAM_MODERATION_CHAT": "-100"}
+NO_TELEGRAM = {"TELEGRAM_BOT_TOKEN": "", "TELEGRAM_MODERATION_CHAT": ""}
+
+
+class ModeratorsChannel(TestCase):
+    """Whether the moderators can be reached: a warning that cannot be missed, never a stop (whoever runs a site alone is
+    their own moderator), and a plain note when the mail does Telegram's job."""
+    GOOD = Preflight.GOOD
+    TELEGRAM = TELEGRAM
+    NO_TELEGRAM = NO_TELEGRAM
+
+    def run_it(self, email="staff@example.org", **changes):
+        """(stdout, stderr, stopped)."""
+        out, errors = StringIO(), StringIO()
+        with override_settings(**{**self.GOOD, **changes}), patch(f"{COMMAND}.get_connection"), \
+                patch(f"{COMMAND}.site_ipv6", return_value=set()), patch.dict(community(), {"email": email}):
+            try:
+                call_command("preflight", stdout=out, stderr=errors)
+                stopped = False
+            except CommandError:
+                stopped = True
+        return out.getvalue(), errors.getvalue(), stopped
+
+    def test_nobody_reached_is_a_warning_and_preflight_still_passes(self):
+        for mode in ("development", "test", "production"):
+            for case in (self.NO_TELEGRAM, {"TELEGRAM_BOT_TOKEN": "t", "TELEGRAM_MODERATION_CHAT": ""},
+                         {"TELEGRAM_BOT_TOKEN": "", "TELEGRAM_MODERATION_CHAT": "-100"}):
+                with self.subTest(mode=mode, case=case):
+                    out, errors, stopped = self.run_it(email="", SITE_MODE=mode, **case)
+                    self.assertFalse(stopped)
+                    self.assertEqual(errors, "")
+                    self.assertIn("All ready", out)
+                    warning = next(line for line in out.splitlines() if line.startswith("WARNING:"))
+                    for text in ("the moderators cannot be reached", "the morning summary",
+                                 "the new shops waiting for an approval", "second factor", "will reach nobody",
+                                 "/admin/today/", "TELEGRAM_MODERATION_CHAT", "EMAIL_HOST",
+                                 "community.yml has no `moderators_emails` and no `email`"):
+                        self.assertIn(text, warning)
+
+    def test_the_warning_names_what_is_missing(self):
+        out = self.run_it(email="", TELEGRAM_BOT_TOKEN="t", TELEGRAM_MODERATION_CHAT=" , ")[0]
+        self.assertIn("TELEGRAM_MODERATION_CHAT is empty", out)
+        self.assertNotIn("TELEGRAM_BOT_TOKEN is empty", out)
+
+    def test_the_exit_code_is_the_one_of_the_other_checks(self):
+        """A stop stays a stop, a pass stays a pass, whatever the moderators' channel."""
+        for channel, email in ((self.TELEGRAM, ""), (self.NO_TELEGRAM, "staff@example.org"), (self.NO_TELEGRAM, "")):
+            with self.subTest(channel=channel, email=email):
+                self.assertFalse(self.run_it(email=email, **channel)[2])
+                self.assertTrue(self.run_it(email=email, DEBUG=True, **channel)[2])
+        # Without EMAIL_HOST preflight stops for the sign-in links, as before: the warning is said too, and not counted
+        out, errors, stopped = self.run_it(EMAIL_HOST="", **self.NO_TELEGRAM)
+        self.assertTrue(stopped)
+        self.assertEqual(errors.splitlines(), ["EMAIL_HOST is missing: the sign-in links will not go out"])
+        self.assertIn("WARNING: the moderators cannot be reached (TELEGRAM_BOT_TOKEN is empty; "
+                      "TELEGRAM_MODERATION_CHAT is empty; EMAIL_HOST is empty)", out)
+
+    def test_mail_without_telegram_is_a_plain_note(self):
+        out, _errors, stopped = self.run_it(**self.NO_TELEGRAM)
+        self.assertFalse(stopped)
+        self.assertNotIn("WARNING", out)
+        self.assertIn("good to know: the moderators' messages go by email", out)
+
+    def test_a_community_mail_backend_is_mail_without_email_host(self):
+        """EMAIL_REAL_BACKEND (docs/configuration.md, "A mail backend of the community") sends real mail without EMAIL_HOST:
+        no warning, no stop for the sign-in links."""
+        community_backend = {**self.NO_TELEGRAM, "EMAIL_HOST": "",
+                             "EMAIL_REAL_BACKEND": "shops.test_notify_test.CommunityBackend"}
+        out, errors, stopped = self.run_it(**community_backend)
+        self.assertFalse(stopped, errors)
+        self.assertNotIn("WARNING", out)
+        self.assertIn("good to know: the moderators' messages go by email", out)
+        # Without an address to write to it is still nobody, and the warning does not blame EMAIL_HOST
+        out = self.run_it(email="", **community_backend)[0]
+        self.assertIn("community.yml has no `moderators_emails` and no `email`", out)
+        self.assertNotIn("EMAIL_HOST is empty", out)
+
+    def test_with_telegram_nothing_to_say(self):
+        out = self.run_it(email="", **self.TELEGRAM)[0]
+        self.assertNotIn("WARNING", out)
+        self.assertNotIn("moderators' messages", out)

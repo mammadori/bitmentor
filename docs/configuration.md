@@ -6,8 +6,8 @@ page explains each setting. [Every variable](#every-variable) is listed at the e
 
 ## Turning features off
 
-The badge of the certified shops, the shops closed for a while, the practice register and the wait for an approval of
-new shops are on unless `community.yml` has a `features` block that says
+The badge of the certified shops, the shops closed for a while, the practice register, the wait for an approval of
+new shops and the owner's panel by stages are on unless `community.yml` has a `features` block that says
 `false` for them. What each switch takes away and what it keeps is in
 [Turning features off](features/README.md#turning-features-off). `manage.py check` and `manage.py preflight` say which
 are off.
@@ -176,6 +176,11 @@ it exists; it does nothing in `maintenance` and `production`. With it on, its fe
 from outside in `development`, and a browser with a pass reaches `/admin/` like an allowed address does: set
 `ADMIN_ALLOWED_IPS` if the team is not the staff. See [Team access with a Lightning wallet](features/team-access.md).
 
+`TEAM_AREA=on`, with `TEAM_ACCESS=on`, adds the volunteers' area: a team key with the role `moderator` signs in at
+`/team/`, also while the site is in `production`, and sees there the day's list and the requests for help, which it can
+mark solved. No account and no right in `/admin/`. Off by default; only `web` reads it. See
+[The volunteers' area](features/team-access.md#the-volunteers-area).
+
 In every mode `/health/` for monitoring, and the paths in `OPEN_PATHS`, for
 example `/extra /extra/*`, stay open. The default under-construction page is `maintenance/index.html`; a community sets its
 own with `MAINTENANCE_DIR`. The rules are in `caddy/<mode>.caddy`. After a change: `docker compose up -d web caddy`.
@@ -237,15 +242,172 @@ Addresses of IPv6 visitors count by /64, or /48 where a network that keeps tryin
 
 ## `/admin/` and access log
 
-`/admin/` asks only for the password, with no second factor. With `ADMIN_ALLOWED_IPS`, addresses or networks
-separated by spaces, for example `203.0.113.7 2001:db8:1::/48`, Caddy opens it only to those and answers 403 to
-everyone else, onion included. Without the variable it stays open to everyone. Behind another proxy, the visitor's real
-address is what counts, as long as the proxy is in `TRUSTED_PROXIES`. Set it: open to everyone, the only defence of
-the staff accounts is the password and the sign-in limits, 10 tries per address, 30 per /48 network and 20 per account
-every 15 minutes. The limit per account also stops whoever tries from many addresses. While it lasts, a browser that
-signed in to that account before (a signed cookie, `admin_device`, kept 180 days and void once the password changes)
-can still sign in; a new browser has to wait the end of the window. In production set `ADMIN_ALLOWED_IPS`: from an
-address in it nobody else can use up the limits.
+`/admin/` asks for the password and, for a staff account that added one, a second factor: a passkey (made by the
+phone, the computer or a security key) or a 6-digit code from an authenticator app on the phone (TOTP, any app that
+reads an `otpauth://` QR code). With `ADMIN_ALLOWED_IPS`,
+addresses or networks separated by spaces, for example `203.0.113.7 2001:db8:1::/48`, Caddy opens it only to those
+and answers 403 to everyone else, onion included. Without the variable it stays open to everyone. Behind another
+proxy, the visitor's real address is what counts, as long as the proxy is in `TRUSTED_PROXIES`. The sign-in limits
+are 10 tries per address and 30 per /48 network every 15 minutes, passwords, codes, passkeys and wallets together, and, per
+account, 20 wrong passwords every 15 minutes and, apart from them, 5 wrong codes every 15 minutes and 20 a day. The limits per
+account also stop whoever tries from many addresses: whoever knows the password gets at most 20 guesses of the code in
+a day of the counter, each with three chances in a million (the code of the half minute before and after is accepted
+too). The windows are fixed, not sliding: the day starts at midnight UTC, so up to 40 guesses can fall within 24 hours
+across a midnight. While they last, a browser that signed in to that account before (a signed cookie,
+`admin_device`, kept 180 days, void once the password changes and, for an account with a second factor, valid only
+if it was given by a sign-in with one of the second factors the account has now) can still sign in, with the per-address limits only; a new
+browser has to wait the end of the window. From an address in `ADMIN_ALLOWED_IPS` nobody else can use up the limits.
+
+**The second factor.** `ADMIN_SECOND_FACTOR` is a level, chosen by whoever installs the site. Three, from the
+lightest:
+
+- `optional` (the default): **to try the technology and the team first.** `/admin/` is as it always was: the password,
+  and nothing in between, no banner, no message. A quiet **Second factor** link among the user tools at the top of
+  `/admin/` (`/admin/second-factor/`) lets each staff account add one for itself, if it wants: passkeys (as many as it
+  likes, each with a name), or a code from an app (the page shows a QR code and the key as text, once, and only a
+  right code from the app turns it on), or both; either signs in. The same page renames and removes the passkeys and
+  turns the code off with a code, the last one too: the account is then back to the password alone. Accounts with
+  the password alone, with a code and with a passkey live side by side.
+- `required`: a staff account without a second factor (a passkey or a code) is sent, right after the password, to
+  add one, and reaches no other page of `/admin/` until it has (a temporary password is changed first). With it,
+  `/admin/` open to every address has a password and a device behind it, and `ADMIN_ALLOWED_IPS` becomes a choice, no
+  longer the only defence: staff on a phone or on a new network can sign in. Moderators sign in the same way.
+- `passkey`: **for a community with real shops.** As `required`, but only passkeys sign in. An account that has a
+  code from an app and no passkey yet gives its code once more after the password, and that code opens only the page
+  where a passkey is added (and the sign-out, and the change of a temporary password): nothing else of `/admin/`, no
+  known browser, and the code cannot be turned off from there. Once the account has a passkey the code is neither
+  asked for nor accepted, and the sessions it opened end. An account with no second factor at all is sent to add a
+  passkey right after the password (see «What it does not protect»). The page sets no new code up.
+
+Moving up a level is a choice, never forced, and it can be undone: change the variable and restart. Any other value
+stops the site from starting. In `required` and
+`passkey` mode the page refuses to remove the last second factor the mode accepts, and says why: add another one
+first.
+
+**Sign-in with a wallet: the hobby level (`ADMIN_WALLET_SIGN_IN`).** For whoever tries the site with a few friends,
+or a team learning the tools: nobody has to know what a code from an app or a passkey is. `off` by default, and then
+none of it exists: no link, no section on the page, its addresses answer 404, `/admin/` is exactly as before. With
+`ADMIN_WALLET_SIGN_IN=on` **and** `ADMIN_SECOND_FACTOR=optional`:
+
+- Each staff account, signed in to `/admin/` **with its password**, links **its own** Lightning wallet on its
+  **Second factor** page (section **Sign in with a wallet**): the page shows a QR code, the wallet signs it
+  (LNURL-auth), the page shows the start and the end of the key that signed and the person confirms it with a name (if
+  their own wallet reported an error, someone else's signed first: cancel). Up to 5 wallets per account, each renamed
+  and removed there, also only from a session opened with the password; nobody sees or removes another account's
+  wallets, a superuser neither.
+- The login page has one more link, **Sign in with your wallet**: a QR code to scan with a linked wallet, and the
+  browser is in `/admin/`, as after a right password. **One step, not two**: whoever holds the unlocked phone with that
+  wallet, and one of the browsers below, has that account's `/admin/`. The password keeps working.
+- **Only on a browser where the account already used its password, and only while that password stands.** A wallet
+  signs whatever code it is shown: whoever opened the wallet's sign-in page in their own browser and got a staff member
+  to scan its code would otherwise be in `/admin/` themselves. So the wallet opens `/admin/` only in a browser that
+  carries the account's `admin_device` cookie, the one a right password leaves there (180 days, bound to the account's
+  current password), and in no other: there the answer is the same as for every refusal, and the page says to sign in
+  with the password the first time on a browser. **Never approve in the wallet a code you did not open yourself, on
+  the site's own login page, in your own browser.** A change of password stops every wallet until the new password is
+  used once in that browser; the wallets stay linked and work again there. A sign-in with the wallet does not renew the
+  cookie: the password is used at least once in 180 days on each browser.
+- Only for an account **without a second factor**: an account that added a code from an app or a passkey chose more
+  than one step, and its wallet does not open its `/admin/` (the page says to sign in with the password). A wallet is
+  an alternative to the password alone, never a way around a second factor, and never a second factor itself.
+- A session opened with a wallet lasts `ADMIN_SESSION_HOURS` at most, and ends at its next page when that wallet is
+  removed (not when another one is), when the account adds a second factor, or when the switch goes off or the level
+  rises.
+  It does less than a session opened with the password: it neither manages the wallets nor adds a second factor
+  (the page says to sign in with the password), so whoever holds the unlocked phone for a moment cannot add a way in
+  of their own or lock the account's owner out.
+- **When the community gets real shops, move to `required` or `passkey`**: at those levels a wallet never opens
+  `/admin/`, whatever `ADMIN_WALLET_SIGN_IN` says. The linked wallets stay stored and unused, the page says so,
+  `manage.py check` warns that the two settings disagree (`shops.W016`, not an error: the site starts) and
+  `manage.py preflight` notes it. Set `ADMIN_WALLET_SIGN_IN=off` then.
+- **One key, one role.** A Lightning wallet gives this site the same key every time (LNURL-auth keys are per domain):
+  the key of a shop's owner (its wallet sign-in) or of a team key cannot be linked to a staff account, and a key linked
+  to a staff account opens no shop account, makes none, connects to none, and joins no team. **Use a different wallet,
+  or a different account in your wallet, for a shop and for the staff.** Each side checks again after writing; only the
+  key's own holder, signing on both sides at the same instant, could slip one role past the other.
+- **Only at the site's own address** (`PUBLIC_URL`), as passkeys: the wallet signs for the address of the callback,
+  always `PUBLIC_URL/lnurl-auth/staff/`. On the onion or another name of the machine the pages say so and show no
+  code: sign in with the password there. The wallet's own call reaches the site like the shops' wallet sign-in does,
+  outside `/admin/`, so `ADMIN_ALLOWED_IPS` still decides who reaches `/admin/` (the browser), not where the phone is;
+  on a site under construction the phone must reach the site, as for the shops' wallet sign-in.
+- **The binding.** The code is fresh, lasts five minutes and signs in once; it is kept in the browser's own session on
+  the server, so a code signed for one browser signs in nobody else. The site writes nothing for a code until a wallet
+  signs it: it knows its own codes by their HMAC, and counts the signatures of live codes by the wallet's address and
+  network (20 and 60 in ten minutes). A refused wallet (not linked, of an account no longer staff or active, of an
+  account with a second factor, in a browser that is not a known one of the account) gets one and the same answer,
+  creates nothing, and counts against the sign-in's limits by address like a wrong password.
+- Every sign-in with a wallet is one line in the account's history in the admin (which wallet's key is not written),
+  and updates the account's last sign-in as the password does; nobody is told of an ordinary sign-in. Linking and
+  removing a wallet and `manage.py admin_wallet reset <username>` are written there too and told to the people who
+  look after the site; `manage.py admin_wallet list` says the switch, the level and which accounts have wallets.
+
+**From `required` to `passkey`**, account by account: one with a passkey signs in with it, as before (its sessions
+opened with a code end at their next page); one with only a code gives it once more, and adds a passkey on the page
+that code opens; one with neither (possible only if it was made after the switch, or reset) adds a passkey right after
+the password. Back to `required` or `optional`, the codes count again.
+
+**What a passkey protects against, and when.** A code from an app can be phished: a fake page that looks like this
+one asks for the password and the code and uses them at once, within the code's half minute. A passkey cannot: the
+browser lets it sign only for the site it was made for, and the site keeps only its public key, nothing that signs in
+if the database leaks. But while a code is also accepted (`optional`, `required`), the phisher simply asks for the
+code instead: **the protection of a passkey is real only with `ADMIN_SECOND_FACTOR=passkey`**. In that mode the
+reserve is a second passkey (and the reset from the machine), not a code from an app: the page urges at least two,
+on two different devices.
+
+- **Scope.** A passkey belongs to the site's host, `SITE_HOST`, and works only at `PUBLIC_URL`
+  (`https://SITE_HOST`): a passkey made on a test site does not work on the real one, none works on another name of
+  the machine or on a subdomain, and none works on the onion (there the page says so, and offers the code where the
+  mode accepts one). The README's local try uses `localhost`, which browsers accept without HTTPS. Changing
+  `SITE_HOST` makes every passkey useless: reset them (`manage.py admin_passkey reset <username>`) and add new ones.
+- **Synced or not.** The page shows for each passkey whether it is synced (to a phone's or a password manager's
+  account) or on that device only. A synced passkey is as safe as the account that syncs it: whoever takes over that
+  account has it. For superusers, prefer a hardware security key, which keeps it on the device.
+- **What is checked.** The site asks for no attestation and checks none, so any authenticator works (no allow-list
+  of brands); it checks the browser's origin, the site's host, the challenge (five minutes, once), that the person
+  was present, the signature, that the passkey is still as syncable as at registration (its BE flag; whether it is
+  synced now is read again at each sign-in), and the authenticator's sign count, which must grow when it counts at
+  all: when it does not, the sign-in is refused and the moderators are told that the passkey may have been copied.
+  A challenge is used once: the session forgets it when it is taken, and its hash is written in the database (the
+  request counters' table, for five minutes) so that two requests of the same session at the same moment cannot both
+  use it; if the database cannot write it, the passkey is refused.
+- **No sign-in without a username.** The password always comes first; the passkey is the second step.
+
+**Who is told.** Turning the code on, turning it off and `admin_totp reset`, adding and removing a passkey and
+`admin_passkey reset`, and a passkey whose count did not grow are written in the account's history in the admin and
+told to the people who look after the site (the moderators' chat, or the community's email), for every staff account.
+The first wrong code of a day after a right password is told too, once per account and day: the password is known,
+maybe to someone else; whoever typed the code sees only that it is wrong. So is the first refused passkey of a day
+after a right password, with a count of its own. A refused passkey answers the same whatever the reason, and counts
+against the address limits like a wrong password; it has no budget of its own (it cannot be guessed).
+
+**What it does not protect.** The first set-up trusts whoever has the password: with `required` or `passkey`,
+whoever learns the password of an account that never added a second factor (neither a passkey nor a code) can add
+their own app or passkey; with `optional`, they can add one and lock the real person out. An account that has a code
+is not exposed this way in `passkey` mode: its first passkey needs the code too. Add it right after the account is made
+([handbook](operations.md)), look at `manage.py admin_totp list` and `manage.py admin_passkey list` for the accounts
+without one, and treat a second factor nobody expected as a password that is known: `manage.py admin_totp reset
+<username>` or `manage.py admin_passkey reset <username>`, then a new password.
+
+Whoever knows the password can also use up the day's wrong codes every day, and keep the real person out of every new
+browser: a browser that signed in with the second factor before is not affected, and the notice of the wrong code
+says it is happening. The way out is a new password, from that known browser or with `manage.py changepassword
+<username>` on the machine: without it nobody reaches the code's page any more.
+
+After a right password the account is not signed in yet: the browser
+has five minutes to use a passkey or type the code, and only a right one opens `/admin/`. A code is accepted for 30 seconds either
+side of its own half minute, and only once. The codes depend on the clock: keep the machine's clock right (NTP, on by
+default on most systems). If the server's clock jumps ahead and a code is accepted then, no code works until the real
+time catches up with that moment (a code is never accepted twice, nor one older than the last): `manage.py admin_totp
+reset` is the way out. A refused code says that it is not right or already used, and to set the phone's clock to
+the network's time if it keeps failing. A session opened with a second factor ends `ADMIN_SESSION_HOURS` (default
+24, at least 1) after it was opened, whatever the activity: then password and second factor again; it ends earlier
+when the factor it was opened with is removed or reset, or the mode no longer accepts it (removing one passkey ends
+the sessions opened with it, not those opened with another). Sessions opened with the password alone, of accounts
+without a second factor, last as before. A lost phone or key: remove its passkey from another one, or `manage.py
+admin_passkey reset <username>` and `manage.py admin_totp reset <username>`
+([handbook](operations.md#a-staff-member-lost-the-phone)). `manage.py preflight` notes, calmly and never as a problem,
+when `/admin/` is open to every address with `ADMIN_SECOND_FACTOR=optional`, and how many staff accounts have no
+second factor the mode accepts; on a local try (`DEBUG`, or `SITE_HOST` unset or `localhost`) it says nothing of it.
 
 With `ACCESS_LOG=on` Caddy writes the access log, in JSON, to `/data/access/` in its volume:
 `docker compose exec caddy tail -f /data/access/access.log`. It is there to reconstruct an incident, so it keeps
@@ -263,6 +425,63 @@ little, and only what is needed:
 The default is `off`, no log. After a change: `docker compose up -d caddy`. Caddy's own log of errors (a 502 during a
 release, for one), always on, keeps the addresses the same way, /24 or /48, and drops from the query and the headers
 what opens something.
+
+## The settings watch
+
+When the site starts with a security setting different from the previous start, the moderators get one message, in
+the site's language: which setting, the value before and the value now, the time of the start, and «if nobody of the
+team did this, look at the machine's `.env`». It is there for the mistake and the unannounced change: a level lowered
+«for a moment» and forgotten, a deploy that starts with an old `.env`. **It is no defence against whoever controls the
+machine**, who can turn it off or change the database. Someone who edits the `.env` can also redirect or suppress every
+message, this one included: changing the moderators' chat and the bot token together, for one. The watch catches
+mistakes and changes a colleague did not announce, nothing more.
+
+What is watched (the list is `WATCHED` in `website/settings_watch.py`, one line per setting):
+
+- `/admin/` and the sign-ins: `ADMIN_SECOND_FACTOR`, `ADMIN_ALLOWED_IPS`, `ADMIN_SESSION_HOURS`, `ADMIN_WALLET_SIGN_IN`, `TEAM_ACCESS`,
+  `TEAM_AREA`, `SITE_MODE`, `DEV_ALLOWED_IPS`;
+- Caddy's `REFUSE_PROBES` and `TRUSTED_PROXIES` (the compose file passes them to `web` too, only for this);
+- where the moderators' messages go: `TELEGRAM_MODERATION_CHAT` and the moderators' email addresses
+  (`moderators_emails`, else the community's `email`). A change of these is told to the old recipients too, and the
+  addresses get it by email, old and new. The message names no address and no chat: it says how many were removed
+  and how many added («removed: 2, added: 1»), so that a new address written wrong learns nothing of the others;
+- the names and links of the site: `ALLOWED_HOSTS`, `PUBLIC_URL`, `SITE_SCHEME`, `ONION_LOCATION`, `HSTS_SECONDS`,
+  `DEBUG`;
+- who carries the sign-in links and the messages: `EMAIL_HOST`, `EMAIL_REAL_BACKEND`, `TELEGRAM_API`. An address
+  with a user and a password in it (`https://user:password@proxy.example/…`) is stored and shown without them; they are
+  kept only as a keyed fingerprint, so a change of them alone is told as «the credentials in the address changed»;
+- the addresses in `ADMIN_ALLOWED_IPS` and `DEV_ALLOWED_IPS` are never in the message, which every moderator reads:
+  they are the team's homes and offices. It says how many were removed and added, or «now empty». On the machine,
+  `manage.py settings_watch show` prints them, as the `.env` does;
+- secrets: `SECRET_KEY`, `TELEGRAM_BOT_TOKEN`, `NOSTR_SECRET_KEY`. Their values are never stored, written or shown:
+  only a fingerprint keyed with a key derived from `SECRET_KEY` (HMAC-SHA256), and the message says only «changed»,
+  «set» or «removed». After a change of `SECRET_KEY` the other secrets cannot be compared once: the message says so.
+
+Marked as a lowering, first in the list: `ADMIN_SECOND_FACTOR` going down (`passkey` → `required` → `optional`),
+`ADMIN_ALLOWED_IPS` emptied, `ADMIN_SESSION_HOURS` raised, `ADMIN_WALLET_SIGN_IN`, `TEAM_ACCESS` or `TEAM_AREA` turned
+on, `REFUSE_PROBES` turned off, `TRUSTED_PROXIES` changed to another value that is not empty (it decides whose word on
+the visitor's address is believed), and `DEBUG` turned on.
+
+The first start records without a message, and so does a setting a new release adds to the list; one taken off the list
+is forgotten. Without a moderators' channel (Telegram, or email that leaves the machine) the message goes only to the
+old recipients of a change of the chat or of the addresses, when there are some and they can still be reached; with
+nobody to tell, the change is recorded without a message. The comparison runs once per start of `web`, beside
+gunicorn (`when_ready` in `config/gunicorn.py`): the start waits for nothing, and two containers that start together
+send one message. Whatever goes wrong is a warning in the log of `web`, and the site starts all the same; a message that
+did not leave is sent at the next start. `manage.py runserver` and the other commands compare nothing.
+
+On by default, since it does nothing without a channel. To turn it off, in `community.yml`:
+
+```yaml
+settings_watch:
+  enabled: false
+```
+
+Turned off, the next start tells the moderators once that the watch was turned off, then deletes what was recorded,
+and from then on nothing is compared (if that message cannot leave, the record stays and the next start tries again;
+with nobody to tell, it is deleted at once). `manage.py settings_watch show` prints what is recorded (the secrets only
+as «recorded»), `manage.py settings_watch forget` clears it without a message, and `manage.py preflight` says whether
+the watch is on and when it last told a change: [the handbook](operations.md#a-setting-changed).
 
 ## Logs of the containers
 
@@ -320,10 +539,15 @@ The `.env` of the stack. Empty or missing means the default.
 | `SITE_MODE_SINCE` | written by `deploy/mode.sh` | Since when the mode is in use, shown by `/health/` |
 | `DEV_ALLOWED_IPS` | empty | Addresses that see the site in `development` |
 | `TEAM_ACCESS` | `off` | `on`: in `development` the team also gets in by signing with a Lightning wallet, from any address: [Team access](features/team-access.md) |
+| `TEAM_AREA` | `off` | `on`, with `TEAM_ACCESS=on`: a team key with the role moderator signs in at `/team/`, in `development` and `production`, and sees the day's list and the requests for help there: [The volunteers' area](features/team-access.md#the-volunteers-area) |
 | `OPEN_PATHS` | empty | Paths open in every mode, for example `/extra /extra/*` |
 | `MAINTENANCE_DIR` | the software's page | Folder with the under-construction page (`index.html`) |
-| `ADMIN_ALLOWED_IPS` | empty: from anywhere | Who reaches `/admin/`: [`/admin/` and access log](#admin-and-access-log). Caddy applies it; `web` gets it too, only for `manage.py preflight` to say when it is empty with team access on |
+| `ADMIN_ALLOWED_IPS` | empty: from anywhere | Who reaches `/admin/`: [`/admin/` and access log](#admin-and-access-log). Caddy applies it; `web` gets it too, only for `manage.py preflight` to say when it is empty with team access on or with `ADMIN_SECOND_FACTOR=optional` |
+| `ADMIN_SECOND_FACTOR` | `optional` | The second factor of `/admin/`: `optional`, each staff account adds a passkey or a code from an app for itself; `required`, every staff account must add one at its next sign-in; `passkey`, the same and only passkeys count, the mode that resists phishing: [`/admin/` and access log](#admin-and-access-log) |
+| `ADMIN_SESSION_HOURS` | `24` | Hours a session of `/admin/` opened with a second factor lasts, whatever the activity; at least 1 |
+| `ADMIN_WALLET_SIGN_IN` | `off` | `on`, with `ADMIN_SECOND_FACTOR=optional` only: a staff account without a second factor may link its own Lightning wallet and sign in to `/admin/` with it instead of the password, one step: the hobby level, to try the site with a few friends. Any other value stops the start: [Sign-in with a wallet](#admin-and-access-log) |
 | `SOURCE_URL` | `https://github.com/mammadori/bitmentor` | The link to the source code on every page (the footer of the site and of the admin, the register's menu, the tools of the printable sheets), as section 13 of the AGPLv3 asks: point it to your version if you changed the code |
+| `REFUSE_PROBES` | `on` | Caddy answers 404 by itself to the requests of robots that try every site for what this one does not have (WordPress, PHP, a forgotten `.env` or `.git`, phpMyAdmin…): they never reach Django nor the web log. No address or file of the site has these shapes, and `/static/`, `/theme/` and `/.well-known/` are left alone. Not a defence, only less noise. `off` sends them on to the site, as before; any other value stops Caddy |
 | `ACCESS_LOG` | `off` | `on`: Caddy's access log, addresses reduced to their network, 7 days |
 | `ACCESS_LOG_KEEP` | `168h` | How long Caddy keeps the access log (a Caddy duration) |
 | `ACCESS_LOG_SIZE`, `ACCESS_LOG_FILES` | `1MiB`, `10` | The size of each file of the access log and how many old ones stay. The log ends at whichever limit comes first: with the defaults a site that writes more than about 10 MiB in `ACCESS_LOG_KEEP` keeps fewer days than that, and raises these (for example `10MiB` and `20`) |

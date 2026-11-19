@@ -98,6 +98,101 @@ class AccountChange(models.Model):
         verbose_name_plural = _("account changes")
 
 
+class AdminSecondFactor(models.Model):
+    """The second factor of a staff account's sign-in to /admin/ (config/second_factor.py): the TOTP secret of the
+    account's authenticator app. A row without `confirmed` is a set-up not finished, and does nothing. Not in the admin,
+    never shown after its set-up, never written by a form: the account turns it on and off itself, `manage.py admin_totp
+    reset` removes it. The secret is readable by whoever reads the database or a backup of it."""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="admin_second_factor",
+                                editable=False)
+    # Base32, 160 bits (config/totp.py)
+    secret = models.CharField(max_length=64, editable=False)
+    created = models.DateTimeField(default=timezone.now, editable=False)
+    # When a code from the app confirmed it: only then does the sign-in ask for one
+    confirmed = models.DateTimeField(null=True, blank=True, editable=False)
+    # The last 30-second step whose code was accepted: no code of that step or an earlier one is accepted again
+    last_step = models.BigIntegerField(default=0, db_default=0, editable=False)
+
+    def __str__(self):
+        return f"second factor {self.pk}"
+
+
+class AdminPasskeyHandle(models.Model):
+    """The opaque id a staff account has for the authenticators of its passkeys (WebAuthn's `user.id`): random, never
+    the username or the account's key, the same for all its passkeys. Made with its first passkey."""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="admin_passkey_handle",
+                                editable=False)
+    # 32 random bytes in base64url
+    handle = models.CharField(max_length=64, unique=True, editable=False)
+
+    def __str__(self):
+        return f"passkey handle {self.pk}"
+
+
+class AdminPasskey(models.Model):
+    """A passkey of a staff account, a second factor of its sign-in to /admin/ (config/second_factor.py,
+    config/webauthn.py): the public key an authenticator made for this site, never a secret. Not in the admin, never
+    written by a form: the account adds, renames and removes its own, `manage.py admin_passkey reset` removes them all."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="admin_passkeys",
+                             editable=False)
+    # The authenticator's id of the credential, base64url: unique across the site
+    credential_id = models.CharField(max_length=1400, unique=True, editable=False)
+    # SubjectPublicKeyInfo, DER
+    public_key = models.BinaryField(editable=False)
+    # COSE: -7 ES256, -8 EdDSA, -257 RS256
+    algorithm = models.IntegerField(editable=False)
+    sign_count = models.BigIntegerField(default=0, db_default=0, editable=False)
+    # The authenticator's flags at registration: it can be synced (BE), and it was (BS)
+    backup_eligible = models.BooleanField(default=False, db_default=False, editable=False)
+    backed_up = models.BooleanField(default=False, db_default=False, editable=False)
+    # What the person called it: «phone», «key on my keyring»
+    name = models.CharField(max_length=60, default="", db_default="", editable=False)
+    created = models.DateTimeField(default=timezone.now, editable=False)
+    last_used = models.DateTimeField(null=True, blank=True, editable=False)
+
+    class Meta:
+        ordering = ("created", "pk")
+
+    def __str__(self):
+        return f"passkey {self.pk}"
+
+
+class AdminWallet(models.Model):
+    """A Lightning wallet a staff account linked to itself to sign in to /admin/ (config/admin_wallet.py, LNURL-auth,
+    ADMIN_WALLET_SIGN_IN): the linking key the wallet made for this site only, a public key, never a secret. Not in the
+    admin, never written by a form: the account links, renames and removes its own, `manage.py admin_wallet reset`
+    removes them all. A key here is never a shop owner's nor a team key, and the other way round."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="admin_wallets",
+                             editable=False)
+    # LUD-04's compressed secp256k1 key, in lowercase hex (shops/lnurl_auth.py, LINKING_KEY)
+    linking_key = models.CharField(max_length=66, unique=True, editable=False)
+    # What the person called it: «phone», «Anna's test wallet»
+    name = models.CharField(max_length=60, default="", db_default="", editable=False)
+    created = models.DateTimeField(default=timezone.now, editable=False)
+    last_used = models.DateTimeField(null=True, blank=True, editable=False)
+
+    class Meta:
+        ordering = ("created", "pk")
+
+    def __str__(self):
+        return f"admin wallet {self.pk}"
+
+
+class AdminWalletChallenge(models.Model):
+    """A k1 a wallet signed (LUD-04) on the way into /admin/, to sign in or to link a wallet (config/admin_wallet.py):
+    written only by a right signature of a valid, live k1, with the key that signed first. Five minutes, bound to the
+    session that was shown it, used once. The k1 is not the primary key, and no admin shows it."""
+    k1 = models.CharField(max_length=64, unique=True, editable=False)
+    created = models.DateTimeField(default=timezone.now, db_index=True, editable=False)
+    # The key that signed it first: a second signature does not replace it
+    linking_key = models.CharField(max_length=66, blank=True, default="", db_default="", editable=False)
+    # When the site acted on the signature
+    used = models.DateTimeField(null=True, blank=True, editable=False)
+
+    def __str__(self):
+        return f"admin wallet challenge {self.pk}"
+
+
 DESCRIPTION_LENGTH = 1000
 # The Telegram chats of one shop's notices: each holds a copy of them, so few
 SHOP_CHATS = 3
@@ -261,6 +356,12 @@ class Shop(models.Model):
     approved_on = models.DateTimeField(_("approved on"), null=True, blank=True, help_text=_(
         "Empty: the shop waits for an approval, off maps and lists. The register works all the same."))
     approved_by = models.CharField(_("approved by"), max_length=150, blank=True, db_default="")
+    # A shop that waited and is not for the map (a trial of the team's, a duplicate, written by mistake), set aside from
+    # /admin/today/ (shops/approval.py, `set_aside`): still not approved, so off the map like a waiting shop, but no
+    # longer asked about. Empty: not set aside. Approving the shop, or putting it back among the waiting ones, empties both
+    set_aside_on = models.DateTimeField(_("set aside on"), null=True, blank=True, editable=False)
+    set_aside_by = models.CharField(_("set aside by"), max_length=150, blank=True, default="", db_default="",
+                                    editable=False)
     # The column of 0.1.2, which marked new shops instead: no longer read or written, kept one release so that 0.1.2
     # put back on this database still works (docs/releases.md, "Going back"). To be removed with the next migration
     awaiting_approval = models.BooleanField(default=False, db_default=False, editable=False)

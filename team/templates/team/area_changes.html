@@ -1,0 +1,14 @@
+{% extends "team/area_base.html" %}{% load i18n %}
+{% block area %}
+<h2 id="changes">{% translate "Changes to the owners' accounts" %}</h2>
+<p class="muted">{% translate "What whoever runs the site changed in the accounts of shops' owners, newest first: a second pair of eyes on the people who can change them. It names who did it. If a change looks wrong, ask the merchant whether they expected it, and tell the association." %}</p>
+{% if rows %}<ol class="help-facts" aria-labelledby="changes">
+{% for entry in rows %}{% with row=entry.row %}<li class="help-fact">
+  <p><strong>{{ entry.shops|default:"–" }}</strong> · {{ entry.what }}</p>
+  <p class="muted">{% if row.actor %}{% blocktranslate with when=entry.when via=entry.via who=row.actor %}{{ when }}, from {{ via }}, by {{ who }}.{% endblocktranslate %}{% else %}{% blocktranslate with when=entry.when via=entry.via %}{{ when }}, from {{ via }}.{% endblocktranslate %}{% endif %}</p>
+  <p class="muted">{% translate "Told:" %} {{ entry.told|default:"–" }}{% if entry.not_told %} · {% translate "Not told:" %} {{ entry.not_told }}{% endif %}</p>
+</li>{% endwith %}
+{% endfor %}</ol>
+{% if page.has_other_pages %}<nav class="panel-actions" aria-label="{% translate 'Pages' %}">{% if page.has_previous %}<a class="button button-quiet" href="?page={{ page.previous_page_number }}">{% translate "Newer" %}</a>{% endif %}{% if page.has_next %}<a class="button button-quiet" href="?page={{ page.next_page_number }}">{% translate "Older" %}</a>{% endif %}</nav>{% endif %}
+{% else %}<p class="notice">{% translate "No change in the register." %}</p>{% endif %}
+{% endblock %}

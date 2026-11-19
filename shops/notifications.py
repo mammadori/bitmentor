@@ -9,7 +9,7 @@ import requests
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from config.mail import send_mail
+from config.mail import NOT_SENT, send_mail
 
 logger = logging.getLogger(__name__)
 # `moderators_emails` in community.yml: each address gets its own copy of the moderators' messages, so few
@@ -153,16 +153,20 @@ def email_moderators(subject, text, problems):
         sent = False
         for place, address in enumerate(addresses, 1):
             try:
-                send_mail(subject, text, None, [address], kind="staff")
-                sent = True
+                # Sent only when it says so: over the email budget it is dropped without an error (config/mailbudget.py)
+                if send_mail(subject, text, None, [address], kind="staff"):
+                    sent = True
+                else:
+                    problems.append(f"`moderators_emails`: address {place} of {len(addresses)}: {NOT_SENT}")
             except (OSError, SMTPException, ValueError) as error:
                 problems.append(f"`moderators_emails`: address {place} of {len(addresses)} failed ({type(error).__name__})")
         return sent
     address = community().get("email")
     if isinstance(address, str) and "@" in address:
         try:
-            send_mail(subject, text, None, [address.strip()], kind="staff")
-            return True
+            if send_mail(subject, text, None, [address.strip()], kind="staff"):
+                return True
+            problems.append(f"the community's email: {NOT_SENT}")
         except (OSError, SMTPException, ValueError) as error:
             problems.append(f"the community's email failed ({type(error).__name__})")
     else:

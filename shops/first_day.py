@@ -28,7 +28,15 @@ def steps(shop):
         if key == "sale":
             continue
         found.append({"key": key, "state": DONE if getattr(shop, field) else TODO})
+        if key == "sign" and not getattr(shop, field) and sign_waits(shop):
+            # The sign waits for the approval (shops/views.py, shop_sign): the step says to wait, and still counts
+            found[-1]["why"] = "approval"
     return found
+
+
+def sign_waits(shop):
+    """As shops/views.py, sign_waits: a shop not approved is not on the public lists, whatever the switch says."""
+    return shop.needs_approval
 
 
 def summary(shop):

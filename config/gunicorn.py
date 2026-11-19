@@ -1,5 +1,8 @@
 """Gunicorn behind Caddy. Processes and threads are changed from .env (WEB_CONCURRENCY, WEB_THREADS), without rebuilding the image."""
 import os
+import subprocess
+import sys
+from pathlib import Path
 
 bind = "0.0.0.0:8000"
 worker_class = "gthread"
@@ -18,3 +21,14 @@ accesslog = "-"
 access_log_format = '%(t)s "%(m)s %(U)s" %(s)s %(L)s'
 # The path is written without what opens something in it (the token of a team invite): config/quiet.py
 logger_class = "config.quiet.AccessLog"
+
+
+def when_ready(server):
+    """Once per start of the site, in the master, not in each worker: the settings watch (website/settings_watch.py) in
+    a process of its own, which tells the moderators of a security setting changed since the previous start. The start
+    waits for nothing, and nothing that goes wrong there stops it; gunicorn's master collects the process when it ends."""
+    try:
+        subprocess.Popen([sys.executable, "manage.py", "settings_watch", "compare"],
+                         cwd=Path(__file__).resolve().parent.parent, stdin=subprocess.DEVNULL)
+    except OSError as error:
+        server.log.warning("settings watch: it could not start (%s)", type(error).__name__)

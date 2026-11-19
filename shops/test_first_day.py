@@ -135,7 +135,8 @@ class Ticks(TestCase):
         """Plain forms with the CSRF token: no script needed to tick."""
         page = self.client.get(PANEL).content.decode()
         forms = re.findall(rf'<form method="post" action="{self.url}" class="step-tick">.*?</form>', page)
-        self.assertEqual(len(forms), 3)
+        # The three steps of the first day, and the trial on top of the panel (shops/stages.py) ticking the first sale
+        self.assertEqual(len(forms), 4)
         for form in forms:
             self.assertIn("csrfmiddlewaretoken", form)
 

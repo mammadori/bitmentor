@@ -1,0 +1,19 @@
+{% extends "team/area_base.html" %}{% load i18n team_area %}
+{% block area %}
+<h2 id="waiting">{% translate "New shops" %}</h2>
+<p class="muted">{% translate "A new shop goes on the map and the lists only once somebody approves it. Its register works already. If you doubt, leave it waiting and tell an administrator." %}</p>
+{% if rows %}<ol class="help-facts" aria-labelledby="waiting">
+{% for row in rows %}{% with item=row.item shop=row.shop %}<li class="help-fact{% if item.checks or item.unchecked %} help-problem{% else %} help-warning{% endif %}" id="shop-{{ shop.pk }}">
+  <p><strong>{{ shop.name }}</strong>{% if shop.city %} · {{ shop.city }}{% endif %}</p>
+  <p class="muted">{% blocktranslate with when=row.when %}Written {{ when }}.{% endblocktranslate %}</p>
+  {% if row.contacts %}<ul>{% for label, value in row.contacts %}<li><span class="muted">{{ label }}:</span> {{ value|short_addresses }}</li>{% endfor %}</ul>{% endif %}
+  {% if row.description %}<p>{{ row.description }}</p>{% endif %}
+{% if item.checks or item.unchecked %}  <p><span class="help-tag">{% translate "Check first" %}</span> <strong>{% if item.unchecked %}{% translate "The checks could not be run" %}{% else %}{% translate "Check before approving" %}{% endif %}</strong></p>
+  {% if item.checks %}<ul>{% for signal in item.checks %}<li>{{ signal.text|short_addresses }}</li>{% if signal.advice %}<li>{{ signal.advice|short_addresses }}</li>{% endif %}{% endfor %}</ul>{% endif %}
+  <p class="notice">{% translate "This shop is not approved from here: an administrator looks at it and approves it from the administration." %}</p>
+{% else %}{% if item.notes %}  <p class="muted">{% for signal in item.notes %}{{ signal.text|short_addresses }}{% if not forloop.last %} {% endif %}{% endfor %}</p>
+{% endif %}  <form method="post" action="{% url 'team_approve' shop.pk %}">{% csrf_token %}<button type="submit" class="button">{% translate "Approve: on the map and the lists" %}</button></form>
+{% endif %}</li>{% endwith %}
+{% endfor %}</ol>
+{% else %}<p class="notice">{% translate "No new shop is waiting." %}</p>{% endif %}
+{% endblock %}

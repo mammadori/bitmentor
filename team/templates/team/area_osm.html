@@ -1,0 +1,23 @@
+{% extends "team/area_base.html" %}{% load i18n %}
+{% block area %}
+<h2 id="open">{% translate "OpenStreetMap requests" %}</h2>
+<p class="muted">{% translate "The merchant asked the association to put the shop on OpenStreetMap, or to update its entry. You do it by hand on openstreetmap.org, with your own account, using the lines of the request: the site writes nothing there. Then mark it done: the merchant sees it in the panel." %}</p>
+{% if open %}<ol class="help-facts" aria-labelledby="open">
+{% for entry in open %}{% with row=entry.row %}<li class="help-fact help-warning" id="osm-{{ row.pk }}">
+  <p><strong>{{ row.shop.name }}</strong> · {{ row.get_kind_display }}</p>
+  <p class="muted">{% blocktranslate with when=entry.when %}Asked {{ when }}.{% endblocktranslate %}</p>
+  {% if entry.lines %}<p><span class="muted">{% translate "What to write:" %}</span></p><pre>{{ entry.lines }}</pre>{% endif %}
+  <p>{% if entry.entry %}<a href="{{ entry.entry }}" rel="noopener noreferrer">{% translate "The shop's entry" %}</a> · {% endif %}<a href="{{ entry.editor }}" rel="noopener noreferrer">{% translate "The editor" %}</a></p>
+  <form method="post" action="{% url 'team_osm_done' row.pk %}">{% csrf_token %}<button type="submit" class="button">{% translate "Mark as done" %}</button></form>
+</li>{% endwith %}
+{% endfor %}</ol>
+{% else %}<p class="notice">{% translate "No OpenStreetMap request is waiting." %}</p>{% endif %}
+<p class="muted">{% translate "A request that cannot be done is answered by an administrator, who writes the merchant why." %}</p>
+{% if closed %}<h2 id="closed">{% translate "Closed in the last days" %}</h2>
+<ol class="help-facts" aria-labelledby="closed">
+{% for entry in closed %}{% with row=entry.row %}<li class="help-fact" id="osm-{{ row.pk }}">
+  <p><strong>{{ row.shop.name }}</strong> · {{ row.get_kind_display }} · {{ row.get_state_display }}</p>
+  <p class="muted">{% if entry.done_by %}{% blocktranslate with when=entry.when done=entry.done_when who=entry.done_by %}Asked {{ when }}, closed {{ done }} by {{ who }}.{% endblocktranslate %}{% else %}{% blocktranslate with when=entry.when done=entry.done_when %}Asked {{ when }}, closed {{ done }} from the administration.{% endblocktranslate %}{% endif %}</p>
+</li>{% endwith %}
+{% endfor %}</ol>{% endif %}
+{% endblock %}

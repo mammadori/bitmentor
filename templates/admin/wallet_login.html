@@ -1,0 +1,19 @@
+{% extends "admin/login.html" %}{% load i18n static %}
+{% block content %}
+<div id="content-main" class="admin-wallet">
+{% if busy %}<p class="errornote">{% translate "Too many tries. Wait a little and try again." %}</p>
+{% elif not here %}<p class="errornote">{% blocktranslate with url=public_url %}The wallet signs in only at {{ url }}, not at this address.{% endblocktranslate %}</p>
+{% else %}
+<p>{% translate "Scan this code with the wallet you linked to your staff account, or tap it on the phone that has the wallet: this page goes on by itself." %}</p>
+<p>{% translate "The wallet opens the administration only in a browser where your account already signed in with its password, and only while that password stays the same. The first time on a browser, after a change of password, and for an account with a second factor, sign in with the password." %}</p>
+<p><a href="lightning:{{ lnurl }}"><img class="admin-wallet-qr" src="{{ qr }}" alt="{% translate 'Code to sign in to the administration with your wallet' %}"></a></p>
+<p>{% translate "Approve in your wallet only a code you see on this page, which you opened yourself at this site's address: a wallet signs any code it is shown." %}</p>
+<p class="errornote" data-state="refused" role="alert" hidden>{% translate "The wallet does not open the administration in this browser. Sign in with the password." %}</p>
+<p class="errornote" data-state="expired" role="alert" hidden>{% translate "The code ran out of time. Load the page again for a new one." %}</p>
+<p class="errornote" data-state="wait" role="alert" hidden>{% translate "Too many tries. Wait a little and try again." %}</p>
+<noscript><p>{% translate "This page needs JavaScript to go on by itself once the wallet has signed: turn it on, or sign in with the password." %}</p></noscript>
+<script src="{% static 'admin-wallet.js' %}" data-status="{{ status_url }}"></script>
+{% endif %}
+<p><a href="{{ password_url }}">{% translate "Sign in with the password" %}</a></p>
+</div>
+{% endblock %}

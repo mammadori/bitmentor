@@ -115,6 +115,89 @@ Read them from a machine you trust, right after the CI pipeline of the tag, and 
 - Existing installations keep Docker's own log files: moving to the machine's journal is by hand
   ([Logs of the containers](configuration.md#logs-of-the-containers)).
 
+### From 0.1.9 to 0.2.0
+
+- The migrations run by themselves: `shops` 0010 to 0014, `team` 0002 to 0004, `website` 0003. `shops` 0011 adds who
+  set a new shop aside and when; the `team` ones add the record of what is done in the volunteers' area and which keys
+  may approve the new shops. The others have their own sections below.
+- A `.env` and a `community.yml` need no change. Every new setting about access has the default that keeps the site as
+  it was: `ADMIN_SECOND_FACTOR=optional`, `ADMIN_WALLET_SIGN_IN=off`, `TEAM_AREA=off`, and
+  `team_area: {staff_register_names: false}`.
+- On from the first start, each with its switch:
+  - the owner's panel by stages ([The panel by stages](features/panel-stages.md)); `features: {stages: false}` gives
+    back the panel as it was;
+  - Caddy answers the robots' probes itself, `REFUSE_PROBES=off` turns it off
+    ([Every variable](configuration.md#every-variable));
+  - the settings watch, which sends nothing at its first start; `settings_watch: {enabled: false}` turns it off;
+  - the day's list names the owners stuck in the merchant's training for more than `training.nudge_days` days (3; `0`
+    never), only where the community has the `training` block.
+- Where new shops wait for an approval: the owner is told when the shop is approved (email and the shop's Telegram
+  chats), and the printed sign and the card for customers wait for it
+  ([The sign waits for the approval](features/shop-page.md#the-sign-waits-for-the-approval)). A shop that is not for
+  the map can be set aside from `/admin/today/` instead of approved.
+- A Lightning address the shop's form refuses now says why (no such address, no LNURL-pay, no LUD-21, and so on:
+  [Wallets](wallets.md)); the addresses accepted and refused are the same as before.
+- German: the catalog now says «die Wallet» and «Thekenschein» (it said «das Wallet» and «Händlerschein»), and
+  «Sie» everywhere. A
+  community that keeps its own German texts beside the software's reads them again for the same words.
+- `cryptography` is now 50.x in `requirements.lock` (it verifies the passkeys), and the image takes `zlib1g` from
+  Debian's security repository.
+- Moderators: `manage.py preflight` warns when they have no channel, `manage.py notify_test --moderators` sends them a
+  test message, and only mail that really left counts as sent.
+- For a community's own code: events to listen to and template blocks to fill
+  ([The community's own code](architecture.md#the-communitys-own-code)); the warnings of any code reach the log with
+  no configuration. `python -m config.pot --since 0.1.9` lists the texts that changed, for the translations a
+  community keeps.
+
+### The second factor and going back
+
+- The migration `shops` 0010 runs by itself: a new table for the second factor of the staff accounts
+  (`AdminSecondFactor`). Nothing changes until an account turns it on, or `ADMIN_SECOND_FACTOR=required` is set
+  ([Configuration](configuration.md#admin-and-access-log)); the two new settings have defaults, and compose passes them.
+- Back on a release without it, the table stays and nobody reads it: an account with a second factor signs in to
+  `/admin/` with the password alone, and its session lasts as a password's does. Sessions opened that way end at their
+  next page of `/admin/` once the release with the second factor is installed again, and the second factors are there
+  again as they were. If `/admin/` is open to every address, going back takes that defence away while it lasts.
+- Templates of the admin copied into a community's own folder: the second factor's pages are
+  `admin/second_factor.html` and `admin/second_factor_code.html`, and `admin/base_site.html` has a link to it.
+
+### Passkeys and going back
+
+- The migration `shops` 0012 runs by itself: two new tables for the passkeys of the staff accounts (`AdminPasskey`,
+  `AdminPasskeyHandle`), with database defaults. Nothing changes until an account adds one.
+- The second factor's setting is `ADMIN_SECOND_FACTOR` (`optional`, `required`, `passkey`), `optional` by default.
+- Back on a release without passkeys, the tables stay and nobody reads them: an account with only passkeys signs in to
+  `/admin/` with the password alone (an account with a code from an app too, before the second factor existed), and
+  with `ADMIN_SECOND_FACTOR=passkey` the previous image does not know the setting either. If `/admin/` is open to every
+  address, going back takes that defence away while it lasts. Installing the release with passkeys again brings them
+  back as they were, and sessions opened meanwhile end at their next page of `/admin/`.
+
+### The settings watch and going back
+
+- The migration `website` 0003 runs by itself: two new tables, `WatchedSetting` (with database defaults) and
+  `SettingsWatch`, linked to nothing. The first start after it records the security settings without a message
+  ([The settings watch](configuration.md#the-settings-watch)). `web` now also gets `REFUSE_PROBES` and
+  `TRUSTED_PROXIES` from the compose file, with Caddy's defaults: a `.env` needs no change.
+- Back on a release without it, the tables stay and nobody reads them: no message while it runs. Installing the release
+  again compares with what was recorded before going back, so a setting changed meanwhile is told at that start.
+
+### Wallet sign-in to `/admin/` and going back
+
+- The migrations `shops` 0013 and 0014 run by themselves: two new tables, the wallets the staff accounts link to sign
+  in to `/admin/` (`AdminWallet`) and the codes a wallet signed (`AdminWalletChallenge`), with database defaults.
+  Nothing changes until `ADMIN_WALLET_SIGN_IN=on` (default `off`, and compose passes it).
+- Back on a release without it, the tables stay and nobody reads them: no wallet signs in, the login page has no link,
+  and the sessions opened with a wallet go on as sessions of the password alone while that release runs. Installing
+  the release with it again brings the wallets back as they were; a session opened with a wallet then holds again only
+  while its wallet, the switch and the level still allow it. The previous image does not know `ADMIN_WALLET_SIGN_IN`
+  and ignores it.
+- A key linked to a staff account is refused at the shops' sign-in by this release only: a wallet linked here that
+  scans the shops' sign-in while the previous image runs opens an empty account of its own there, as any new wallet
+  does (no shop, no right in `/admin/`).
+- Templates of the admin copied into a community's own folder: the new pages are `admin/wallet_login.html` and
+  `admin/login_with_wallet.html` (the login page with the link, used only when the wallet signs in), and
+  `admin/second_factor.html` has a new section.
+
 ### Going back
 
 When a release does not answer, `release.sh` puts the previous image back, **on the database the release has already
@@ -136,6 +219,10 @@ and it can.
     production runs PostgreSQL.
   - Back on 0.1.8, a shop with several Telegram chats, or a `TELEGRAM_MODERATION_CHAT` with commas, gets no Telegram
     messages (0.1.8 reads the list as one chat), and the owner's form refuses the value until it is one chat.
+  - Back on 0.1.9, the shops set aside from `/admin/today/` are waiting shops again for it: on its list of the day and
+    in its counts, still off the map, until the release is installed again. Approving one there approves it for good:
+    it keeps its set-aside date, but a shop set aside counts only while it is not approved, so back on this release it
+    is simply approved (not under the filter «set aside», nothing on its page about it).
   - The unique constraints of the release stay: the previous image gets an IntegrityError where it used to let a
     duplicate through (a Nostr name, for one).
   - A table or a foreign key added after the previous release gets this care only if its migration does: a new NOT NULL
@@ -201,6 +288,10 @@ can break is the register page itself, and the guardian. Before every release, o
   amount and pay it, and check that the register sees it paid (LUD-21 `verify`);
 - run `manage.py check_lightning` and look at its report ([The guardian of the Lightning addresses](features/lightning-guardian.md));
 - run `manage.py preflight`.
+
+In the notes of the release, say which texts changed: `python -m config.pot --since <the previous tag>` lists the ones
+that are new and the ones that are gone (a reworded text is one of each), so that a community with a catalog of its own
+([Adding a language](languages.md)), or with pages that quote the words of a button, knows what to look at.
 
 ## Mainnet
 

@@ -144,14 +144,45 @@ class MorningSummary(TestCase):
         self.assertNotIn("anna", str(raised.exception))
 
 
+@override_settings(TELEGRAM_BOT_TOKEN="", TELEGRAM_MODERATION_CHAT="", EMAIL_BACKEND="config.mailbudget.CountingBackend",
+                   EMAIL_REAL_BACKEND="django.core.mail.backends.locmem.EmailBackend", LANGUAGE_CODE="en")
+class EmailBudgetUsedUp(TestCase):
+    """Over the email budget the counting backend drops a message without an error (config/mailbudget.py): that is not
+    a delivery."""
+    def setUp(self):
+        cache.clear()
+        self.enterContext(patch("config.mailbudget.blocked", return_value="limits.emails_per_month"))
+
+    def test_deliver_to_moderators_says_nothing_went(self):
+        with configured(email="staff@example.org"):
+            where, problems = deliver_to_moderators("Subject", "hello")
+        self.assertIsNone(where)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the email budget kept it back", problems[0])
+        with configured(email="staff@example.org", moderators_emails=["anna@example.org", "bruno@example.net"]):
+            where, problems = deliver_to_moderators("Subject", "hello")
+        self.assertIsNone(where)
+        self.assertEqual(len(problems), 2)
+        self.assertNotIn("anna", "".join(problems))
+        self.assertEqual(mail.outbox, [])
+
+    def test_the_morning_summary_is_not_delivered(self):
+        broken()
+        for keys in ({"email": "staff@example.org"}, {"email": "", "moderators_emails": ["anna@example.org"]}):
+            with self.subTest(keys), configured(**keys), self.assertRaises(CommandError) as raised:
+                MorningSummary.send(self)
+            self.assertIn("The summary was not delivered", str(raised.exception))
+            self.assertIn("the email budget kept it back", str(raised.exception))
+        self.assertEqual(mail.outbox, [])
+
+
 class Preflight(TestCase):
     def test_the_key_counts_as_a_mail_fallback(self):
-        on = override_settings(TEAM_ACCESS=True, ADMIN_ALLOWED_IPS="203.0.113.7", TELEGRAM_BOT_TOKEN="",
-                               TELEGRAM_MODERATION_CHAT="", EMAIL_HOST="mail.example.org")
+        on = override_settings(TELEGRAM_BOT_TOKEN="", TELEGRAM_MODERATION_CHAT="", EMAIL_HOST="mail.example.org")
         with on, configured(email=""):
-            self.assertTrue(any("nobody will be told" in note for note in preflight.team_notes()))
+            self.assertIsNone(preflight.moderators_channel())
         with on, configured(email="", moderators_emails=["anna@example.org"]):
-            self.assertFalse(any("nobody will be told" in note for note in preflight.team_notes()))
+            self.assertEqual(preflight.moderators_channel(), "mail")
         # An address that cannot be used is no fallback
         with on, configured(email="", moderators_emails=["nobody"]):
-            self.assertTrue(any("nobody will be told" in note for note in preflight.team_notes()))
+            self.assertIsNone(preflight.moderators_channel())

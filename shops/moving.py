@@ -45,7 +45,7 @@ from django.utils.translation import override
 
 from config import features
 
-from . import approval, details
+from . import approval, details, events
 from .forms import CanonicalEmailField, ShopDetailsForm
 from .lnurl_auth import LINKING_KEY
 from .models import Profile, Shop, WalletKey, claim_digest, real
@@ -433,6 +433,13 @@ def import_row(row, now, made, new_codes=False):
         return outcome
     outcome.status = FILLED if target else NEW
     outcome.shop = shop
+    # After the commit: a dry run, rolled back, tells nobody
+    if not target:
+        events.send(events.shop_created, Shop, shop=shop, user=None, source="move")
+    elif shop.owner_id and events.shop_claimed.has_listeners(Shop):
+        # An unclaimed shop of the list given to its owner by the move: the row as the database has it now
+        shop.refresh_from_db()
+        events.send(events.shop_claimed, Shop, shop=shop, user=shop.owner, via="move")
     return outcome
 
 

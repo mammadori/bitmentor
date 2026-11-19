@@ -1,0 +1,32 @@
+{% load i18n %}<div class="stage-now" data-stage="{{ stage.key }}"{% if promoted %} data-stage-sales="{{ stage.sales }}" hidden{% else %} data-stage-now{% endif %}>
+  <p class="stage-label">{% blocktranslate with title=stage.title %}Now: {{ title }}{% endblocktranslate %}</p>
+  {% if stage.key == "wallet" and stage.waits %}{% if shop.waits_after_move %}{% include "shops/moved.html" %}{% else %}{% include "shops/wallet_missing.html" %}{% endif %}
+  {% elif stage.key == "wallet" and stage.broken %}<h4 class="stage-step">{% translate "Your Lightning address does not answer" %}</h4>
+  <p>{% translate "The message above says what to do. Until it works, customers cannot pay you with Lightning." %}</p>
+  {% elif stage.key == "wallet" %}<h4 class="stage-step">{% translate "Connect your wallet" %}</h4>
+  <p>{% translate "The register asks your wallet for each payment: the money goes straight to you, never through this site." %}</p>
+  <p><a class="button stage-button" href="{% url 'connect_wallet' shop.id %}">{% translate "Connect your wallet" %}</a></p>
+  {% elif stage.key == "trial" %}<h4 class="stage-step">{% translate "Try the register" %}</h4>
+  <p>{% if features.practice %}{% translate "Practise first without money if you like. Then open the register and pay yourself a small amount from another phone, as a customer would. When it says it is paid, mark it done here." %}{% else %}{% translate "Open the register and pay yourself a small amount from another phone, as a customer would. When it says it is paid, mark it done here." %}{% endif %}</p>
+  <p class="stage-actions"><a class="button stage-button" href="{% url 'register' shop.id %}">{% if shop.till_quick %}{% translate "Open register (quick start)" %}{% else %}{% translate "Open register" %}{% endif %}</a>{% if features.practice %} <a href="{% url 'practice' shop.id %}">{% translate "Practise first, without money" %}</a>{% endif %}</p>
+  {% include "shops/first_day_tick.html" with step=stage.tick back="stage" %}
+  {% elif stage.key == "takings" %}<h4 class="stage-step">{% translate "Take your first payments" %}</h4>
+  <p>{% translate "When a customer wants to pay in bitcoin, open the register. The sales stay on your phone, in the register's history." %}</p>
+  {% if stage.quick_amount %}<p>{% blocktranslate with amount=stage.quick_amount %}Until you have the basic pass, the register takes payments up to {{ amount }} in total: it adds up the payments taken on the phone, and then asks for the pass.{% endblocktranslate %}</p>
+  <p class="stage-quick-left" data-quick-shop="{{ shop.id }}" data-quick-cents="{{ stage.quick }}" data-quick-currency="{{ stage.quick_currency }}" data-text="{% translate 'On this phone, {left} of it is still left.' %}" data-done="{% translate 'On this phone it is used up: the register now asks for the basic pass.' %}" hidden></p>{% endif %}
+  <p class="stage-actions"><a class="button stage-button" href="{% url 'register' shop.id %}">{% if shop.till_quick %}{% translate "Open register (quick start)" %}{% else %}{% translate "Open register" %}{% endif %}</a>{% if stage.propose_pass %} <a href="{% if training.next %}{% url 'training_module' training.next.id %}{% else %}{% url 'training' %}{% endif %}">{% translate "Meanwhile, the basic pass: a few minutes" %}</a>{% endif %}</p>
+  {% elif stage.key == "pass" %}<h4 class="stage-step">{% translate "Get the basic pass" %}</h4>
+  <p><strong>{% translate "The register waits for your basic pass: until you have it, it takes no real payments." %}</strong> {% translate "A few short modules, a few minutes. Meanwhile the practice register works." %}{% if training.next_title %} {% blocktranslate with title=training.next_title %}Next: {{ title }}.{% endblocktranslate %}{% endif %}</p>
+  <p><a class="button stage-button" href="{% if training.next %}{% url 'training_module' training.next.id %}{% else %}{% url 'training' %}{% endif %}">{% if training.next.attempts or training.next.statements_done %}{% translate "Go on with the path" %}{% else %}{% translate "Start the path" %}{% endif %}</a></p>
+  {% elif stage.key == "map" %}<h4 class="stage-step">{% translate "Print the sign" %}</h4>
+  <p>{% translate "Your shop is on the map." %} {% translate "Print the sign for the door or the counter, and the card for whoever stands at the till." %}</p>
+  <p class="stage-actions"><a class="button stage-button" href="{% url 'shop_sign' shop.id %}">{% translate "Printable sign" %}</a> <a href="{% url 'till_card' shop.id %}">{% translate "Card for the till" %}</a> <a href="{% url 'shop_detail' shop.id %}">{% translate "Your page on the map" %}</a></p>
+  {% include "shops/first_day_tick.html" with step=stage.tick back="stage" %}
+  {% elif stage.key == "routine" %}<h4 class="stage-step">{% translate "Close the day" %}</h4>
+  <p>{% translate "At the end of the day, close it from the register's menu: you get the day's total and the file for your accountant, all on your phone. Someone works with you? Give them a register of their own." %}</p>
+  <p class="stage-actions"><a class="button stage-button" href="{% url 'register' shop.id %}">{% translate "Open register" %}</a> <a href="{% url 'staff_registers' shop.id %}">{% translate "Registers for your staff" %}</a></p>
+  {% elif stage.key == "game" %}<h4 class="stage-step">{% translate "Go further with the training" %}</h4>
+  <p>{% translate "The other modules of the training and the badges, whenever you like." %}{% if training.next_title %} {% blocktranslate with title=training.next_title %}Next: {{ title }}.{% endblocktranslate %}{% endif %}</p>
+  <p><a class="button stage-button" href="{% url 'training' %}">{% translate "Your path and badges" %}</a></p>
+  {% endif %}
+</div>

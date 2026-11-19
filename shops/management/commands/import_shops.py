@@ -9,6 +9,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.core.validators import URLValidator
 from django.db import transaction
 
+from shops import events
 from shops.details import normalize_vat, vat_doubt
 from shops.models import Shop
 
@@ -89,6 +90,8 @@ class Command(BaseCommand):
                 values = checked(row, values, new=not Shop.objects.filter(external_id=str(row["external_id"])).exists())
                 shop, created = Shop.objects.get_or_create(external_id=str(row["external_id"]),
                                                            defaults={**values, "approved_on": timezone.now(), "approved_by": "import"})
+                if created:
+                    events.send(events.shop_created, Shop, shop=shop, user=None, source="import")
                 # A shop moved from another site belongs to its owner even while it waits for them
                 if not created and shop.owner_id is None and not shop.moved_from:
                     Shop.objects.filter(pk=shop.pk).update(**values)

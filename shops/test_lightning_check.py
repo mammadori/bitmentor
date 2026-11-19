@@ -12,6 +12,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import Client, TestCase, override_settings
+from django.utils import translation
 
 from config.community import community
 from website.apps import skipped_form_links
@@ -182,6 +183,100 @@ class Probe(Fresh):
         self.assertEqual(get.call_count, 2)
 
 
+class Why(Fresh):
+    """A refusal says what exactly is wrong, with the standard's name for whoever helps the merchant."""
+    ELSEWHERE = {"tag": "payRequest", "callback": "https://invoices.example.net/cb"}
+
+    def found(self, *replies, **patched):
+        with public(), (patch("shops.lnaddress.requests.Session.get", **patched) if patched else answers(*replies)):
+            return probe("mario@example.org")
+
+    def error(self, status):
+        response = requests.Response()
+        response.status_code = status
+        return requests.HTTPError(response=response)
+
+    def test_each_reason(self):
+        with patch("shops.lnaddress.missing", return_value=False):
+            unreachable = self.found(side_effect=requests.ConnectionError)
+        cases = (
+            (unreachable, lnaddress.NO_ANSWER, lnaddress.UNREACHABLE, "does not answer right now"),
+            (self.found(side_effect=requests.ReadTimeout), lnaddress.NO_ANSWER, lnaddress.UNREACHABLE, "right now"),
+            (self.found(side_effect=self.error(404)), lnaddress.NO_ANSWER, lnaddress.NO_SUCH_ADDRESS,
+             "knows no such address: check what you wrote before the @"),
+            (self.found({"tag": "withdrawRequest"}), lnaddress.NO_ANSWER, lnaddress.NOT_LNURL, "LUD-16"),
+            (self.found(["a", "list"]), lnaddress.NO_ANSWER, lnaddress.NOT_LNURL, "LUD-16"),
+            (self.found(self.ELSEWHERE), lnaddress.NO_ANSWER, lnaddress.INVOICES_ELSEWHERE,
+             "has its invoices made by another site"),
+            (self.found(METADATA, {"status": "ERROR"}), lnaddress.NO_ANSWER, lnaddress.NO_INVOICE, "gives no invoice"),
+            (self.found(METADATA, {"pr": "lnbc1"}), lnaddress.NO_CONFIRMATION, lnaddress.NO_VERIFY,
+             "does not support LUD-21 (verify)"),
+            (self.found(METADATA, {"pr": "lnbc1", "verify": "https://elsewhere.example.net/v"}),
+             lnaddress.NO_CONFIRMATION, lnaddress.VERIFY_ELSEWHERE, "is on another site"),
+            (self.found(METADATA, INVOICE, {"status": "OK", "settled": True}), lnaddress.NO_CONFIRMATION,
+             lnaddress.VERIFY_UNREADABLE, "does not answer as the register needs"),
+        )
+        for found, state, why, words in cases:
+            with self.subTest(why):
+                self.assertEqual((found, found.why), (state, why))
+                text = lnaddress.explanation(found, "mario@example.org")
+                self.assertIn(words, text)
+                self.assertIn("example.org", text)
+                self.assertNotIn("{", text)
+                # The diagnosis tells the two refusals apart by these words
+                self.assertEqual("does not tell the register" in text, state == lnaddress.NO_CONFIRMATION)
+
+    def test_a_page_instead_of_json_is_not_a_lightning_address(self):
+        page = stream({})
+        page.iter_content = lambda _size: iter([b"<html>not found</html>"])
+        with public(), patch("shops.lnaddress.requests.Session.get", return_value=page):
+            self.assertEqual(probe("mario@example.org").why, lnaddress.NOT_LNURL)
+
+    def test_a_busy_provider_and_a_refused_invoice_say_nothing_more(self):
+        self.assertEqual(self.found(side_effect=self.error(503)), lnaddress.NO_ANSWER)
+        self.assertIsNone(getattr(self.found(side_effect=self.error(503)), "why", None))
+        with public(), patch("shops.lnaddress.requests.Session.get", side_effect=[stream(METADATA), self.error(404)]):
+            self.assertIsNone(probe("mario@example.org").why)
+
+    def test_nothing_the_provider_wrote_is_in_the_sentence(self):
+        text = lnaddress.explanation(self.found(self.ELSEWHERE), "mario@example.org")
+        self.assertNotIn("example.net", text)
+
+    def test_a_bare_state_keeps_the_general_sentence(self):
+        for state, words in ((lnaddress.NO_ANSWER, "does not answer: check it and try again"),
+                             (lnaddress.NO_CONFIRMATION, "it does not tell the register when a payment arrives")):
+            self.assertIn(words, lnaddress.explanation(state, "mario@example.org"))
+
+    def test_an_email_is_still_an_email(self):
+        found = lnaddress.Found(lnaddress.NO_ANSWER, lnaddress.NO_SUCH_ADDRESS)
+        self.assertIn("looks like an email", lnaddress.explanation(found, "mario@gmail.com"))
+
+    def test_the_reason_is_remembered_with_the_state_as_plain_text(self):
+        with public(), answers(self.ELSEWHERE) as get:
+            first = lnaddress.live_check("mario@example.org", 5, 1)
+            again = lnaddress.live_check("mario@example.org", 5, 1)
+        self.assertEqual(get.call_count, 1)
+        self.assertEqual((again, again.why), (first, lnaddress.INVOICES_ELSEWHERE))
+        self.assertIs(type(cache.get(lnaddress.cache_key("mario@example.org", 1))), str)
+
+    def test_on_submit_and_in_the_diagnosis(self):
+        from .diagnosis import refusal_reason
+        with public(), answers(METADATA, {"pr": "lnbc1"}):
+            text = refusal("mario@example.org")
+        self.assertIn("LUD-21", text)
+        self.assertEqual(refusal_reason(text), "no_confirmation")
+        with public(), answers(self.ELSEWHERE):
+            self.assertEqual(refusal_reason(refusal("mario@example.org")), "no_answer")
+
+    def test_in_italian_and_german(self):
+        found = lnaddress.Found(lnaddress.NO_CONFIRMATION, lnaddress.NO_VERIFY)
+        for language, words in (("it", "non supporta LUD-21"), ("de", "LUD-21")):
+            with translation.override(language):
+                text = lnaddress.explanation(found, "mario@example.org")
+            self.assertIn(words, text)
+            self.assertNotIn("does not", text)
+
+
 class Suggestion(Fresh):
     def test_one_slip(self):
         for typed, known in (("exmple.org", "example.org"), ("examplle.org", "example.org"), ("exapmle.org", "example.org"),
@@ -306,6 +401,9 @@ class LiveCheck(Fresh):
         with public(), answers({"tag": "withdrawRequest"}):
             answer = self.ask("luigi@example.org")[1]
         self.assertEqual(answer["state"], "no_answer")
+        self.assertIn("answers, but not as a Lightning address does (LNURL-pay, LUD-16)", answer["message"])
+        with patch("shops.lnaddress.probe", return_value=lnaddress.NO_ANSWER), public():
+            answer = self.ask("gino@example.org")[1]
         self.assertIn("does not answer: check it and try again", answer["message"])
 
     def test_a_provider_that_does_not_exist_and_the_one_meant(self):

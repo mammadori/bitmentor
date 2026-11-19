@@ -35,6 +35,11 @@ symptom), how they want to be called back, the command and the links to the requ
 until someone marks the request solved in `/admin/shops/helprequest/`; it does not depend on Telegram having
 taken the message.
 
+**The merchant's training.** Where the community has the training ([The merchant's training](merchant-training.md)),
+an owner stuck in the path for more than `training.nudge_days` days (3 unless written; `0` turns it off) is a line to look
+at, one per owner with their shops: their real register waits for the basic pass, or they stopped half-way through the
+basic modules. The line says to call them and the step they stopped at; nothing is sent to the merchant.
+
 **OpenStreetMap.** A merchant who asked the association to do their entry on OpenStreetMap ("The association does it for
 me", [OpenStreetMap](openstreetmap.md)) is a line after the requests for help: the shop, since when, what to do, the
 link to the request in `/admin/shops/osmrequest/`, until someone marks it done there. For a community that uses
@@ -88,6 +93,21 @@ approved; signals: namesake, same_contact"): for the association, the tick means
 The shop's page in `/admin/` lists the same signals; the list of shops does not. The moderators' message about a new
 shop starts with "⚠ Check before approving" and the signals' sentences, with the shops' names only. The owner is told
 nothing about them.
+
+**A new shop that is not for the map: set aside.** Under the approval of each waiting shop, a quieter button, **Not for
+the map: set aside**, is for a shop that should never go on the map: a trial the team wrote to try its own site, a
+duplicate, a shop written by mistake. The shop stays not approved (off the map, the lists, the counts and
+OpenStreetMap, like a waiting shop; its register keeps working), but it leaves the list of the day, its counts, the
+morning summary and the volunteers' area: nobody is asked about it again. A shop with signals can be set aside like any
+other, without the box, since nothing goes on the map. Only staff with the permission to change shops see the button
+(the Moderators group does not); two people clicking at once write one line in the shop's history ("Shop set aside: not
+for the map", with who did it). The owner gets no message: the panel says that the community set the shop aside and that
+it will not go on the map, and to write to the community's email if that is wrong. It can be undone: the shop's page in
+`/admin/` shows when and by whom it was set aside, with a button **Put back among the waiting shops** (a line in the
+history too), and the filter "set aside" of the list of shops finds them. A shop set aside can also be approved
+directly, from the action of `/admin/` or by code that passes it to `approval.approve()`: the approval clears the set-aside
+fields, and its owner is told as for any approval. The volunteers' area cannot approve it. There is no action to set
+aside many shops at once. With `features: {approval: false}` the button stays for the shops left waiting from before.
 
 **An approved shop changed by its owner.** When an owner's edit of an approved shop (name, website, phone, email, town
 or position) gives it a `namesake` or `same_contact` signal it did not have before, the moderators get a message that

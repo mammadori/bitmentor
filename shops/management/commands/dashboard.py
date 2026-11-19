@@ -15,7 +15,7 @@ from datetime import timedelta
 from smtplib import SMTPException
 
 from django.conf import settings
-from config.mail import send_mail
+from config.mail import NOT_SENT, send_mail
 from django.core.management.base import BaseCommand, CommandError
 from django.urls import reverse
 from django.utils import timezone, translation
@@ -178,8 +178,11 @@ class Command(BaseCommand):
             sent, before = False, len(problems)
             for place, one in enumerate(addresses, 1):
                 try:
-                    send_mail(subject, text, None, [one], kind="staff")
-                    sent = True
+                    # Sent only when it says so: over the email budget it is dropped without an error
+                    if send_mail(subject, text, None, [one], kind="staff"):
+                        sent = True
+                    else:
+                        problems.append(f"`moderators_emails`: address {place} of {len(addresses)}: {NOT_SENT}")
                 except (OSError, SMTPException, ValueError) as error:
                     problems.append(f"`moderators_emails`: address {place} of {len(addresses)} failed ({type(error).__name__})")
             if sent:
@@ -192,10 +195,11 @@ class Command(BaseCommand):
         address = community().get("email")
         if isinstance(address, str) and "@" in address:
             try:
-                send_mail(subject, text, None, [address.strip()], kind="staff")
-                if problems:
-                    self.stderr.write(f"{problems[0]}: sent by email instead.")
-                return "the community's email"
+                if send_mail(subject, text, None, [address.strip()], kind="staff"):
+                    if problems:
+                        self.stderr.write(f"{problems[0]}: sent by email instead.")
+                    return "the community's email"
+                problems.append(f"the community's email: {NOT_SENT}")
             except (OSError, SMTPException, ValueError) as error:
                 problems.append(f"the community's email failed ({type(error).__name__})")
         else:

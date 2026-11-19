@@ -12,7 +12,9 @@ RUN mkdir /wheels && if [ "$TARGETARCH" != amd64 ] || [ -n "$COINCURVE_FROM_SOUR
 FROM python:3.14-slim@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f
 WORKDIR /app
 COPY requirements.lock .
-RUN apt-get update && apt-get install -y --no-install-recommends gettext && rm -rf /var/lib/apt/lists/*
+# zlib1g: the base image still has the one of CVE-2026-85091 (DSA-6613-1); Debian's security repository has the fix.
+# Take the name away when the base image's digest above is one that already has it
+RUN apt-get update && apt-get install -y --no-install-recommends gettext zlib1g && rm -rf /var/lib/apt/lists/*
 COPY --from=coincurve /wheels /wheels
 # With a coincurve built from source: that one, then the rest of requirements.lock, still pinned by hash
 RUN if ls /wheels/*.whl > /dev/null 2>&1; then \

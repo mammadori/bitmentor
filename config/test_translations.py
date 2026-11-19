@@ -91,3 +91,36 @@ class Template(SimpleTestCase):
         self.assertEqual([line for line in text.split("\n\n", 1)[1].splitlines()
                           if line.startswith("msgstr") and not line.endswith(' ""')], [])
         self.assertNotIn("\n# ", text.split("\n\n", 1)[1])
+
+
+
+class Since(SimpleTestCase):
+    """`python -m config.pot --since <tag>`: the texts that changed, for the notes of a release."""
+
+    def test_a_reworded_text_is_one_gone_and_one_new(self):
+        from config import pot
+
+        before = 'msgid ""\nmsgstr ""\n\nmsgid "Map"\nmsgstr ""\n\nmsgid "Close"\nmsgstr ""\n\nmsgid ""\n"On two "\n"lines"\nmsgstr ""\n'
+        after = 'msgid ""\nmsgstr ""\n\nmsgid "Map"\nmsgstr ""\n\nmsgid "Close it"\nmsgstr ""\n\nmsgid "On two lines"\nmsgstr ""\n'
+        self.assertEqual(pot.ids(before), ["Map", "Close", "On two lines"])
+        self.assertEqual(pot.changes(before, after), (["Close it"], ["Close"]))
+        self.assertEqual(pot.changes(after, after), ([], []))
+
+    def test_a_version_without_the_template_says_so(self):
+        from config import pot
+
+        lines = pot.since("no-such-version-of-the-software")
+        self.assertEqual(len(lines), 1)
+        self.assertIn("nothing to compare with", lines[0])
+
+    def test_a_machine_without_git_says_so(self):
+        """The image that serves the site has no git: the command answers, it does not break."""
+        from unittest.mock import patch
+
+        from config import pot
+
+        with patch("config.pot.subprocess.run", side_effect=FileNotFoundError("git")):
+            lines = pot.since("0.1.9")
+        self.assertEqual(len(lines), 1)
+        self.assertIn("git is not here", lines[0])
+

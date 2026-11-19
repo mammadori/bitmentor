@@ -57,6 +57,42 @@ password over in person; then mark it with `$D/bin/compose.sh exec -T web python
 From the first sign-in every page of `/admin/` sends that person to the change of password, until they choose a new one
 (the mark ends by itself). If you set the password again, mark it again; `--clear` takes the mark away.
 
+Then the second factor: the person opens **Second factor** at the top of `/admin/` and adds a passkey (**Add a
+passkey**, a name such as «phone», and the browser asks the phone, the computer or a security key to make it), or
+scans the QR code with an authenticator app on their phone and types the code it shows. From the next sign-in
+`/admin/` asks for the password and then for the passkey or the code; a session lasts a day at most. With
+`ADMIN_SECOND_FACTOR=required` or `passkey` the site sends them there by itself, right after the change of the
+temporary password ([Configuration](configuration.md#admin-and-access-log)). With `passkey` only passkeys count: ask
+for two, on two different devices (a phone and a hardware key, for example), so that a lost one does not lock the
+person out; a superuser should have a hardware key. A staff account that already had a code from an app when the site
+moved to `passkey` gives that code once more after the password: it opens only **Second factor**, where the person
+adds a passkey; from then on the code is not asked any more. Passkeys are made at the site's own address (`PUBLIC_URL`), not
+on the onion or on a test site. `$D/bin/compose.sh exec -T web python manage.py admin_passkey list` and `admin_totp
+list` say which staff accounts have what.
+Do it the same day the account is made: the first set-up trusts whoever has the password, so until then whoever
+learns it can add their own passkey or phone (with `required` or `passkey`) or add one and lock the person out (with
+`optional`). Every passkey added or removed, every turn-on, turn-off and reset is told to the moderators' chat (or the
+community's email): one nobody expected means the password is known to someone else. Then run `admin_passkey reset
+<username>` or `admin_totp reset <username>` and give the account a new password. The first wrong code of a day after
+a right password is told too: the password is known; change it. A passkey «signed with a count that did not grow» may
+have been copied: remove that passkey ([A staff member lost the phone](#a-staff-member-lost-the-phone)) and ask the
+person where it lives.
+
+**Trying the site with a few friends** (`ADMIN_WALLET_SIGN_IN=on`, only with `ADMIN_SECOND_FACTOR=optional`): each
+person can link their own Lightning wallet in **Second factor** (section **Sign in with a wallet**) and then use
+**Sign in with your wallet** on the login page instead of the password, one step, but only in a browser where they
+already signed in with their password, and only while that password stands: after a change of password, the new one
+once in each browser, and the wallets work there again. Tell them never to approve in the wallet a code they did not
+open themselves on the site's login page: a wallet signs whatever it is shown, and elsewhere the code may be someone
+else's way in. Whoever holds their unlocked phone, and one of their browsers, has their `/admin/`; an account with a
+second factor is not opened by its wallet, and the wallets are linked and removed only from a session opened with the
+password. Every wallet sign-in is a line in the account's history. Ask them to use another wallet, or another account in their wallet, than the one of a shop or of a team key:
+one key has one role here, and the page refuses a key that already has another. Linking and removing are told to the
+moderators like the passkeys; `manage.py admin_wallet list` says who has wallets. Before the first real shop, move to
+`required` or `passkey` and set `ADMIN_WALLET_SIGN_IN=off` ([Configuration](configuration.md#admin-and-access-log)).
+
+A lost phone or key: [A staff member lost the phone](#a-staff-member-lost-the-phone).
+
 ## Every day
 
 ### Read what to do today
@@ -90,6 +126,13 @@ waiting. "The checks could not be run" on every waiting shop means an error: loo
 after looking at it yourself. The tick is recorded in the shop's history with the signals; the
 signals are hints, and a copy with another name, website and street has none. A message "⚠ Check this shop" is about a
 shop already on the map that its owner changed to look like another one: it stays on the map until you act.
+
+**A new shop that is not for the map.** A trial of yours with a made-up shop, a duplicate, a shop written by mistake:
+press **Not for the map: set aside** under its approval, instead of approving it or leaving it waiting for ever. It
+stays off the map, its register keeps working, and the list of the day stops asking about it; its owner reads in the
+panel that it will not go on the map. To undo it, open the shop in `/admin/` (the list's filter "set aside" finds it)
+and press **Put back among the waiting shops**, or approve it from the action of the list
+([What to do today](features/dashboard.md)).
 
 **If the page says the guardian is late** (`guardian_late`): `check_lightning` has not run for a while, so the
 Lightning lines may be old. See
@@ -176,6 +219,9 @@ $D/bin/compose.sh exec web python manage.py preflight
 **What you should see.** On mainnet it must end with `All ready` (on signet it always reports that `NETWORK` is not
 mainnet: that is expected). Lines starting with `good to know:` are notes, not problems: Lightning addresses that do
 not work, a guardian that stopped, features turned off, closures running.
+A line starting with `WARNING:` says that the moderators cannot be reached: no Telegram
+moderators' chat and no mail for them (see [The moderators' messages](#the-moderators-messages)). It never stops
+`preflight` and never changes its exit code: on a site you look after alone you read `/admin/today/` yourself.
 
 **If it reports problems.** Each line says what is wrong: the mail server, `SECRET_KEY`, `DEBUG`, HSTS, IPv6.
 
@@ -302,7 +348,8 @@ nothing to set up, and it works on a new installation and on one that is updated
 
 To make someone a moderator, the account must exist: a superuser makes it in `/admin/` under **Users**, with a name and
 a password handed over in person, and ticks nothing else (the paragraph **A new staff account**, above, says how to make
-that password temporary). Then:
+that password temporary, and how the moderator turns on the second factor, which works for them as for every staff
+account). Then:
 
 ```bash
 $D/bin/compose.sh exec -T web python manage.py moderators add <name>
@@ -327,8 +374,8 @@ $D/bin/compose.sh exec -T web python manage.py moderators sync
   (`N right(s) of its own`). A moderator who has more than the group is more than a moderator: look at why.
 - **sync** puts the group's rights right at once and says what it gave back and what it took away. The group is put right
   by itself at every start of `web`; when you cannot wait for the next one (a right added by hand that must go now),
-  run `moderators sync` or `$D/bin/compose.sh exec -T web python manage.py migrate`: the web log (at ERROR, the only level
-  the site writes) names every right that was taken away.
+  run `moderators sync` or `$D/bin/compose.sh exec -T web python manage.py migrate`: the web log (at ERROR) names every right
+  that was taken away.
 
 **What a moderator can do.** These rights and no others:
 
@@ -344,6 +391,26 @@ shop's form (they can read it); they cannot see or change users, groups and righ
 moderator needs one done (the calls in [helpdesk.md](helpdesk.md) say which), they ask. It is on purpose: where the money
 of a shop goes must not get easier to change for the people who run the site. To give a volunteer more, give them a
 group of their own, not this one: the Moderators group is the same on every installation, and `migrate` puts it right.
+
+**The other way: the volunteers' area.** With `TEAM_ACCESS=on` and `TEAM_AREA=on`, a volunteer can do the day's work
+without a staff account: invite them in `/admin/` (**Team invites → Add**, role **moderator**), and they sign in at
+`/team/` with their Lightning wallet, from any network, on a phone. They see the same list as `/admin/today/`, the
+requests for help (and mark them solved or waiting again), the OpenStreetMap requests (and mark them done) and the
+register of the changes to the owners' accounts; a key you tick **may approve new shops** also approves the new shops
+that do not look like a copy of another ([The volunteers' area](features/team-access.md#the-volunteers-area)). Which to
+use:
+
+- **The area**, for a volunteer who answers merchants from a phone or from changing networks, where `ADMIN_ALLOWED_IPS`
+  keeps `/admin/` closed, or who should not have a password to `/admin/` at all. For the day's list, the requests for
+  help and the register of account changes it shows less than the group; it also lets them mark OpenStreetMap requests
+  done and, if you tick it, approve new shops, which the group cannot. It has no
+  recovery email (a merchant who asked to be called back by email is answered from `/admin/`), no shop's page, no
+  answer to a merchant whose OpenStreetMap request cannot be done, and no approval of a shop that looks like a copy.
+- **A staff account in the Moderators group**, for a volunteer who also needs those, and who works from where
+  `/admin/` is reachable, with a password and a second factor.
+
+A volunteer can have both. Revoking one does not touch the other: when somebody stops, **Revoke** their team key and
+`moderators remove` their account. What they did in the area is under **Volunteers' actions** in `/admin/`, by key.
 
 ## Before a release
 
@@ -398,7 +465,7 @@ with its `.service`, started for one project as `bitmentor-<name>@<project>.time
 |---|---|---|---|---|
 | `release` | 2 minutes after boot, then a minute after each run | Installs the version the `active` tag points to, and goes back if it does not start ([releases.md](releases.md#releases-from-images)) | `release.env` and the registry | `check` alerts: "the automatic release stopped with an error" |
 | `check` | 5 minutes after boot, then 10 minutes after each run | The machine checks itself and writes to Telegram only when the problems change ([Read the alerts](#read-the-alerts)) | `alerts.env` with `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_IDS`; without it, it only writes its log | Nobody: this is the watcher. Use an external check on `/health/` |
-| `sentinel` | 15 minutes after boot, then an hour after each run | `check_lightning`: tries the Lightning addresses of the shops that are due, tells the merchant by email and the moderators on Telegram when one stops or starts working ([guardian](features/lightning-guardian.md)) | The email settings in the `.env` (`EMAIL_HOST`…), and `TELEGRAM_BOT_TOKEN` and `TELEGRAM_MODERATION_CHAT` in the `.env`. Without them the status is written all the same, and nobody is told | `/admin/today/` says `guardian_late`. No alert from `check` |
+| `sentinel` | 15 minutes after boot, then an hour after each run | `check_lightning`: tries the Lightning addresses of the shops that are due, tells the merchant by email and in the shop's Telegram chats, and the moderators on Telegram, when one stops or starts working ([guardian](features/lightning-guardian.md)) | The email settings in the `.env` (`EMAIL_HOST`…), and `TELEGRAM_BOT_TOKEN` and `TELEGRAM_MODERATION_CHAT` in the `.env`. Without them the status is written all the same, and nobody is told | `/admin/today/` says `guardian_late`. No alert from `check` |
 | `dashboard` | Every day at 06:30 UTC (up to 15 minutes late); at boot if the machine was off | `dashboard --send`: the morning summary of [what to do today](features/dashboard.md), only when it changed, and again a week later | `TELEGRAM_BOT_TOKEN` and `TELEGRAM_MODERATION_CHAT` in the `.env`, or else `moderators_emails` or `email` in `community.yml` with the email settings. With none of them it cannot deliver | It tries again every 10 minutes, four times; then `check` alerts: "the morning summary … did not arrive" |
 | `osm` | The first of every month at 03:30 UTC (up to 2 hours late); at boot if missed | `osm_sync --send`: reads OpenStreetMap, proposes links and the tags it should have, fills what the shops have empty, and sends the moderators a summary of what is new; never writes there ([OpenStreetMap](features/openstreetmap.md)). Does nothing, and exits 0, without an `osm` section in `community.yml` | An `osm` section in `community.yml`; `TELEGRAM_BOT_TOKEN` and `TELEGRAM_MODERATION_CHAT` in the `.env`, or else `moderators_emails` or `email` in `community.yml` | It tries again every hour; the fifth start within twelve hours is refused, and `check` alerts: "the monthly reading of OpenStreetMap failed" |
 | `meetups` | Every day at 05:40 UTC (up to 20 minutes late); at boot if missed | `read_meetups`: reads from the relays the calendar events (NIP-52) of the trusted authors and updates the board of the meetups; it only reads ([Meetups](features/meetups.md)) | The `meetups` block of `community.yml` with its relays and its trusted authors. Without the block it does nothing | It tries again every 30 minutes, three times, when no relay answered; then `check` alerts: "the reading of the meetups from Nostr failed" |
@@ -407,6 +474,27 @@ with its `.service`, started for one project as `bitmentor-<name>@<project>.time
 Two different Telegram settings: `alerts.env` is for the machine's alerts (`check`), and the site's `.env` is for the
 messages of the site itself (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_MODERATION_CHAT`). The moderators' chat is the second one.
 The bot must be in that chat.
+
+#### The moderators' messages
+
+The morning summary, the new shops waiting for an approval, the notices about the staff accounts' second factor and,
+with team access on, its notices of new keys and passes go to the people who look after the site: to every chat of
+`TELEGRAM_MODERATION_CHAT` (with `TELEGRAM_BOT_TOKEN`), else by email, to each address of `moderators_emails` in
+`community.yml` or to the community's `email` (with `EMAIL_HOST`, or a [mail backend of the community](configuration.md#a-mail-backend-of-the-community)). Both are optional. With neither, those messages
+reach nobody: `manage.py preflight` prints a `WARNING:` line saying so, and with mail but no Telegram a `good to know:`
+note that they go by email. Neither changes its result: whoever runs a small site alone reads `/admin/today/` instead.
+
+To see that they arrive, send a test message the same way the real ones go:
+
+```bash
+$D/bin/compose.sh exec web python manage.py notify_test --moderators
+```
+
+**What you should see.** `sent to: TELEGRAM_MODERATION_CHAT` (every chat of the list gets it) or `sent to: the
+community's email` (each address of `moderators_emails`, else `email`), and the message, in the community's first
+language with the site's name, in the chat or the mailbox. Each way that failed is a line of its own, without chats or
+addresses. When nothing was delivered (an email the email budget kept back included), or the email was only written to the log of `web` (no `EMAIL_HOST` on a test
+network), the command exits with an error. Without `--moderators` it explains itself and sends nothing.
 
 **To turn them on**, as root, after the release that has them is installed:
 
@@ -478,6 +566,25 @@ $D/bin/compose.sh ps
 curl -s https://<site>/health/
 ```
 
+### A setting changed
+
+**What you see.** A message «Security settings changed since the previous start of the site», with the time of the
+start and one line a setting: `ADMIN_SECOND_FACTOR: passkey → optional`, or `SECRET_KEY: changed` for a secret, whose
+value is never written. A line with `⚠ lowered` lowers a defence (of `/admin/`, of who signs in, of Caddy) or turns
+`DEBUG` on. A change of the moderators' chat or addresses says only how many were removed and added: `settings_watch
+show` on the machine says which. «The settings watch was turned off» comes once, when `community.yml` turns it off. The list and the
+switch are in [configuration.md](configuration.md#the-settings-watch).
+
+**What you do.** Ask the team who changed it and why. If it was announced, nothing to do. If nobody did it, look at the
+machine's `.env` (and `community.yml`, for the moderators' email addresses): put the value back, `$D/bin/compose.sh up
+-d`, and find out who has access to the machine. A change of the moderators' chat or addresses is also told to the old
+ones: if you got it and are no longer meant to, say so to the team.
+
+**Starting again from what is there now.** `$D/bin/compose.sh exec -T web python manage.py settings_watch show` prints what
+was recorded at the last start (the secrets only as «recorded»); `settings_watch forget` clears it, and the next start
+records the settings again without a message. A message that could not leave is sent at the next start: the warning is in
+the log of `web` (`settings watch:`).
+
 ### A Lightning provider is down
 
 **What you see.** Many shops of the same provider at once in the guardian's message, or in `/admin/today/` with
@@ -493,6 +600,43 @@ for them. When the provider is back, the guardian sees it within the hour, and s
 
 To try one shop now: the "Try again now" button in the merchant's panel, or `diagnose_shop` for that shop. More:
 [The guardian of the Lightning addresses](features/lightning-guardian.md).
+
+### A staff member lost the phone
+
+With a passkey on another device, the person signs in with it and removes the lost one from **Second factor**:
+the sessions opened with the lost one end at their next page. Otherwise there are no recovery codes for the second
+factor: whoever has a shell on the machine removes it, after checking by another channel that the request comes from
+the person. All the passkeys of the account, or its code from an app:
+
+```bash
+$D/bin/compose.sh exec -T web python manage.py admin_passkey reset <username>
+$D/bin/compose.sh exec -T web python manage.py admin_totp reset <username>
+```
+
+A wallet that signs in to `/admin/` (`ADMIN_WALLET_SIGN_IN=on`) is removed the same way, on the person's **Second
+factor** page from another way in, or on the machine:
+
+```bash
+$D/bin/compose.sh exec -T web python manage.py admin_wallet reset <username>
+```
+
+The account signs in with what it has left, or with the password alone (with `ADMIN_SECOND_FACTOR=required` or
+`passkey` it is sent to add a new one at once), and the sessions opened with what was removed end at their next page.
+The account then adds a new passkey; the others it made on the lost device are gone with the reset. The reset is in the account's history in
+`/admin/auth/user/`. If the phone may be in someone else's hands, change the account's password too. Nobody can remove
+another account's second factor from `/admin/`, a superuser neither. The command says whether the moderators' chat (or
+the community's email) was told of the reset: `told: …` or `not told: …`.
+
+**Locked out by wrong codes.** The moderators get «A wrong second-factor code after the right password…» and the
+person cannot sign in from a new browser for the rest of the day, every day: someone else knows the password and
+uses up its codes. Give the account a new password, from a browser that already signed in with the second factor
+(**Change password** at the top of `/admin/`) or on the machine:
+
+```bash
+$D/bin/compose.sh exec web python manage.py changepassword <username>
+```
+
+Without the password nobody reaches the code's page any more, and the limits run out by themselves.
 
 ### The site is down
 

@@ -123,6 +123,94 @@ class Caddy(TestCase):
             self.assertIn("import anonymous", body)
 
 
+class Probes(TestCase):
+    """REFUSE_PROBES: Caddy answers 404 by itself to the robots' probes. The rule must never take an address of the site."""
+
+    def patterns(self):
+        """(taken, left alone): the paths of the rule, as the Caddyfile writes them."""
+        rule = re.search(r"^\(probes-on\) \{\n(.*?)^\}", CADDYFILE, re.MULTILINE | re.DOTALL)[1]
+        taken = [word for line in re.findall(r"^\t\tpath (.+)$", rule, re.MULTILINE) for word in line.split()]
+        left = re.search(r"^\t\tnot path (.+)$", rule, re.MULTILINE)[1].split()
+        return taken, left
+
+    @staticmethod
+    def matches(pattern, path):
+        """Caddy's path matcher for the shapes the rule uses: exact, `x*`, `*x`, `*x*`, in any case."""
+        pattern, path = pattern.lower(), path.lower()
+        if pattern.startswith("*") and pattern.endswith("*"):
+            return pattern[1:-1] in path
+        if pattern.startswith("*"):
+            return path.endswith(pattern[1:])
+        if pattern.endswith("*"):
+            return path.startswith(pattern[:-1])
+        return path == pattern
+
+    def refused(self, path):
+        taken, left = self.patterns()
+        return (any(self.matches(pattern, path) for pattern in taken)
+                and not any(self.matches(pattern, path) for pattern in left))
+
+    def test_the_rule_is_written_in_the_shapes_this_test_reads(self):
+        taken, left = self.patterns()
+        self.assertGreater(len(taken), 30)
+        for pattern in taken + left:
+            self.assertNotIn("*", pattern.strip("*"), pattern)  # a star only at the ends
+            self.assertTrue(pattern.strip("*").startswith(("/", ".")), pattern)
+
+    def test_the_probes_are_refused(self):
+        for path in ("/wp-login.php", "/index.php", "/.env", "/.env.local", "/x/.git/config", "/.git", "/wp-admin/",
+                     "/phpmyadmin/index", "/cgi-bin/luci", "/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php",
+                     "/actuator/health", "/backup.sql", "/WP-LOGIN.PHP", "/server-status", "/xmlrpc.php",
+                     # as a real site saw them in a day: doubled slashes, folders repeated, PHP with a path after it
+                     "//images/images/images/cache.php", "//cgi-bin/cgi-bin/cache.php", "/k.php", "/wp-content/uploads/",
+                     "//wp-content/plugins/plugins/cache.php", "/index.php/x", "/blog/wp-admin/setup-config.php",
+                     "/old/phpMyAdmin/", "/a/vendor/phpunit/phpunit/x"):
+            self.assertTrue(self.refused(path), path)
+
+    def test_no_address_of_the_site_is_taken(self):
+        from django.urls import URLPattern, URLResolver, get_resolver
+
+        def routes(resolver, prefix=""):
+            for entry in resolver.url_patterns:
+                route = prefix + str(entry.pattern)
+                if isinstance(entry, URLResolver):
+                    yield from routes(entry, route)
+                elif isinstance(entry, URLPattern):
+                    yield route
+
+        found = list(routes(get_resolver()))
+        self.assertGreater(len(found), 80)
+        for route in found:
+            # A route with its parameters filled by a harmless word, and bare: neither is a probe
+            for path in ("/" + re.sub(r"<[^>]+>|\(\?P<[^)]*\)|[\^$]", "x", route), "/" + re.sub(r"<[^>]+>.*", "", route)):
+                self.assertFalse(self.refused(path), f"{route}: {path}")
+        for path in ("/", "/en/", "/it/shops/map/", "/shops.json", "/meetups.ics", "/sitemap.xml", "/robots.txt",
+                     "/.well-known/lnurlp/bar", "/.well-known/nostr.json", "/health/", "/admin/", "/team/",
+                     "/en/wordpress/", "/en/vendor/", "/static/vendor/leaflet/leaflet.js", "/theme/logo.svg",
+                     # a bare word can be a community's page (/wp is one on a real site)
+                     "/wp", "/wp/", "/it/wp/", "/vendor/", "/vendor/list/", "/php/", "/en/php/"):
+            self.assertFalse(self.refused(path), path)
+
+    def test_no_file_the_site_serves_is_taken(self):
+        files = [f"/static/{path.relative_to(ROOT / 'static').as_posix()}" for path in (ROOT / "static").rglob("*") if path.is_file()]
+        files += [f"/theme/{path.relative_to(ROOT / 'examples/community/theme').as_posix()}"
+                  for path in (ROOT / "examples/community/theme").rglob("*") if path.is_file()]
+        self.assertGreater(len(files), 30)
+        for path in files:
+            self.assertFalse(self.refused(path), path)
+        # whatever a community names a file of its theme, /static/ and /theme/ are left alone
+        self.assertFalse(self.refused("/theme/old/index.php"))
+
+    def test_every_site_has_it_and_it_can_be_turned_off(self):
+        self.assertEqual(CADDYFILE.count("\timport probes-{$REFUSE_PROBES:on}\n"), 2)
+        self.assertRegex(CADDYFILE, r"\(probes-off\) \{\n\}")
+        caddy = yaml.safe_load((ROOT / "docker-compose.yml").read_text())["services"]["caddy"]["environment"]
+        self.assertEqual(caddy["REFUSE_PROBES"], "${REFUSE_PROBES:-on}")
+        # The image leaves .env.example out (.dockerignore): there only the compose file is checked
+        if (ROOT / ".env.example").is_file():
+            self.assertIn("# REFUSE_PROBES=on", (ROOT / ".env.example").read_text())
+
+
 class HeadRequests(TestCase):
     """On HEAD gunicorn also sent the file: with persistent connections the extra bytes ended up in the next response."""
 
@@ -200,6 +288,7 @@ class CaddyErrorLog(TestCase):
     # Caddyfile drops it from the error log, or it goes here with the reason.
     HARMLESS = {
         "qr": "whether the sign shows the QR code",
+        "page": "the page of the register of account changes in the volunteers' area (team/area.py): a number",
         "key": "the public key a wallet signs with (LNURL-auth)",
         "sig": "a signature of a challenge that a QR code shows to anyone, valid for a few minutes",
         "w": "the wallet a customer picked from the community's list, on the path for customers without one",

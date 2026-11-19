@@ -50,7 +50,11 @@ services:
       FAKE_EXPLORER: ${FAKE_EXPLORER:-}
       DEV_ALLOWED_IPS: ${DEV_ALLOWED_IPS:-127.0.0.1}
       TEAM_ACCESS: ${TEAM_ACCESS:-off}
+      TEAM_AREA: ${TEAM_AREA:-off}
       ADMIN_ALLOWED_IPS: ${ADMIN_ALLOWED_IPS:-}
+      ADMIN_SECOND_FACTOR: ${ADMIN_SECOND_FACTOR:-optional}
+      ADMIN_SESSION_HOURS: ${ADMIN_SESSION_HOURS:-24}
+      ADMIN_WALLET_SIGN_IN: ${ADMIN_WALLET_SIGN_IN:-off}
       SOURCE_URL: ${SOURCE_URL:-https://github.com/mammadori/bitmentor}
       NETWORK: ${NETWORK}
       POSTGRES_HOST: postgres
@@ -75,6 +79,9 @@ services:
       EMAIL_ENVELOPE_FROM: ${EMAIL_ENVELOPE_FROM:-}
       EMAIL_REAL_BACKEND: ${EMAIL_REAL_BACKEND:-}
       BLOSSOM_HOSTS: ${BLOSSOM_HOSTS:-}
+      # Caddy's, here only for the settings watch: the moderators hear when they change (docs/configuration.md)
+      REFUSE_PROBES: ${REFUSE_PROBES:-on}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.1/32}
     volumes:
       - ${COMMUNITY_DIR:-./examples/community}:/community:ro
     # web is healthy when it answers: 503 from /health/ is a problem already reported on its own (as in deploy/release.sh)
@@ -119,6 +126,7 @@ services:
       DEV_ALLOWED_IPS: ${DEV_ALLOWED_IPS:-127.0.0.1}
       TEAM_ACCESS: ${TEAM_ACCESS:-off}
       ADMIN_ALLOWED_IPS: "${ADMIN_ALLOWED_IPS:-0.0.0.0/0 ::/0}"
+      REFUSE_PROBES: ${REFUSE_PROBES:-on}
       ACCESS_LOG: ${ACCESS_LOG:-off}
       ACCESS_LOG_KEEP: ${ACCESS_LOG_KEEP:-168h}
       ACCESS_LOG_SIZE: ${ACCESS_LOG_SIZE:-1MiB}

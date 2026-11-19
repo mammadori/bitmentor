@@ -4485,7 +4485,7 @@ msgstr ""
 msgid "On-chain payments too"
 msgstr ""
 
-msgid "The chat number or @name where the site writes to you: account changes, help answers, the reopening after a closure. Up to three, separated by commas: each chat gets its own copy."
+msgid "The chat number or @name where the site writes to you: account changes, a Lightning address that stops working, help answers, the reopening after a closure. Up to three, separated by commas: each chat gets its own copy."
 msgstr ""
 
 msgid "This chat cannot receive the site's messages."
@@ -5200,6 +5200,7 @@ msgstr ""
 
 msgid "Find out whose wallet it is: the other owner's shop must change its address. Until then the site certifies neither shop."
 msgstr ""
+
 msgid "More than asked has arrived: {seen} of {sats}. It may be a payment for something else to the same address: look in your wallet, and confirm by hand only if it is this sale's."
 msgstr ""
 
@@ -5518,6 +5519,7 @@ msgstr ""
 
 msgid "set in community.yml"
 msgstr ""
+
 msgid "Quick start: {left} of {limit} left before the training."
 msgstr ""
 
@@ -5764,6 +5766,7 @@ msgstr ""
 
 msgid "Source code (AGPLv3)"
 msgstr ""
+
 msgid "Training"
 msgstr ""
 
@@ -6427,4 +6430,906 @@ msgstr ""
 
 #, python-format
 msgid "On the map with its own pin, not among the places to pay. The register stopped on %(until)s, a year after closing."
+msgstr ""
+
+msgid "Log in"
+msgstr ""
+
+msgid "Second factor"
+msgstr ""
+
+msgid "Code:"
+msgstr ""
+
+msgid "Confirm"
+msgstr ""
+
+msgid "Start again"
+msgstr ""
+
+msgid "Turn it off"
+msgstr ""
+
+msgid "Turn the second factor off"
+msgstr ""
+
+msgid "Turn the second factor on"
+msgstr ""
+
+msgid "Too many wrong codes. Wait a little and try again."
+msgstr ""
+
+msgid "That code is not right, or it was already used. Type the code the app shows now. If it keeps failing, the clock of the phone may be wrong: set it to the network's time."
+msgstr ""
+
+#, python-format
+msgid "The password of %(name)s is right. Now type the code that your authenticator app shows for this site."
+msgstr ""
+
+#, python-format
+msgid "The second factor of your account is on since %(date)s: the sign-in asks for the password and then for a code from your authenticator app."
+msgstr ""
+
+msgid "Lost the phone? Whoever runs the machine removes it with manage.py admin_totp reset and your name; then set it up again."
+msgstr ""
+
+msgid "This site asks every staff account for a second factor: set it up to go on."
+msgstr ""
+
+msgid "A second factor asks, after the password, for a code that changes every 30 seconds, from an authenticator app on your phone (any app for TOTP codes). Whoever learns the password cannot sign in without the phone."
+msgstr ""
+
+msgid "Open the authenticator app and add an account by scanning this code."
+msgstr ""
+
+msgid "Type below the code the app shows, to confirm. Until then nothing changes."
+msgstr ""
+
+msgid "QR code of the second factor, for the authenticator app"
+msgstr ""
+
+msgid "The QR code is drawn by the browser: turn JavaScript on, or type the key below into the app."
+msgstr ""
+
+msgid "Or type this key into the app (time-based, 6 digits, 30 seconds):"
+msgstr ""
+
+msgid "This key is shown only now. Do not keep a copy of it anywhere else than in the app."
+msgstr ""
+
+msgid "The second factor is off: the sign-in asks only for the password."
+msgstr ""
+
+msgid "The second factor is on: from the next sign-in, the password and then a code from the app."
+msgstr ""
+
+msgid "The time to type the code ran out, or the account changed. Sign in again."
+msgstr ""
+
+msgid "second factor of the admin's sign-in"
+msgstr ""
+
+msgid "The second factor of your account's sign-in to the administration was turned on, turned off or removed."
+msgstr ""
+
+msgid "The staff account {name} turned its second factor on."
+msgstr ""
+
+msgid "The staff account {name} turned its second factor off."
+msgstr ""
+
+msgid "The second factor of the staff account {name} was reset with manage.py admin_totp reset."
+msgstr ""
+
+msgid "A wrong second-factor code after the right password for the staff account {name}: its password may be known to someone else. Change it."
+msgstr ""
+
+msgid "After signing with the wallet, reload this page."
+msgstr ""
+
+msgid "Asked %(when)s, solved %(solved)s by %(who)s."
+msgstr ""
+
+msgid "Asked %(when)s."
+msgstr ""
+
+msgid "Call back:"
+msgstr ""
+
+msgid "End this browser's pass"
+msgstr ""
+
+msgid "For the volunteers who look after the shops. Scan the code with the Lightning wallet of your team key, or tap it if the wallet is on this phone."
+msgstr ""
+
+msgid "Lost a phone, or signed in where you should not have? Ask an administrator to end all the passes of your key."
+msgstr ""
+
+msgid "Name"
+msgstr ""
+
+msgid "No request for help is waiting."
+msgstr ""
+
+msgid "Requests for help"
+msgstr ""
+
+msgid "Role"
+msgstr ""
+
+msgid "Scan a sign-in code only on a page you opened yourself: never one somebody else sends you, whatever they say. Your wallet would open this area for them."
+msgstr ""
+
+msgid "Signed in. Opening the area…"
+msgstr ""
+
+msgid "Solved in the last days"
+msgstr ""
+
+msgid "The address is not shown here: whoever has the administration writes to it."
+msgstr ""
+
+msgid "The merchant sees «Solved» in their panel. Never ask a merchant for the secret words of their wallet, for a key or for a password."
+msgstr ""
+
+msgid "The requests for help"
+msgstr ""
+
+msgid "This browser is signed in with a team key whose role (%(role)s) does not open this area. Sign in with the wallet of a moderator's key."
+msgstr ""
+
+msgid "This browser's pass ends"
+msgstr ""
+
+msgid "This wallet was not accepted."
+msgstr ""
+
+msgid "Volunteers' area"
+msgstr ""
+
+msgid "What the site knew when they asked"
+msgstr ""
+
+msgid "You"
+msgstr ""
+
+msgid "Your wallet's key opens this area: no password, no account. It is not a right in the administration, and nothing here changes a shop, an owner or an address."
+msgstr ""
+
+msgid "action"
+msgstr ""
+
+msgid "done to"
+msgstr ""
+
+msgid "ended the pass of a browser"
+msgstr ""
+
+msgid "in the volunteers' area"
+msgstr ""
+
+msgid "marked a request for help as solved"
+msgstr ""
+
+msgid "marked a request for help as waiting again"
+msgstr ""
+
+msgid "volunteer's action"
+msgstr ""
+
+msgid "volunteers' actions"
+msgstr ""
+
+msgid "{name} ({role}) signed in with their wallet in a new browser. If it was not them, revoke the key or end its passes:"
+msgstr ""
+
+msgid "{name} joined the team ({role}). The team's keys:"
+msgstr ""
+
+msgid "%(count)d action"
+msgid_plural "%(count)d actions"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Asked %(when)s, solved %(solved)s from the administration."
+msgstr ""
+
+msgid "%(when)s, from %(via)s, by %(who)s."
+msgstr ""
+
+msgid "%(when)s, from %(via)s."
+msgstr ""
+
+msgid "A new shop goes on the map and the lists only once somebody approves it. Its register works already. If you doubt, leave it waiting and tell an administrator."
+msgstr ""
+
+msgid "A request that cannot be done is answered by an administrator, who writes the merchant why."
+msgstr ""
+
+msgid "Account changes"
+msgstr ""
+
+msgid "Asked %(when)s, closed %(done)s by %(who)s."
+msgstr ""
+
+msgid "Asked %(when)s, closed %(done)s from the administration."
+msgstr ""
+
+msgid "Changes to the owners' accounts"
+msgstr ""
+
+msgid "Closed in the last days"
+msgstr ""
+
+msgid "In the volunteers' area: approve the new shops that wait, except those that look like a copy of another shop."
+msgstr ""
+
+msgid "New shops"
+msgstr ""
+
+msgid "Newer"
+msgstr ""
+
+msgid "No OpenStreetMap request is waiting."
+msgstr ""
+
+msgid "No change in the register."
+msgstr ""
+
+msgid "No new shop is waiting."
+msgstr ""
+
+msgid "Not told:"
+msgstr ""
+
+msgid "Older"
+msgstr ""
+
+msgid "Pages"
+msgstr ""
+
+msgid "The editor"
+msgstr ""
+
+msgid "The merchant asked the association to put the shop on OpenStreetMap, or to update its entry. You do it by hand on openstreetmap.org, with your own account, using the lines of the request: the site writes nothing there. Then mark it done: the merchant sees it in the panel."
+msgstr ""
+
+msgid "The shop's entry"
+msgstr ""
+
+msgid "This shop is not approved from here: an administrator looks at it and approves it from the administration."
+msgstr ""
+
+msgid "Told:"
+msgstr ""
+
+msgid "What to write:"
+msgstr ""
+
+msgid "What whoever runs the site changed in the accounts of shops' owners, newest first: a second pair of eyes on the people who can change them. It names who did it. If a change looks wrong, ask the merchant whether they expected it, and tell the association."
+msgstr ""
+
+msgid "Written %(when)s."
+msgstr ""
+
+msgid "You do not approve new shops: an administrator can allow it on your key."
+msgstr ""
+
+msgid "You may approve new shops."
+msgstr ""
+
+msgid "approved a new shop"
+msgstr ""
+
+msgid "marked an OpenStreetMap request as done"
+msgstr ""
+
+msgid "may approve new shops"
+msgstr ""
+
+msgid "In the volunteers' area: approve the new shops that wait, except those that look like a copy of another shop. Only staff who may approve shops can set it. On an invite, the link is worth this right: whoever opens it first and signs gets it. Send it by a channel you trust, delete the invite if it went astray, revoke the key if it was taken."
+msgstr ""
+
+msgid "Your wallet's key opens this area: no password, no account. It is not a right in the administration. Here it changes no owner, account or address, and it puts a new shop on the map only when you approve it."
+msgstr ""
+
+msgid "Test message"
+msgstr ""
+
+msgid "This is a test message from the site, sent with manage.py notify_test. If you read it, the messages for the people who look after the site reach you here. There is nothing to do."
+msgstr ""
+
+msgid "Your panel says what to do."
+msgstr ""
+
+msgid "{shop} is on the map"
+msgstr ""
+
+msgid "{shop} is approved"
+msgstr ""
+
+msgid "Good news: the community approved {shop}. It is on the map now, and in the lists."
+msgstr ""
+
+msgid "Good news: the community approved {shop}."
+msgstr ""
+
+msgid "Its page, the one customers see: {link}"
+msgstr ""
+
+msgid "You can print the sign now: its QR code opens that page. You find it in your panel, together with the card for the till."
+msgstr ""
+
+msgid "Try it: open the register and pay yourself a small amount from another phone. The sign to print comes once the community has approved the shop."
+msgstr ""
+
+msgid "The sign and the card for customers come once the community has approved the shop. You will hear from us then, if your account has an email or the shop a Telegram chat."
+msgstr ""
+
+msgid "Wait for the community to approve the shop: then print the sign for the door or the counter. The card for whoever stands at the till you can print now."
+msgstr ""
+
+msgid "Try the register and give it to whoever works with you; print the sign once the community has approved the shop. The steps are here below."
+msgstr ""
+
+msgid "The sign of %(name)s"
+msgstr ""
+
+msgid "The community looks at every new shop before it goes on the map. The codes of the sign and of the card for customers open pages that show how to pay only once the shop is approved: both come then. You will hear from us, if your account has an email or the shop a Telegram chat."
+msgstr ""
+
+msgid "The register already works, and so does the card for the till."
+msgstr ""
+
+msgid "More, whenever you like"
+msgstr ""
+
+msgid "On-chain payments: in the register's settings"
+msgstr ""
+
+msgid "Encrypted copies of the register on Nostr: in the register's settings"
+msgstr ""
+
+msgid "A discount for whoever pays in bitcoin"
+msgstr ""
+
+msgid "Now: %(title)s"
+msgstr ""
+
+msgid "Your Lightning address does not answer"
+msgstr ""
+
+msgid "The message above says what to do. Until it works, customers cannot pay you with Lightning."
+msgstr ""
+
+msgid "The register asks your wallet for each payment: the money goes straight to you, never through this site."
+msgstr ""
+
+msgid "Practise first without money if you like. Then open the register and pay yourself a small amount from another phone, as a customer would. When it says it is paid, mark it done here."
+msgstr ""
+
+msgid "Open the register and pay yourself a small amount from another phone, as a customer would. When it says it is paid, mark it done here."
+msgstr ""
+
+msgid "Take your first payments"
+msgstr ""
+
+msgid "When a customer wants to pay in bitcoin, open the register. The sales stay on your phone, in the register's history."
+msgstr ""
+
+msgid "Until you have the basic pass, the register takes payments up to %(amount)s in total: it adds up the payments taken on the phone, and then asks for the pass."
+msgstr ""
+
+msgid "Meanwhile, the basic pass: a few minutes"
+msgstr ""
+
+msgid "Get the basic pass"
+msgstr ""
+
+msgid "The register waits for your basic pass: until you have it, it takes no real payments."
+msgstr ""
+
+msgid "Next: %(title)s."
+msgstr ""
+
+msgid "Print the sign"
+msgstr ""
+
+msgid "Your page on the map"
+msgstr ""
+
+msgid "At the end of the day, close it from the register's menu: you get the day's total and the file for your accountant, all on your phone. Someone works with you? Give them a register of their own."
+msgstr ""
+
+msgid "Go further with the training"
+msgstr ""
+
+msgid "The other modules of the training and the badges, whenever you like."
+msgstr ""
+
+msgid "Everything, if you want"
+msgstr ""
+
+msgid "The shop and the wallet"
+msgstr ""
+
+msgid "The trial"
+msgstr ""
+
+msgid "The first takings"
+msgstr ""
+
+msgid "The basic pass"
+msgstr ""
+
+msgid "The routine"
+msgstr ""
+
+msgid "Going further"
+msgstr ""
+
+msgid "It goes on the map as soon as you add the wallet where the money arrives: your panel shows how."
+msgstr ""
+
+msgid "It goes on the map as soon as its position is in its details: you can add it from your panel."
+msgstr ""
+
+msgid "The card for customers of %(name)s"
+msgstr ""
+
+msgid "A few short modules, a few minutes. Meanwhile the practice register works."
+msgstr ""
+
+msgid "On this phone, {left} of it is still left."
+msgstr ""
+
+msgid "On this phone it is used up: the register now asks for the basic pass."
+msgstr ""
+
+msgid "set aside on"
+msgstr ""
+
+msgid "set aside by"
+msgstr ""
+
+msgid "set aside"
+msgstr ""
+
+msgid "Set aside: not for the map"
+msgstr ""
+
+msgid "Not set aside"
+msgstr ""
+
+msgid "Put back among the waiting shops"
+msgstr ""
+
+#, python-format
+msgid "%(name)s waits for an approval again: it is on the list of the day."
+msgstr ""
+
+#, python-format
+msgid "%(name)s was not set aside."
+msgstr ""
+
+#, python-format
+msgid "%(name)s is set aside: it stays off the map and is not asked about again. Its page in the admin puts it back among the waiting shops."
+msgstr ""
+
+#, python-format
+msgid "%(name)s was already set aside."
+msgstr ""
+
+msgid "Not for the map: set aside"
+msgstr ""
+
+#, python-format
+msgid "The community set this shop aside: it will not go on the map. If that is not right, write to <a href=\"mailto:%(email)s\">%(email)s</a>."
+msgstr ""
+
+msgid "The sign and the card for customers are only for shops on the map, and the community set this one aside."
+msgstr ""
+
+msgid "The sign is only for shops on the map. The card for whoever stands at the till you can print now."
+msgstr ""
+
+msgid "Try the register and give it to whoever works with you; the sign is only for shops on the map. The steps are here below."
+msgstr ""
+
+msgid "The community set your shop aside: it will not go on the map. The register still works."
+msgstr ""
+
+#, python-format
+msgid "%(when)s, by %(who)s: not for the map"
+msgstr ""
+
+#, python-format
+msgid "The owner stopped half-way through the basic pass of the training: %(shops)s."
+msgstr ""
+
+#, python-format
+msgid "Call them: in their panel «Your merchant pass» goes on from where they stopped, the step «%(step)s». Without the basic pass their register will wait for it."
+msgstr ""
+
+#, python-format
+msgid "The real register waits for the owner's basic pass of the training: %(shops)s."
+msgstr ""
+
+msgid "Call them: their register waits for the basic pass, and «Your merchant pass» in their panel says what is left."
+msgstr ""
+
+#, python-format
+msgid "Call them: in their panel «Your merchant pass» goes on from where they stopped, the step «%(step)s». Until the basic pass their register takes only the quick start, then waits; the practice register works meanwhile."
+msgstr ""
+
+#, python-format
+msgid "Call them: in their panel «Your merchant pass» goes on from where they stopped, the step «%(step)s». Until the basic pass their register says «The register opens soon» and takes no new sale; the practice register works meanwhile."
+msgstr ""
+
+msgid "Something about the registers of the staff: whoever has the administration sees it."
+msgstr ""
+
+msgid "Too many tries. Wait a little and try again."
+msgstr ""
+
+msgid "The passkey was not accepted. Try again, with a passkey you added to this account on this site."
+msgstr ""
+
+#, python-format
+msgid "The password of %(name)s is right. Now confirm with your passkey."
+msgstr ""
+
+msgid "Use a passkey"
+msgstr ""
+
+msgid "This browser cannot use passkeys."
+msgstr ""
+
+msgid "Type the code from the app below."
+msgstr ""
+
+msgid "Passkeys need JavaScript: turn it on."
+msgstr ""
+
+msgid "Or type the code from the app below."
+msgstr ""
+
+#, python-format
+msgid "Passkeys work only at %(url)s, not at this address."
+msgstr ""
+
+msgid "The browser did not use a passkey, or it was cancelled."
+msgstr ""
+
+msgid "This site asks every staff account for a passkey: add one to go on."
+msgstr ""
+
+msgid "This is the last second factor of your account that this site accepts, and the site requires one: add another before you remove it."
+msgstr ""
+
+msgid "The passkey was not added: the time ran out, it is already on this site, or the browser's answer was not valid. Try again."
+msgstr ""
+
+msgid "Passkeys"
+msgstr ""
+
+msgid "A passkey is made by your phone, your computer or a security key, and signs in only on this site: a fake page that copies this one gets nothing from it. The site keeps only its public key."
+msgstr ""
+
+msgid "This site accepts only passkeys. Add at least two, on two different devices (a phone and a security key, for example): if one is lost, the other still signs in."
+msgstr ""
+
+msgid "Added"
+msgstr ""
+
+msgid "Last used"
+msgstr ""
+
+msgid "Where it lives"
+msgstr ""
+
+msgid "Passkey"
+msgstr ""
+
+msgid "never"
+msgstr ""
+
+msgid "synced"
+msgstr ""
+
+msgid "on this device only"
+msgstr ""
+
+msgid "New name"
+msgstr ""
+
+msgid "Your account has no passkey yet."
+msgstr ""
+
+msgid "The browser did not make the passkey, or it was cancelled."
+msgstr ""
+
+msgid "Add a passkey"
+msgstr ""
+
+msgid "Its name:"
+msgstr ""
+
+msgid "phone, key on my keyring"
+msgstr ""
+
+msgid "The code from an app below works in every browser."
+msgstr ""
+
+msgid "The code from an app below works without it."
+msgstr ""
+
+msgid "Lost a phone or a key? Remove its passkey here from another one. Lost them all? Whoever runs the machine removes them with manage.py admin_passkey reset and your name."
+msgstr ""
+
+msgid "Code from an app"
+msgstr ""
+
+msgid "This site accepts only passkeys: the code from the app is neither asked for nor accepted."
+msgstr ""
+
+msgid "This site accepts only passkeys: a code from an app cannot be set up."
+msgstr ""
+
+msgid "The staff account {name} added a passkey."
+msgstr ""
+
+msgid "The staff account {name} removed a passkey."
+msgstr ""
+
+msgid "The passkeys of the staff account {name} were removed with manage.py admin_passkey reset."
+msgstr ""
+
+msgid "A passkey of the staff account {name} signed with a count that did not grow: it may have been copied. The sign-in was refused. Remove that passkey from the account, and check who else may have it."
+msgstr ""
+
+msgid "The passkey is added: from the next sign-in, the password and then the passkey."
+msgstr ""
+
+msgid "The passkey is removed."
+msgstr ""
+
+msgid "The code from the app is off."
+msgstr ""
+
+msgid "Use a wallet with a different Lightning address, or write to {email}."
+msgstr ""
+
+msgid "Phoenix addresses, the ones with the ₿ sign, cannot be used here."
+msgstr ""
+
+msgid "{provider} does not answer right now: check what you wrote after the @ and try again in a minute."
+msgstr ""
+
+msgid "{provider} answers, but it knows no such address: check what you wrote before the @."
+msgstr ""
+
+msgid "{provider} answers, but not as a Lightning address does (LNURL-pay, LUD-16): check the address in your wallet, under Receive."
+msgstr ""
+
+msgid "{provider} has its invoices made by another site, and the register asks only the address's own: this wallet cannot be used with the register."
+msgstr ""
+
+msgid "{provider} knows this address but gives no invoice for it: check in your wallet that it can receive, and try again."
+msgstr ""
+
+msgid "This address can receive, but {provider} does not tell the register when a payment arrives: it does not support LUD-21 (verify)."
+msgstr ""
+
+msgid "This address can receive, but {provider} does not tell the register when a payment arrives: its LUD-21 (verify) is on another site, which the register does not ask."
+msgstr ""
+
+msgid "This address can receive, but {provider} does not tell the register when a payment arrives: its LUD-21 (verify) does not answer as the register needs."
+msgstr ""
+
+#, python-format
+msgid "The password of %(name)s is right. This site now signs in with passkeys only, and your account has none yet: type the code from your app this once. It opens only the page where you add a passkey."
+msgstr ""
+
+msgid "You signed in with the code from the app only to add a passkey: add one now. Until then this is the only page you reach."
+msgstr ""
+
+msgid "A session opened with the code only to add a passkey cannot turn the code off."
+msgstr ""
+
+msgid "A refused passkey after the right password for the staff account {name}: its password may be known to someone else. Change it."
+msgstr ""
+
+msgid "(empty)"
+msgstr ""
+
+msgid "{name}: set"
+msgstr ""
+
+msgid "{name}: removed"
+msgstr ""
+
+msgid "{name}: changed"
+msgstr ""
+
+msgid "lowered"
+msgstr ""
+
+msgid "Security settings changed since the previous start of the site ({time}):"
+msgstr ""
+
+msgid "The other secrets cannot be compared this time, because SECRET_KEY changed: they are recorded again."
+msgstr ""
+
+msgid "If nobody of the team did this, look at the machine's .env."
+msgstr ""
+
+msgid "Settings changed"
+msgstr ""
+
+msgid "A Lightning wallet linked here opens /admin/ for your account by itself, in place of the password: one step, not two. Whoever holds your unlocked phone with that wallet has your /admin/, as whoever knows your password has. The password keeps working."
+msgstr ""
+
+#, python-format
+msgid "A wallet signed with the key %(key)s. If it is yours, give it a name and link it."
+msgstr ""
+
+msgid "A wallet that signs in to the administration was linked to your account, or removed from it."
+msgstr ""
+
+msgid "Code to link a wallet to your account"
+msgstr ""
+
+msgid "Code to sign in to the administration with your wallet"
+msgstr ""
+
+msgid "It is not mine: cancel"
+msgstr ""
+
+msgid "Link a wallet"
+msgstr ""
+
+msgid "Link the wallet"
+msgstr ""
+
+msgid "Link this wallet"
+msgstr ""
+
+msgid "Lost the phone? Remove its wallet here, from another way in; or whoever runs the machine removes them all with manage.py admin_wallet reset and your name."
+msgstr ""
+
+msgid "Once the wallet has signed, load this page again to confirm it."
+msgstr ""
+
+msgid "Scan this code with the wallet you linked to your staff account, or tap it on the phone that has the wallet: this page goes on by itself."
+msgstr ""
+
+msgid "Scan this code with the wallet, or tap it on the phone that has it: this page goes on by itself, and then asks you to confirm."
+msgstr ""
+
+msgid "Sign in with a wallet"
+msgstr ""
+
+msgid "Sign in with the password"
+msgstr ""
+
+msgid "Sign in with your wallet"
+msgstr ""
+
+msgid "The code ran out of time. Load the page again for a new one."
+msgstr ""
+
+msgid "The staff account {name} linked a wallet that signs in to /admin/."
+msgstr ""
+
+msgid "The staff account {name} removed a wallet that signed in to /admin/."
+msgstr ""
+
+msgid "The wallet is linked to your account."
+msgstr ""
+
+msgid "The wallet is removed: it no longer signs in to /admin/."
+msgstr ""
+
+#, python-format
+msgid "The wallet signs in only at %(url)s, not at this address."
+msgstr ""
+
+msgid "The wallet's signature is no longer valid: scan the new code."
+msgstr ""
+
+msgid "The wallets of the staff account {name} were removed with manage.py admin_wallet reset."
+msgstr ""
+
+msgid "This page needs JavaScript to go on by itself once the wallet has signed: turn it on, or sign in with the password."
+msgstr ""
+
+#, python-format
+msgid "This site asks for more than one step (ADMIN_SECOND_FACTOR is %(mode)s): the wallets linked here do not sign in."
+msgstr ""
+
+msgid "This wallet cannot be linked here: it already has another use on this site. Use another wallet, or another account in your wallet."
+msgstr ""
+
+msgid "This wallet cannot join the team here: it already has another use on this site. Use another wallet, or another account in your wallet."
+msgstr ""
+
+msgid "This wallet is already linked to your account."
+msgstr ""
+
+msgid "Use a wallet, or an account in your wallet, that is not the one of a shop or of the team on this site: a wallet gives this site the same key every time, and here one key has one role only."
+msgstr ""
+
+msgid "Wallet"
+msgstr ""
+
+msgid "Wallet sign-in"
+msgstr ""
+
+#, python-format
+msgid "Wallets are linked only at %(url)s, not at this address."
+msgstr ""
+
+#, python-format
+msgid "Your account has %(limit)s wallets, the most it may have: remove one to link another."
+msgstr ""
+
+msgid "Your account has a second factor: the wallets linked here do not sign in while it is on. Sign in with the password and the second factor."
+msgstr ""
+
+msgid "Your account has as many wallets as it may have: remove one first."
+msgstr ""
+
+msgid "Your account has no wallet linked."
+msgstr ""
+
+msgid "phone, test wallet"
+msgstr ""
+
+msgid "wallet of the admin's sign-in"
+msgstr ""
+
+msgid "{name}: removed: {removed}, added: {added}"
+msgstr ""
+
+msgid "{name}: the credentials in the address changed"
+msgstr ""
+
+msgid "The settings watch was turned off in community.yml ({time}): the moderators no longer hear when a security setting changes."
+msgstr ""
+
+msgid "If nobody of the team did this, look at community.yml on the machine."
+msgstr ""
+
+msgid "Settings watch turned off"
+msgstr ""
+
+msgid "The wallet opens the administration only in a browser where your account already signed in with its password, and only while that password stays the same. The first time on a browser, after a change of password, and for an account with a second factor, sign in with the password."
+msgstr ""
+
+msgid "The wallet does not open the administration in this browser. Sign in with the password."
+msgstr ""
+
+msgid "Approve in your wallet only a code you see on this page, which you opened yourself at this site's address: a wallet signs any code it is shown."
+msgstr ""
+
+msgid "The wallet signs in only in a browser where your account already signed in with its password, and only while that password stays the same: after a change of password, use the new one once in each browser. Approve in your wallet only a code you opened yourself on this site: a wallet signs any code it is shown."
+msgstr ""
+
+msgid "This session was opened with a wallet: sign in with the password to manage the wallets."
+msgstr ""
+
+msgid "Sign in with the password to manage the wallets."
+msgstr ""
+
+msgid "If your own wallet reported an error, press cancel: someone else's wallet signed first."
+msgstr ""
+
+msgid "Sign in with the password to add a second factor."
+msgstr ""
+
+msgid "{name}: removed: {removed}, now empty"
+msgstr ""
+
+msgid "This session was opened with a wallet: sign in with the password to set a password."
 msgstr ""

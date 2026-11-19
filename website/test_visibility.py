@@ -526,6 +526,20 @@ class StaffPage(CommunityWithPrivatePages):
         self.client.force_login(get_user_model().objects.create_user("staffer", is_staff=True))
         self.assertContains(self.client.get("/it/staff-only/"), "Mandrake")
 
+    def test_an_old_session_of_an_account_that_turned_its_second_factor_on_does_not(self):
+        """A browser signed in before the account turned its second factor on (config/second_factor.py) is not staff
+        on the site's pages either: it is signed out (config/guard.py, staff_side)."""
+        from django.utils import timezone
+
+        from shops.models import AdminSecondFactor
+
+        staffer = get_user_model().objects.create_user("staffer", is_staff=True)
+        self.client.force_login(staffer)
+        self.assertContains(self.client.get("/it/staff-only/"), "Mandrake")
+        AdminSecondFactor.objects.create(user=staffer, secret="JBSWY3DPEHPK3PXP", confirmed=timezone.now())
+        self.assertEqual(self.client.get("/it/staff-only/").status_code, 404)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
     @override_settings(DEV_ALLOWED_IPS="203.0.113.7")
     def test_an_allowed_address_sees_it(self):
         response = self.client.get("/it/staff-only/", headers={**SITE, "X-Forwarded-For": "203.0.113.7"})

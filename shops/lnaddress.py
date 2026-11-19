@@ -36,6 +36,27 @@ LARGEST_BYTES = 512 * 1024
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; bitmentor)"}
 MIN_MSAT = 1000
 OK, UNKNOWN_DOMAIN, NO_ANSWER, NO_CONFIRMATION = "ok", "unknown_domain", "no_answer", "no_confirmation"
+
+
+class Found(str):
+    """A state of `probe` that also says why, in `why`: one of the names below, or None when nothing more is known.
+    It is the state itself for whoever compares it (`probe(...) == NO_ANSWER`), so the callers that read only the
+    state go on as before; `explanation` reads `why` to tell the merchant what exactly is wrong."""
+    def __new__(cls, state, why=None):
+        found = super().__new__(cls, state)
+        found.why = why
+        return found
+
+
+# Why NO_ANSWER: nobody at that name answers in time; the provider answers but has no such address; it answers with
+# something that is no LNURL-pay (LUD-16); its invoices come from another site, which the register does not ask; it
+# gives no invoice
+UNREACHABLE, NO_SUCH_ADDRESS, NOT_LNURL, INVOICES_ELSEWHERE, NO_INVOICE = (
+    "unreachable", "no_such_address", "not_lnurl", "invoices_elsewhere", "no_invoice")
+# Why NO_CONFIRMATION: the invoice has no LUD-21 `verify`; the `verify` is on another site; it answers in a way the
+# register cannot read
+NO_VERIFY, VERIFY_ELSEWHERE, VERIFY_UNREADABLE = "no_verify", "verify_elsewhere", "verify_unreadable"
+
 # The live check remembers an address that works long enough to fill in the rest of the form, a problem only briefly:
 # whoever fixes the wallet and pastes again wants a new answer
 REMEMBER_OK = 15 * 60
@@ -218,6 +239,7 @@ def probe(address, seconds=None, busy=NO_ANSWER, slow=None):
     for in time gives `slow`, by default `busy`: nothing is known about the address."""
     user, _at, domain = address.partition("@")
     deadline = None if seconds is None else time.monotonic() + seconds
+    asked = "metadata"
 
     def get(url):
         return fetch(url) if deadline is None else fetch(url, deadline - time.monotonic())
@@ -227,29 +249,42 @@ def probe(address, seconds=None, busy=NO_ANSWER, slow=None):
             metadata = get(f"https://{domain}/.well-known/lnurlp/{user}")
         except requests.ConnectionError as error:
             # A slip of the keyboard after the @ is the most common mistake: say so, instead of "does not answer"
-            return UNKNOWN_DOMAIN if missing(domain, error) else NO_ANSWER
-        if metadata.get("tag") != "payRequest":
-            return NO_ANSWER
+            return UNKNOWN_DOMAIN if missing(domain, error) else Found(NO_ANSWER, UNREACHABLE)
+        except json.JSONDecodeError:
+            # It answered, with something that is not the JSON of a Lightning address (a web page, a redirect)
+            return Found(NO_ANSWER, NOT_LNURL)
+        if not isinstance(metadata, dict) or metadata.get("tag") != "payRequest":
+            return Found(NO_ANSWER, NOT_LNURL)
         amount = max(int(metadata.get("minSendable", MIN_MSAT)), MIN_MSAT)
         callback = metadata["callback"]
         # Invoices from another site: the register asks nobody but the address's own provider, so it gets none
         if not same_provider(callback, domain):
-            return NO_ANSWER
+            return Found(NO_ANSWER, INVOICES_ELSEWHERE)
+        asked = "invoice"
         invoice = get(f"{callback}{'&' if '?' in callback else '?'}amount={amount}")
         if not invoice.get("pr"):
-            return NO_ANSWER
+            return Found(NO_ANSWER, NO_INVOICE)
         # The same for the address that says «paid»: elsewhere, the register cannot ask it and never confirms
-        if (not invoice.get("verify") or not same_provider(invoice["verify"], domain)
-                or not confirms(get(invoice["verify"]), invoice["pr"])):
-            return NO_CONFIRMATION
+        if not invoice.get("verify"):
+            return Found(NO_CONFIRMATION, NO_VERIFY)
+        if not same_provider(invoice["verify"], domain):
+            return Found(NO_CONFIRMATION, VERIFY_ELSEWHERE)
+        asked = "verify"
+        if not confirms(get(invoice["verify"]), invoice["pr"]):
+            return Found(NO_CONFIRMATION, VERIFY_UNREADABLE)
     except requests.HTTPError as error:
         status = getattr(error.response, "status_code", None) or 0
-        return busy if status == 429 or status >= 500 else NO_ANSWER
+        if status == 429 or status >= 500:
+            return busy
+        # The provider is there and says it has no such address (404, and the 400 some give instead)
+        return Found(NO_ANSWER, NO_SUCH_ADDRESS if asked == "metadata" and status in (400, 404) else None)
     except SlowName:
         return busy if slow is None else slow
+    except (requests.ConnectionError, requests.Timeout):
+        return Found(NO_ANSWER, UNREACHABLE)
     except (requests.RequestException, ValueError, KeyError, TypeError, AttributeError, ArithmeticError):
         # ArithmeticError: a `minSendable` that is no whole number (JSON allows 1e400, read as infinity)
-        return NO_ANSWER
+        return Found(NO_ANSWER)
     return OK
 
 
@@ -330,8 +365,12 @@ MAILBOXES = frozenset({
 
 
 def explanation(state, address, suggested=None):
-    """What the merchant reads: what is wrong and what to do now."""
+    """What the merchant reads: what is wrong and what to do now. A state that says why (`Found.why`) gets the
+    sentence of that reason, with the name of the standard for whoever helps the merchant; a bare state the general
+    one. Every sentence of NO_CONFIRMATION keeps «does not tell the register», which the diagnosis reads."""
     domain = address.rpartition("@")[2]
+    another = _("Use a wallet with a different Lightning address, or write to {email}.")
+    phoenix = _("Phoenix addresses, the ones with the ₿ sign, cannot be used here.")
     text = {
         OK: _("It works: the register will know when a payment arrives. Provider: {provider}."),
         UNKNOWN_DOMAIN: _("I cannot find {provider}: check what you wrote after the @."),
@@ -339,7 +378,31 @@ def explanation(state, address, suggested=None):
                      "Phoenix addresses, the ones with the ₿ sign, cannot be used here."),
         NO_CONFIRMATION: _("This address can receive, but it does not tell the register when a payment arrives. "
                            "Use a wallet with a different Lightning address, or write to {email}."),
-    }[state].format(provider=domain, email=community()["email"])
+    }[str(state)]
+    detailed = {
+        (NO_ANSWER, UNREACHABLE): (_("{provider} does not answer right now: check what you wrote after the @ and "
+                                     "try again in a minute."),),
+        (NO_ANSWER, NO_SUCH_ADDRESS): (_("{provider} answers, but it knows no such address: check what you wrote "
+                                         "before the @."), phoenix),
+        (NO_ANSWER, NOT_LNURL): (_("{provider} answers, but not as a Lightning address does (LNURL-pay, LUD-16): "
+                                   "check the address in your wallet, under Receive."), phoenix),
+        (NO_ANSWER, INVOICES_ELSEWHERE): (_("{provider} has its invoices made by another site, and the register "
+                                            "asks only the address's own: this wallet cannot be used with the "
+                                            "register."), another),
+        (NO_ANSWER, NO_INVOICE): (_("{provider} knows this address but gives no invoice for it: check in your "
+                                    "wallet that it can receive, and try again."),),
+        (NO_CONFIRMATION, NO_VERIFY): (_("This address can receive, but {provider} does not tell the register when "
+                                         "a payment arrives: it does not support LUD-21 (verify)."), another),
+        (NO_CONFIRMATION, VERIFY_ELSEWHERE): (_("This address can receive, but {provider} does not tell the "
+                                                "register when a payment arrives: its LUD-21 (verify) is on "
+                                                "another site, which the register does not ask."), another),
+        (NO_CONFIRMATION, VERIFY_UNREADABLE): (_("This address can receive, but {provider} does not tell the "
+                                                 "register when a payment arrives: its LUD-21 (verify) does not "
+                                                 "answer as the register needs."), another),
+    }.get((str(state), getattr(state, "why", None)))
+    if detailed:
+        text = " ".join(detailed)
+    text = text.format(provider=domain, email=community()["email"])
     if state == NO_ANSWER and domain.lower() in MAILBOXES:
         text = _("This looks like an email, not a Lightning address. You need the wallet's Lightning address: open the "
                  "wallet and look under Receive.")
@@ -357,11 +420,15 @@ def live_check(address, seconds, user):
     """The state of `address` for the live check of the form. A result stays for a short while, so that whoever pastes
     the same address again does not send the same requests. It is the exact address and the same person: another
     address, even by a letter, is probed from scratch."""
-    remembered = cache.get(cache_key(address, user))
+    key = cache_key(address, user)
+    remembered = cache.get(key)
     if remembered:
-        return remembered
+        return remembered if remembered == OK else Found(remembered, cache.get(f"{key}:why"))
     state = probe(address, seconds)
-    cache.set(cache_key(address, user), state, REMEMBER_OK if state == OK else REMEMBER_PROBLEM)
+    # Plain strings in the cache, the reason beside the state: an image from before reads the state as it always did
+    cache.set(key, str(state), REMEMBER_OK if state == OK else REMEMBER_PROBLEM)
+    if getattr(state, "why", None):
+        cache.set(f"{key}:why", state.why, REMEMBER_PROBLEM)
     return state
 
 

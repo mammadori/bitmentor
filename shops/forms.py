@@ -197,7 +197,7 @@ class ShopDetailsForm(VatNumberMixin, forms.ModelForm):
             "discount": _("Leave it at 0 if you do not offer one."),
             "nostr_pubkey": _("Only if you use Nostr: your public key in hex format, not the npub."),
             "nip05_name": _("The name for your Nostr address on this site."),
-            "telegram_chat": _("The chat number or @name where the site writes to you: account changes, help answers, the reopening after a closure. Up to three, separated by commas: each chat gets its own copy."),
+            "telegram_chat": _("The chat number or @name where the site writes to you: account changes, a Lightning address that stops working, help answers, the reopening after a closure. Up to three, separated by commas: each chat gets its own copy."),
         }
 
     def __init__(self, *args, **kwargs):

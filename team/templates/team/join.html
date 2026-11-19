@@ -38,7 +38,7 @@
 <p class="status" role="alert" data-state="denied" hidden>{% translate "This wallet was not accepted: the invitation was used by another one, or this wallet already has a key here. Ask whoever invited you." %}</p>
 <p class="status" role="alert" data-state="expired" hidden>{% translate "The code expired." %} <a href="">{% translate "Get a new one" %}</a></p>
 <p class="careful">{% translate "From now on, never scan a sign-in code somebody else sends you, whatever they say: your wallet would open the site for them." %}</p>
-<script src="{{ script }}" data-poll="{{ poll }}" data-done="/"></script>
+<script src="{{ script }}" data-poll="{{ poll }}" data-done="{{ done }}"></script>
 {% elif state == "busy" %}
 <h1>{% translate "Team access" %}</h1>
 <p class="status" role="alert">{% translate "Too many requests from your connection: try again in a few minutes." %}</p>

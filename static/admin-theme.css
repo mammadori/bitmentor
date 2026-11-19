@@ -49,4 +49,11 @@ input, textarea, select { background: #0e1224; color: var(--body-fg); border: 1p
 .submit-row input.default { box-shadow: 0 0 8px rgba(34, 230, 242, .5); }
 #footer, .dashboard-entry a { font-family: var(--font-family-monospace); }
 #footer .source-link { margin: 0; padding: 8px 40px 16px; font-size: 13px; }
+/* The second factor's set-up (templates/admin/second_factor.html): the QR code on white, big enough for a phone's camera */
+.second-factor .totp-qr { display: block; width: 240px; max-width: 100%; height: auto; background: #fff; padding: 8px; }
+.second-factor .totp-secret { font-size: 1.2rem; letter-spacing: .08em; word-break: break-all; }
+.second-factor p, .second-factor ol { max-width: 60em; }
+/* The wallet's QR code, to sign in or to link one (config/admin_wallet.py): on white, big enough for a phone's camera */
+.admin-wallet-qr { display: block; width: 240px; max-width: 100%; height: auto; background: #fff; padding: 8px; }
+.admin-wallet-key { font-family: var(--font-family-monospace); }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

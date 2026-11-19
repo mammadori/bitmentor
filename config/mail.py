@@ -64,6 +64,25 @@ def merchant_sender():
     return settings.MERCHANT_FROM_EMAIL or None
 
 
+# Django's backends that keep an email on this machine (memory, a file, nowhere)
+STAYS = {f"django.core.mail.backends.{name}.EmailBackend" for name in ("console", "dummy", "locmem", "filebased")}
+DJANGO_DEFAULTS = {"django.core.mail.backends.smtp.EmailBackend", "django.core.mail.backends.console.EmailBackend"}
+# What send_mail returning 0 means: the counting backend dropped it over the budget (config/mailbudget.py, which logs
+# why), or the real backend reported nothing sent
+NOT_SENT = "the email was not sent: the email budget kept it back (see the log of web), or the mail backend took none"
+
+
+def leaves():
+    """Whether an email really leaves this machine for someone's mailbox. A mail backend of the community
+    (EMAIL_REAL_BACKEND, docs/configuration.md) does; Django's SMTP, or the console that settings.py picks in its place
+    on a test network, only with a mail server (EMAIL_HOST): without it the console writes the email to the log of web,
+    and SMTP has nowhere to send it. Django's backends that keep it here never do."""
+    backend = settings.EMAIL_REAL_BACKEND
+    if backend in DJANGO_DEFAULTS:
+        return bool(settings.EMAIL_HOST)
+    return backend not in STAYS
+
+
 # What an email is, for a community's mail backend that sends each kind its own way (message.kind)
 KINDS = ("link", "staff", "merchant")
 

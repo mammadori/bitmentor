@@ -1,0 +1,40 @@
+{% extends "admin/login.html" %}{% load i18n static %}
+{% block content %}
+{% if wait %}<p class="errornote">{% if wait_passkey %}{% translate "Too many tries. Wait a little and try again." %}{% else %}{% translate "Too many wrong codes. Wait a little and try again." %}{% endif %}</p>{% endif %}
+{% if wrong %}<p class="errornote">{% translate "That code is not right, or it was already used. Type the code the app shows now. If it keeps failing, the clock of the phone may be wrong: set it to the network's time." %}</p>{% endif %}
+{% if passkey_wrong %}<p class="errornote">{% translate "The passkey was not accepted. Try again, with a passkey you added to this account on this site." %}</p>{% endif %}
+<div id="content-main">
+{% if has_passkeys %}
+<p>{% blocktranslate with name=username %}The password of {{ name }} is right. Now confirm with your passkey.{% endblocktranslate %}</p>
+{% if passkeys_here %}
+<form method="post" id="passkey-form" data-passkey="get" data-failed="{% translate 'The browser did not use a passkey, or it was cancelled.' %}">{% csrf_token %}
+  <input type="hidden" name="credential" value="">
+  <div class="submit-row">
+    <input type="submit" value="{% translate 'Use a passkey' %}" disabled>
+  </div>
+  <p class="passkey-error errornote" role="alert" hidden></p>
+  <p class="passkey-unsupported" hidden>{% translate "This browser cannot use passkeys." %}{% if has_totp %} {% translate "Type the code from the app below." %}{% endif %}</p>
+  <noscript><p>{% translate "Passkeys need JavaScript: turn it on." %}{% if has_totp %} {% translate "Or type the code from the app below." %}{% endif %}</p></noscript>
+</form>
+{{ passkey_options|json_script:"passkey-options" }}
+<script src="{% static 'admin-passkey.js' %}"></script>
+{% else %}
+<p>{% blocktranslate with url=public_url %}Passkeys work only at {{ url }}, not at this address.{% endblocktranslate %}{% if has_totp %} {% translate "Type the code from the app below." %}{% endif %}</p>
+{% endif %}
+{% endif %}
+{% if has_totp %}
+{% if bootstrap %}<p>{% blocktranslate with name=username %}The password of {{ name }} is right. This site now signs in with passkeys only, and your account has none yet: type the code from your app this once. It opens only the page where you add a passkey.{% endblocktranslate %}</p>
+{% elif not has_passkeys %}<p>{% blocktranslate with name=username %}The password of {{ name }} is right. Now type the code that your authenticator app shows for this site.{% endblocktranslate %}</p>{% endif %}
+<form method="post" id="login-form">{% csrf_token %}
+  <div class="form-row">
+    <label for="id_code">{% translate "Code:" %}</label>
+    <input type="text" name="code" id="id_code" inputmode="numeric" autocomplete="one-time-code" maxlength="12" required{% if not has_passkeys %} autofocus{% endif %}>
+  </div>
+  <div class="submit-row">
+    <input type="submit" value="{% translate 'Log in' %}">
+  </div>
+</form>
+{% endif %}
+<p><a href="{% url 'admin:login' %}">{% translate "Start again" %}</a></p>
+</div>
+{% endblock %}

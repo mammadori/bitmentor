@@ -198,11 +198,22 @@ class StaffWalk(Base):
 
     def test_only_the_admin_lives_under_the_admins_path(self):
         """The staff keeps its account on /admin/..., so nothing of a merchant may answer there: the routes that start with
-        admin/ are the admin site, its login and the association's list, and nothing else."""
+        admin/ are the admin site, its login with the second factor's code, the account's own second factor and the
+        association's list, and nothing else. And the wallet's sign-in to the admin, and the status of a wallet being
+        linked (config/admin_wallet.py): staff pages, 404 unless ADMIN_WALLET_SIGN_IN is on."""
+        from config import admin_wallet
+
         under = {str(pattern.pattern): pattern for pattern in get_resolver().url_patterns
                  if str(pattern.pattern).startswith("admin")}
-        self.assertEqual(sorted(under), ["admin/", "admin/login/", "admin/today/", "admin/today/approve/<uuid:shop>/"])
+        self.assertEqual(sorted(under), ["admin/", "admin/login/", "admin/login/code/", "admin/login/wallet/",
+                                         "admin/login/wallet/status/", "admin/second-factor/",
+                                         "admin/second-factor/wallet/status/",
+                                         "admin/today/", "admin/today/approve/<uuid:shop>/",
+                                         "admin/today/set-aside/<uuid:shop>/"])
         self.assertEqual(under["admin/login/"].callback, site_urls.admin_login)
+        self.assertEqual(under["admin/login/code/"].callback, site_urls.admin_code)
+        self.assertEqual(under["admin/login/wallet/"].callback, admin_wallet.login_page)
+        self.assertEqual(under["admin/login/wallet/status/"].callback, admin_wallet.login_status)
         self.assertEqual(under["admin/today/"].name, "admin_dashboard")
         self.assertEqual((under["admin/"].app_name, under["admin/"].namespace), ("admin", "admin"))
         # And a path that tries to leave /admin/ for a shop's page finds nothing

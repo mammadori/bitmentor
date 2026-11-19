@@ -93,3 +93,19 @@ still holds.
 The check is in `shops/lnaddress.py` (`probe`): it asks the address for an invoice of its smallest amount (at least 1 sat), then asks its `verify`
 URL and reads `settled`, paying nothing, and accepts both only from the address's own domain (`same_provider`). The
 register does the same in the browser at each sale (`static/register.js`, `trusted`), where CORS also applies.
+
+A refusal says why. The state `probe` returns (`no_answer`, `no_confirmation`) carries the reason in `why`, and the
+merchant reads its sentence with the provider's name and, where it helps whoever assists, the standard's:
+
+| `why` | What happened |
+|---|---|
+| `unreachable` | Nobody answers at the provider's name in time |
+| `no_such_address` | The provider answers 404 (or 400): it has no such address |
+| `not_lnurl` | It answers with something that is no LNURL-pay (LUD-16): a web page, another kind of LNURL |
+| `invoices_elsewhere` | The `callback` is on another domain, which the register does not ask |
+| `no_invoice` | The callback gives no invoice |
+| `no_verify` | The invoice has no LUD-21 `verify` |
+| `verify_elsewhere` | The `verify` URL is on another domain |
+| `verify_unreadable` | The `verify` URL does not answer `settled: false` for the unpaid invoice |
+
+Nothing the provider wrote is shown to the merchant.

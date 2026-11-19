@@ -1,0 +1,18 @@
+{% extends "team/area_base.html" %}{% load i18n %}
+{% block area %}
+{% if busy %}<p class="notice" role="alert">{% translate "Too many requests from your connection: try again in a few minutes." %}</p>
+{% else %}
+{% if other_role %}<p class="notice" role="status">{% blocktranslate with role=other_role %}This browser is signed in with a team key whose role ({{ role }}) does not open this area. Sign in with the wallet of a moderator's key.{% endblocktranslate %}</p>{% endif %}
+<div data-state="waiting">
+  <p>{% translate "For the volunteers who look after the shops. Scan the code with the Lightning wallet of your team key, or tap it if the wallet is on this phone." %}</p>
+  <p><a href="lightning:{{ lnurl }}"><img src="{{ qr }}" width="264" height="264" alt="{% translate 'Code to sign in with the wallet' %}"></a></p>
+  <p class="muted" role="status">{% translate "Waiting for your wallet…" %}</p>
+  <noscript><p>{% translate "After signing with the wallet, reload this page." %}</p></noscript>
+</div>
+<p class="notice" role="status" data-state="ok" hidden>{% translate "Signed in. Opening the area…" %}</p>
+<p class="notice" role="alert" data-state="denied" hidden>{% translate "This wallet was not accepted." %}</p>
+<p class="notice" role="alert" data-state="expired" hidden>{% translate "The code expired." %} <a href="">{% translate "Get a new one" %}</a></p>
+<p class="muted">{% translate "Scan a sign-in code only on a page you opened yourself: never one somebody else sends you, whatever they say. Your wallet would open this area for them." %}</p>
+<script src="{{ script }}" data-poll="{{ poll }}" data-done="{{ done }}"></script>
+{% endif %}
+{% endblock %}

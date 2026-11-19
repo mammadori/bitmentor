@@ -108,6 +108,38 @@ def wrong_moderators_emails(app_configs, **kwargs):
             for problem in read_moderators_emails()[1]]
 
 
+def wrong_announced_files(app_configs, **kwargs):
+    """`announced_files` (the theme files whose downloads the community's code hears of, shops/events.py) with a value
+    it cannot use: left out, and `manage.py check` and the log of `web` say so. A warning, like the others."""
+    from .events import announced_patterns
+
+    return [checks.Warning(problem, hint="The key is documented in examples/community/community.yml", id="shops.W014")
+            for problem in announced_patterns()[1]]
+
+
+def wrong_stages(app_configs, **kwargs):
+    """A number of the `stages` block that cannot be used counts as its default: `manage.py check` and the log of `web`
+    say so. A warning, like the others."""
+    from .stages import problems
+
+    return [checks.Warning(problem, hint="The block is documented in examples/community/community.yml", id="shops.W015")
+            for problem in problems()]
+
+
+def wallet_without_effect(app_configs, **kwargs):
+    """ADMIN_WALLET_SIGN_IN=on with a level other than `optional`: a wallet never opens /admin/ there, and the linked
+    ones stay unused (config/admin_wallet.py). The two settings disagree: a warning, not an error, the site starts."""
+    from django.conf import settings
+
+    if not settings.ADMIN_WALLET_SIGN_IN or settings.ADMIN_SECOND_FACTOR == "optional":
+        return []
+    return [checks.Warning(
+        f"ADMIN_WALLET_SIGN_IN is on and ADMIN_SECOND_FACTOR is {settings.ADMIN_SECOND_FACTOR}: a wallet signs in to "
+        "/admin/ only with optional, so the linked wallets stay unused",
+        hint="Set ADMIN_WALLET_SIGN_IN=off, or ADMIN_SECOND_FACTOR=optional on a site to try with a few friends "
+             "(docs/configuration.md)", id="shops.W016")]
+
+
 class ShopsConfig(AppConfig):
     name = "shops"
 
@@ -123,6 +155,9 @@ class ShopsConfig(AppConfig):
         checks.register(wrong_register_numbers)
         checks.register(wrong_hooks)
         checks.register(wrong_moderators_emails)
+        checks.register(wrong_announced_files)
+        checks.register(wrong_stages)
+        checks.register(wallet_without_effect)
         from config import guard as staff_apart  # noqa: F401  (a new sign-in ends the admin's session)
 
         from django.db.models.signals import post_migrate

@@ -39,8 +39,8 @@ def page_shows(model_admin, request):
         [model_admin.date_hierarchy] if model_admin.date_hierarchy else [])
 
 
-# Team access shows in the admin only when it is on (team/admin.py)
-@override_settings(TEAM_ACCESS=True)
+# Team access, and the log of the volunteers' area, show in the admin only when they are on (team/admin.py)
+@override_settings(TEAM_ACCESS=True, TEAM_AREA=True)
 class EveryAdmin(TestCase):
     def setUp(self):
         self.superuser = User.objects.create_superuser("boss")

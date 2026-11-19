@@ -46,6 +46,10 @@ User = get_user_model()
 SITE = {"X-Entrance": "site"}
 TEAM_URLS = ("/team/login/", "/team/login/{k1}/", "/team/poll/", "/team/auth/", "/team/check/", "/team/join.js",
              "/team/join/{token}/")
+# The volunteers' area (TEAM_AREA, team/area.py): reached with a pass, never opened by Caddy from outside
+AREA_ROUTES = {"team/", "team/today/", "team/help/", "team/help/<int:number>/solved/", "team/help/<int:number>/waiting/",
+               "team/me/", "team/me/end/", "team/shops/", "team/shops/<uuid:shop>/approve/", "team/osm/",
+               "team/osm/<int:number>/done/", "team/changes/"}
 METHODS = ("get", "post", "put", "patch", "delete", "head", "options", "trace")
 
 
@@ -188,9 +192,10 @@ class TheWholeFlow(Base):
         # One <svg> element with its namespace: good inline, and as an image (data:) too
         self.assertTrue(code.json()["svg"].startswith('<svg xmlns="http://www.w3.org/2000/svg" '))
         self.assertTrue(code.json()["svg"].endswith("</svg>"))
-        binding = code.cookies["team_k1"]
+        binding = code.cookies[views.K1_COOKIE]
         self.assertTrue(binding["httponly"])
-        self.assertEqual((binding["samesite"], binding["path"]), ("Lax", "/team/"))
+        self.assertEqual((binding["samesite"], binding["path"], binding["secure"], binding["domain"]), ("Lax", "/", True, ""))
+        self.assertEqual(views.K1_COOKIE, "__Host-team_k1")
         self.assertIn("&action=login&", lnurl_address(code.json()["lnurl"]))
         k1 = k1_of(code.json()["lnurl"])
         self.assertEqual(code.json()["poll"], f"/team/login/{k1}/")
@@ -253,7 +258,7 @@ class Off(Base):
         found = set(routes(get_resolver().url_patterns))
         self.assertEqual({route for route in found if route.startswith("team/")},
                          {"team/login/", "team/login/<str:k1>/", "team/poll/", "team/auth/", "team/check/", "team/join.js",
-                          "team/join/<str:token>/"})
+                          "team/join/<str:token>/"} | AREA_ROUTES)
 
     def test_the_admin_shows_nothing_of_it(self):
         boss = self.client_class()
@@ -507,9 +512,9 @@ class SignIn(Base):
         onlooker, other = self.browser(), self.browser()
         other.get("/team/login/")  # a browser with a code of its own
         forger = self.browser()
-        forger.cookies["team_k1"] = signing.get_cookie_signer(salt="team_k1" + "wrong").sign(k1)
+        forger.cookies[views.K1_COOKIE] = signing.get_cookie_signer(salt=views.K1_COOKIE + "wrong").sign(k1)
         plain = self.browser()
-        plain.cookies["team_k1"] = k1
+        plain.cookies[views.K1_COOKIE] = k1
         for stage in ("before the signature", "after"):
             for browser in (onlooker, other, forger, plain):
                 answer = browser.get(code["poll"])
@@ -689,7 +694,7 @@ class Passes(Base):
             "signed for something else": signing.dumps({"key": self.team_key.pk, "stamp": self.team_key.stamp}, salt="login"),
             "signed with another secret": signing.dumps({"key": self.team_key.pk, "stamp": self.team_key.stamp},
                                                          key="another", salt=access.PASS_SALT),
-            "the cookie of the code": signing.get_cookie_signer(salt="team_k1" + views.K1_SALT).sign("a" * 64),
+            "the cookie of the code": signing.get_cookie_signer(salt=views.K1_COOKIE + views.K1_SALT).sign("a" * 64),
             "another key's stamp": signing.dumps({"key": other_key.pk, "stamp": self.team_key.stamp}, salt=access.PASS_SALT),
             "no stamp": signing.dumps({"key": self.team_key.pk}, salt=access.PASS_SALT),
             "a key that is not a number": signing.dumps({"key": True, "stamp": self.team_key.stamp}, salt=access.PASS_SALT),
@@ -945,7 +950,7 @@ class Telling(Base):
         code = self.client.get("/team/login/").json()
         self.client.get("/team/auth/", signed(k1_of(code["lnurl"]), key))
         request = RequestFactory().get(code["poll"], headers=SITE)
-        request.COOKIES["team_k1"] = self.client.cookies["team_k1"].value
+        request.COOKIES[views.K1_COOKIE] = self.client.cookies[views.K1_COOKIE].value
         with patch("team.views.deliver_to_moderators", return_value=("x", [])) as deliver:
             response = views.poll(request, k1_of(code["lnurl"]))
             self.assertEqual((response.status_code, response.content), (200, b'{"state": "ok"}'))
@@ -1001,18 +1006,21 @@ class Preflight(Base):
         self.assertEqual(web["ADMIN_ALLOWED_IPS"], "${ADMIN_ALLOWED_IPS:-}")
 
     def test_preflight_says_when_nobody_would_be_told(self):
+        """Said once, with the other moderators' messages (preflight.moderators_notes), not among the team's notes."""
         on = override_settings(ADMIN_ALLOWED_IPS="203.0.113.7")
         with on, override_settings(TELEGRAM_BOT_TOKEN="", TELEGRAM_MODERATION_CHAT="", EMAIL_HOST="", NETWORK="mainnet"):
-            self.assertIn("nobody will be told of new keys", preflight.team_notes()[1])
+            self.assertEqual(len(preflight.team_notes()), 1)
+            self.assertIn("team access notices of new keys and passes", preflight.moderators_notes()[0][0])
         with on, override_settings(TELEGRAM_BOT_TOKEN="t", TELEGRAM_MODERATION_CHAT="", EMAIL_HOST="mail.example.org"), \
                 patch.dict(preflight.community(), {"email": ""}):
-            self.assertIn("nobody will be told of new keys", preflight.team_notes()[1])
-        with on, override_settings(TELEGRAM_BOT_TOKEN="", EMAIL_HOST="", NETWORK="signet"):
-            self.assertIn("only written to the log of web", preflight.team_notes()[1])
+            self.assertIn("team access notices", preflight.moderators_notes()[0][0])
+        with override_settings(TEAM_ACCESS=False, TELEGRAM_BOT_TOKEN="", EMAIL_HOST=""):
+            self.assertNotIn("team access", preflight.moderators_notes()[0][0])
         for told in ({"TELEGRAM_BOT_TOKEN": "t", "TELEGRAM_MODERATION_CHAT": "-100", "EMAIL_HOST": ""},
                      {"TELEGRAM_BOT_TOKEN": "", "EMAIL_HOST": "mail.example.org"}):
             with on, override_settings(**told):
                 self.assertEqual(len(preflight.team_notes()), 1, told)
+                self.assertEqual(preflight.moderators_notes()[0], [], told)
 
 
 class Logs(Base):
@@ -1310,6 +1318,14 @@ class CaddyRules(Base):
         # Every route of team/urls.py, as Django itself writes it, and with a query; a route added tomorrow fails here
         # until the Caddyfile lets it through
         found = [route for route in routes(get_resolver().url_patterns) if route.startswith("team/")]
+        # The volunteers' area is not among them: on a site under construction it is reached only with a pass, as the
+        # rest of the site (team/area.py)
+        self.assertEqual(set(found) & AREA_ROUTES, AREA_ROUTES)
+        for route in AREA_ROUTES:
+            url = "/" + route.replace("<int:number>", "1").replace("<uuid:shop>", "00000000-0000-0000-0000-000000000001")
+            self.assertFalse(expression.search(url), url)
+            self.assertFalse(expression.search(url + "?a=1"), url)
+        found = [route for route in found if route not in AREA_ROUTES]
         self.assertEqual(len(found), len(TEAM_URLS))
         for route in found:
             url = "/" + re.sub(r"<(?:\w+:)?(\w+)>", lambda match: values[match[1]], route)

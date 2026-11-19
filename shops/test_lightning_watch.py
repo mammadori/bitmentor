@@ -835,3 +835,184 @@ class RetryLimits(TestCase):
         self.shop.refresh_from_db()
         self.assertEqual(self.shop.lightning_status, "no_answer")
         self.assertIn("changed while it was being checked", self.notes())
+
+
+@override_settings(TELEGRAM_BOT_TOKEN="t", TELEGRAM_MODERATION_CHAT="")
+class OwnerChats(TestCase):
+    """The owner hears of a fault, and of the repair, in the shop's own Telegram chats too: the same notice as the email,
+    under the same rule of when and how often, each chat on its own."""
+    def setUp(self):
+        self.enterContext(steady_limits())
+        self.owner = get_user_model().objects.create(username="k")
+        Profile.objects.create(user=self.owner, email="mario@example.org")
+        self.shop = Shop.objects.create(owner=self.owner, name="Central Bar", lightning_address="bar@example.org",
+                                        telegram_chat="11111")
+        self.now = timezone.now()
+        self.posts = []
+        self.answers = {}
+
+    def post(self, url, json, timeout):
+        """Telegram as the bot sees it: 200, or what `answers` says for a chat (a status, or an exception to raise)."""
+        self.posts.append(json)
+        answer = self.answers.get(json["chat_id"], 200)
+        if isinstance(answer, Exception):
+            raise answer
+        response = MagicMock()
+        response.status_code = answer
+        return response
+
+    def run_check(self, mode, after=timedelta(0)):
+        self.now += after
+        with Provider(mode), patch("shops.lightning_watch.timezone.now", return_value=self.now), \
+                patch("shops.notifications.requests.post", side_effect=self.post):
+            change = check(self.shop.pk)[1]
+        self.shop.refresh_from_db()
+        return change
+
+    def chats_told(self):
+        return [message["chat_id"] for message in self.posts]
+
+    def break_it(self):
+        self.run_check("ok")
+        self.run_check("silent", timedelta(hours=6))
+        return self.run_check("silent", FAILURE_GAP)
+
+    def test_one_chat_told_once_like_the_email(self):
+        self.assertEqual(self.break_it(), BROKE)
+        self.assertEqual((len(mail.outbox), self.chats_told()), (1, ["11111"]))
+        # Still broken, another reason, several runs: nobody told again
+        for mode in ("silent", "no_verify", "silent"):
+            self.assertIsNone(self.run_check(mode, timedelta(hours=1)))
+        self.assertEqual((len(mail.outbox), self.chats_told()), (1, ["11111"]))
+        self.assertEqual(self.run_check("ok", timedelta(hours=1)), FIXED)
+        self.assertEqual((len(mail.outbox), self.chats_told()), (2, ["11111", "11111"]))
+        self.assertIn("work again", self.posts[1]["text"])
+        self.assertIsNone(self.run_check("ok", timedelta(hours=7)))
+        self.assertEqual(len(self.posts), 2)
+
+    def test_the_text_is_short_with_the_address_cut_and_the_panel(self):
+        Shop.objects.filter(pk=self.shop.pk).update(name="Bar @central\nhttps://evil.example")
+        self.break_it()
+        text = self.posts[0]["text"]
+        self.assertIn("cannot take Lightning payments", text)
+        self.assertIn("ba…@example.org", text)
+        self.assertNotIn("bar@example.org", text)
+        self.assertIn(f"{settings.PUBLIC_URL}/en/shops/", text)
+        self.assertIn("Your panel says what to do", text)
+        # The name as the alerts show it: one line, no mention, no link
+        self.assertNotIn("@central", text)
+        self.assertNotIn("evil.example", text)
+        self.assertLess(len(text), 400)
+
+    def test_payments_not_confirmed(self):
+        self.run_check("no_verify")
+        self.run_check("no_verify", timedelta(hours=1))
+        self.assertIn("does not see Lightning payments arrive", self.posts[0]["text"])
+
+    def test_three_chats_each_its_own_copy(self):
+        Shop.objects.filter(pk=self.shop.pk).update(telegram_chat="11111,22222,@bar_owner")
+        self.break_it()
+        self.assertEqual(self.chats_told(), ["11111", "22222", "@bar_owner"])
+        self.run_check("ok", timedelta(hours=1))
+        self.assertEqual(len(self.posts), 6)
+        self.assertEqual(len(mail.outbox), 2)
+
+    def test_no_chat_no_message(self):
+        Shop.objects.filter(pk=self.shop.pk).update(telegram_chat="")
+        self.assertEqual(self.break_it(), BROKE)
+        self.assertEqual(self.posts, [])
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_a_chat_that_refuses_stops_nobody(self):
+        Shop.objects.filter(pk=self.shop.pk).update(telegram_chat="11111,22222,33333")
+        self.answers = {"11111": 403, "22222": 429}
+        self.assertEqual(self.break_it(), BROKE)
+        self.assertEqual(self.chats_told(), ["11111", "22222", "33333"])
+        self.assertEqual(len(mail.outbox), 1)
+        # Refused is not tried again at the next run: the same rule as the email
+        self.run_check("silent", timedelta(hours=1))
+        self.assertEqual(len(self.posts), 3)
+
+    def test_telegram_down_stops_neither_the_email_nor_the_run(self):
+        Shop.objects.filter(pk=self.shop.pk).update(telegram_chat="11111,22222")
+        self.answers = {"11111": requests.ConnectionError("down")}
+        self.assertEqual(self.break_it(), BROKE)
+        # Telegram that does not answer is not asked again for the next chat
+        self.assertEqual(self.chats_told(), ["11111"])
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(self.shop.lightning_status, LightningStatus.NO_ANSWER)
+
+    def test_a_mail_server_down_does_not_stop_the_chats(self):
+        with patch("shops.lightning_watch.send_mail", side_effect=OSError):
+            self.assertEqual(self.break_it(), BROKE)
+        self.assertEqual(self.chats_told(), ["11111"])
+
+    def test_without_a_confirmed_email_the_chat_is_told(self):
+        """Before, nobody was."""
+        Profile.objects.filter(user=self.owner).update(email="")
+        self.assertEqual(self.break_it(), BROKE)
+        self.assertEqual(mail.outbox, [])
+        self.assertEqual(self.chats_told(), ["11111"])
+
+    def test_without_a_bot_nothing_on_telegram(self):
+        with override_settings(TELEGRAM_BOT_TOKEN=""):
+            self.break_it()
+        self.assertEqual(self.posts, [])
+        self.assertEqual(len(mail.outbox), 1)
+        # Without a bot there are no chats to tell: nothing tried, nothing logged, and for a shop with no email the daily
+        # counter is not touched
+        Profile.objects.filter(user=self.owner).update(email="")
+        with override_settings(TELEGRAM_BOT_TOKEN=""), self.assertNoLogs("shops.lightning_watch"), \
+                patch("shops.lightning_watch.allowed", wraps=lightning_watch.allowed) as allowed:
+            self.assertEqual(self.run_check("ok", timedelta(hours=1)), FIXED)
+            self.assertEqual(self.run_check("silent", timedelta(hours=1)), None)
+            self.assertEqual(self.run_check("silent", timedelta(hours=1)), BROKE)
+        self.assertEqual(self.posts, [])
+        allowed.assert_not_called()
+
+    @override_settings(EMAIL_BACKEND="config.mailbudget.CountingBackend",
+                       EMAIL_REAL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_an_email_kept_back_by_the_budget_is_not_told(self):
+        Shop.objects.filter(pk=self.shop.pk).update(telegram_chat="")
+        self.break_it()
+        self.shop.lightning_status = LightningStatus.NO_ANSWER
+        with patch("config.mailbudget.blocked", return_value="limits.emails_per_month"), \
+                self.assertLogs("shops.lightning_watch", "ERROR"):
+            self.assertFalse(lightning_watch.tell_owner(self.shop, BROKE))
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_up_and_down_is_told_a_few_times_a_day_on_both(self):
+        for _ in range(4):
+            for mode, after in (("ok", timedelta(hours=1)), ("silent", timedelta(hours=1)), ("silent", timedelta(hours=1))):
+                self.run_check(mode, after)
+        self.assertEqual(len(mail.outbox), lightning_watch.ALERTS_PER_DAY)
+        self.assertEqual(len(self.posts), lightning_watch.ALERTS_PER_DAY)
+        # Without an email the chats keep the same count
+        Profile.objects.filter(user=self.owner).update(email="")
+        self.run_check("ok", timedelta(hours=1))
+        self.assertEqual(len(self.posts), lightning_watch.ALERTS_PER_DAY)
+
+    def test_a_demo_shop_tells_no_chat(self):
+        from .models import DEMO_PREFIX
+
+        Shop.objects.filter(pk=self.shop.pk).update(external_id=f"{DEMO_PREFIX}bar")
+        self.shop.refresh_from_db()
+        self.assertEqual(lightning_watch.owner_chats(self.shop), [])
+        # Not watched at all: no probe, no notice
+        self.assertEqual(self.break_it(), None)
+        self.shop.lightning_status = LightningStatus.NO_ANSWER
+        with patch("shops.notifications.requests.post", side_effect=self.post):
+            lightning_watch.tell_owner(self.shop, BROKE)
+        self.assertEqual(self.posts, [])
+
+    def test_a_shop_without_an_owner_tells_no_chat(self):
+        self.shop.owner = None
+        self.assertEqual(lightning_watch.owner_chats(self.shop), [])
+
+    @override_settings(LANGUAGE_CODE="it")
+    def test_in_the_communitys_first_language(self):
+        from django.utils import translation
+
+        with translation.override("de"):
+            self.break_it()
+        self.assertIn("Il tuo pannello dice cosa fare", self.posts[0]["text"])

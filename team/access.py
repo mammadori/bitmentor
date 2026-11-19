@@ -12,7 +12,14 @@ deleted, or whose passes were ended (a new stamp) stops there, and so does a pas
 
 What a pass gives is what an address in DEV_ALLOWED_IPS gives, no more. It is not an account and gives no right in
 /admin/, which keeps its password and its own rule by address (ADMIN_ALLOWED_IPS): where that rule is left open, a
-browser with a pass reaches the admin's sign-in page, as an allowed address does."""
+browser with a pass reaches the admin's sign-in page, as an allowed address does.
+
+`TEAM_AREA=on` adds the volunteers' area (team/area.py): wallets can also sign in while the site is in production, and a
+pass of a key with the role `moderator` opens the area, in development and in production. The same pass, read by the
+same code (`valid_pass`); `holder` keeps its meaning, a site under construction only."""
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+
 from django.conf import settings
 from django.core import signing
 from django.utils.crypto import constant_time_compare
@@ -41,15 +48,38 @@ def here(request):
     return active() and request.headers.get(ENTRANCE) == "site"
 
 
+def area_on():
+    """TEAM_AREA=on, which needs TEAM_ACCESS=on: alone it does nothing."""
+    return settings.TEAM_ACCESS and settings.TEAM_AREA
+
+
+def area_active():
+    """The area exists on a site under construction and on an open one; in maintenance everything stays closed."""
+    return area_on() and settings.SITE_MODE in ("development", "production")
+
+
+def area_here(request):
+    return area_active() and request.headers.get(ENTRANCE) == "site"
+
+
+def signs_in():
+    """Where wallets sign in and invites are taken: a site under construction, and with the area an open site too."""
+    return active() or area_active()
+
+
+def signs_here(request):
+    return signs_in() and request.headers.get(ENTRANCE) == "site"
+
+
 def pass_for(key):
     return signing.dumps({"key": key.pk, "stamp": key.stamp}, salt=PASS_SALT)
 
 
-def read(request):
+def valid_pass(request):
+    """(the team key, when its pass was given) for the valid pass this request carries, or None. Whoever calls it has
+    already decided that a pass counts here."""
     from .models import TeamKey
 
-    if not here(request):
-        return None
     value = request.COOKIES.get(PASS_COOKIE)
     if not value:
         return None
@@ -62,7 +92,16 @@ def read(request):
     key = TeamKey.active().filter(pk=data["key"]).first()
     if key is None or not constant_time_compare(key.stamp, data["stamp"]):
         return None
-    return key
+    # The value is "payload:timestamp:signature", and the signature just checked covers the timestamp
+    given = datetime.fromtimestamp(signing.b62_decode(value.rsplit(":", 2)[1]), tz=dt_timezone.utc)
+    return key, given
+
+
+def read(request):
+    if not here(request):
+        return None
+    found = valid_pass(request)
+    return found[0] if found else None
 
 
 def holder(request):
@@ -70,6 +109,24 @@ def holder(request):
     if not hasattr(request, "_team_key"):
         request._team_key = read(request)
     return request._team_key
+
+
+def area_pass(request):
+    """(the team key, when its pass ends) for a valid pass where the area exists, whatever the key's role; None
+    elsewhere. Worked out once for a request."""
+    if not hasattr(request, "_team_area_pass"):
+        found = valid_pass(request) if area_here(request) else None
+        request._team_area_pass = (found[0], found[1] + timedelta(seconds=PASS_AGE)) if found else None
+    return request._team_area_pass
+
+
+def volunteer(request):
+    """The team key whose pass opens the volunteers' area to this request: the area on and here, a valid pass, the role
+    `moderator`. None for everybody else, staff accounts included: the area is not for them."""
+    from .models import TeamKey
+
+    found = area_pass(request)
+    return found[0] if found and found[0].role == TeamKey.Role.MODERATOR else None
 
 
 def give(response, key):

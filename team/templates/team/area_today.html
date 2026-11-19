@@ -1,0 +1,33 @@
+{% extends "team/area_base.html" %}{% load i18n team_area %}
+{% block area %}
+<h2>{% translate "To do today" %}</h2>
+<p class="muted">{% blocktranslate count shops=shops %}{{ shops }} register in this site, as the database knows it now: nothing here asks the wallets.{% plural %}{{ shops }} registers in this site, as the database knows them now: nothing here asks the wallets.{% endblocktranslate %}</p>
+<ul class="help-facts">
+  <li class="help-fact"><strong>{{ counts.working }}</strong> {% translate "with a Lightning address that works" %}</li>
+  <li class="help-fact"><strong>{{ counts.to_look }}</strong> {% translate "shops to look at" %}</li>
+  {% if closed %}<li class="help-fact"><strong>{{ closed }}</strong> {% translate "closed for a while: no alarms" %}</li>{% endif %}
+</ul>
+{% if rows %}
+<h2>{% blocktranslate count count=rows|length %}{{ count }} thing to do, the most urgent first{% plural %}{{ count }} things to do, the most urgent first{% endblocktranslate %}</h2>
+<ol class="help-facts">
+{% for item, links in rows %}<li class="help-fact help-{{ item.level }}" id="{{ item.code }}-{{ forloop.counter }}">
+  <p><span class="help-tag">{% if item.checks or item.unchecked %}{% translate "Check first" %}{% elif item.level == "problem" %}{% translate "Problem" %}{% elif item.level == "warning" %}{% translate "To look at" %}{% else %}{% translate "To know" %}{% endif %}</span>
+    {% if item.shop %}<strong>{{ item.shop.name }}</strong>{% else %}<strong>{% translate "The whole site" %}</strong>{% endif %}</p>
+{% if item.checks %}  <p><strong>{% translate "Check before approving" %}</strong></p>
+  <ul>{% for signal in item.checks %}<li>{{ signal.text|short_addresses }}</li>{% if signal.advice %}<li>{{ signal.advice|short_addresses }}</li>{% endif %}{% endfor %}</ul>
+{% elif item.unchecked %}  <p><strong>{% translate "The checks could not be run" %}</strong></p>
+{% elif item.notes %}  <p class="muted">{% for signal in item.notes %}{{ signal.text|short_addresses }}{% if not forloop.last %} {% endif %}{% endfor %}</p>
+{% endif %}  <p>{{ item.what|short_addresses }}{% if item.since %} <span class="muted">{% with days=item.days when=item.when %}{% if item.last %}{% if days %}{% blocktranslate count days=days %}Last time {{ when }}, {{ days }} day ago.{% plural %}Last time {{ when }}, {{ days }} days ago.{% endblocktranslate %}{% else %}{% blocktranslate %}Last time {{ when }}.{% endblocktranslate %}{% endif %}{% elif days %}{% blocktranslate count days=days %}Started {{ when }}, {{ days }} day ago.{% plural %}Started {{ when }}, {{ days }} days ago.{% endblocktranslate %}{% else %}{% blocktranslate %}Started {{ when }}.{% endblocktranslate %}{% endif %}{% endwith %}</span>{% endif %}</p>
+  {% if item.wrote %}<p><span class="muted">{% translate "The merchant wrote:" %}</span> <q>{{ item.wrote|short_addresses }}</q></p>
+  {% endif %}  <p><span class="muted">{% translate "Now:" %}</span> {{ item.do|short_addresses }}</p>
+  {% if item.say %}<p><span class="muted">{% translate "To the merchant:" %}</span> <q>{{ item.say|short_addresses }}</q></p>{% endif %}
+  {% if item.command %}<p><code>{{ item.command|short_addresses }}</code></p>{% endif %}
+  {% if item.code == "help_request" %}<p><a href="{% url 'team_help' %}">{% translate "The requests for help" %}</a></p>{% elif item.code == "osm_request" %}<p><a href="{% url 'team_osm' %}">{% translate "OpenStreetMap requests" %}</a></p>{% elif item.code == "approve" and key.approves %}<p><a href="{% url 'team_shops' %}#shop-{{ item.shop.pk }}">{% translate "New shops" %}</a></p>{% endif %}
+  {% if links %}<p>{% for link in links %}<a href="{{ link.url }}">{{ link.text }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+</li>
+{% endfor %}</ol>
+{% else %}
+<p class="notice">{% translate "Nothing to do: every register is fine, as far as the database knows." %}</p>
+{% endif %}
+{% if account_changes %}<p>{% blocktranslate count count=account_changes %}{{ count }} change to the account of a shop's owner in the last two weeks:{% plural %}{{ count }} changes to the accounts of shops' owners in the last two weeks:{% endblocktranslate %} <a href="{% url 'team_changes' %}">{% translate "see the register" %}</a></p>{% endif %}
+{% endblock %}

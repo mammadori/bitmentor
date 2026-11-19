@@ -27,7 +27,7 @@ The person responsible for the community decides these.
 | 3 | **Real test payments** | Every wallet the community suggests must be tried with real sats before a merchant relies on it. You need a few thousand sats, someone to pay, and a receiving wallet of each kind. | A paid, a cancelled and an expired sale for each wallet |
 | 4 | **Backup destination** | The encrypted copy made every night goes off the machine: a host with rsync over ssh, two age keys of two different people. | 30 days of copies, then the first of each month for 12 months ([Backup and restore](backup.md)) |
 | 5 | **External monitoring** | `check.sh` runs on the same machine: if the machine goes down, it goes down with it. You need a check from outside on `/health/` that alerts a person. | A monitoring service on another network |
-| 6 | **`/admin/`** | It has no second factor: restrict it by address with `ADMIN_ALLOWED_IPS`. | The addresses of the administrators |
+| 6 | **`/admin/`** | Require the second factor of every staff account (`ADMIN_SECOND_FACTOR=required`, or `passkey` against phishing), restrict it by address with `ADMIN_ALLOWED_IPS`, or both. The wallet sign-in of the trial (`ADMIN_WALLET_SIGN_IN`) goes back to `off`. | A passkey (two, with `passkey`) or a phone with an authenticator app for each administrator, or their addresses |
 | 7 | **Privacy page and legal compliance** | The privacy page is a template with placeholders, and the controller must be named. See [Privacy and data protection](privacy.md). | The page filled in, the processors' agreements accepted, the record of processing written |
 | 8 | **When to open** | Only the person who runs the machine sets `SITE_MODE=production`. | After the checks below and a tested restore |
 

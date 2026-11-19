@@ -169,7 +169,11 @@ def check_shop(run):
         run.add("shop_suspended", WARNING,
                 _("The association has taken your shop off the map and the lists for now. The register still works."),
                 "suspended=True")
-    if shop.needs_approval:
+    if shop.needs_approval and shop.set_aside_on:
+        # The same code: the shop is still not approved, only no longer asked about (shops/approval.py, `set_aside`)
+        run.add("shop_awaiting_approval", WARNING,
+                _("The community set your shop aside: it will not go on the map. The register still works."), "approved_on empty, set aside")
+    elif shop.needs_approval:
         run.add("shop_awaiting_approval", WARNING,
                 _("The community looks at every new shop before it goes on the map: yours is waiting. The register "
                   "already works."), "approved_on empty")

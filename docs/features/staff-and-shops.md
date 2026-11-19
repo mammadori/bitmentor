@@ -90,6 +90,31 @@ without anyone having to remember it.
   of `/admin/` but the change itself, its «done» page and the sign-out. Outside `/admin/` the staff is a visitor and
   nothing sends it anywhere. The mark is the hash the password had, so it ends by itself when the password changes; an
   account that is not staff is never sent anywhere.
+- A staff account can add a second factor after the password: passkeys (`config/webauthn.py`), a code from an
+  authenticator app, or both. With `ADMIN_SECOND_FACTOR=required` every one must have one, and with `passkey` every one
+  must have a passkey, the only kind that then counts and the only one a fake page cannot phish
+  (`config/second_factor.py`, [Configuration](../configuration.md#admin-and-access-log)). Between the password and the
+  second factor the browser is not signed in at all; a session opened with one lasts a day at most, and ends when that
+  factor is removed. Each account sees, names and removes only its own passkeys, a superuser's included; the last
+  factor the mode requires is not removed. Adding and removing a passkey, turning the code on and off, and the resets
+  with `manage.py admin_passkey reset` and `manage.py admin_totp reset` are written in the account's history in the
+  admin, told to the moderators' chat (or the community's email) and, for an account that owns a shop, written in the
+  register below (`second_factor`); so is a passkey refused because its count did not grow (it may have been copied).
+  A session of an account with a second factor that was not opened with one is no staff session on the site's pages
+  either: it is signed out.
+- The hobby level, `ADMIN_WALLET_SIGN_IN=on` with `ADMIN_SECOND_FACTOR=optional` (`config/admin_wallet.py`,
+  [Configuration](../configuration.md#admin-and-access-log)): a staff account without a second factor may link its own
+  Lightning wallet on its **Second factor** page and sign in to `/admin/` with it in place of the password, one step,
+  only in a browser where it already signed in with its current password (its `admin_device` cookie: a QR code relayed
+  to someone else's browser opens nothing). The wallets are managed only from a session opened with the password.
+  It is for trying the site with a few friends; at `required` or `passkey`, and for an account with a second factor,
+  a wallet never opens `/admin/`. The session it opens is the admin's, like the password's, and ends when that wallet
+  is removed. **One key, one role:** a wallet linked to a staff account is refused at the shops' sign-in (it opens and
+  makes no account), at the connection of a wallet to an owner's account and at a team invite; and the key of a shop's
+  owner or of a team key cannot be linked to a staff account. A volunteer with a shop uses another wallet, or another
+  account in the same wallet, for each. Linking, removing and `manage.py admin_wallet reset` are written in the
+  account's history, told to the moderators and, for an account that owns a shop, written in the register below
+  (`admin_wallet`).
 - A volunteer who also has a shop uses two accounts: the staff account for `/admin/`, and an ordinary one for the shop
   (sign in with the wallet or the email, as every merchant does).
 - `shops/test_guard.py` keeps it so: it walks **every URL of the site**, GET and POST, with a staff account that owns
@@ -106,6 +131,7 @@ without anyone having to remember it.
 | the password, `is_staff`, `is_superuser`, `is_active` or the `username` of the account | `password`, `is_staff`, `is_superuser`, `is_active`, `username` |
 | the groups or the permissions of the account (from the user's side or from the group's) | `groups`, `permissions` |
 | the account deleted (its shops go with it) | `deleted` |
+| the second factor of the admin's sign-in turned on, off or reset | `second_factor` |
 | a shop that changes owner, or whose notices' chat changes, from `/admin/` or a command (the owner's own edit form is the site's way: not watched) | `shop_owner`, `shop_chat` |
 
 Each change does four things, in the same transaction as the change:

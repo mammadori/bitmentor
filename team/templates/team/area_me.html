@@ -1,0 +1,13 @@
+{% extends "team/area_base.html" %}{% load i18n %}
+{% block area %}
+<h2>{% translate "You" %}</h2>
+<ul class="help-facts">
+  <li class="help-fact"><span class="muted">{% translate "Name" %}:</span> <strong>{{ key.name }}</strong></li>
+  <li class="help-fact"><span class="muted">{% translate "Role" %}:</span> <strong>{{ key.get_role_display }}</strong></li>
+  <li class="help-fact">{% if key.approves %}{% translate "You may approve new shops." %}{% else %}{% translate "You do not approve new shops: an administrator can allow it on your key." %}{% endif %}</li>
+  <li class="help-fact"><span class="muted">{% translate "This browser's pass ends" %}:</span> <strong>{{ ends|date:"DATETIME_FORMAT" }}</strong></li>
+</ul>
+<p>{% if key.approves %}{% translate "Your wallet's key opens this area: no password, no account. It is not a right in the administration. Here it changes no owner, account or address, and it puts a new shop on the map only when you approve it." %}{% else %}{% translate "Your wallet's key opens this area: no password, no account. It is not a right in the administration, and nothing here changes a shop, an owner or an address." %}{% endif %}</p>
+<form method="post" action="{% url 'team_end' %}">{% csrf_token %}<button type="submit" class="button">{% translate "End this browser's pass" %}</button></form>
+<p class="muted">{% translate "Lost a phone, or signed in where you should not have? Ask an administrator to end all the passes of your key." %}</p>
+{% endblock %}

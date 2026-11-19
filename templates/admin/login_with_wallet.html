@@ -1,0 +1,4 @@
+{% extends "admin/login.html" %}{% load i18n %}
+{% block content %}{{ block.super }}
+<p class="admin-wallet-sign-in"><a href="{{ wallet_sign_in_url }}">{% translate "Sign in with your wallet" %}</a></p>
+{% endblock %}

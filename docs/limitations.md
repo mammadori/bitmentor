@@ -46,8 +46,12 @@
   everywhere else when the owner takes a connected wallet away from the account: a phone lost, or a browser someone
   else got signed in, stays in until then. Changing the Lightning address
   asks for a sign-in of the last 15 minutes.
-- The administrators' sign-in in `/admin/` is a password, with no second factor: restrict it by address with
-  `ADMIN_ALLOWED_IPS` ([configuration.md](configuration.md#admin-and-access-log)).
+- The administrators' sign-in in `/admin/` is a password and, for the accounts that added one (all of them with
+  `ADMIN_SECOND_FACTOR=required` or `passkey`), a passkey or a TOTP code from a phone: no recovery codes, no codes by
+  SMS or email, no sign-in with a passkey alone (the password comes first). Only `passkey` mode resists phishing: in
+  the others a fake page can ask for the code instead. With `ADMIN_SECOND_FACTOR=optional` an account without one has
+  the password alone: require it, or restrict `/admin/` by address with `ADMIN_ALLOWED_IPS`
+  ([configuration.md](configuration.md#admin-and-access-log)). Passkeys do not work on the onion.
 - Team access (`TEAM_ACCESS`, optional and off by default) gives the pass to the browser that showed the code, whoever
   scanned it: a team member talked into scanning somebody else's sign-in code opens the site under construction for
   them, for up to seven days or until the team ends that key's passes. The team is told of every new pass. See

@@ -13,11 +13,11 @@ from django.db import DatabaseError
 from django.db.models import Q
 from django.utils import timezone
 
-from config import features, limits
+from config import features, limits, mail
 from config.community import community, page_path
 from shops import lightning_watch, training, vacation
 from shops.models import HAS_REGISTER, Closure, Shop, real, still_trading
-from shops.notifications import moderators_emails
+from shops.notifications import chats, moderators_emails
 
 YEAR = 31536000
 MIN_SECRET = 50
@@ -29,7 +29,8 @@ def settings_problems():
         problems.append("DEBUG is on")
     if len(settings.SECRET_KEY) < MIN_SECRET:
         problems.append("SECRET_KEY is too short")
-    if not settings.EMAIL_HOST:
+    # A mail backend of the community (EMAIL_REAL_BACKEND) sends without EMAIL_HOST (config.mail.leaves)
+    if not mail.leaves():
         problems.append("EMAIL_HOST is missing: the sign-in links will not go out")
     # Also in the form «Name <address>»
     _, at, domain = settings.DEFAULT_FROM_EMAIL.rstrip(">").rpartition("@")
@@ -129,38 +130,137 @@ def feature_notes():
 
 def team_notes():
     """Team access (TEAM_ACCESS in the .env, team/access.py) is on: how many wallets it lets in, that outside a site
-    under construction it does nothing, that a pass reaches /admin/'s sign-in page when ADMIN_ALLOWED_IPS is empty, and
-    that nobody hears of new keys and passes when the site has neither Telegram nor mail. Worth knowing, not reasons to
-    stop."""
+    under construction it does nothing, and that a pass reaches /admin/'s sign-in page when ADMIN_ALLOWED_IPS is empty.
+    Whether anybody hears of new keys and passes is said with the other moderators' messages (moderators_notes). Worth
+    knowing, not reasons to stop."""
     from team import access
     from team.models import TeamInvite, TeamKey
 
     if not access.on():
+        if settings.TEAM_AREA:
+            return [("the volunteers' area is on (TEAM_AREA=on) but team access is off: it does nothing until TEAM_ACCESS=on "
+                    "(docs/features/team-access.md)")]
         return []
     try:
         counts = f"{TeamKey.active().count()} team keys, {TeamInvite.open().count()} open invites (/admin/team/)"
     except DatabaseError as error:
         counts = f"its keys cannot be read ({type(error).__name__}): is migrate missing?"
-    where = ("" if access.active() else
-             f"; with SITE_MODE {settings.SITE_MODE} it does nothing: it works only on a site under construction (development)")
+    if access.active():
+        where = ""
+    elif access.area_active():
+        where = f"; with SITE_MODE {settings.SITE_MODE} it only signs the volunteers in to their area (/team/)"
+    else:
+        where = f"; with SITE_MODE {settings.SITE_MODE} it does nothing: it works only on a site under construction (development)"
     notes = [f"team access is on (TEAM_ACCESS=on in the .env): {counts}{where}"]
+    if access.area_on():
+        try:
+            keys = TeamKey.active().filter(role=TeamKey.Role.MODERATOR)
+            moderators = (f"{keys.count()} moderator keys can open it, {keys.filter(approves=True).count()} of them may "
+                          "approve new shops")
+        except DatabaseError as error:
+            moderators = f"its keys cannot be read ({type(error).__name__})"
+        closed = "" if access.area_active() else f"; with SITE_MODE {settings.SITE_MODE} it is closed"
+        notes.append(f"the volunteers' area is on (TEAM_AREA=on): {moderators} (/team/){closed}")
     if not settings.ADMIN_ALLOWED_IPS.strip():
         notes.append("team access: ADMIN_ALLOWED_IPS is empty, so a browser with a team pass reaches the sign-in page of "
                      "/admin/ like an allowed address does (the password is still asked). If the team is not the staff, "
                      "set ADMIN_ALLOWED_IPS (docs/features/team-access.md)")
-    telegram = settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_MODERATION_CHAT
+    return notes
+
+
+def moderators_channel():
+    """How the moderators' messages travel (shops.notifications.deliver_to_moderators): "telegram" with a bot and a
+    moderators' chat, else "mail" with a mail server and an address to write to (`moderators_emails`, else the
+    community's `email`), else None: they reach nobody. Mail counts only when it leaves the machine (config.mail.leaves:
+    EMAIL_HOST, or a mail backend of the community): a test network's console only writes it to the log of web."""
+    if settings.TELEGRAM_BOT_TOKEN and chats(settings.TELEGRAM_MODERATION_CHAT):
+        return "telegram"
     address = community().get("email")
     # The moderators' mail goes to `moderators_emails` when it has an address, else to `email` (shops/notifications.py)
-    fallback = bool(moderators_emails()) or (isinstance(address, str) and "@" in address)
-    mail = fallback and (settings.EMAIL_HOST or settings.NETWORK != "mainnet")
-    if not telegram and not mail:
-        notes.append("team access: nobody will be told of new keys and of new browsers with a pass: the site has no "
-                     "moderators' chat (TELEGRAM_BOT_TOKEN, TELEGRAM_MODERATION_CHAT) and no mail (EMAIL_HOST, and `email` or "
-                     "`moderators_emails` in community.yml)")
-    elif not telegram and not settings.EMAIL_HOST:
-        notes.append("team access: without Telegram and without EMAIL_HOST the notices of new keys and passes are only "
-                     "written to the log of web (a test network's mail)")
+    if mail.leaves() and (moderators_emails() or (isinstance(address, str) and "@" in address)):
+        return "mail"
+    return None
+
+
+def moderators_notes():
+    """(warnings, notes) about the way the site reaches the people who look after it. No way at all is a warning that
+    cannot be missed, never a reason to stop: whoever tries the software, or runs a small site alone, is their own
+    moderator and reads /admin/today/ in person. Telegram and the moderators' mail stay optional. Mail without Telegram
+    is a plain note. The same in every SITE_MODE: it is about the installation."""
+    from team import access
+
+    channel = moderators_channel()
+    if channel == "telegram":
+        return [], []
+    if channel == "mail":
+        return [], [("the moderators' messages go by email (`moderators_emails`, else `email` in community.yml): there "
+                     "is no Telegram moderators' chat (TELEGRAM_BOT_TOKEN, TELEGRAM_MODERATION_CHAT)")]
+    lost = ["the morning summary", "the new shops waiting for an approval",
+            "the notices about the staff accounts' second factor"]
+    if access.on():
+        lost.append("the team access notices of new keys and passes")
+    missing = []
+    if not settings.TELEGRAM_BOT_TOKEN:
+        missing.append("TELEGRAM_BOT_TOKEN is empty")
+    if not chats(settings.TELEGRAM_MODERATION_CHAT):
+        missing.append("TELEGRAM_MODERATION_CHAT is empty")
+    missing.append("EMAIL_HOST is empty" if not mail.leaves() else
+                   "community.yml has no `moderators_emails` and no `email` to write to")
+    return [(f"the moderators cannot be reached ({'; '.join(missing)}): {', '.join(lost)} will reach nobody. "
+             "Fine for a site you look after alone: read /admin/today/ yourself. Otherwise set TELEGRAM_BOT_TOKEN and "
+             "TELEGRAM_MODERATION_CHAT, or EMAIL_HOST with `moderators_emails` or `email` in community.yml, and "
+             "try it with manage.py notify_test --moderators (docs/operations.md)")], []
+
+
+def admin_notes():
+    """What defends the staff accounts (config/second_factor.py): /admin/ open to every address without a second factor
+    required, and how many staff accounts have none the mode accepts. Worth knowing, not reasons to stop; and nothing at
+    all on a local try (DEBUG, or SITE_HOST unset or localhost), where `optional` is simply right."""
+    from django.contrib.auth import get_user_model
+
+    from config import second_factor
+
+    if settings.DEBUG or settings.SITE_HOST in ("", "localhost", "127.0.0.1"):
+        return []
+    notes = []
+    if not settings.ADMIN_ALLOWED_IPS.strip() and not second_factor.required():
+        notes.append("/admin/ is open to every address (ADMIN_ALLOWED_IPS is empty) and ADMIN_SECOND_FACTOR is optional: "
+                     "right for trying the site with the team. For a community with real shops, a stricter level "
+                     "(required, or passkey) or ADMIN_ALLOWED_IPS defends the staff accounts beyond their password "
+                     "(docs/configuration.md)")
+    if settings.ADMIN_WALLET_SIGN_IN and second_factor.required():
+        notes.append(f"ADMIN_WALLET_SIGN_IN is on and ADMIN_SECOND_FACTOR is {second_factor.mode()}: at this level no "
+                     "wallet signs in to /admin/, and the linked ones stay unused. Set ADMIN_WALLET_SIGN_IN=off "
+                     "(docs/configuration.md)")
+    elif settings.ADMIN_WALLET_SIGN_IN:
+        notes.append("ADMIN_WALLET_SIGN_IN is on: a linked wallet alone opens /admin/ for a staff account without a "
+                     "second factor, one step as the password alone. Right for trying the site with a few friends; a "
+                     "community with real shops moves to ADMIN_SECOND_FACTOR=required or passkey, where wallets no "
+                     "longer sign in (manage.py admin_wallet list, docs/configuration.md)")
+    staff = list(get_user_model().objects.filter(is_active=True, is_staff=True))
+    # In `passkey` mode a TOTP does not count: it only lets an account without a passkey add one
+    factors = [second_factor.accepted_factors(user) for user in staff]
+    without = sum(1 for found in factors if found.totp is None and not found.passkeys)
+    if without:
+        what = ("they are sent to set one up at their next sign-in" if second_factor.required() else
+                "each may add one in /admin/second-factor/, if they wish")
+        kind = "passkey" if second_factor.mode() == "passkey" else "second factor"
+        notes.append(f"{without} of {len(staff)} staff accounts have no {kind}: {what} "
+                     "(manage.py admin_totp list, manage.py admin_passkey list)")
     return notes
+
+
+def settings_watch_notes():
+    """Whether the settings watch is on (website/settings_watch.py) and when the moderators last heard of a change. A
+    note, never a reason to stop."""
+    from website import settings_watch
+
+    if not settings_watch.enabled():
+        return [("the settings watch is off (`settings_watch: {enabled: false}` in community.yml): nobody hears of a "
+                 "security setting changed between two starts")]
+    told = settings_watch.last_told() if settings_watch.tables_ready() else None
+    when = f"the last change was told on {timezone.localtime(told):%Y-%m-%d %H:%M}" if told else "no change told yet"
+    return [f"the settings watch is on: the moderators hear of a security setting changed between two starts ({when})"]
 
 
 PLACEHOLDER = re.compile(r"\[[A-Z][A-Z0-9 /_]{3,}")
@@ -243,8 +343,20 @@ class Command(BaseCommand):
             notes += training_notes()
         except DatabaseError as error:
             notes.append(f"the registers waiting for the training cannot be read ({type(error).__name__}): is migrate missing?")
-        for note in notes + feature_notes() + privacy_notes():
+        try:
+            notes += admin_notes()
+        except DatabaseError as error:
+            notes.append(f"the staff accounts' second factors cannot be read ({type(error).__name__}): is migrate missing?")
+        try:
+            notes += settings_watch_notes()
+        except DatabaseError as error:
+            notes.append(f"the settings watch cannot be read ({type(error).__name__}): is migrate missing?")
+        warnings, channel_notes = moderators_notes()
+        for note in notes + feature_notes() + channel_notes + privacy_notes():
             self.stdout.write(f"good to know: {note}")
+        # On stdout, like the notes: a warning never changes the outcome below
+        for warning in warnings:
+            self.stdout.write(self.style.WARNING(f"WARNING: {warning}"))
         problems = settings_problems() + mail_problems() + ipv6_problems()
         for problem in problems:
             self.stderr.write(problem)

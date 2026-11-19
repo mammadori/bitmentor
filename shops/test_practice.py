@@ -133,7 +133,8 @@ class Practice(TestCase):
     def test_the_panel_and_the_first_day_link_to_the_practice(self):
         waiting = Shop.objects.create(owner=self.owner, name="New", awaiting_wallet=True)
         panel = self.client.get("/en/shops/")
-        self.assertContains(panel, f'href="{self.url}"', count=2)
+        # The panel's button, the first day's link and the trial on top of the panel (shops/stages.py)
+        self.assertContains(panel, f'href="{self.url}"', count=3)
         self.assertContains(panel, f'href="/en/shops/practice/{waiting.id}/"')
         self.assertContains(panel, "Practise first, without money")
 

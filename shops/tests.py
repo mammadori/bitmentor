@@ -497,7 +497,7 @@ class LightningAddressProbe(TestCase):
         """The register asks only the address's own domain and its subdomains: what it would refuse at the counter is
         refused here, where the merchant can still pick another wallet."""
         result, get = self.probe(self.METADATA, address="mario@shop.example")
-        self.assertIn("does not answer", result)
+        self.assertIn("has its invoices made by another site", result)
         self.assertEqual(get.call_count, 1)
         elsewhere = {**self.INVOICE, "verify": "https://other.example/verify/a"}
         result, get = self.probe({**self.METADATA, "callback": "https://shop.example/cb"}, elsewhere, address="mario@shop.example")
@@ -510,14 +510,14 @@ class LightningAddressProbe(TestCase):
             self.assertIn("does not answer", refusal("mario@phoenixwallet.me"))
 
     def test_not_an_lnurl_endpoint(self):
-        self.assertIn("does not answer", self.probe({"tag": "other"})[0])
+        self.assertIn("not as a Lightning address does", self.probe({"tag": "other"})[0])
 
     def test_answers_cannot_send_us_inside(self):
         for callback in ("http://pay.example.org/cb", "https://web/cb", "https://pay.example.org:8000/cb", "https://host.internal/cb"):
             with public_names("web"):
                 reply = stream({**self.METADATA, "callback": callback})
                 with patch("shops.lnaddress.requests.Session.get", return_value=reply) as get:
-                    self.assertIn("does not answer", refusal("mario@example.org"), callback)
+                    self.assertIn("has its invoices made by another site", refusal("mario@example.org"), callback)
                 self.assertEqual(get.call_count, 1, callback)
 
 

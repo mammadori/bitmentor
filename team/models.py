@@ -15,6 +15,10 @@ from django.utils.translation import gettext_lazy as _
 INVITE_LIFETIME = timedelta(hours=24)
 INVITE_KEPT = timedelta(days=30)
 CHALLENGE_LIFETIME = timedelta(minutes=5)
+APPROVES_HELP = _("In the volunteers' area: approve the new shops that wait, except those that look like a copy of "
+                  "another shop. Only staff who may approve shops can set it. On an invite, the link is worth this right: "
+                  "whoever opens it first and signs gets it. Send it by a channel you trust, delete the invite if it went "
+                  "astray, revoke the key if it was taken.")
 # Challenges alive at the same time, whoever asks for them: with the limits by address, the table cannot grow past
 # these. The sign-in codes, which anybody can ask for, and the codes of the invites' pages, which only whoever holds an
 # open invite can, are counted apart: strangers asking for sign-in codes cannot keep an invited person out
@@ -45,6 +49,8 @@ class TeamKey(models.Model):
     linking_key = models.CharField(_("linking key"), max_length=66, unique=True, editable=False)
     name = models.CharField(_("name"), max_length=150)
     role = models.CharField(_("role"), max_length=20, choices=Role.choices, default=Role.TEAM)
+    # The volunteers' area (team/area.py): this key may also approve new shops there. Set by an administrator only
+    approves = models.BooleanField(_("may approve new shops"), default=False, db_default=False, help_text=APPROVES_HELP)
     created = models.DateTimeField(_("created"), auto_now_add=True)
     # The last time a browser got a pass from this key
     last_pass = models.DateTimeField(_("last sign-in"), null=True, blank=True, editable=False)
@@ -81,6 +87,8 @@ class TeamInvite(models.Model):
     its token is kept: the link is shown once, to the admin who makes it."""
     name = models.CharField(_("name"), max_length=150)
     role = models.CharField(_("role"), max_length=20, choices=TeamKey.Role.choices, default=TeamKey.Role.TEAM)
+    # The volunteers' area (team/area.py): this key may also approve new shops there. Set by an administrator only
+    approves = models.BooleanField(_("may approve new shops"), default=False, db_default=False, help_text=APPROVES_HELP)
     token_hash = models.CharField(max_length=64, unique=True, editable=False)
     created = models.DateTimeField(_("created"), auto_now_add=True)
     expires = models.DateTimeField(_("expires"), editable=False)
@@ -148,3 +156,36 @@ class TeamChallenge(models.Model):
                            most, "sign-in codes" if invite is None else "codes of invite pages")
             return None
         return cls.objects.create(k1=secrets.token_hex(32), invite=invite)
+
+
+class TeamAction(models.Model):
+    """What a volunteer did in the volunteers' area (team/area.py): one row for every change made there, written in the
+    same transaction as the change. Read only in /admin/. The key's name is copied: deleting the key leaves its rows,
+    with the name it had."""
+
+    class Action(models.TextChoices):
+        SOLVED = "solved", _("marked a request for help as solved")
+        WAITING = "waiting", _("marked a request for help as waiting again")
+        SIGNED_OUT = "signed_out", _("ended the pass of a browser")
+        APPROVED = "approved", _("approved a new shop")
+        OSM_DONE = "osm_done", _("marked an OpenStreetMap request as done")
+
+    key = models.ForeignKey(TeamKey, on_delete=models.SET_NULL, null=True, blank=True, related_name="area_actions",
+                            verbose_name=_("team key"))
+    name = models.CharField(_("name"), max_length=150)
+    action = models.CharField(_("action"), max_length=20, choices=Action.choices)
+    # What it was done to, in words: "help request 12: <shop>"
+    target = models.CharField(_("done to"), max_length=200, blank=True)
+    created = models.DateTimeField(_("when"), default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ("-created", "-pk")
+        verbose_name = _("volunteer's action")
+        verbose_name_plural = _("volunteers' actions")
+
+    def __str__(self):
+        return f"{self.name}: {self.get_action_display()}"
+
+    @classmethod
+    def write(cls, key, action, target=""):
+        return cls.objects.create(key=key, name=key.name, action=action, target=target[:200])

@@ -2,7 +2,7 @@
 
 What bitmentor does, and how to turn each part on. The longer explanations are in the pages linked from the table.
 
-Four of the features below can be turned off by a community, one by one: see [Turning features off](#turning-features-off).
+Five of the features below can be turned off by a community, one by one: see [Turning features off](#turning-features-off).
 Two are experimental, and off unless a community turns them on: see [Experimental features](#experimental-features).
 
 | Feature | How to turn it on |
@@ -27,9 +27,10 @@ Two are experimental, and off unless a community turns them on: see [Experimenta
 | Closed for a while: holidays or works said kindly, with no alarms | Always on: see [Closed for a while](vacation.md) |
 | Historic shop: from the day after its closing day, stays on the map with its own marker | `closed_on` in `/admin/` or in the `import_shops` JSON |
 | Suspension from maps and lists, never blocking the register | `/admin/` |
-| No shop goes on the map, the lists or the counts until someone approves it (`approved_on`, `approved_by` in `/admin/`); the register works at once, the moderators are told (Telegram, or the community's email or `moderators_emails`), and `/admin/today/` approves with one click. A shop that looks like a copy of one already there (the same name nearby, the same website, phone or email) asks for a box ticked first ([What to do today](dashboard.md)). Shops imported from a list, moved from another site or written in `/admin/` are approved by whoever brings them | On by default; `features: {approval: false}` in `community.yml` turns it off |
+| No shop goes on the map, the lists or the counts until someone approves it (`approved_on`, `approved_by` in `/admin/`); the register works at once, the moderators are told (Telegram, or the community's email or `moderators_emails`), and `/admin/today/` approves with one click. Once a shop is approved (one click, the action of `/admin/`, the volunteers' area) its owner is told, after the commit and without the approver's page waiting: an email to the confirmed recovery address and a message in the shop's own Telegram chats, with the link to the panel and only what is true: «on the map» for a shop the public lists show, otherwise «approved» and what still keeps it off when the owner can act on it (the wallet, the position); the link to its page and word that the sign can be printed only when they serve: until the approval the printable sign waits ([The sign waits for the approval](shop-page.md#the-sign-waits-for-the-approval)), the register never does (an owner with neither hears nothing; shops approved as they are brought hear nothing). A shop that looks like a copy of one already there (the same name nearby, the same website, phone or email) asks for a box ticked first ([What to do today](dashboard.md)). A waiting shop that is not for the map (a trial, a duplicate) can be set aside from `/admin/today/`: still not approved and off the map, no longer asked about, its owner reads why in the panel; it can be put back among the waiting ones or approved later. Shops imported from a list, moved from another site or written in `/admin/` are approved by whoever brings them | On by default; `features: {approval: false}` in `community.yml` turns it off |
 | The merchant's training, the «pass» | `training` in `community.yml`: see [The merchant's training](merchant-training.md) |
 | The merchant's path in the panel, from a working register to a certified shop | Always on (`shops/journey.py`) |
+| The owner's panel by stages: on top, each shop's current stage with one step and one button (the wallet, the trial, the first takings, the basic pass, on the map, the routine, the rest, going further); everything else closed below under «Everything, if you want». Worked out from what the site already knows; the sales are counted only on the owner's phone | On by default; `stages` in `community.yml` for the days and the sales; `features: {stages: false}` turns it off: see [The panel by stages](panel-stages.md) |
 | Something wrong?: the merchant asks the association for help with one tap | Always on: see [Something wrong?](help.md) |
 | What to do today, the association's list | `/admin/today/`: see [What to do today](dashboard.md) |
 | Diagnosis of a shop for whoever answers a merchant's call | `manage.py diagnose_shop`: see [helpdesk.md](../helpdesk.md) |
@@ -40,6 +41,10 @@ Two are experimental, and off unless a community turns them on: see [Experimenta
 | Writing to OpenStreetMap: `manage.py osm_upload`, run by a person, sends those tags | **Experimental, off by default.** `experimental: {osm_upload: true}` in `community.yml`: see [Automatic edits](openstreetmap.md#automatic-edits) |
 | Public and private parts of a page | `::: private` blocks: see [Public and private parts of a page](private-pages.md) |
 | Team access to a site under construction: a person whose address changes signs with a Lightning wallet, and that browser counts as an allowed address | **Optional, off by default.** `TEAM_ACCESS=on` in `.env`, then invites in `/admin/`: see [Team access with a Lightning wallet](team-access.md) |
+| The volunteers' area: a moderator's team key opens the day's list, the requests for help, the OpenStreetMap requests, the register of account changes and (when allowed) the approval of new shops on pages of the site, outside `/admin/`, also on an open site | **Optional, off by default.** `TEAM_AREA=on` with `TEAM_ACCESS=on` in `.env`, then an invite with the role moderator: see [The volunteers' area](team-access.md#the-volunteers-area) |
+| A second factor for `/admin/`: a passkey or a code from an app after the password | **Optional.** Each staff account adds one for itself; `ADMIN_SECOND_FACTOR=required` or `passkey` in `.env` asks it of everyone: see [`/admin/` and access log](../configuration.md#admin-and-access-log) |
+| Sign-in to `/admin/` with a Lightning wallet, the hobby level | **Optional, off by default.** `ADMIN_WALLET_SIGN_IN=on` with `ADMIN_SECOND_FACTOR=optional`: same section |
+| The settings watch: the moderators are told when a security setting changes between two starts | On; `settings_watch: {enabled: false}` in `community.yml`: see [The settings watch](../configuration.md#the-settings-watch) |
 | Read-only Blossom server for the theme's files | `blossom: true` and `BLOSSOM_HOSTS`: see [Blossom](blossom.md) |
 | Shops signed on Nostr, and NIP-05 names | `NOSTR_SECRET_KEY`, `NOSTR_RELAYS`, `manage.py publish_nostr` |
 | Onion address | `docker compose --profile tor up -d`; `ONION_LOCATION` in `.env` |
@@ -53,7 +58,7 @@ Two are experimental, and off unless a community turns them on: see [Experimenta
 
 ## Turning features off
 
-Four parts of the site are optional. A community that writes nothing keeps them all, and sees no change. To turn one
+Five parts of the site are optional. A community that writes nothing keeps them all, and sees no change. To turn one
 off, write `false` in a `features` block of `community.yml` (the block, commented, is in
 `examples/community/community.yml`):
 
@@ -63,6 +68,7 @@ features:
   vacation: false
   practice: false
   approval: false
+  stages: false
 ```
 
 A feature that is off goes quiet everywhere: it is not in the merchant's panel, in the public pages, in the maps, in
@@ -78,7 +84,8 @@ on): `manage.py check` warns (`shops.W003`), and `manage.py preflight` lists the
 | `certified` | The "Certified shop" badge and its sentence on the shop page, the list and the map; the `certified` field of `/shops.json` (absent, not `false`); the private part of the pages for the owners of certified shops (`::: private` blocks, [Public and private parts of a page](private-pages.md)); the certificate's milestone in the merchant's path; the "Certified" column, filter and the revoke and allow actions in `/admin/`; the certificate lines of the diagnosis | The icons of how recently the Lightning address answered (they are not the badge), and the certificates already given or revoked: `check_lightning` keeps working them out, in silence, so they are all there when it is turned on |
 | `vacation` | The "Closing for a while?" and "Welcome back" cards in the panel; the four addresses `/shops/break/…` (404); "Closed for holidays · back on…" on the shop page, the list and the map card; `break` in `/shops.json` (absent) and the `break` tag of the Nostr event; the welcome back message of `check_lightning`; the "closed for a while" count and the "closed for over three months" line of the dashboard; the closure lines of the diagnosis. The icons and the path stop forgiving the days a shop was closed | The closures written, and the Closures table in `/admin/`, so that the association can shorten or remove one. One that has a day to open again and is running keeps the dashboard and the guardian quiet until that day, and at most 92 days from its first (a shop away on holiday raises no false alarm, a fault never stays quiet for months); if the Lightning address is broken meanwhile, the dashboard has one line to know (`closed_lightning`) and the association is told the day the closure ends, without the welcome back to the merchant. One with no day ("until I say so") counts for nothing at once, because nobody could end it. A shop that sells while closed has its alarms as always. The register is never touched. `manage.py preflight` counts the closures running |
 | `practice` | The "Practise without money" buttons and links (panel, the owner's and the staff's register, the first day); `/shops/practice/…` and `/shops/register/p/…/practice/` (404); the practice lines of the diagnosis | The practice register writes nothing: there is nothing to keep |
-| `approval` | The wait for an approval: a shop its owner writes on the site is approved as it is saved and goes on the map, the lists and the home's counts at once, and the moderators are not told of it | The shops already waiting keep waiting, on `/admin/today/`, until someone approves them. The approval action and the "awaiting approval" filter stay in `/admin/`. The signals of the shops that look like copies go away with it: the box to tick, the "Check before approving" block and messages, the "Check this shop" message after an owner's edit |
+| `approval` | The wait for an approval: a shop its owner writes on the site is approved as it is saved and goes on the map, the lists and the home's counts at once, and the moderators are not told of it. No owner is told of an approval, not even of a shop that was already waiting | The shops already waiting keep waiting, on `/admin/today/`, until someone approves them. The approval action and the "awaiting approval" filter stay in `/admin/`. The signals of the shops that look like copies go away with it: the box to tick, the "Check before approving" block and messages, the "Check this shop" message after an owner's edit |
+| `stages` | The stages on top of the owner's panel, the «Everything, if you want» fold and the panel's script that counts the sales on the phone (`static/stages.js`): the panel is again exactly the one without stages, everything at once | The `stages` block of `community.yml`, unused; nothing is stored for the stages, so there is nothing to keep |
 
 ## Experimental features
 

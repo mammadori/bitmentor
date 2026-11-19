@@ -36,6 +36,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from config import features, limits, mailbudget, ratelimit
+from config.admin_wallet import staff_key
 from config.community import (
     community,
     page_path,
@@ -51,6 +52,7 @@ from . import (
     approval,
     certified,
     details,
+    events,
     first_day,
     guard,
     helpdesk,
@@ -59,6 +61,7 @@ from . import (
     osm,
     osm_request,
     public_cache,
+    stages,
     training,
     vacation,
 )
@@ -98,6 +101,7 @@ from .models import (
 )
 from .nostr import public_key
 from .register import connect_origins, register_data
+from .register import relays as nostr_relays
 
 logger = logging.getLogger(__name__)
 CHALLENGE_LIFETIME = timedelta(minutes=5)
@@ -260,9 +264,20 @@ def index(request):
             # «Your shop on OpenStreetMap»: only when the community uses it, and not for a shop without a place on the lists
             shop.osm_enabled = osm_on and not shop.waits_for_wallet
             shop.osm_asked = osm_request.panel(shop) if shop.osm_enabled else None
+            # The printed sign waits for the approval: the panel says so in place of its button
+            shop.sign_waits = sign_waits(shop)
+        card = training.panel(request.user, shops)
+        # On top, the stage each shop is at (shops/stages.py); the rest of the panel closed below. Off: the panel as before
+        on_stages = stages.enabled() and bool(shops)
+        if on_stages:
+            stages.panel(shops, training_state=card["state"] if card else None,
+                         onchain=features.enabled(features.ONCHAIN), nostr=bool(nostr_relays()["relays"]))
         return render(request, "shops/panel.html", {"shops": shops, "form": form, "saved": "saved" in request.GET,
+                                                     "stages": on_stages,
+                                                     # The shop just saved waits for the approval: its sign too
+                                                     "saved_waits": bool(shops) and shops[0].sign_waits,
                                                      "signed_in": account_label(request.user, profile.email),
-                                                     "training": training.panel(request.user, shops),
+                                                     "training": card,
                                                      "first_day_count": FIRST_DAY_COUNT, "community_email": community()["email"],
                                                      "account_notice": guard.notice(request.user),
                                                      # A wallet that signed in for the first time and has nothing: its owner
@@ -323,6 +338,10 @@ def lnurl_auth(request):
     if not challenge or not verify(challenge.k1, request.GET.get("sig", ""), key):
         logger.info("lnurl-auth: refused, %s", "the signature is not of this challenge" if challenge else "no such challenge")
         return JsonResponse({"status": "ERROR", "reason": "Invalid login"})
+    if staff_key(key):
+        # A wallet linked to a staff account's sign-in to /admin/ (config/admin_wallet.py) is nobody's on this side
+        logger.info("lnurl-auth: refused, a staff account's wallet")
+        return JsonResponse({"status": "ERROR", "reason": "Invalid login"})
     # The challenge is in a QR that anyone can see: the first signature counts, a second one does not replace it. The
     # same wallet asking again, also after the site acted on its signature, hears «OK» again
     LoginChallenge.objects.filter(pk=k1, linking_key="").update(linking_key=key)
@@ -382,6 +401,10 @@ def login_status(request):
     challenge = live_challenges().filter(k1=k1, link_user=None, used=None).exclude(linking_key="").first()
     if not challenge:
         return JsonResponse({"logged_in": False})
+    if staff_key(challenge.linking_key):
+        # Linked to a staff account's sign-in to /admin/ after it signed here: it opens no account and makes none
+        LoginChallenge.objects.filter(pk=challenge.pk, used=None).update(used=timezone.now())
+        return JsonResponse({"logged_in": False})
     user = account_of(challenge.linking_key)
     if not user:
         # Every signed key is a new account: without a cap, whoever generates keys in bursts fills the database
@@ -390,7 +413,11 @@ def login_status(request):
         if ratelimit.over_limit(f"account:{ratelimit.client_ip(request)}", limits.rate("accounts_per_address_hour"), 3600):
             return JsonResponse({"logged_in": False, "error": _("Too many new accounts from here: try again later.")},
                                 status=429)
-        user, _created = get_user_model().objects.get_or_create(username=challenge.linking_key)
+        user, created = get_user_model().objects.get_or_create(username=challenge.linking_key)
+        if created and staff_key(challenge.linking_key):
+            # Linked to a staff account in the same moment: the account just made goes
+            user.delete()
+            return JsonResponse({"logged_in": False})
     # Used once: two status calls at the same time sign in one
     if not LoginChallenge.objects.filter(pk=challenge.pk, used=None).update(used=timezone.now()):
         return JsonResponse({"logged_in": False})
@@ -444,7 +471,9 @@ def connect_key(request, key):
     if owner and owner.pk == user.pk:
         messages.info(request, _("This wallet already signs in to this account."))
         return
-    if owner and (WalletKey.objects.filter(key=key).exists() or not holds_nothing(owner)):
+    # A key linked to a staff account's sign-in to /admin/ (config/admin_wallet.py) has its role: one key, one role, and
+    # the same answer as any other key that cannot come here
+    if staff_key(key) or owner and (WalletKey.objects.filter(key=key).exists() or not holds_nothing(owner)):
         # An account of its own with something in it, or a wallet connected elsewhere: never moved from here
         messages.error(request, _("This wallet already has an account of its own with a shop or an email, or is connected "
                                   "to another account: it cannot be connected here."))
@@ -464,6 +493,9 @@ def connect_key(request, key):
             owner = get_user_model().objects.filter(username=key).first()
             if owner and not holds_nothing(owner):
                 raise IntegrityError("the wallet's own account is not empty")
+            # And linked to a staff account a moment ago
+            if staff_key(key):
+                raise IntegrityError("a staff account's wallet")
     except IntegrityError:
         messages.error(request, _("This wallet was connected to another account just now."))
         return
@@ -761,7 +793,8 @@ def first_day_tick(request, shop):
         return redirect(f"{reverse('shops')}#first-day-{shop.id}")
     setattr(shop, field, timezone.now() if request.POST.get("done") == "1" else None)
     shop.save(update_fields=[field])
-    return redirect(f"{reverse('shops')}#first-day-{shop.id}")
+    # Ticked from the shop's stage on top of the panel (shops/stages.py): back there
+    return redirect(f"{reverse('shops')}#{'stage' if request.POST.get('back') == 'stage' else 'first-day'}-{shop.id}")
 
 
 # "Try again now" in the panel: each probe holds a web worker for up to half a minute
@@ -822,11 +855,22 @@ def till_card(request, shop):
     return render(request, "shops/till_card.html", context)
 
 
+def sign_waits(shop):
+    """Whether the printed sign and the card for customers wait for the community's approval of the shop. Whatever the
+    switch says: a shop still waiting is not on the public lists (directory.public_shops), also when the community turned
+    the approval off after it was saved. The card for the till and the register never wait."""
+    return shop.needs_approval
+
+
 @not_indexed
 @login_required(login_url="shops")
 def shop_sign(request, shop):
     # A shop waiting for its wallet takes no payments yet: a sign would send customers to a till that is not there
     shop = get_object_or_404(request.user.shops.exclude(waiting_for_wallet()), pk=shop)
+    if sign_waits(shop):
+        # Its page shows how to pay only once approved, and a sign is what makes a made-up shop look real: a small page
+        # says why and when, instead of the sign
+        return render(request, "shops/sign_waiting.html", {"shop": shop})
     url = f"{settings.PUBLIC_URL}{reverse('shop_detail', args=[shop.id])}"
     return render(request, "shops/sign.html", {"shop": shop, "qr": segno.make(url, error="m").svg_data_uri(scale=10, border=1)})
 
@@ -889,11 +933,13 @@ def new_shop(request):
             if shop.awaiting_wallet:
                 # No wallet yet: the shop's page is saved, without a register, and the guide takes it from here
                 shop.save()
+                events.send(events.shop_created, Shop, shop=shop, user=request.user, source="site")
                 announce(request, shop)
                 warn_about_vat(request, form)
                 return redirect(f"{reverse('wallet_steps', args=[shop.id])}?saved=1")
             if not problem:
                 shop.save()
+                events.send(events.shop_created, Shop, shop=shop, user=request.user, source="site")
                 announce(request, shop)
                 warn_about_vat(request, form)
                 return shop_saved()
@@ -1141,6 +1187,11 @@ def claim_shop(request):
                 return render(request, "shops/claim.html", {"shop": shop, "code": code, "taken": ShopForm.TAKEN},
                               status=409)
             taken = Shop.objects.filter(pk=shop.pk, owner=None, claim_hash=digest).update(owner=request.user, claim_hash="")
+            if taken and events.shop_claimed.has_listeners(Shop):
+                # The UPDATE changed more than the owner (Shop.save, the private part): the receivers get the row as the
+                # database has it now, read in this transaction
+                locked.refresh_from_db()
+                events.send(events.shop_claimed, Shop, shop=locked, user=request.user, via="claim_link")
         if not taken:
             return render(request, "shops/claim.html", {"gone": True}, status=404)
         messages.success(request, _("%(name)s is in your account now.") % {"name": shop.name})

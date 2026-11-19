@@ -13,4 +13,4 @@ coincurve @ git+https://github.com/ofek/coincurve@2d11b1160c75ae8fd94fe8fe3f226a
 segno==1.*
 bech32==1.*
 websockets==15.*
-cryptography==44.*
+cryptography==50.*

@@ -28,7 +28,7 @@ from config.community import (COMMUNITY_DIR, community, front_matter, localized,
                               public_slugs)
 from config.middleware import CSP, csp_with_connect
 from meetups import conf as meetups_conf
-from shops import details
+from shops import details, events
 from shops.directory import featured_shops, statistics
 from website.visibility import COOKIE, MarkError, filtered, is_private_page, is_staff_page
 
@@ -39,7 +39,7 @@ RANGE = re.compile(r"bytes=(\d{1,15})-(\d{0,15})$")
 RANGE_CHUNK = 4 * 1024 * 1024
 SWITCHES_PER_HOUR = 120
 COOKIE_SECONDS = 365 * 24 * 3600
-LONG_LIVED = (".woff2", ".webp", ".jpg", ".png", ".svg", ".pdf", ".mp4", ".webm", ".epub")
+LONG_LIVED = (".woff2", ".webp", ".avif", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".pdf", ".mp4", ".webm", ".epub")
 SERVICE_WORKER = re.compile(r"sw(-[a-z]+)?\.js\Z")  # it lives in /theme/, but the theme may use it for a page outside it
 CONNECT_ORIGIN = re.compile(r"https://[a-z0-9.-]+\Z")
 # The shop pages that robots.txt closes in every language: those of people who have an account. The map and a shop's
@@ -66,6 +66,9 @@ def theme_file(request, path):
         response["Service-Worker-Allowed"] = "/"
     match = RANGE.match(request.headers.get("Range", ""))
     if not match or response.status_code != 200:
+        if response.status_code == 200:
+            # The whole file: no Range, or one this view does not cut (several pieces)
+            announce_file(request, path, True)
         return response
     response.close()
     # The file `serve` has just answered with, read as it reads it: normalised and inside the theme. The path as written
@@ -79,8 +82,31 @@ def theme_file(request, path):
     with file.open("rb") as stream:
         stream.seek(start)
         chunk = stream.read(end - start + 1)
+    announce_file(request, path, start == 0)
     return HttpResponse(chunk, status=206, content_type=mimetypes.guess_type(path)[0], headers={
         "Content-Range": f"bytes {start}-{end}/{size}", "Accept-Ranges": "bytes", "Cache-Control": response["Cache-Control"]})
+
+
+def announced(path):
+    """The theme file at `path` (relative to the theme, as written in the address), normalised, when one of the patterns
+    of `announced_files` in community.yml matches it (shell-style, as `embeddable`: `media/*.zip`; `*` also crosses
+    `/`); else None. Without the key, None. The patterns as `events.announced_patterns` reads them (shops.W014)."""
+    from fnmatch import fnmatchcase
+
+    relative = posixpath.normpath(path).lstrip("/")
+    return relative if any(fnmatchcase(relative, p) for p in events.announced_patterns()[0]) else None
+
+
+def announce_file(request, path, first_byte):
+    """`events.theme_file_served` for a file of the theme being sent, only for the files the community lists. The
+    receivers get the path, whether the answer starts at the first byte, and the kind of client: nothing else of the
+    request. A HEAD sends no file, and says nothing."""
+    if request.method != "GET" or not events.theme_file_served.has_listeners():
+        return
+    relative = announced(path)
+    if relative is not None:
+        events.send(events.theme_file_served, None, now=True, path=relative, first_byte=first_byte,
+                    client_kind=events.client_kind(request))
 
 
 @lru_cache(maxsize=1024)

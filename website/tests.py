@@ -438,6 +438,16 @@ class ThemeFiles(TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
+    def test_every_image_format_is_cached_long(self):
+        """An image a page uses beside its WebP copy (AVIF in a <picture>) must not be asked again at every page."""
+        theme = Path(self.folder.name) / "theme"
+        for name, kind in (("a.avif", "image/avif"), ("a.jpeg", "image/jpeg"), ("a.gif", "image/gif"), ("a.webp", "image/webp")):
+            (theme / name).write_bytes(b"x")
+            response = self.client.get(f"/theme/{name}")
+            self.assertEqual(response["Cache-Control"], "public, max-age=2592000", name)
+            self.assertEqual(response["Content-Type"], kind, name)
+        self.assertEqual(self.client.get("/theme/style.css")["Cache-Control"], "no-cache")
+
     def test_heavy_files_are_cached_long(self):
         response = self.client.get("/theme/video.mp4")
         self.assertEqual(response.status_code, 200)

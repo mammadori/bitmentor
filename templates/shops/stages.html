@@ -1,0 +1,16 @@
+{% load i18n static %}<section class="stages" id="stages" aria-labelledby="stages-title">
+<h2 id="stages-title">{% translate "What to do now" %}</h2>
+{% for shop in shops %}<article class="stage-shop" id="stage-{{ shop.id }}" data-stage-shop="{{ shop.id }}" aria-labelledby="stage-name-{{ shop.id }}">
+  <h3 class="stage-shop-name" id="stage-name-{{ shop.id }}">{{ shop.name }}</h3>
+  {% include "shops/panel_status.html" %}
+  {% if shop.journey and not shop.lightning_watch.broken %}{% for note in shop.lightning_notes %}<p class="panel-status" role="status">{{ note }}</p>{% endfor %}{% endif %}
+  {% if shop.needs_approval and shop.set_aside_on %}<p class="panel-status" role="status" id="set-aside-{{ shop.id }}">{% include "shops/set_aside_note.html" %}</p>{% elif shop.needs_approval %}<p class="panel-status" role="status" id="approval-waits-{{ shop.id }}">{% translate "The community looks at every new shop before it goes on the map: it will be there once approved." %}</p>{% endif %}
+  {% if shop.lightning_watch.broken %}{% include "shops/lightning_alert.html" with watch=shop.lightning_watch %}{% endif %}
+  {% if shop.stage %}{% include "shops/stage_card.html" with stage=shop.stage %}{% for later in shop.stage.promote %}{% include "shops/stage_card.html" with stage=later promoted=True %}{% endfor %}{% endif %}
+  {% include "shops/help_card.html" %}
+  {% if shop.stage_rest %}<details class="stage-rest" id="stage-rest-{{ shop.id }}"><summary>{% translate "More, whenever you like" %}</summary>
+    <ul>{% for line in shop.stage_rest %}<li>{% if line == "onchain" %}<a href="{% url 'register' shop.id %}">{% translate "On-chain payments: in the register's settings" %}</a>{% elif line == "nostr" %}<a href="{% url 'register' shop.id %}">{% translate "Encrypted copies of the register on Nostr: in the register's settings" %}</a>{% elif line == "vacation" %}<a href="{% url 'shop_break' shop.id %}">{% translate "Closing for a while?" %}</a>{% elif line == "osm" %}<a href="{% url 'osm_home' shop.id %}">{% translate "Your shop on OpenStreetMap" %}</a>{% elif line == "discount" %}<a href="{% url 'edit_shop' shop.id %}">{% translate "A discount for whoever pays in bitcoin" %}</a>{% else %}<a href="{% url 'change_address' shop.id %}">{% translate "Change the Lightning address" %}</a>{% endif %}</li>{% endfor %}</ul>
+  </details>{% endif %}
+</article>
+{% endfor %}</section>
+<script src="{% static 'stages.js' %}" defer></script>

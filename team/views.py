@@ -2,7 +2,9 @@
 asks for, the wallet's callback (LUD-04), the check Caddy makes of a pass, and the page of an invite. Caddy lets these
 addresses through from outside one by one, GET only (Caddyfile, `team-open`): a new one goes there too.
 
-Every one answers 404 unless the feature is active on this entrance (team/access.py). The signature is checked by the
+Every one answers 404 unless the feature is active on this entrance (team/access.py): a site under construction, or,
+with the volunteers' area on (TEAM_AREA), an open site too, where these addresses sign a wallet in to the area
+(team/area.py). /team/check/, Caddy's question, only on a site under construction. The signature is checked by the
 same code as the merchants' sign-in (shops/lnurl_auth.py): compressed keys only, 32 random bytes of challenge, the first
 signature wins, a challenge is used once."""
 import io
@@ -23,6 +25,7 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_GET
 
 from config import ratelimit
+from config.admin_wallet import staff_key
 from shops.lnurl_auth import K1, encode_lnurl, verify
 from shops.notifications import alert_text, deliver_to_moderators
 
@@ -31,10 +34,13 @@ from .models import CHALLENGE_LIFETIME, TeamChallenge, TeamInvite, TeamKey, toke
 
 logger = logging.getLogger(__name__)
 # The cookie that binds a challenge to the browser that asked for it: anybody in the room can see the QR code, and only
-# that browser gets the answer of its poll. Only for /team/
-K1_COOKIE = "team_k1"
+# that browser gets the answer of its poll. `__Host-`: the browser takes it only with Secure, Path=/ and no Domain, so a
+# sibling subdomain cannot plant its own signed code in a team member's browser (cookie tossing); a cookie of the old
+# name, team_k1, is read by nothing. Secure also behind a proxy that holds TLS (SITE_SCHEME=http): the browser speaks
+# HTTPS to it
+K1_COOKIE = "__Host-team_k1"
 K1_SALT = "team.k1"
-K1_PATH = "/team/"
+K1_PATH = "/"
 WINDOW = 600
 # In WINDOW, for an address (IPv6: its /64) and for its /48 network. Sign-in codes asked: a browser makes two in ten
 # minutes. Signatures: a wallet sends one. Invite pages opened: a person opens one, a few times
@@ -47,11 +53,11 @@ SCRIPT = (Path(__file__).resolve().parent / "static" / "team" / "join.js").read_
 
 
 def gated(view):
-    """`view` where team access is active, on the site's own entrance; a 404 everywhere else, before anything is read or
+    """`view` where wallets sign in, on the site's own entrance; a 404 everywhere else, before anything is read or
     counted: with the feature off the address does not exist."""
     @wraps(view)
     def wrapper(request, *args, **kwargs):
-        if not access.here(request):
+        if not access.signs_here(request):
             raise Http404
         response = view(request, *args, **kwargs)
         response.headers.setdefault("Cache-Control", "private, no-store")
@@ -98,7 +104,7 @@ def qr_svg(text):
 
 def bind(response, request, challenge):
     response.set_signed_cookie(K1_COOKIE, challenge.k1, salt=K1_SALT, httponly=True, samesite="Lax", path=K1_PATH,
-                               secure=request.is_secure(), max_age=int(CHALLENGE_LIFETIME.total_seconds()))
+                               secure=True, max_age=int(CHALLENGE_LIFETIME.total_seconds()))
 
 
 # What the team hears, in the community's language
@@ -106,6 +112,15 @@ JOINED = gettext_lazy("{name} joined the team ({role}): from now on their wallet
                       "The team's keys:")
 NEW_PASS = gettext_lazy("{name} ({role}) opened the site under construction in a new browser. If it was not them, "
                         "revoke the key or end its passes:")
+# On an open site (the volunteers' area, TEAM_AREA) the pass opens no site under construction
+JOINED_OPEN = gettext_lazy("{name} joined the team ({role}). The team's keys:")
+NEW_PASS_OPEN = gettext_lazy("{name} ({role}) signed in with their wallet in a new browser. If it was not them, revoke "
+                             "the key or end its passes:")
+
+
+def said(under_construction, open_site):
+    """The notice for the mode the site is in."""
+    return under_construction if access.active() else open_site
 
 
 class Answer(JsonResponse):
@@ -185,7 +200,7 @@ def state_of(challenge):
     response.delete_cookie(K1_COOKIE, path=K1_PATH)
     # A wallet signs whatever code it is shown: if somebody talked this person into scanning a code of theirs, the pass
     # is in their browser. The team hears of every new one, and can end it
-    tell_admins(response, NEW_PASS, key)
+    tell_admins(response, said(NEW_PASS, NEW_PASS_OPEN), key)
     return response
 
 
@@ -236,6 +251,10 @@ def join_with(challenge, key):
     if TeamKey.objects.filter(linking_key=key).exists():
         # Nothing is used up: the invite and the code stay good for the wallet they were meant for
         return None, _("This wallet already has a team key here, or had one: ask whoever invited you.")
+    if staff_key(key):
+        # Linked to a staff account's sign-in to /admin/ (config/admin_wallet.py): one key, one role. Nothing is used up
+        return None, _("This wallet cannot join the team here: it already has another use on this site. Use another "
+                       "wallet, or another account in your wallet.")
     invalid = _("This invite is not valid any more.")
     try:
         with transaction.atomic():
@@ -246,7 +265,10 @@ def join_with(challenge, key):
                 transaction.set_rollback(True)
                 return None, invalid
             invite = TeamInvite.objects.get(pk=challenge.invite_id)
-            made = TeamKey.objects.create(linking_key=key, name=invite.name, role=invite.role)
+            made = TeamKey.objects.create(linking_key=key, name=invite.name, role=invite.role, approves=invite.approves)
+            if staff_key(key):
+                # Linked to a staff account in the same moment
+                raise IntegrityError("a staff account's wallet")
             TeamInvite.objects.filter(pk=invite.pk).update(key=made)
     except IntegrityError:
         # The same wallet signing two invites at the same time: the other one made the key
@@ -280,7 +302,7 @@ def auth(request):
     if made is None:
         return wallet_answer(why_not)
     response = Answer({"status": "OK"})
-    tell_admins(response, JOINED, made)
+    tell_admins(response, said(JOINED, JOINED_OPEN), made)
     return response
 
 
@@ -289,7 +311,10 @@ def auth(request):
 def check(request):
     """For Caddy's forward_auth: 204 with a valid pass, 401 without. The same judgement as from_allowed_address
     (access.holder). No counter here: it is asked for every file of a page, a counter would write to the database each
-    time, and a forged pass is refused by its signature before the database is read."""
+    time, and a forged pass is refused by its signature before the database is read. Only on a site under construction:
+    on an open site Caddy asks nothing."""
+    if not access.here(request):
+        raise Http404
     return HttpResponse(status=204 if access.holder(request) else 401)
 
 
@@ -298,6 +323,12 @@ def invite_page(request, status=200, **context):
     # The address of this page opens something: it is told to no other site, and no cache keeps the page
     response["Referrer-Policy"] = "no-referrer"
     return response
+
+
+def done_address():
+    """Where the invite's page goes once the wallet signed: the site under construction, or on an open site the
+    volunteers' area, the only thing a pass opens there."""
+    return "/" if access.active() else reverse("team_area")
 
 
 def signed_here(request, token):
@@ -323,7 +354,8 @@ def join(request, token):
         signed = signed_here(request, token)
         if signed is None:
             return invite_page(request, status=404, state="invalid")
-        return invite_page(request, state="signed", poll=reverse("team_own_poll"), script=reverse("team_script"))
+        return invite_page(request, state="signed", poll=reverse("team_own_poll"), script=reverse("team_script"),
+                           done=done_address())
     challenge = own_challenge(request, invite)
     if challenge is None:
         response = invite_page(request, status=429, state="busy")
@@ -332,7 +364,7 @@ def join(request, token):
     lnurl = lnurl_of(challenge, "register")
     response = invite_page(request, state="waiting", invite=invite, lnurl=lnurl,
                            qr=segno.make(lnurl, error="l").svg_data_uri(scale=6, border=2, light="#fff"),
-                           poll=reverse("team_own_poll"), script=reverse("team_script"))
+                           poll=reverse("team_own_poll"), script=reverse("team_script"), done=done_address())
     bind(response, request, challenge)
     return response
 

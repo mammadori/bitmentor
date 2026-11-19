@@ -32,6 +32,7 @@ The unlock is the only thing here that can stop a till, and it is built so that 
 """
 import hashlib
 import json
+import logging
 import re
 import secrets
 from dataclasses import dataclass, field
@@ -40,6 +41,7 @@ from datetime import date, datetime, timedelta
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError, IntegrityError, transaction
+from django.db.models import Max
 from django.utils import timezone, translation
 from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
@@ -65,6 +67,11 @@ MAX_STATEMENTS = 6
 MAX_TEXT = 600
 # The review comes this many days before it is due as a gentle reminder
 REVIEW_WARNING = 30
+# The days without a move after which the day's list asks someone to call an owner stuck in the path (`nudge_days`):
+# the default, and the range; 0 or false turns those items off
+NUDGE_DAYS = 3
+NUDGE_LIMITS = (1, 60)
+logger = logging.getLogger(__name__)
 # The steps the merchant declares after a guide, for one shop
 STEP_KEYS = ("practice", "backup", "withdrawal")
 
@@ -141,6 +148,8 @@ class Config:
     quick_start: int = 0
     # The gate of the shops imported from the community's list (`external_id`): `reminder` unless the community writes
     gate_imported: str = "reminder"
+    # The days without a move before the day's list asks someone to call an owner stuck in the path; 0 is off
+    nudge_days: int = NUDGE_DAYS
 
 
 def source_of(text):
@@ -277,6 +286,13 @@ def parse(warn=None):
         say(f"`training.quick_start` is an amount from 0 to {QUICK_START_MAX} in the community's currency (0: off): "
             f"{data.get('quick_start')!r}; it stays off")
         quick = 0
+    nudge = data.get("nudge_days", NUDGE_DAYS)
+    if nudge is False or (type(nudge) is int and nudge == 0):
+        nudge = 0
+    elif type(nudge) is not int or not NUDGE_LIMITS[0] <= nudge <= NUDGE_LIMITS[1]:
+        say(f"`training.nudge_days` is a whole number from {NUDGE_LIMITS[0]} to {NUDGE_LIMITS[1]} (0 or false: off): "
+            f"{nudge!r}; {NUDGE_DAYS} counts instead")
+        nudge = NUDGE_DAYS
     since = data.get("since")
     if isinstance(since, str):
         try:
@@ -317,7 +333,7 @@ def parse(warn=None):
     flag = lambda name: data.get(name, True) is not False
     return Config(gate, numbers["review_months"], numbers["refresh_days"], since or None,
                   flag("public_sign"), guides, tuple(modules), terms, tuple(rules or ()), round(quick * 100),
-                  gate_imported)
+                  gate_imported, nudge)
 
 
 def problems():
@@ -680,7 +696,17 @@ def grace_of(user, now=None):
     the register opens without the pass, and how many days are left. None without a rule, without a day for this
     owner, or past it. The day ends with the business day, so the lock never falls in the middle of an evening."""
     # A database that does not answer inside the community's rule is passed on: `locked` never locks a till on it
-    until = hooks.day("training_grace_until", user, passes=(DatabaseError,)) if user else None
+    return grace_from(grace_until(user), now)
+
+
+def grace_until(user):
+    """The last day the community's own rule gives this owner (`training_grace_until`), or None. A DatabaseError inside
+    the rule is passed on (grace_of)."""
+    return hooks.day("training_grace_until", user, passes=(DatabaseError,)) if user else None
+
+
+def grace_from(until, now=None):
+    """grace_of for a last day already asked: {"until", "days"} while it lasts, else None."""
     today = business_day.shift_day(now)
     return {"until": until, "days": (until - today).days} if until and today <= until else None
 
@@ -728,6 +754,102 @@ def quick_start(shop, user, now=None):
     if not cfg or not cfg.quick_start or not getattr(user, "is_authenticated", False) or user.pk != shop.owner_id:
         return 0
     return cfg.quick_start if locked(shop, now) else 0
+
+
+# --- Who is stuck in the path, for the day's list (shops/dashboard.py) ----------------------------------------------
+
+@dataclass
+class Stuck:
+    """An owner the association could call: `waiting` when the real register of `shops` is locked by the pass now, else
+    they stopped half-way through the basic modules. `since` is when the wait began or they last moved (a datetime);
+    `step` the title of the next module of the basic pass, in the page's language, or ''."""
+    owner_id: int
+    waiting: bool
+    shops: list
+    since: datetime
+    step: str
+
+
+def midnight(day):
+    return timezone.make_aware(datetime.combine(day, datetime.min.time()), timezone.get_default_timezone())
+
+
+def stuck(cfg, shops, now=None):
+    """The owners of `shops` (the caller's: with a register, trading, not suspended, not set aside, not demo) who have not
+    moved in the path for more than `nudge_days` days, one each: those whose real register waits for the pass now
+    (`locked_for`, the register's own rule, with the community's `training_grace_until` asked once per owner, as
+    `standing` does), and those who gave some declarations of the basic modules and not all, where the pass matters
+    (`gate: unlock` on real money). Nobody with the pass, nobody who never started and is not locked.
+
+    The wait counts from the latest of: the oldest waiting shop's creation, the owner's last connection or change of a
+    Lightning address (the guardian's register, shops/guard.py), the `since` day, the day after the community's grace,
+    the last declaration. Four queries, and one more for the accounts with a community's rule (plus the rule's own, once
+    per owner). A database error inside the rule leaves that owner unlocked, as the register does."""
+    from .models import AccountChange
+
+    if not cfg or not cfg.nudge_days:
+        return []
+    now = now or timezone.now()
+    owners = {}
+    for shop in shops:
+        if shop.owner_id:
+            owners.setdefault(shop.owner_id, []).append(shop)
+    if not owners:
+        return []
+    trainees = {trainee.user_id: trainee for trainee in Trainee.objects.filter(user_id__in=owners)}
+    owners = {pk: found for pk, found in owners.items() if not (trainees.get(pk) and trainees[pk].base_earned)}
+    if not owners:
+        return []
+    declared, last = {}, {}
+    for user_id, key, version, made in Declaration.objects.filter(user_id__in=owners).values_list(
+            "user_id", "key", "version", "made"):
+        last[user_id] = max(last.get(user_id, made), made)
+        if not key.startswith("step:"):
+            declared.setdefault(user_id, {}).setdefault(key, set()).add(version)
+    results = {}
+    for result in ModuleResult.objects.filter(user_id__in=owners):
+        results.setdefault(result.user_id, {})[result.module] = result
+    # The wallet connected (or its address changed) last, per owner: a shop made long ago may have had a register only now
+    connected = dict(AccountChange.objects.filter(user_id__in=owners, changed__contains="shop_lightning")
+                     .order_by().values("user_id").annotate(latest=Max("created")).values_list("user_id", "latest"))
+    rule = hooks.defined("training_grace_until")
+    users = {user.pk: user for user in get_user_model().objects.filter(pk__in=owners)} if rule else {}
+    base = [module for module in all_modules(cfg) if module.base]
+    base_keys = {statement.key for module in base for statement in module.statements}
+    current = certified.local_day(now)
+    found = []
+    for owner_id, owned in owners.items():
+        theirs = declared.get(owner_id, {})
+        pending = next((module for module in base
+                        if not module_state(module, results.get(owner_id, {}), theirs)["done"]), None)
+        trainee = trainees.get(owner_id)
+        until, grace = None, False
+        if rule and any(gate_of(cfg, shop) == "unlock" and real_money(shop) for shop in owned) and in_force(cfg, now):
+            try:
+                until = grace_until(users.get(owner_id))
+            except DatabaseError:
+                logger.warning("training_grace_until failed for an owner: their register counts as open on the "
+                               "day's list", exc_info=True)
+                until, grace = None, {"until": None, "days": 0}
+            else:
+                grace = grace_from(until, now)
+        held = [shop for shop in owned if locked_for(cfg, owner_id, shop, now, trainee, users.get(owner_id), grace)]
+        if held:
+            moments = [min(shop.created for shop in held), last.get(owner_id), connected.get(owner_id)]
+            moments += [midnight(cfg.since)] if cfg.since else []
+            moments += [midnight(until + timedelta(days=1))] if until else []
+            since = max(moment for moment in moments if moment)
+            start, waiting = certified.local_day(since), True
+        elif pending and theirs.keys() & base_keys:
+            held = [shop for shop in owned if gate_of(cfg, shop) == "unlock" and real_money(shop)]
+            if not held:
+                continue
+            since, start, waiting = last[owner_id], certified.local_day(last[owner_id]), False
+        else:
+            continue
+        if (current - start).days > cfg.nudge_days:
+            found.append(Stuck(owner_id, waiting, held, since, shown(pending.title) if pending else ""))
+    return found
 
 
 # --- The rest of the community's pages: the sign, the staff rules -----------------------------------

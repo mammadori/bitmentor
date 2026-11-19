@@ -10,6 +10,7 @@ buttons, the notices and the commands of the feature go quiet. What each switch 
       vacation: false          # shops closed for a while
       practice: false          # the practice register
       approval: false          # new shops on the map without waiting for an approval
+      stages: false            # the owner's panel all at once, without the stages on top
 
 Experimental features are the other way round: `experimental:` in `community.yml`, all off unless the community writes
 `true`. They work and are tested, but had less review and less real use, and may change or go: not what a community
@@ -29,9 +30,9 @@ from django.http import Http404
 
 from config.community import community
 
-CERTIFIED, VACATION, PRACTICE, APPROVAL = "certified", "vacation", "practice", "approval"
+CERTIFIED, VACATION, PRACTICE, APPROVAL, STAGES = "certified", "vacation", "practice", "approval", "stages"
 # Every switch, with the value a community that writes nothing gets
-FEATURES = {CERTIFIED: True, VACATION: True, PRACTICE: True, APPROVAL: True}
+FEATURES = {CERTIFIED: True, VACATION: True, PRACTICE: True, APPROVAL: True, STAGES: True}
 ONCHAIN, OSM_UPLOAD = "onchain", "osm_upload"
 # Every experimental feature: off for a community that writes nothing
 EXPERIMENTAL = {ONCHAIN: False, OSM_UPLOAD: False}

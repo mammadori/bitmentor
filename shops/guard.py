@@ -12,7 +12,8 @@ are seen here, and not left silent:
 
 What is watched, for the owner of at least one shop: a User saved with another `password`, `is_staff`, `is_superuser`,
 `is_active` or `username`; the groups and the permissions of the user; the user deleted; a shop that changes owner or
-Telegram chat from the admin or from a command (the owner's own form is the site's way, not watched).
+Telegram chat from the admin or from a command (the owner's own form is the site's way, not watched); the second factor
+of the admin's sign-in turned on, off or reset (config/second_factor.py calls `record`, as for a password).
 
 A sensitive action of the future can ask more care while the account is recent:
 
@@ -54,6 +55,7 @@ from django.utils.translation import gettext_lazy
 from config.community import community
 from config.guard import comes_from_admin, current_request
 
+from . import events
 from .models import AccountChange, Profile, Shop, is_demo
 from .notifications import NotificationFailed, alert_name, telegram
 from .notifications import chats as split_chats
@@ -91,6 +93,12 @@ WORDS = {
     "shop_chat": (gettext_lazy("Telegram chat of a shop"),
                   gettext_lazy("The Telegram chat that receives the notices of a shop of yours was changed.")),
     "deleted": (gettext_lazy("account deleted"), gettext_lazy("Your account was deleted.")),
+    "second_factor": (gettext_lazy("second factor of the admin's sign-in"),
+                      gettext_lazy("The second factor of your account's sign-in to the administration was turned on, "
+                                   "turned off or removed.")),
+    "admin_wallet": (gettext_lazy("wallet of the admin's sign-in"),
+                     gettext_lazy("A wallet that signs in to the administration was linked to your account, or "
+                                  "removed from it.")),
     "shop_lightning": (gettext_lazy("Lightning address of a shop"),
                        gettext_lazy("The Lightning address where a shop of yours gets paid was changed.")),
 }
@@ -342,6 +350,15 @@ def destinations_changed(before, after):
             shop = Shop.objects.filter(pk=pk).first()
             if shop is not None:
                 watch(destination_changed, shop, old, new)
+                address_changed(shop, old, new)
+
+
+def address_changed(shop, before, after):
+    """`events.lightning_address_changed`, after the commit, for a shop whose Lightning address is not what it was: from
+    a save and from an update alike. Not for the made-up shops of the demo (`outside`), as for the notices."""
+    if before["lightning_address"] != after["lightning_address"] and not outside(shop):
+        events.send(events.lightning_address_changed, Shop, shop=shop, before=before["lightning_address"] or "",
+                    after=after["lightning_address"] or "")
 
 
 def outside(shop):
@@ -571,8 +588,10 @@ def shop_after(sender, instance, created=False, raw=False, update_fields=None, *
     if created or raw or not before:
         return
     written = set(FIELDS) if update_fields is None else set(FIELDS) & set(update_fields)
-    watch(destination_changed, instance, {field: before[field] for field in FIELDS},
-          {field: getattr(instance, field) if field in written else before[field] for field in FIELDS})
+    old, new = ({field: before[field] for field in FIELDS},
+                {field: getattr(instance, field) if field in written else before[field] for field in FIELDS})
+    watch(destination_changed, instance, old, new)
+    address_changed(instance, old, new)
     via, _actor = origin()
     if via == "site":
         return

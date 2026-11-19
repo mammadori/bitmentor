@@ -4,8 +4,8 @@ so that a provider that changed, an address deleted or a wallet that stopped con
 merchant and the association, not by a customer at the counter.
 
 It only reads: it never changes where a shop's money goes and never talks to a payment server. Its findings stay on the shop
-(`lightning_*` fields), a fault counts only after two failed probes in a row some time apart, and the merchant (email)
-and the association (Telegram) hear about it only when the status changes. The register is never blocked by it."""
+(`lightning_*` fields), a fault counts only after two failed probes in a row some time apart, and the merchant (email, and
+the shop's own Telegram chats) and the association (Telegram) hear about it only when the status changes. The register is never blocked by it."""
 import logging
 import socket
 import threading
@@ -28,9 +28,9 @@ from config import ratelimit
 from config.community import community
 from config.network import resolve
 
-from . import certified, lnaddress, public_cache, vacation
-from .models import HAS_REGISTER, LightningStatus, Profile, Shop, real, still_trading
-from .notifications import NotificationFailed, alert_name, telegram
+from . import certified, events, lnaddress, public_cache, vacation
+from .models import HAS_REGISTER, SHOP_CHATS, LightningStatus, Profile, Shop, is_demo, real, still_trading
+from .notifications import NotificationFailed, Unreachable, alert_name, alert_text, chats, telegram
 
 logger = logging.getLogger(__name__)
 
@@ -200,6 +200,10 @@ def record(pk, address, result):
         finally:
             # The mark is for this one save: post_save takes it, but a save that raises never gets there
             shop.__dict__.pop(public_cache.SAME_LIST, None)
+        if change:
+            # The community's code hears every change of the status, also while the shop's people are not told (holidays)
+            events.send(events.lightning_address_broken if change == BROKE else events.lightning_address_working, Shop,
+                        shop=shop)
     if result is None and not shop.certified_month:
         # An address that works may be the last thing the certificate waited for (shops/certified.py)
         certified.refresh(Shop.objects.filter(pk=shop.pk))
@@ -211,8 +215,9 @@ def record(pk, address, result):
 
 
 def check(pk):
-    """Probes one watched shop, saves what it found and tells the merchant by email when the status changes. Returns
-    (shop, change); (None, None) for a shop that is gone or not watched. The association is told by the caller."""
+    """Probes one watched shop, saves what it found and tells the merchant (email, the shop's chats) when the status
+    changes. Returns (shop, change); (None, None) for a shop that is gone or not watched. The association is told by the
+    caller."""
     found = probe_shop(pk)
     if found is None:
         return None, None
@@ -332,18 +337,78 @@ def email_text(shop, change):
     return f"{community()['name']}: {subject}", "\n\n".join(body)
 
 
-def tell_owner(shop, change):
-    email = owner_email(shop)
-    if not email or not allowed("mail", shop):
-        return False
+def owner_chats(shop):
+    """The shop's own Telegram chats (Shop.telegram_chat, up to SHOP_CHATS), each on its own: none for a shop without
+    an owner or of the training site, and none without a bot (TELEGRAM_BOT_TOKEN): then nothing is tried, logged or
+    counted."""
+    if not settings.TELEGRAM_BOT_TOKEN or not shop.owner_id or is_demo(shop):
+        return []
+    return chats(shop.telegram_chat)[:SHOP_CHATS]
+
+
+def chat_text(shop, change):
+    """The owner's notice on Telegram, in the active language: short, the shop's name as alerts show it, the address
+    cut (guard.short_address), and where to look."""
+    from .guard import short_address
+
+    if change == FIXED:
+        what = _("{shop}: Lightning payments work again")
+        then = _("There is nothing to do.")
+    else:
+        what = (_("{shop}: the register does not see Lightning payments arrive")
+                if shop.lightning_status == LightningStatus.NO_CONFIRMATION else
+                _("{shop}: the register cannot take Lightning payments"))
+        then = _("Your panel says what to do.")
+    return "\n".join([f"{alert_text(community()['name'])}: {what.format(shop=alert_name(shop))}",
+                      f"{_('Lightning address')}: {short_address(shop.lightning_address)}", then,
+                      _("Your panel: {link}").format(link=f"{settings.PUBLIC_URL}{reverse('shops')}")])
+
+
+def tell_chats(shop, change, found):
+    """The notice to each of the shop's chats on its own. A chat that refuses is skipped, Telegram that does not answer
+    ends the round (the next chat would wait as long), and neither is an error: True when at least one chat took it."""
     with override(settings.LANGUAGE_CODE):
-        subject, body = email_text(shop, change)
-    try:
-        send_mail(subject, body, merchant_sender(), [email], kind="merchant")
-    except (OSError, SMTPException, ValueError):
-        logger.error("Lightning address email not delivered for shop %s", shop.pk)
+        text = chat_text(shop, change)
+    told = False
+    for place, chat in enumerate(found, 1):
+        try:
+            if telegram(chat, text):
+                told = True
+            else:
+                logger.error("Lightning address notice: chat %s of %s of shop %s refused it", place, len(found), shop.pk)
+        except NotificationFailed as error:
+            logger.error("Lightning address notice not delivered to chat %s of %s of shop %s", place, len(found), shop.pk)
+            if isinstance(error, Unreachable):
+                break
+    return told
+
+
+def tell_owner(shop, change):
+    """Tells the owner of a change (BROKE, FIXED): by email to the confirmed recovery address, and on Telegram in the
+    shop's own chats. One rule for both, one counter: only at a change, at most ALERTS_PER_DAY a day, so the chats hear
+    exactly what the email says and never once more. A channel that fails never stops the other. True when the owner
+    was told somewhere."""
+    email = owner_email(shop)
+    found = owner_chats(shop)
+    # The counter keeps its name ("mail") from when the email was the only channel: it counts every owner's notice
+    if not (email or found) or not allowed("mail", shop):
         return False
-    return True
+    told = False
+    if email:
+        with override(settings.LANGUAGE_CODE):
+            subject, body = email_text(shop, change)
+        try:
+            # Told only when it left: over the email budget it is dropped without an error (config/mailbudget.py)
+            if send_mail(subject, body, merchant_sender(), [email], kind="merchant"):
+                told = True
+            else:
+                logger.error("Lightning address email not sent for shop %s (kept back by the email budget, or taken "
+                             "by no backend)", shop.pk)
+        except (OSError, SMTPException, ValueError):
+            logger.error("Lightning address email not delivered for shop %s", shop.pk)
+    if found and tell_chats(shop, change, found):
+        told = True
+    return told
 
 
 def tell_association(changes, mass=None):

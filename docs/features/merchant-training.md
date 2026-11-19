@@ -28,7 +28,10 @@ practice offers it only in its exercise «The customer does not understand your 
 
 - **A card in the panel**, on top: «Your merchant pass», with a bar («Your path: 3 of 8 done»), the badges, and one
   button that goes on from where they stopped. Messages only when they matter: the register waiting for the pass,
-  the yearly review, a text that changed.
+  the yearly review, a text that changed. With [the panel by stages](panel-stages.md) the card is always in «Everything,
+  if you want», and the stages carry the training: the basic pass is proposed from the first takings (with the quick
+  start's amount, and on the phone what is left of it) and is the only step while the till waits for it, and the other
+  modules and the badges come later, as «Going further». A community without this block has neither.
 - **The path** (`/shops/training/`): the modules in order with their state (to do, questions done and to confirm, done,
   the text changed), and under them the steps to declare after a guide, and the review.
 - **A module** (`/shops/training/<id>/`): a button to the community's page to read, then the questions, then the
@@ -50,6 +53,7 @@ training:
   gate: unlock          # or reminder: only reminders, never a locked register
   gate_imported: reminder  # the same for the shops of the community's list (external_id); reminder when not written
   quick_start: 20       # optional: the owner's register takes this much in total before the pass (0 or missing: off)
+  nudge_days: 3         # the day's list asks to call an owner stuck in the path after this many days (0 or false: never)
   since: 2026-12-01     # optional: the day the training starts to count (missing: at once)
   review_months: 12     # the short review
   refresh_days: 30      # days after the review is due before the «Trained merchant» sign goes
@@ -78,8 +82,9 @@ training:
   first one the community wrote.
 - What cannot be used is left out and the training goes on without it; `manage.py check` says what and where
   (`shops.W005`). A `training` block with no usable module keeps the training off.
-- `gate`, `review_months`, `refresh_days` and `public_sign` have the starting values above when the community does not
-  write them; `quick_start` and `since` are off.
+- `gate`, `review_months`, `refresh_days`, `public_sign` and `nudge_days` have the starting values above when the
+  community does not write them; `quick_start` and `since` are off. `nudge_days` is a whole number from 1 to 60, and
+  `0` or `false` turns its items off; a value that cannot be used counts as 3, and `manage.py check` says so.
 
 ## The declarations: the proof
 
@@ -195,12 +200,28 @@ button to the staff practice register too.
   read as a formula is defused.
 - **`/admin/shops/trainee/`**: who has the basic pass and since when, and the last review.
 - Nothing is edited from the admin: not the declarations, not the pass. The pass is earned on the site.
+- **The day's list** (`/admin/today/`, the morning summary of `manage.py dashboard --send`, and the volunteers' area)
+  names the owners stuck in the path, so that someone calls them, one item per owner with their shops, «To look at»:
+  - «The real register waits for the owner's basic pass»: the register of a shop of theirs (with a register, trading,
+    not suspended, not set aside, not a demo shop) is locked by the pass now, by the register's own rule (with the
+    community's `training_grace_until`, asked once per owner; an error inside it leaves the owner off the list, as the
+    register stays open), for more than `nudge_days` days since the latest of: the shop's creation, the owner's last
+    connection or change of a Lightning address (the register of the changes to the accounts), the `since` day, the
+    day after the community's grace, their last declaration;
+  - «Stopped half-way»: they gave some declarations of the basic modules and not all, nothing new for more than
+    `nudge_days` days, and the pass matters (`gate: unlock` on real money; with `gate: reminder` nothing).
+
+  The text says what to do («Call them: …») and the step they stopped at, by the module's title. Nothing goes to the
+  merchant, by email or Telegram: a person calls. The codes are `training_register_waits` and `training_stopped`; at
+  most 50 of them, the oldest first. A shop closed for a while is left out for those days.
 
 ## Going back, tests and limits
 
 - The tables are in `shops` `0001_initial`; on PostgreSQL their foreign keys cascade in the database too, so the previous
   image can delete a shop or an account (`shops/going_back.py`, checked by `shops/test_going_back.py`).
 - `shops/test_training.py` (`QuickStart`) and `shops/test_register_flow.py` (`LightningFlow`): the quick start, in the page and on the phone.
+- `shops/test_dashboard_training.py`: the items of the day's list, at the days that matter, in the morning summary and in
+  the volunteers' area.
 - `shops/test_training.py`: the quiz and the declarations (text changes included), the unlock and the `since` day at the
   hours that matter, the staff registers, permissions, CSRF and the staff as visitors, the export.
 - The pass proves that the merchant **was informed**, not that they understood or that they will do it: it is a note, not an

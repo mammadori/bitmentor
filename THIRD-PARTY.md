@@ -449,7 +449,7 @@ direct dependencies of `requirements.txt`, at the versions `requirements.lock` p
 | segno | 1.6.6 | BSD-3-Clause |
 | bech32 | 1.2.0 | MIT |
 | websockets | 15.0.1 | BSD-3-Clause |
-| cryptography | 44.0.3 | Apache-2.0 OR BSD-3-Clause |
+| cryptography | 50.0.2 | Apache-2.0 OR BSD-3-Clause |
 
 The complete pinned set, with what these depend on, is [requirements.lock](requirements.lock). The checks image adds
 tblib 3.2.2 (BSD-2-Clause, `requirements-test.lock`), never in production. All of these licenses are compatible with

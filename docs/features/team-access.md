@@ -26,18 +26,19 @@ Off, nothing of the feature exists: every address under `/team/` answers 404, to
 rules are the ones it had without it, and a pass left in a browser gives nothing. The tables stay in the database, empty
 or as they were. It does something only in `development` mode and only on the site's own address: in `maintenance`
 everything stays closed, as for the allowed addresses; in `production` the site is open and the feature does nothing; on
-the onion address it does not exist.
+the onion address it does not exist. The one exception is [the volunteers' area](#the-volunteers-area), a second
+switch (`TEAM_AREA`), off by default: with it, team keys also sign in while the site is in `production`.
 
 The team hears of every new key and of every new browser that gets a pass, in the moderators' chat
 (`TELEGRAM_MODERATION_CHAT`) or, without Telegram, at the community's email (or `moderators_emails`). Telegram is optional. The message leaves
 after the person's answer has been sent, so a chat or a mail server that does not answer neither delays nor fails a
-sign-in: a message that cannot be sent is a line in the log of `web`. `manage.py preflight` says when the site has
-neither, and nobody would be told.
+sign-in: a message that cannot be sent is a line in the log of `web`. `manage.py preflight` warns when the site has
+neither, and nobody would be told (with the moderators' other messages, [operations](../operations.md#the-moderators-messages)).
 
 ## Inviting somebody
 
-1. In `/admin/`, **Team invites → Add**: the person's name and a role (team, staff or moderator: for now only a
-   label). The page that follows shows a link and its QR code, **once**: the site keeps a hash of the link, not the
+1. In `/admin/`, **Team invites → Add**: the person's name and a role (team, staff or moderator). The role is a label,
+   except `moderator` when [the volunteers' area](#the-volunteers-area) is on: that key opens it. The page that follows shows a link and its QR code, **once**: the site keeps a hash of the link, not the
    link. The invite is good for 24 hours and for one wallet.
 2. Send the link by a channel you trust. Whoever opens it first and signs becomes the key, so it is as good as a
    password until it is used.
@@ -81,7 +82,8 @@ Exactly what an address in `DEV_ALLOWED_IPS` gives on a site under construction,
   the top that says so;
 - the larger email allowance of the allowed addresses (`emails_staff_factor`, [Limits](../configuration.md#limits)).
 
-It signs in to no shop and to no account, and the role changes nothing yet.
+It signs in to no shop and to no account, and the role changes nothing here: the role `moderator` opens
+[the volunteers' area](#the-volunteers-area), when it is on.
 
 ### A pass and `/admin/`
 
@@ -98,6 +100,169 @@ way:
 **If the team is wider than the staff, set `ADMIN_ALLOWED_IPS`.** `manage.py preflight` says so when team access is on
 and the variable is empty.
 
+## The volunteers' area
+
+Optional, and off by default. The volunteers who look after the shops day by day (the moderators) work in `/admin/`
+with a staff account and a password, often behind `ADMIN_ALLOWED_IPS`: from a phone or a new network they cannot, and
+the admin is more than the job needs. The area gives them the day's work on pages of the site itself, made for a phone,
+with the same team keys: no password, no account.
+
+### Turning it on
+
+Team access must be on too. In the stack's `.env`, then `docker compose up -d web`:
+
+```
+TEAM_ACCESS=on
+TEAM_AREA=on
+```
+
+Only Django reads `TEAM_AREA`: Caddy's rules do not change. A value that is not `on` or `off` stops Django from
+starting. `TEAM_AREA=on` without `TEAM_ACCESS=on` does nothing, and `manage.py preflight` says so; with both on it says
+how many moderator keys can open the area, and how many of them may approve new shops. Off, everything is exactly as without it: every address of the area answers
+404 to every method (`/team/` itself answers as any address the site does not have), `/admin/` shows nothing of it, and
+in `production` team access does nothing.
+
+### Who opens it
+
+A **team key whose role is `moderator`**: invite the person in `/admin/` (**Team invites → Add**, role moderator), as
+[above](#inviting-somebody). With the area on, invites can be made and taken while the site is in `production` too.
+Keys with the role `team` or `staff` open nothing new. A staff account opens nothing either: the area reads the pass,
+never the session of `/admin/`, and a pass never signs anybody in to an account (`request.user` stays a visitor).
+
+The person signs in at **`/team/`**, a page of the site: it shows a sign-in code, they scan it with the wallet of their
+key (or tap it on the phone), and the page opens the area. The code is the one of `/team/login/`: five minutes, bound to
+the browser that asked, the same limits. On a site under construction `/team/` is reached like the rest of the site: from
+an allowed address, or with a pass got from the gesture of the under-construction page. A pass got on a site under
+construction still opens the area once the site is in `production`: it names the key, not the mode.
+
+The pass is the same `team_pass` of seven days, checked against the database at every request: **Revoke** and **End
+the passes** in `/admin/` take the area away at the next page, and so does deleting the key. The team hears of every new
+browser, as always: on an open site the notice says "signed in with their wallet in a new browser".
+
+In `maintenance` the area does not exist (Caddy shows the maintenance page to everybody, and Django answers 404); on the
+onion address it does not exist either.
+
+### What it opens
+
+These pages, and nothing else:
+
+- **`/team/today/`**: the day's list, the same items as `/admin/today/`, made by the same code
+  (`shops/dashboard.py`), in the visitor's language. Without the links into `/admin/`, without the button that approves
+  a shop, and with only what the **Moderators** group sees there ([The moderators](../operations.md#the-moderators)). Its lines
+  about requests for help, OpenStreetMap requests and new shops link to the area's own pages.
+- **`/team/help/`**: the requests for help still open, oldest first, with what a volunteer needs to answer: the shop,
+  the symptom, the line the merchant wrote, how they asked to be called back with the shop's phone or Telegram chat, and
+  what the site knew when they asked; the ones solved in the last three days below. **Mark as solved** and **Mark as
+  waiting again** do what the admin's actions do: the merchant sees «Solved» in the panel, and the request leaves the
+  day's list or comes back to it. Who solved it is written as `[team key 7] Mara` (the key's number and name), which no
+  staff username can be; a request solved from `/admin/` says only "from the administration". Of the copy of the
+  diagnosis the page keeps only what is about the shop, its register and its Lightning address: the findings about the
+  owner's account and how they sign in (a piece of their wallet key, their last sign-in, their recovery email, a staff
+  account) are left out, by their codes (`team/area.py`, `DIAGNOSIS_HIDDEN`); a code the list does not know yet is
+  left out too, until somebody decides. The findings about the changes to the owner's account (`account_changed*`, with
+  who made them) are kept: they are what `/team/changes/` shows. The findings that name the merchant's **staff
+  registers** (`staff_off`, `staff_unopened`, `staff_code_waiting`, `staff_ok`: names that are often the first names of
+  the merchant's employees) are **the community's choice, off by default** (`DIAGNOSIS_BY_CHOICE`): off, one neutral
+  line says there is something about the registers of the staff and that whoever has the administration sees it, so
+  the volunteer knows to ask, never the names; the community shows them with this in `community.yml`
+  (anything but `true` or `false` counts as off, and `manage.py check` warns, `team.W001`):
+
+  ```yaml
+  team_area:
+    staff_register_names: true
+  ```
+
+  `/admin/` is unchanged: the Moderators group sees the whole diagnosis there.
+- **`/team/shops/`**, only for a key an administrator allowed to approve (below): the new shops that wait.
+- **`/team/osm/`**: the merchants' requests for the association to put the shop on OpenStreetMap or update its entry,
+  with the lines to write, a link to the shop's entry and to the editor, and **Mark as done**, the admin's own action.
+  The work is done by the volunteer on openstreetmap.org with their own account: the site writes nothing there. A
+  request that cannot be done is answered by an administrator, who writes the merchant why (the area has no field for a
+  text to the merchant). The ones closed in the last seven days are listed below, to read; who closed one from
+  `/admin/` is not named.
+- **`/team/changes/`**: the register of the changes to the owners' accounts, to read, newest first, fifty a page:
+  when, what changed (the admin's words), the shops, where it came from (the admin, a command, the owner's panel…),
+  **who did it** and who was told. The one place of the area that shows staff usernames, on purpose: seeing who changed a
+  merchant's account is the point of this register, the same second pair of eyes the Moderators group has in
+  `/admin/`. The register keeps the names of what changed, never the values: no address, no email, no key.
+- **`/team/me/`**: the key's name and role and when this browser's pass ends, with **End this browser's pass**. That
+  button deletes the cookie in this browser, and nothing more: it is not a revoke on the server. A pass copied
+  elsewhere keeps working until an administrator ends the key's passes (**End the passes**) or seven days go by.
+
+What it **never** shows or does: a Lightning address in full as the site itself writes it (every address on these
+pages is cut as the notices cut it, `ma…@provider`, and so are its URL forms, `https://provider/.well-known/lnurlp/ma…`
+and `lnurlp://…`, also in what the merchant wrote and in the diagnosis), a recovery email (a merchant who asked to be
+called back by email is written to by somebody with `/admin/`), accounts (but the staff usernames of the register of
+changes), keys, a link into `/admin/`; it changes no shop, owner or address, and approves a shop only as below. There is
+no «refuse»: a volunteer who doubts leaves the shop waiting and tells an administrator.
+
+### The area and the Moderators group
+
+For the day's list, the requests for help and the register of the changes to the accounts, the area follows the
+**Moderators** group: it takes the rights from the group's list (`shops/moderators.py`), so the two cannot drift apart,
+and shows no more than the group sees in `/admin/` (less: no recovery email, no shop's page). It adds **two things of its
+own**, which the group does not have, on purpose (`team/area.py`, `BEYOND_THE_GROUP`):
+
+- **marking an OpenStreetMap request as done**: the request holds the shop's public data, the volunteer does the work on
+  openstreetmap.org with their own account, and the site writes nothing anywhere;
+- **approving new shops**, only for the keys an administrator marked, and never a shop that looks like a copy (below).
+
+### Approving new shops
+
+Approving puts a shop on the map: in `/admin/` it needs `shops.change_shop`, more than the Moderators group has. So it is
+not for every volunteer: an administrator ticks **may approve new shops** on the invite, or later on the key's page in
+`/admin/` (the change is in the key's history). Only staff who may approve shops themselves (`shops.change_shop`) can
+tick it: for anybody else it is read-only on both pages, and the server ignores it in a form made by hand. The «You»
+page says whether a key may. The flag is read again in the same transaction as each approval: one taken away, or a key
+revoked, a moment before is honoured.
+
+**An invite with this box ticked is worth the right to approve**: whoever opens the link first and signs gets it. Send it
+by a channel you trust, delete the invite if it went astray, and revoke the key if it was taken.
+
+Such a key sees `/team/shops/`: the same shops `/admin/today/` lists as waiting, in the same order, with what a person
+needs to judge them (the name, the town, the address, website, phone and email as the shop's page would show them, the
+description, when it was written) and never the owner's account or the Lightning address. **Approve** puts the shop on
+the map, `approved_by` says `[team key 7] Ada`, and the log of the area keeps the row; there is no line in the admin's
+history of the shop, which needs an account: the shop's page in `/admin/` shows who approved it and when
+(`approved by`, `approved on`).
+
+**A shop that looks like a copy of another** (`shops/approval_signals.py`: the same name nearby, the same website or
+phone…) **is never approved from the area**: the page shows the warning and its reasons, and says that an administrator
+approves it from `/admin/today/`, where the box «I checked» is. The server refuses it whatever the form sends, and when
+the checks cannot be run nothing is approved from the area. A note that asks nothing (a namesake far away) is shown and
+does not stop the approval. A key that may not approve sees the waiting shops in the day's list only, without a button;
+its POST is a 404.
+
+The cut of the addresses is a courtesy for what the site writes and for the obvious forms a person types, not a
+guarantee about free text: a merchant can write an address, an email or a phone number in the line they send in a way
+no pattern catches, and the page shows that line.
+
+Every page is `no-store`, not indexed and sends no referrer. Every change is a POST with Django's CSRF token, checked
+after the gate: a POST from whoever the area is not for gets the 404 of an address that does not exist, also without a
+token, never a 403 that would tell the area is there (the sign-in page `/team/`, public while the area is on, answers
+405 to a POST). The pages
+have a limit of 300 requests in ten minutes per address (900 per /48 network), the changes 60 (180), the sign-in page the
+limits of the sign-in codes. Each change reads its request for help again, and one that changes nothing (already solved,
+already waiting) is not written.
+
+### The log of what volunteers do
+
+Every change made in the area writes a row, in the same transaction as the change: the key, its name at that moment,
+what was done (marked a request solved or waiting again, approved a shop, marked an OpenStreetMap request done, ended
+the pass of a browser), what it was done to (the request's or the shop's number and name) and when. It is in `/admin/` under **Volunteers' actions**, to read only, with filters by key
+and by action; each key's page links to its rows. Deleting a key keeps its rows, with the name. Nothing deletes them by
+itself: see [privacy.md](../privacy.md#what-the-software-stores-where-and-for-how-long).
+
+### The weakness, with the area on
+
+**A wallet signs whatever code it is shown** ([below](#what-to-know-before-turning-it-on)): somebody who talks a
+moderator into scanning a code of theirs gets a pass of that moderator's key in their own browser. With the area on, that
+pass opens the requests for help of the merchants, with the line they wrote and the phone or chat they gave, and lets
+them be marked solved. What limits it is what limits team access, and the area is kept small on purpose: no address, no
+email, no change to a shop; the team is told of every new browser; the log names the key behind every change. If a
+browser was not theirs: **End the passes** of that key at once, then read its rows in the log. Tell the moderators:
+**scan a sign-in code only on the page you opened yourself**. The sign-in page says it too.
+
 ## What to know before turning it on
 
 **A wallet signs whatever code it is shown.** This is the known weakness of LNURL-auth, and nothing here removes it:
@@ -110,7 +275,15 @@ and if the member scans it the pass goes to the browser that asked, not to the m
 - "End the passes" and "Revoke" take effect at the next request;
 - a pass lasts seven days and is not renewed by use;
 - what it opens is a site under construction: no account, no shop, no money, and of `/admin/` at most the page that
-  asks for the password ([above](#a-pass-and-admin)).
+  asks for the password ([above](#a-pass-and-admin)); with the volunteers' area, also the area
+  ([its weakness](#the-weakness-with-the-area-on)).
+
+**With the area on, the sign-in page of an open site is public.** On a site in `production` anybody can open `/team/`
+and ask for codes. The limits by address hold, but strangers asking from many addresses can fill the 5000 sign-in codes
+alive: then new sign-ins answer «too many requests» until the requests stop and the codes expire (five minutes). Nobody
+with a pass is touched, and the invites' codes are counted apart. The remedy is the one below for a site under
+construction: find the networks in Caddy's access log (`ACCESS_LOG=on`, the lines of `/team/` and `/team/login/`), close
+them at the firewall or at the entry proxy.
 
 Tell the team: **scan a sign-in code only on the page you opened yourself.** The invite's page says it too.
 
@@ -137,8 +310,13 @@ The rest, for whoever reviews it:
   version (below). The page tells the browser to send no referrer. The link still stays in the history of the browser
   that opened it, spent.
 - **Sign-in codes** last five minutes, are signed once (the first signature counts) and are bound to the browser that
-  asked with the `team_k1` cookie (`HttpOnly`, `SameSite=Lax`, only for `/team/`): anybody can see a QR code, only that
-  browser gets its answer.
+  asked with the `__Host-team_k1` cookie (`HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, no `Domain`): anybody can see
+  a QR code, only that browser gets its answer. The `__Host-` name makes the browser refuse that cookie from anywhere
+  but this host: a site on a sibling subdomain cannot plant its own signed code in a team member's browser (cookie
+  tossing), have them scan it, and poll for the pass itself. A cookie of the old name, `team_k1`, is read by nothing.
+  `team_pass` keeps its name, which Caddy's rule matches: a subdomain could plant one, but only a pass signed with
+  `SECRET_KEY`, which it cannot make; planting its owner's own valid pass would only make the browser act as that key,
+  and the log would name it.
 - **Limits** in ten minutes, by address and three times as many by /48 network: 30 codes, 20 signatures, 30 invite
   pages, 600 polls. `/team/check/` has no counter: it is asked for every file of a page a team member opens, a counter
   would write to the database each time, and a forged pass is refused by its signature before the database is read.
@@ -152,7 +330,10 @@ The rest, for whoever reviews it:
   entry proxy, or turn `TEAM_ACCESS` off for a while and use `DEV_ALLOWED_IPS`.
 - **Only the addresses that exist.** From outside Caddy lets through the addresses listed
   [below](#for-your-own-under-construction-page), each written exactly, only with GET and only on the site's own
-  entrance. Any other address under `/team/` is the under-construction page, like the rest of the site.
+  entrance. Any other address under `/team/` is the under-construction page, like the rest of the site; the addresses
+  of [the volunteers' area](#the-volunteers-area) too, which a browser reaches with a valid pass, as it reaches every
+  other page, with any method (its changes are POSTs). On an open site Caddy lets everything through to Django, which
+  answers 404 to whoever the area is not for.
 - **Wallets are not robots.** The rule that refuses robots by their name (`Go-http-client`, `python-requests`…) lets
   `/team/auth/` through, as it does `/health/`: a wallet written in Go or in Python signs like any other.
 - **Headers.** Caddy sends the check the visitor's own headers. Django reads the cookie, `X-Entrance` and
@@ -160,7 +341,8 @@ The rest, for whoever reviews it:
   Another site block of `caddy.d` that sends to `web` must write `request_header X-Entrance onion`, as for the
   [private part of the pages](private-pages.md).
 - **Data**: the name the admin typed, the role and the wallet's linking key, which is a key made for this site alone.
-  No address, no email. See [privacy.md](../privacy.md#what-the-software-stores-where-and-for-how-long).
+  No address, no email. With the volunteers' area, the log of what they did there. See
+  [privacy.md](../privacy.md#what-the-software-stores-where-and-for-how-long).
 
 ## Checking it after a change
 
@@ -180,6 +362,9 @@ The tests of `team/` cover Django's side with real signatures. What Caddy does i
 - `/team/auth/` with `User-Agent: Go-http-client/2.0`: Django's JSON answer, not a 403;
 - `TEAM_ACCESS=off`: the under-construction page for `/team/login/` too, and for a request with the cookie, with no
   line in the log of `web`.
+- With `TEAM_AREA=on`: `/team/today/` and `POST /team/me/end/` without a cookie: the under-construction page (a 405
+  for the POST, from Caddy), no line in the log of `web`; with a moderator's valid cookie: the area, with a
+  `GET /team/check/` 204 before each in the log of `web`.
 
 ## For your own under-construction page
 
@@ -188,10 +373,10 @@ the first two; the wallet, Caddy and the invite's own page call the others.
 
 | Address | Who calls it | What it answers |
 |---|---|---|
-| `GET /team/login/` | your page | JSON: `svg` (the QR code as inline SVG), `lnurl` (the same code as text, for a `lightning:` link) and `poll` (the address to ask next). It sets the `team_k1` cookie |
+| `GET /team/login/` | your page | JSON: `svg` (the QR code as inline SVG), `lnurl` (the same code as text, for a `lightning:` link) and `poll` (the address to ask next). It sets the `__Host-team_k1` cookie |
 | `GET /team/login/<k1>/` | your page, every two seconds | JSON: `state` is `pending`, `ok`, `denied` (the wallet is not an active team key) or `expired` (five minutes passed, or this is not the browser the code was made for). With `ok` it sets the `team_pass` cookie: reload the page |
 | `/team/auth/` | the wallet | LNURL-auth's callback (LUD-04) |
-| `GET /team/poll/` | the invite's page | The same answer as the poll above, for the code the `team_k1` cookie names: an invite's code is never in an address |
+| `GET /team/poll/` | the invite's page | The same answer as the poll above, for the code the `__Host-team_k1` cookie names: an invite's code is never in an address |
 | `/team/check/` | Caddy | 204 with a valid pass, 401 without |
 | `GET /team/join.js` | the invite's page | Its script |
 | `/team/join/<token>/` | the invited person | The invite's page |

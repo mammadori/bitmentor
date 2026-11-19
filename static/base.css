@@ -228,6 +228,21 @@ blockquote { margin: 32px 0; padding: 0 0 0 20px; border-left: 4px solid var(--h
 .step-actions > a { display: inline-flex; align-items: center; min-height: 44px; }
 .step-tick { margin: 0; }
 .step-tick .button { padding: 9px 16px; background: var(--background); }
+/* The panel by stages (shops/stages.py): each shop's current step on top, the rest of the panel closed below */
+.stages { margin: 8px 0 20px; }
+.stages > h2 { margin: 0 0 8px; font-size: 1.2rem; }
+.stage-shop { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.stage-shop-name { margin: 0 0 4px; font-size: 1.1rem; }
+.stage-now { margin: 8px 0; padding: 4px 16px 12px; border-radius: var(--radius); background: var(--surface); }
+.stage-label { margin: 8px 0 0; color: var(--muted); font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.stage-step { margin: 4px 0; font-size: 1.15rem; }
+.stage-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+@media (max-width: 600px) { .stage-button { display: block; width: 100%; text-align: center; font-size: 1.15rem; } }
+.stage-rest { margin: 8px 0 0; }
+.stage-rest ul { margin: 6px 0; padding-left: 1.2em; }
+.stage-rest li { margin: 6px 0; }
+.everything { margin: 12px 0 20px; }
+.everything > summary { padding: 10px 0; font-weight: 700; cursor: pointer; }
 /* A shop moved from another site, waiting for its wallet */
 .moved { flex: 1 0 100%; }
 .moved h2 { margin: 4px 0 8px; font-size: 1.15rem; }

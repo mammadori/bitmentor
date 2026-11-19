@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% load i18n %}
+{# The volunteers' area (team/area.py): the site's own page, for a phone; never indexed, no referrer #}
+{% block page_meta %}<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+{% endblock %}
+{% block body_class %}page-team-area{% endblock %}
+{% block content %}
+<header class="page-head"><h1>{% translate "Volunteers' area" %}</h1>{% if key %}<p>{{ key.name }}</p>{% endif %}</header>
+{% if key %}<nav class="panel-actions" aria-label="{% translate "Volunteers' area" %}">
+  <a class="button{% if section != 'today' %} button-quiet{% endif %}" href="{% url 'team_today' %}"{% if section == 'today' %} aria-current="page"{% endif %}>{% translate "To do today" %}</a>
+  <a class="button{% if section != 'help' %} button-quiet{% endif %}" href="{% url 'team_help' %}"{% if section == 'help' %} aria-current="page"{% endif %}>{% translate "Requests for help" %}</a>
+  {% if key.approves %}<a class="button{% if section != 'shops' %} button-quiet{% endif %}" href="{% url 'team_shops' %}"{% if section == 'shops' %} aria-current="page"{% endif %}>{% translate "New shops" %}</a>
+  {% endif %}<a class="button{% if section != 'osm' %} button-quiet{% endif %}" href="{% url 'team_osm' %}"{% if section == 'osm' %} aria-current="page"{% endif %}>{% translate "OpenStreetMap requests" %}</a>
+  <a class="button{% if section != 'changes' %} button-quiet{% endif %}" href="{% url 'team_changes' %}"{% if section == 'changes' %} aria-current="page"{% endif %}>{% translate "Account changes" %}</a>
+  <a class="button{% if section != 'me' %} button-quiet{% endif %}" href="{% url 'team_me' %}"{% if section == 'me' %} aria-current="page"{% endif %}>{% translate "You" %}</a>
+</nav>{% endif %}
+{% block area %}{% endblock %}
+{% endblock %}

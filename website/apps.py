@@ -86,6 +86,15 @@ def wrong_onion_location(app_configs, **kwargs):
                                 "docker compose exec tor cat /var/lib/tor/site/hostname")]
 
 
+def wrong_settings_watch(app_configs, **kwargs):
+    """A name or a value written wrong in the `settings_watch` block: the watch stays on, and `manage.py check` and the
+    log of `web` say so. A warning, like the others."""
+    from .settings_watch import problems
+
+    return [checks.Warning(problem, hint="The block is documented in examples/community/community.yml", id="website.W013")
+            for problem in problems()]
+
+
 class WebsiteConfig(AppConfig):
     name = "website"
 
@@ -97,3 +106,4 @@ class WebsiteConfig(AppConfig):
         checks.register(skipped_customer_links)
         checks.register(wrong_onion_location)
         checks.register(wrong_osm_settings)
+        checks.register(wrong_settings_watch)

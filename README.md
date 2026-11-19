@@ -126,6 +126,12 @@ people there; check the law of your own country): read [Privacy and data protect
   - [Public and private parts of a page](docs/features/private-pages.md);
   - [Team access with a Lightning wallet](docs/features/team-access.md), optional: the team sees a site under
     construction from any address;
+  - [The volunteers' area](docs/features/team-access.md#the-volunteers-area), optional: a moderator's wallet key opens
+    the day's list, the requests for help and the new shops to approve, outside `/admin/`;
+  - [The panel by stages](docs/features/panel-stages.md): a new merchant sees one step and one button at a time;
+  - [A second factor for `/admin/`](docs/configuration.md#admin-and-access-log), optional: a passkey or a code from an
+    app, three levels chosen by whoever installs the site (the default is the password alone), and the moderators
+    told when a security setting changes ([The settings watch](docs/configuration.md#the-settings-watch));
   - [A training site in five minutes](docs/features/demo.md): `manage.py demo_data`, a made-up community in every state
     for the volunteers to learn on.
 - [Turning features off](docs/features/README.md#turning-features-off): the badge, closed shops, the practice register and the

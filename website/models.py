@@ -32,3 +32,24 @@ class BlossomRetired(models.Model):
     seen = models.DateTimeField()
     mirror = models.CharField(max_length=300, blank=True)
     checked = models.DateTimeField(null=True, blank=True)
+
+
+class WatchedSetting(models.Model):
+    """A security setting as the last start recorded it, or as the moderators were last told of it
+    (website/settings_watch.py). A secret setting keeps only a keyed fingerprint, never its value."""
+
+    name = models.CharField(max_length=100, unique=True)
+    secret = models.BooleanField(default=False, db_default=False)
+    # The value as JSON (text, a number, true/false or a list of texts); empty for a secret
+    value = models.TextField(blank=True, default="", db_default="")
+    # HMAC-SHA256 of a secret, hex; empty for a setting that is not secret, or a secret that is empty
+    fingerprint = models.CharField(max_length=64, blank=True, default="", db_default="")
+    recorded = models.DateTimeField()
+
+
+class SettingsWatch(models.Model):
+    """One row: which start is comparing the settings now (`claimed_until`: two containers that start together send
+    one message), and when the moderators were last told of a change."""
+
+    claimed_until = models.DateTimeField(null=True, blank=True)
+    told = models.DateTimeField(null=True, blank=True)

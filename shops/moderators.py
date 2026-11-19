@@ -94,8 +94,8 @@ def sync(apps=global_apps, using=DEFAULT_DB_ALIAS):
         before = set(group.permissions.values_list("content_type__app_label", "codename"))
         group.permissions.set(rights)
     if before - found:
-        # Somebody gave the group more than the work asks: it is taken away, and the log says so. At ERROR, the only level
-        # the site's logging lets through (settings.LOGGING): a warning would never be seen
+        # Somebody gave the group more than the work asks: it is taken away, and the log says so, as an error: it is
+        # one for whoever runs the site
         logger.error("Rights taken away from the moderators' group, which are not on the list: %s",
                      ", ".join(f"{label}.{codename}" for label, codename in sorted(before - found)))
     return found

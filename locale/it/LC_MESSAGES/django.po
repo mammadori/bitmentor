@@ -4497,8 +4497,8 @@ msgstr "Cambio password"
 msgid "On-chain payments too"
 msgstr "Anche pagamenti on-chain"
 
-msgid "The chat number or @name where the site writes to you: account changes, help answers, the reopening after a closure. Up to three, separated by commas: each chat gets its own copy."
-msgstr "Il numero della chat o il @nome dove il sito ti scrive: modifiche all'account, risposte alle richieste di aiuto, la riapertura dopo una chiusura. Fino a tre, separati da virgole: ogni chat riceve la sua copia."
+msgid "The chat number or @name where the site writes to you: account changes, a Lightning address that stops working, help answers, the reopening after a closure. Up to three, separated by commas: each chat gets its own copy."
+msgstr "Il numero della chat o il @nome dove il sito ti scrive: modifiche all'account, un indirizzo Lightning che smette di funzionare, risposte alle richieste di aiuto, la riapertura dopo una chiusura. Fino a tre, separati da virgole: ogni chat riceve la sua copia."
 
 msgid "This chat cannot receive the site's messages."
 msgstr "Questa chat non può ricevere i messaggi del sito."
@@ -5212,6 +5212,7 @@ msgstr "Il suo indirizzo Lightning è anche su un negozio di un altro titolare."
 
 msgid "Find out whose wallet it is: the other owner's shop must change its address. Until then the site certifies neither shop."
 msgstr "Scoprite di chi è il wallet: il negozio dell'altro titolare deve cambiare indirizzo. Fino ad allora il sito non certifica nessuno dei due."
+
 msgid "More than asked has arrived: {seen} of {sats}. It may be a payment for something else to the same address: look in your wallet, and confirm by hand only if it is this sale's."
 msgstr "È arrivato più del richiesto: {seen} su {sats}. Può essere un pagamento per altro allo stesso indirizzo: guarda nel tuo wallet, e conferma a mano solo se è di questa vendita."
 
@@ -5530,6 +5531,7 @@ msgstr "predefinito"
 
 msgid "set in community.yml"
 msgstr "impostato in community.yml"
+
 msgid "Quick start: {left} of {limit} left before the training."
 msgstr "Avvio rapido: restano {left} su {limit} prima della formazione."
 
@@ -5776,6 +5778,7 @@ msgstr "Il resto lo aggiungi quando vuoi: per creare il negozio non serve."
 
 msgid "Source code (AGPLv3)"
 msgstr "Codice sorgente (AGPLv3)"
+
 msgid "Training"
 msgstr "Formazione"
 
@@ -6443,3 +6446,905 @@ msgstr "Sulla mappa con un segnaposto suo, non tra i posti dove pagare. Cassa e 
 #, python-format
 msgid "On the map with its own pin, not among the places to pay. The register stopped on %(until)s, a year after closing."
 msgstr "Sulla mappa con un segnaposto suo, non tra i posti dove pagare. La cassa si è fermata il %(until)s, un anno dopo la chiusura."
+
+msgid "Log in"
+msgstr "Accedi"
+
+msgid "Second factor"
+msgstr "Secondo fattore"
+
+msgid "Code:"
+msgstr "Codice:"
+
+msgid "Confirm"
+msgstr "Conferma"
+
+msgid "Start again"
+msgstr "Ricomincia"
+
+msgid "Turn it off"
+msgstr "Disattivalo"
+
+msgid "Turn the second factor off"
+msgstr "Disattiva il secondo fattore"
+
+msgid "Turn the second factor on"
+msgstr "Attiva il secondo fattore"
+
+msgid "Too many wrong codes. Wait a little and try again."
+msgstr "Troppi codici sbagliati. Aspetta un po' e riprova."
+
+msgid "That code is not right, or it was already used. Type the code the app shows now. If it keeps failing, the clock of the phone may be wrong: set it to the network's time."
+msgstr "Il codice non è giusto, o è già stato usato. Scrivi il codice che l'app mostra adesso. Se continua a non funzionare, forse l'orologio del telefono è sbagliato: impostalo sull'ora della rete."
+
+#, python-format
+msgid "The password of %(name)s is right. Now type the code that your authenticator app shows for this site."
+msgstr "La password di %(name)s è giusta. Ora scrivi il codice che la tua app di autenticazione mostra per questo sito."
+
+#, python-format
+msgid "The second factor of your account is on since %(date)s: the sign-in asks for the password and then for a code from your authenticator app."
+msgstr "Il secondo fattore del tuo account è attivo dal %(date)s: l'accesso chiede la password e poi un codice della tua app di autenticazione."
+
+msgid "Lost the phone? Whoever runs the machine removes it with manage.py admin_totp reset and your name; then set it up again."
+msgstr "Hai perso il telefono? Chi gestisce la macchina toglie il secondo fattore con manage.py admin_totp reset e il tuo nome; poi impostalo di nuovo."
+
+msgid "This site asks every staff account for a second factor: set it up to go on."
+msgstr "Questo sito chiede un secondo fattore a ogni account dello staff: impostalo per andare avanti."
+
+msgid "A second factor asks, after the password, for a code that changes every 30 seconds, from an authenticator app on your phone (any app for TOTP codes). Whoever learns the password cannot sign in without the phone."
+msgstr "Un secondo fattore chiede, dopo la password, un codice che cambia ogni 30 secondi, da un'app di autenticazione sul tuo telefono (una qualsiasi app per codici TOTP). Chi scopre la password non può accedere senza il telefono."
+
+msgid "Open the authenticator app and add an account by scanning this code."
+msgstr "Apri l'app di autenticazione e aggiungi un account inquadrando questo codice."
+
+msgid "Type below the code the app shows, to confirm. Until then nothing changes."
+msgstr "Scrivi qui sotto il codice che mostra l'app, per confermare. Fino ad allora non cambia nulla."
+
+msgid "QR code of the second factor, for the authenticator app"
+msgstr "Codice QR del secondo fattore, per l'app di autenticazione"
+
+msgid "The QR code is drawn by the browser: turn JavaScript on, or type the key below into the app."
+msgstr "Il codice QR lo disegna il browser: attiva JavaScript, o scrivi nell'app la chiave qui sotto."
+
+msgid "Or type this key into the app (time-based, 6 digits, 30 seconds):"
+msgstr "Oppure scrivi questa chiave nell'app (basata sul tempo, 6 cifre, 30 secondi):"
+
+msgid "This key is shown only now. Do not keep a copy of it anywhere else than in the app."
+msgstr "Questa chiave è mostrata solo adesso. Non tenerne copie da nessuna parte se non nell'app."
+
+msgid "The second factor is off: the sign-in asks only for the password."
+msgstr "Il secondo fattore è disattivato: l'accesso chiede solo la password."
+
+msgid "The second factor is on: from the next sign-in, the password and then a code from the app."
+msgstr "Il secondo fattore è attivo: dal prossimo accesso, la password e poi un codice dell'app."
+
+msgid "The time to type the code ran out, or the account changed. Sign in again."
+msgstr "Il tempo per scrivere il codice è finito, o l'account è cambiato. Accedi di nuovo."
+
+msgid "second factor of the admin's sign-in"
+msgstr "secondo fattore dell'accesso all'amministrazione"
+
+msgid "The second factor of your account's sign-in to the administration was turned on, turned off or removed."
+msgstr "Il secondo fattore dell'accesso del tuo account all'amministrazione è stato attivato, disattivato o tolto."
+
+msgid "The staff account {name} turned its second factor on."
+msgstr "L'account dello staff {name} ha attivato il suo secondo fattore."
+
+msgid "The staff account {name} turned its second factor off."
+msgstr "L'account dello staff {name} ha disattivato il suo secondo fattore."
+
+msgid "The second factor of the staff account {name} was reset with manage.py admin_totp reset."
+msgstr "Il secondo fattore dell'account dello staff {name} è stato tolto con manage.py admin_totp reset."
+
+msgid "A wrong second-factor code after the right password for the staff account {name}: its password may be known to someone else. Change it."
+msgstr "Un codice del secondo fattore sbagliato dopo la password giusta per l'account dello staff {name}: la sua password potrebbe essere nota a qualcun altro. Cambiala."
+
+msgid "After signing with the wallet, reload this page."
+msgstr "Dopo aver firmato con il wallet, ricarica questa pagina."
+
+msgid "Asked %(when)s, solved %(solved)s by %(who)s."
+msgstr "Chiesta %(when)s, risolta %(solved)s da %(who)s."
+
+msgid "Asked %(when)s."
+msgstr "Chiesta %(when)s."
+
+msgid "Call back:"
+msgstr "Da richiamare:"
+
+msgid "End this browser's pass"
+msgstr "Chiudi il lasciapassare di questo browser"
+
+msgid "For the volunteers who look after the shops. Scan the code with the Lightning wallet of your team key, or tap it if the wallet is on this phone."
+msgstr "Per i volontari che seguono i negozi. Inquadra il codice con il wallet Lightning della tua chiave della squadra, o toccalo se il wallet è su questo telefono."
+
+msgid "Lost a phone, or signed in where you should not have? Ask an administrator to end all the passes of your key."
+msgstr "Hai perso un telefono, o sei entrato dove non dovevi? Chiedi a un amministratore di chiudere tutti i lasciapassare della tua chiave."
+
+msgid "Name"
+msgstr "Nome"
+
+msgid "No request for help is waiting."
+msgstr "Nessuna richiesta di aiuto in attesa."
+
+msgid "Requests for help"
+msgstr "Richieste di aiuto"
+
+msgid "Role"
+msgstr "Ruolo"
+
+msgid "Scan a sign-in code only on a page you opened yourself: never one somebody else sends you, whatever they say. Your wallet would open this area for them."
+msgstr "Inquadra un codice di accesso solo su una pagina che hai aperto tu: mai uno che ti manda qualcun altro, qualunque cosa dica. Il tuo wallet aprirebbe quest'area a lui."
+
+msgid "Signed in. Opening the area…"
+msgstr "Accesso fatto. Apro l'area…"
+
+msgid "Solved in the last days"
+msgstr "Risolte negli ultimi giorni"
+
+msgid "The address is not shown here: whoever has the administration writes to it."
+msgstr "L'indirizzo non è mostrato qui: scrive chi ha l'amministrazione."
+
+msgid "The merchant sees «Solved» in their panel. Never ask a merchant for the secret words of their wallet, for a key or for a password."
+msgstr "Il commerciante vede «Risolta» nel suo pannello. Non chiedere mai a un commerciante le parole segrete del suo wallet, una chiave o una password."
+
+msgid "The requests for help"
+msgstr "Le richieste di aiuto"
+
+msgid "This browser is signed in with a team key whose role (%(role)s) does not open this area. Sign in with the wallet of a moderator's key."
+msgstr "Questo browser è entrato con una chiave della squadra il cui ruolo (%(role)s) non apre quest'area. Entra con il wallet di una chiave da moderatore."
+
+msgid "This browser's pass ends"
+msgstr "Il lasciapassare di questo browser scade"
+
+msgid "This wallet was not accepted."
+msgstr "Questo wallet non è stato accettato."
+
+msgid "Volunteers' area"
+msgstr "Area dei volontari"
+
+msgid "What the site knew when they asked"
+msgstr "Cosa sapeva il sito quando ha chiesto"
+
+msgid "You"
+msgstr "Tu"
+
+msgid "Your wallet's key opens this area: no password, no account. It is not a right in the administration, and nothing here changes a shop, an owner or an address."
+msgstr "La chiave del tuo wallet apre quest'area: niente password, niente account. Non è un diritto nell'amministrazione, e niente qui cambia un negozio, un titolare o un indirizzo."
+
+msgid "action"
+msgstr "azione"
+
+msgid "done to"
+msgstr "su cosa"
+
+msgid "ended the pass of a browser"
+msgstr "ha chiuso il lasciapassare di un browser"
+
+msgid "in the volunteers' area"
+msgstr "nell'area dei volontari"
+
+msgid "marked a request for help as solved"
+msgstr "ha segnato una richiesta di aiuto come risolta"
+
+msgid "marked a request for help as waiting again"
+msgstr "ha segnato una richiesta di aiuto di nuovo in attesa"
+
+msgid "volunteer's action"
+msgstr "azione di un volontario"
+
+msgid "volunteers' actions"
+msgstr "azioni dei volontari"
+
+msgid "{name} ({role}) signed in with their wallet in a new browser. If it was not them, revoke the key or end its passes:"
+msgstr "{name} ({role}) è entrato con il suo wallet in un nuovo browser. Se non è stato lui, revoca la chiave o chiudi i suoi lasciapassare:"
+
+msgid "{name} joined the team ({role}). The team's keys:"
+msgstr "{name} è entrato nella squadra ({role}). Le chiavi della squadra:"
+
+msgid "%(count)d action"
+msgid_plural "%(count)d actions"
+msgstr[0] "%(count)d azione"
+msgstr[1] "%(count)d azioni"
+
+msgid "Asked %(when)s, solved %(solved)s from the administration."
+msgstr "Chiesta %(when)s, risolta %(solved)s dall'amministrazione."
+
+msgid "%(when)s, from %(via)s, by %(who)s."
+msgstr "%(when)s, da %(via)s, da parte di %(who)s."
+
+msgid "%(when)s, from %(via)s."
+msgstr "%(when)s, da %(via)s."
+
+msgid "A new shop goes on the map and the lists only once somebody approves it. Its register works already. If you doubt, leave it waiting and tell an administrator."
+msgstr "Un negozio nuovo va sulla mappa e negli elenchi solo quando qualcuno lo approva. La sua cassa funziona già. Se hai dubbi, lascialo in attesa e avvisa un amministratore."
+
+msgid "A request that cannot be done is answered by an administrator, who writes the merchant why."
+msgstr "A una richiesta che non si può fare risponde un amministratore, che scrive al commerciante il perché."
+
+msgid "Account changes"
+msgstr "Modifiche agli account"
+
+msgid "Asked %(when)s, closed %(done)s by %(who)s."
+msgstr "Chiesta %(when)s, chiusa %(done)s da %(who)s."
+
+msgid "Asked %(when)s, closed %(done)s from the administration."
+msgstr "Chiesta %(when)s, chiusa %(done)s dall'amministrazione."
+
+msgid "Changes to the owners' accounts"
+msgstr "Modifiche agli account dei titolari"
+
+msgid "Closed in the last days"
+msgstr "Chiuse negli ultimi giorni"
+
+msgid "In the volunteers' area: approve the new shops that wait, except those that look like a copy of another shop."
+msgstr "Nell'area dei volontari: approvare i negozi nuovi in attesa, tranne quelli che sembrano la copia di un altro negozio."
+
+msgid "New shops"
+msgstr "Negozi nuovi"
+
+msgid "Newer"
+msgstr "Più recenti"
+
+msgid "No OpenStreetMap request is waiting."
+msgstr "Nessuna richiesta per OpenStreetMap in attesa."
+
+msgid "No change in the register."
+msgstr "Nessuna modifica nel registro."
+
+msgid "No new shop is waiting."
+msgstr "Nessun negozio nuovo in attesa."
+
+msgid "Not told:"
+msgstr "Non avvisati:"
+
+msgid "Older"
+msgstr "Meno recenti"
+
+msgid "Pages"
+msgstr "Pagine"
+
+msgid "The editor"
+msgstr "L'editor"
+
+msgid "The merchant asked the association to put the shop on OpenStreetMap, or to update its entry. You do it by hand on openstreetmap.org, with your own account, using the lines of the request: the site writes nothing there. Then mark it done: the merchant sees it in the panel."
+msgstr "Il commerciante ha chiesto all'associazione di mettere il negozio su OpenStreetMap, o di aggiornarne la scheda. Lo fai a mano su openstreetmap.org, con il tuo account, usando le righe della richiesta: il sito non scrive nulla lì. Poi segnala come fatta: il commerciante lo vede nel pannello."
+
+msgid "The shop's entry"
+msgstr "La scheda del negozio"
+
+msgid "This shop is not approved from here: an administrator looks at it and approves it from the administration."
+msgstr "Questo negozio non si approva da qui: lo guarda e lo approva un amministratore dall'amministrazione."
+
+msgid "Told:"
+msgstr "Avvisati:"
+
+msgid "What to write:"
+msgstr "Cosa scrivere:"
+
+msgid "What whoever runs the site changed in the accounts of shops' owners, newest first: a second pair of eyes on the people who can change them. It names who did it. If a change looks wrong, ask the merchant whether they expected it, and tell the association."
+msgstr "Cosa ha cambiato chi gestisce il sito negli account dei titolari dei negozi, dalle più recenti: un secondo paio d'occhi su chi può cambiarli. Dice chi l'ha fatto. Se una modifica sembra sbagliata, chiedi al commerciante se se l'aspettava, e avvisa l'associazione."
+
+msgid "Written %(when)s."
+msgstr "Scritto %(when)s."
+
+msgid "You do not approve new shops: an administrator can allow it on your key."
+msgstr "Non approvi negozi nuovi: un amministratore può permetterlo sulla tua chiave."
+
+msgid "You may approve new shops."
+msgstr "Puoi approvare i negozi nuovi."
+
+msgid "approved a new shop"
+msgstr "ha approvato un negozio nuovo"
+
+msgid "marked an OpenStreetMap request as done"
+msgstr "ha segnato come fatta una richiesta per OpenStreetMap"
+
+msgid "may approve new shops"
+msgstr "può approvare i negozi nuovi"
+
+msgid "In the volunteers' area: approve the new shops that wait, except those that look like a copy of another shop. Only staff who may approve shops can set it. On an invite, the link is worth this right: whoever opens it first and signs gets it. Send it by a channel you trust, delete the invite if it went astray, revoke the key if it was taken."
+msgstr "Nell'area dei volontari: approvare i negozi nuovi in attesa, tranne quelli che sembrano la copia di un altro negozio. Può impostarlo solo chi può approvare i negozi. Su un invito, il link vale questo diritto: chi lo apre per primo e firma lo ottiene. Mandalo per un canale fidato, cancella l'invito se è finito altrove, revoca la chiave se è stata presa da altri."
+
+msgid "Your wallet's key opens this area: no password, no account. It is not a right in the administration. Here it changes no owner, account or address, and it puts a new shop on the map only when you approve it."
+msgstr "La chiave del tuo wallet apre quest'area: niente password, niente account. Non è un diritto nell'amministrazione. Qui non cambia nessun titolare, account o indirizzo, e mette un negozio nuovo sulla mappa solo quando lo approvi."
+
+msgid "Test message"
+msgstr "Messaggio di prova"
+
+msgid "This is a test message from the site, sent with manage.py notify_test. If you read it, the messages for the people who look after the site reach you here. There is nothing to do."
+msgstr "Questo è un messaggio di prova del sito, mandato con manage.py notify_test. Se lo leggi, i messaggi per chi si occupa del sito ti arrivano qui. Non c'è niente da fare."
+
+msgid "Your panel says what to do."
+msgstr "Il tuo pannello dice cosa fare."
+
+msgid "{shop} is on the map"
+msgstr "{shop} è sulla mappa"
+
+msgid "{shop} is approved"
+msgstr "{shop} è stato approvato"
+
+msgid "Good news: the community approved {shop}. It is on the map now, and in the lists."
+msgstr "Buone notizie: la comunità ha approvato {shop}. Adesso è sulla mappa e negli elenchi."
+
+msgid "Good news: the community approved {shop}."
+msgstr "Buone notizie: la comunità ha approvato {shop}."
+
+msgid "Its page, the one customers see: {link}"
+msgstr "La sua pagina, quella che vedono i clienti: {link}"
+
+msgid "You can print the sign now: its QR code opens that page. You find it in your panel, together with the card for the till."
+msgstr "Ora puoi stampare il cartello: il suo codice QR apre quella pagina. Lo trovi nel tuo pannello, insieme alla scheda per la cassa."
+
+msgid "Try it: open the register and pay yourself a small amount from another phone. The sign to print comes once the community has approved the shop."
+msgstr "Provalo: apri la cassa e pagati una piccola somma con un altro telefono. Il cartello da stampare arriva quando la comunità avrà approvato il negozio."
+
+msgid "The sign and the card for customers come once the community has approved the shop. You will hear from us then, if your account has an email or the shop a Telegram chat."
+msgstr "Il cartello e la scheda per i clienti arrivano quando la comunità avrà approvato il negozio. Te lo diremo allora, se il tuo account ha un'email o il negozio una chat Telegram."
+
+msgid "Wait for the community to approve the shop: then print the sign for the door or the counter. The card for whoever stands at the till you can print now."
+msgstr "Aspetta che la comunità approvi il negozio: poi stampa il cartello per la porta o il banco. La scheda per chi sta alla cassa puoi stamparla subito."
+
+msgid "Try the register and give it to whoever works with you; print the sign once the community has approved the shop. The steps are here below."
+msgstr "Prova la cassa e dalla a chi lavora con te; stampa il cartello quando la comunità avrà approvato il negozio. I passi sono qui sotto."
+
+msgid "The sign of %(name)s"
+msgstr "Il cartello di %(name)s"
+
+msgid "The community looks at every new shop before it goes on the map. The codes of the sign and of the card for customers open pages that show how to pay only once the shop is approved: both come then. You will hear from us, if your account has an email or the shop a Telegram chat."
+msgstr "La comunità guarda ogni negozio nuovo prima di metterlo in mappa. I codici del cartello e della scheda per i clienti aprono pagine che mostrano come pagare solo quando il negozio è approvato: arrivano entrambi allora. Te lo diremo, se il tuo account ha un'email o il negozio una chat Telegram."
+
+msgid "The register already works, and so does the card for the till."
+msgstr "La cassa funziona già, e anche la scheda per la cassa."
+
+msgid "More, whenever you like"
+msgstr "Altro, quando vuoi"
+
+msgid "On-chain payments: in the register's settings"
+msgstr "Pagamenti on-chain: nelle impostazioni della cassa"
+
+msgid "Encrypted copies of the register on Nostr: in the register's settings"
+msgstr "Copie cifrate della cassa su Nostr: nelle impostazioni della cassa"
+
+msgid "A discount for whoever pays in bitcoin"
+msgstr "Uno sconto per chi paga in bitcoin"
+
+msgid "Now: %(title)s"
+msgstr "Adesso: %(title)s"
+
+msgid "Your Lightning address does not answer"
+msgstr "Il tuo indirizzo Lightning non risponde"
+
+msgid "The message above says what to do. Until it works, customers cannot pay you with Lightning."
+msgstr "Il messaggio qui sopra dice cosa fare. Finché non funziona, i clienti non possono pagarti con Lightning."
+
+msgid "The register asks your wallet for each payment: the money goes straight to you, never through this site."
+msgstr "La cassa chiede al tuo wallet ogni pagamento: i soldi arrivano direttamente a te, mai attraverso questo sito."
+
+msgid "Practise first without money if you like. Then open the register and pay yourself a small amount from another phone, as a customer would. When it says it is paid, mark it done here."
+msgstr "Se vuoi, prova prima senza soldi. Poi apri la cassa e pagati una piccola somma con un altro telefono, come farebbe un cliente. Quando dice che è pagato, segnalo fatto qui."
+
+msgid "Open the register and pay yourself a small amount from another phone, as a customer would. When it says it is paid, mark it done here."
+msgstr "Apri la cassa e pagati una piccola somma con un altro telefono, come farebbe un cliente. Quando dice che è pagato, segnalo fatto qui."
+
+msgid "Take your first payments"
+msgstr "Incassa i primi pagamenti"
+
+msgid "When a customer wants to pay in bitcoin, open the register. The sales stay on your phone, in the register's history."
+msgstr "Quando un cliente vuole pagare in bitcoin, apri la cassa. Le vendite restano sul tuo telefono, nella cronologia della cassa."
+
+msgid "Until you have the basic pass, the register takes payments up to %(amount)s in total: it adds up the payments taken on the phone, and then asks for the pass."
+msgstr "Finché non hai il patentino base, la cassa incassa pagamenti fino a %(amount)s in tutto: somma i pagamenti incassati sul telefono, e poi chiede il patentino."
+
+msgid "Meanwhile, the basic pass: a few minutes"
+msgstr "Intanto, il patentino base: pochi minuti"
+
+msgid "Get the basic pass"
+msgstr "Prendi il patentino base"
+
+msgid "The register waits for your basic pass: until you have it, it takes no real payments."
+msgstr "La cassa aspetta il tuo patentino base: finché non ce l'hai, non incassa pagamenti veri."
+
+msgid "Next: %(title)s."
+msgstr "Il prossimo: %(title)s."
+
+msgid "Print the sign"
+msgstr "Stampa il cartello"
+
+msgid "Your page on the map"
+msgstr "La tua pagina sulla mappa"
+
+msgid "At the end of the day, close it from the register's menu: you get the day's total and the file for your accountant, all on your phone. Someone works with you? Give them a register of their own."
+msgstr "A fine giornata, chiudila dal menu della cassa: hai il totale del giorno e il file per il tuo commercialista, tutto sul telefono. Qualcuno lavora con te? Dagli una cassa sua."
+
+msgid "Go further with the training"
+msgstr "Vai avanti con la formazione"
+
+msgid "The other modules of the training and the badges, whenever you like."
+msgstr "Gli altri moduli della formazione e i distintivi, quando vuoi."
+
+msgid "Everything, if you want"
+msgstr "Tutto, se vuoi"
+
+msgid "The shop and the wallet"
+msgstr "Il negozio e il wallet"
+
+msgid "The trial"
+msgstr "La prova"
+
+msgid "The first takings"
+msgstr "I primi incassi"
+
+msgid "The basic pass"
+msgstr "Il patentino base"
+
+msgid "The routine"
+msgstr "La routine"
+
+msgid "Going further"
+msgstr "Andare oltre"
+
+msgid "It goes on the map as soon as you add the wallet where the money arrives: your panel shows how."
+msgstr "Va sulla mappa appena aggiungi il wallet dove arrivano i soldi: il tuo pannello ti dice come."
+
+msgid "It goes on the map as soon as its position is in its details: you can add it from your panel."
+msgstr "Va sulla mappa appena la sua posizione è nei suoi dati: puoi aggiungerla dal tuo pannello."
+
+msgid "The card for customers of %(name)s"
+msgstr "La scheda per i clienti di %(name)s"
+
+msgid "A few short modules, a few minutes. Meanwhile the practice register works."
+msgstr "Pochi moduli brevi, pochi minuti. Intanto la cassa di prova funziona."
+
+msgid "On this phone, {left} of it is still left."
+msgstr "Su questo telefono ne restano ancora {left}."
+
+msgid "On this phone it is used up: the register now asks for the basic pass."
+msgstr "Su questo telefono è esaurito: ora la cassa chiede il patentino base."
+
+msgid "set aside on"
+msgstr "messo da parte il"
+
+msgid "set aside by"
+msgstr "messo da parte da"
+
+msgid "set aside"
+msgstr "messo da parte"
+
+msgid "Set aside: not for the map"
+msgstr "Messo da parte: non per la mappa"
+
+msgid "Not set aside"
+msgstr "Non messo da parte"
+
+msgid "Put back among the waiting shops"
+msgstr "Rimetti tra i negozi in attesa"
+
+#, python-format
+msgid "%(name)s waits for an approval again: it is on the list of the day."
+msgstr "%(name)s aspetta di nuovo un'approvazione: è nella lista del giorno."
+
+#, python-format
+msgid "%(name)s was not set aside."
+msgstr "%(name)s non era stato messo da parte."
+
+#, python-format
+msgid "%(name)s is set aside: it stays off the map and is not asked about again. Its page in the admin puts it back among the waiting shops."
+msgstr "%(name)s è messo da parte: resta fuori dalla mappa e non viene più chiesto. La sua pagina nell'amministrazione lo rimette tra i negozi in attesa."
+
+#, python-format
+msgid "%(name)s was already set aside."
+msgstr "%(name)s era già stato messo da parte."
+
+msgid "Not for the map: set aside"
+msgstr "Non per la mappa: metti da parte"
+
+#, python-format
+msgid "The community set this shop aside: it will not go on the map. If that is not right, write to <a href=\"mailto:%(email)s\">%(email)s</a>."
+msgstr "La comunità ha messo da parte questo negozio: non andrà sulla mappa. Se non è giusto, scrivi a <a href=\"mailto:%(email)s\">%(email)s</a>."
+
+msgid "The sign and the card for customers are only for shops on the map, and the community set this one aside."
+msgstr "Il cartello e la scheda per i clienti senza wallet sono solo per i negozi sulla mappa, e la comunità ha messo da parte questo."
+
+msgid "The sign is only for shops on the map. The card for whoever stands at the till you can print now."
+msgstr "Il cartello è solo per i negozi sulla mappa. La scheda per la cassa puoi stamparla ora."
+
+msgid "Try the register and give it to whoever works with you; the sign is only for shops on the map. The steps are here below."
+msgstr "Prova la cassa e dalla a chi lavora con te; il cartello è solo per i negozi sulla mappa. I passi sono qui sotto."
+
+msgid "The community set your shop aside: it will not go on the map. The register still works."
+msgstr "La comunità ha messo da parte il tuo negozio: non andrà sulla mappa. La cassa funziona comunque."
+
+#, python-format
+msgid "%(when)s, by %(who)s: not for the map"
+msgstr "%(when)s, da %(who)s: non per la mappa"
+
+#, python-format
+msgid "The owner stopped half-way through the basic pass of the training: %(shops)s."
+msgstr "Il titolare si è fermato a metà del patentino base: %(shops)s."
+
+#, python-format
+msgid "Call them: in their panel «Your merchant pass» goes on from where they stopped, the step «%(step)s». Without the basic pass their register will wait for it."
+msgstr "Chiamalo: nel suo pannello «Il tuo patentino» riprende da dove si è fermato, il passo «%(step)s». Senza il patentino base la sua cassa lo aspetterà."
+
+#, python-format
+msgid "The real register waits for the owner's basic pass of the training: %(shops)s."
+msgstr "La cassa vera aspetta il patentino base del titolare: %(shops)s."
+
+msgid "Call them: their register waits for the basic pass, and «Your merchant pass» in their panel says what is left."
+msgstr "Chiamalo: la sua cassa aspetta il patentino base, e «Il tuo patentino» nel suo pannello dice cosa manca."
+
+#, python-format
+msgid "Call them: in their panel «Your merchant pass» goes on from where they stopped, the step «%(step)s». Until the basic pass their register takes only the quick start, then waits; the practice register works meanwhile."
+msgstr "Chiamalo: nel suo pannello «Il tuo patentino» riprende da dove si è fermato, il passo «%(step)s». Fino al patentino base la sua cassa incassa solo l'avvio rapido, poi aspetta; intanto la cassa di prova funziona."
+
+#, python-format
+msgid "Call them: in their panel «Your merchant pass» goes on from where they stopped, the step «%(step)s». Until the basic pass their register says «The register opens soon» and takes no new sale; the practice register works meanwhile."
+msgstr "Chiamalo: nel suo pannello «Il tuo patentino» riprende da dove si è fermato, il passo «%(step)s». Fino al patentino base la sua cassa dice «La cassa si apre presto» e non prende vendite nuove; intanto la cassa di prova funziona."
+
+msgid "Something about the registers of the staff: whoever has the administration sees it."
+msgstr "C'è qualcosa sulle casse di chi lavora con il commerciante: lo vede chi ha l'amministrazione."
+
+msgid "Too many tries. Wait a little and try again."
+msgstr "Troppi tentativi. Aspetta un po' e riprova."
+
+msgid "The passkey was not accepted. Try again, with a passkey you added to this account on this site."
+msgstr "La passkey non è stata accettata. Riprova, con una passkey che hai aggiunto a questo account su questo sito."
+
+#, python-format
+msgid "The password of %(name)s is right. Now confirm with your passkey."
+msgstr "La password di %(name)s è giusta. Ora conferma con la tua passkey."
+
+msgid "Use a passkey"
+msgstr "Usa una passkey"
+
+msgid "This browser cannot use passkeys."
+msgstr "Questo browser non sa usare le passkey."
+
+msgid "Type the code from the app below."
+msgstr "Scrivi qui sotto il codice dell'app."
+
+msgid "Passkeys need JavaScript: turn it on."
+msgstr "Le passkey hanno bisogno di JavaScript: attivalo."
+
+msgid "Or type the code from the app below."
+msgstr "Oppure scrivi qui sotto il codice dell'app."
+
+#, python-format
+msgid "Passkeys work only at %(url)s, not at this address."
+msgstr "Le passkey funzionano solo su %(url)s, non a questo indirizzo."
+
+msgid "The browser did not use a passkey, or it was cancelled."
+msgstr "Il browser non ha usato una passkey, oppure è stato annullato."
+
+msgid "This site asks every staff account for a passkey: add one to go on."
+msgstr "Questo sito chiede una passkey a ogni account dello staff: aggiungine una per andare avanti."
+
+msgid "This is the last second factor of your account that this site accepts, and the site requires one: add another before you remove it."
+msgstr "È l'ultimo secondo fattore del tuo account che questo sito accetta, e il sito ne chiede uno: aggiungine un altro prima di toglierlo."
+
+msgid "The passkey was not added: the time ran out, it is already on this site, or the browser's answer was not valid. Try again."
+msgstr "La passkey non è stata aggiunta: il tempo è scaduto, è già su questo sito, oppure la risposta del browser non era valida. Riprova."
+
+msgid "Passkeys"
+msgstr "Passkey"
+
+msgid "A passkey is made by your phone, your computer or a security key, and signs in only on this site: a fake page that copies this one gets nothing from it. The site keeps only its public key."
+msgstr "Una passkey la crea il telefono, il computer o una chiave di sicurezza, e firma l'accesso solo su questo sito: una pagina falsa che copia questa non ne ricava niente. Il sito tiene solo la sua chiave pubblica."
+
+msgid "This site accepts only passkeys. Add at least two, on two different devices (a phone and a security key, for example): if one is lost, the other still signs in."
+msgstr "Questo sito accetta solo passkey. Aggiungine almeno due, su due dispositivi diversi (per esempio un telefono e una chiave di sicurezza): se ne perdi uno, l'altro ti fa ancora entrare."
+
+msgid "Added"
+msgstr "Aggiunta"
+
+msgid "Last used"
+msgstr "Ultimo uso"
+
+msgid "Where it lives"
+msgstr "Dove si trova"
+
+msgid "Passkey"
+msgstr "Passkey"
+
+msgid "never"
+msgstr "mai"
+
+msgid "synced"
+msgstr "sincronizzata"
+
+msgid "on this device only"
+msgstr "solo su questo dispositivo"
+
+msgid "New name"
+msgstr "Nuovo nome"
+
+msgid "Your account has no passkey yet."
+msgstr "Il tuo account non ha ancora una passkey."
+
+msgid "The browser did not make the passkey, or it was cancelled."
+msgstr "Il browser non ha creato la passkey, oppure è stato annullato."
+
+msgid "Add a passkey"
+msgstr "Aggiungi una passkey"
+
+msgid "Its name:"
+msgstr "Il suo nome:"
+
+msgid "phone, key on my keyring"
+msgstr "telefono, chiave nel portachiavi"
+
+msgid "The code from an app below works in every browser."
+msgstr "Il codice di un'app, qui sotto, funziona in ogni browser."
+
+msgid "The code from an app below works without it."
+msgstr "Il codice di un'app, qui sotto, funziona anche senza."
+
+msgid "Lost a phone or a key? Remove its passkey here from another one. Lost them all? Whoever runs the machine removes them with manage.py admin_passkey reset and your name."
+msgstr "Hai perso un telefono o una chiave? Togli qui la sua passkey, entrando con un'altra. Le hai perse tutte? Chi gestisce la macchina le toglie con manage.py admin_passkey reset e il tuo nome."
+
+msgid "Code from an app"
+msgstr "Codice di un'app"
+
+msgid "This site accepts only passkeys: the code from the app is neither asked for nor accepted."
+msgstr "Questo sito accetta solo passkey: il codice dell'app non viene né chiesto né accettato."
+
+msgid "This site accepts only passkeys: a code from an app cannot be set up."
+msgstr "Questo sito accetta solo passkey: non si può impostare il codice di un'app."
+
+msgid "The staff account {name} added a passkey."
+msgstr "L'account dello staff {name} ha aggiunto una passkey."
+
+msgid "The staff account {name} removed a passkey."
+msgstr "L'account dello staff {name} ha tolto una passkey."
+
+msgid "The passkeys of the staff account {name} were removed with manage.py admin_passkey reset."
+msgstr "Le passkey dell'account dello staff {name} sono state tolte con manage.py admin_passkey reset."
+
+msgid "A passkey of the staff account {name} signed with a count that did not grow: it may have been copied. The sign-in was refused. Remove that passkey from the account, and check who else may have it."
+msgstr "Una passkey dell'account dello staff {name} ha firmato con un contatore che non è cresciuto: potrebbe essere stata copiata. L'accesso è stato rifiutato. Togli quella passkey dall'account, e verifica chi altro potrebbe averla."
+
+msgid "The passkey is added: from the next sign-in, the password and then the passkey."
+msgstr "La passkey è aggiunta: dal prossimo accesso, la password e poi la passkey."
+
+msgid "The passkey is removed."
+msgstr "La passkey è tolta."
+
+msgid "The code from the app is off."
+msgstr "Il codice dell'app è disattivato."
+
+msgid "Use a wallet with a different Lightning address, or write to {email}."
+msgstr "Usa un wallet con un altro indirizzo Lightning, oppure scrivi a {email}."
+
+msgid "Phoenix addresses, the ones with the ₿ sign, cannot be used here."
+msgstr "Gli indirizzi di Phoenix, quelli col simbolo ₿, qui non si possono usare."
+
+msgid "{provider} does not answer right now: check what you wrote after the @ and try again in a minute."
+msgstr "{provider} in questo momento non risponde: controlla quello che hai scritto dopo la @ e riprova fra un minuto."
+
+msgid "{provider} answers, but it knows no such address: check what you wrote before the @."
+msgstr "{provider} risponde, ma non conosce questo indirizzo: controlla quello che hai scritto prima della @."
+
+msgid "{provider} answers, but not as a Lightning address does (LNURL-pay, LUD-16): check the address in your wallet, under Receive."
+msgstr "{provider} risponde, ma non come fa un indirizzo Lightning (LNURL-pay, LUD-16): controlla l'indirizzo nel tuo wallet, alla voce Ricevi."
+
+msgid "{provider} has its invoices made by another site, and the register asks only the address's own: this wallet cannot be used with the register."
+msgstr "{provider} fa fare le sue fatture a un altro sito, e la cassa chiede solo a quello dell'indirizzo: questo wallet non si può usare con la cassa."
+
+msgid "{provider} knows this address but gives no invoice for it: check in your wallet that it can receive, and try again."
+msgstr "{provider} conosce questo indirizzo ma non dà una fattura: controlla nel tuo wallet che possa ricevere, e riprova."
+
+msgid "This address can receive, but {provider} does not tell the register when a payment arrives: it does not support LUD-21 (verify)."
+msgstr "Questo indirizzo può ricevere, ma {provider} non dice alla cassa quando arriva un pagamento: non supporta LUD-21 (verify)."
+
+msgid "This address can receive, but {provider} does not tell the register when a payment arrives: its LUD-21 (verify) is on another site, which the register does not ask."
+msgstr "Questo indirizzo può ricevere, ma {provider} non dice alla cassa quando arriva un pagamento: il suo LUD-21 (verify) è su un altro sito, a cui la cassa non chiede."
+
+msgid "This address can receive, but {provider} does not tell the register when a payment arrives: its LUD-21 (verify) does not answer as the register needs."
+msgstr "Questo indirizzo può ricevere, ma {provider} non dice alla cassa quando arriva un pagamento: il suo LUD-21 (verify) non risponde come serve alla cassa."
+
+#, python-format
+msgid "The password of %(name)s is right. This site now signs in with passkeys only, and your account has none yet: type the code from your app this once. It opens only the page where you add a passkey."
+msgstr "La password di %(name)s è giusta. Questo sito ora fa entrare solo con le passkey, e il tuo account non ne ha ancora: scrivi il codice della tua app, questa volta. Apre solo la pagina dove aggiungi una passkey."
+
+msgid "You signed in with the code from the app only to add a passkey: add one now. Until then this is the only page you reach."
+msgstr "Sei entrato con il codice dell'app solo per aggiungere una passkey: aggiungine una ora. Fino ad allora questa è l'unica pagina che raggiungi."
+
+msgid "A session opened with the code only to add a passkey cannot turn the code off."
+msgstr "Una sessione aperta con il codice solo per aggiungere una passkey non può disattivare il codice."
+
+msgid "A refused passkey after the right password for the staff account {name}: its password may be known to someone else. Change it."
+msgstr "Una passkey rifiutata dopo la password giusta per l'account dello staff {name}: la sua password potrebbe essere nota a qualcun altro. Cambiala."
+
+msgid "(empty)"
+msgstr "(vuoto)"
+
+msgid "{name}: set"
+msgstr "{name}: impostato"
+
+msgid "{name}: removed"
+msgstr "{name}: tolto"
+
+msgid "{name}: changed"
+msgstr "{name}: cambiato"
+
+msgid "lowered"
+msgstr "abbassato"
+
+msgid "Security settings changed since the previous start of the site ({time}):"
+msgstr "Impostazioni di sicurezza cambiate dall'avvio precedente del sito ({time}):"
+
+msgid "The other secrets cannot be compared this time, because SECRET_KEY changed: they are recorded again."
+msgstr "Gli altri segreti questa volta non si possono confrontare, perché SECRET_KEY è cambiata: vengono registrati di nuovo."
+
+msgid "If nobody of the team did this, look at the machine's .env."
+msgstr "Se nessuno della squadra l'ha fatto, controlla il .env della macchina."
+
+msgid "Settings changed"
+msgstr "Impostazioni cambiate"
+
+msgid "A Lightning wallet linked here opens /admin/ for your account by itself, in place of the password: one step, not two. Whoever holds your unlocked phone with that wallet has your /admin/, as whoever knows your password has. The password keeps working."
+msgstr "Un wallet Lightning collegato qui apre da solo /admin/ per il tuo account, al posto della password: un passaggio, non due. Chi ha in mano il tuo telefono sbloccato con quel wallet ha il tuo /admin/, come chi conosce la tua password. La password continua a funzionare."
+
+#, python-format
+msgid "A wallet signed with the key %(key)s. If it is yours, give it a name and link it."
+msgstr "Un wallet ha firmato con la chiave %(key)s. Se è tuo, dagli un nome e collegalo."
+
+msgid "A wallet that signs in to the administration was linked to your account, or removed from it."
+msgstr "Un wallet che accede all'amministrazione è stato collegato al tuo account, o tolto."
+
+msgid "Code to link a wallet to your account"
+msgstr "Codice per collegare un wallet al tuo account"
+
+msgid "Code to sign in to the administration with your wallet"
+msgstr "Codice per accedere all'amministrazione con il tuo wallet"
+
+msgid "It is not mine: cancel"
+msgstr "Non è mio: annulla"
+
+msgid "Link a wallet"
+msgstr "Collega un wallet"
+
+msgid "Link the wallet"
+msgstr "Collega il wallet"
+
+msgid "Link this wallet"
+msgstr "Collega questo wallet"
+
+msgid "Lost the phone? Remove its wallet here, from another way in; or whoever runs the machine removes them all with manage.py admin_wallet reset and your name."
+msgstr "Hai perso il telefono? Togli qui il suo wallet, entrando in un altro modo; oppure chi gestisce la macchina li toglie tutti con manage.py admin_wallet reset e il tuo nome."
+
+msgid "Once the wallet has signed, load this page again to confirm it."
+msgstr "Quando il wallet ha firmato, ricarica questa pagina per confermarlo."
+
+msgid "Scan this code with the wallet you linked to your staff account, or tap it on the phone that has the wallet: this page goes on by itself."
+msgstr "Scansiona questo codice con il wallet che hai collegato al tuo account dello staff, o toccalo sul telefono che ha il wallet: questa pagina va avanti da sola."
+
+msgid "Scan this code with the wallet, or tap it on the phone that has it: this page goes on by itself, and then asks you to confirm."
+msgstr "Scansiona questo codice con il wallet, o toccalo sul telefono che lo ha: questa pagina va avanti da sola, e poi ti chiede di confermare."
+
+msgid "Sign in with a wallet"
+msgstr "Accedi con un wallet"
+
+msgid "Sign in with the password"
+msgstr "Accedi con la password"
+
+msgid "Sign in with your wallet"
+msgstr "Accedi con il tuo wallet"
+
+msgid "The code ran out of time. Load the page again for a new one."
+msgstr "Il codice è scaduto. Ricarica la pagina per averne uno nuovo."
+
+msgid "The staff account {name} linked a wallet that signs in to /admin/."
+msgstr "L'account dello staff {name} ha collegato un wallet che accede a /admin/."
+
+msgid "The staff account {name} removed a wallet that signed in to /admin/."
+msgstr "L'account dello staff {name} ha tolto un wallet che accedeva a /admin/."
+
+msgid "The wallet is linked to your account."
+msgstr "Il wallet è collegato al tuo account."
+
+msgid "The wallet is removed: it no longer signs in to /admin/."
+msgstr "Il wallet è stato tolto: non accede più a /admin/."
+
+#, python-format
+msgid "The wallet signs in only at %(url)s, not at this address."
+msgstr "Il wallet accede solo da %(url)s, non da questo indirizzo."
+
+msgid "The wallet's signature is no longer valid: scan the new code."
+msgstr "La firma del wallet non è più valida: scansiona il nuovo codice."
+
+msgid "The wallets of the staff account {name} were removed with manage.py admin_wallet reset."
+msgstr "I wallet dell'account dello staff {name} sono stati tolti con manage.py admin_wallet reset."
+
+msgid "This page needs JavaScript to go on by itself once the wallet has signed: turn it on, or sign in with the password."
+msgstr "Questa pagina ha bisogno di JavaScript per andare avanti da sola quando il wallet ha firmato: attivalo, o accedi con la password."
+
+#, python-format
+msgid "This site asks for more than one step (ADMIN_SECOND_FACTOR is %(mode)s): the wallets linked here do not sign in."
+msgstr "Questo sito chiede più di un passaggio (ADMIN_SECOND_FACTOR è %(mode)s): i wallet collegati qui non accedono."
+
+msgid "This wallet cannot be linked here: it already has another use on this site. Use another wallet, or another account in your wallet."
+msgstr "Questo wallet non si può collegare qui: ha già un altro uso su questo sito. Usa un altro wallet, o un altro account nel tuo wallet."
+
+msgid "This wallet cannot join the team here: it already has another use on this site. Use another wallet, or another account in your wallet."
+msgstr "Questo wallet non può entrare nella squadra qui: ha già un altro uso su questo sito. Usa un altro wallet, o un altro account nel tuo wallet."
+
+msgid "This wallet is already linked to your account."
+msgstr "Questo wallet è già collegato al tuo account."
+
+msgid "Use a wallet, or an account in your wallet, that is not the one of a shop or of the team on this site: a wallet gives this site the same key every time, and here one key has one role only."
+msgstr "Usa un wallet, o un account nel tuo wallet, che non sia quello di un negozio o della squadra su questo sito: un wallet dà a questo sito sempre la stessa chiave, e qui una chiave ha un solo ruolo."
+
+msgid "Wallet"
+msgstr "Wallet"
+
+msgid "Wallet sign-in"
+msgstr "Accesso con il wallet"
+
+#, python-format
+msgid "Wallets are linked only at %(url)s, not at this address."
+msgstr "I wallet si collegano solo da %(url)s, non da questo indirizzo."
+
+#, python-format
+msgid "Your account has %(limit)s wallets, the most it may have: remove one to link another."
+msgstr "Il tuo account ha %(limit)s wallet, il massimo: togline uno per collegarne un altro."
+
+msgid "Your account has a second factor: the wallets linked here do not sign in while it is on. Sign in with the password and the second factor."
+msgstr "Il tuo account ha un secondo fattore: finché è attivo, i wallet collegati qui non accedono. Accedi con la password e il secondo fattore."
+
+msgid "Your account has as many wallets as it may have: remove one first."
+msgstr "Il tuo account ha già tutti i wallet che può avere: prima togline uno."
+
+msgid "Your account has no wallet linked."
+msgstr "Il tuo account non ha wallet collegati."
+
+msgid "phone, test wallet"
+msgstr "telefono, wallet di prova"
+
+msgid "wallet of the admin's sign-in"
+msgstr "wallet dell'accesso all'amministrazione"
+
+msgid "{name}: removed: {removed}, added: {added}"
+msgstr "{name}: tolti: {removed}, aggiunti: {added}"
+
+msgid "{name}: the credentials in the address changed"
+msgstr "{name}: sono cambiate le credenziali nell'indirizzo"
+
+msgid "The settings watch was turned off in community.yml ({time}): the moderators no longer hear when a security setting changes."
+msgstr "Il controllo delle impostazioni è stato spento in community.yml ({time}): i moderatori non sapranno più quando cambia un'impostazione di sicurezza."
+
+msgid "If nobody of the team did this, look at community.yml on the machine."
+msgstr "Se nessuno della squadra l'ha fatto, controlla community.yml sulla macchina."
+
+msgid "Settings watch turned off"
+msgstr "Controllo delle impostazioni spento"
+
+msgid "The wallet opens the administration only in a browser where your account already signed in with its password, and only while that password stays the same. The first time on a browser, after a change of password, and for an account with a second factor, sign in with the password."
+msgstr "Il wallet apre l'amministrazione solo in un browser dove il tuo account è già entrato con la sua password, e solo finché quella password resta la stessa. La prima volta su un browser, dopo un cambio di password, e per un account con un secondo fattore, accedi con la password."
+
+msgid "The wallet does not open the administration in this browser. Sign in with the password."
+msgstr "Il wallet non apre l'amministrazione in questo browser. Accedi con la password."
+
+msgid "Approve in your wallet only a code you see on this page, which you opened yourself at this site's address: a wallet signs any code it is shown."
+msgstr "Approva nel tuo wallet solo un codice che vedi in questa pagina, aperta da te all'indirizzo di questo sito: un wallet firma qualunque codice gli venga mostrato."
+
+msgid "The wallet signs in only in a browser where your account already signed in with its password, and only while that password stays the same: after a change of password, use the new one once in each browser. Approve in your wallet only a code you opened yourself on this site: a wallet signs any code it is shown."
+msgstr "Il wallet accede solo in un browser dove il tuo account è già entrato con la sua password, e solo finché quella password resta la stessa: dopo un cambio di password, usa quella nuova una volta in ogni browser. Approva nel tuo wallet solo un codice che hai aperto tu su questo sito: un wallet firma qualunque codice gli venga mostrato."
+
+msgid "This session was opened with a wallet: sign in with the password to manage the wallets."
+msgstr "Questa sessione è stata aperta con un wallet: accedi con la password per gestire i wallet."
+
+msgid "Sign in with the password to manage the wallets."
+msgstr "Accedi con la password per gestire i wallet."
+
+msgid "If your own wallet reported an error, press cancel: someone else's wallet signed first."
+msgstr "Se il tuo wallet ha segnalato un errore, premi annulla: ha firmato prima il wallet di qualcun altro."
+
+msgid "Sign in with the password to add a second factor."
+msgstr "Entra con la password per aggiungere un secondo fattore."
+
+msgid "{name}: removed: {removed}, now empty"
+msgstr "{name}: tolti: {removed}, ora vuoto"
+
+msgid "This session was opened with a wallet: sign in with the password to set a password."
+msgstr "Questa sessione è stata aperta con un wallet: accedi con la password per impostare una password."
