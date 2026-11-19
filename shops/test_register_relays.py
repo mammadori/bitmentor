@@ -38,6 +38,28 @@ class Relays(SimpleTestCase):
             # a site without a domain name has no relay of its own
             self.assertIsNone(relay_url("/relay"))
 
+    def test_a_relay_of_the_community_on_a_name_under_the_site(self):
+        with self.settings(SITE_HOST="dev.example.org"):
+            self.assertEqual(relay_url("wss://relay.{site_host}", own=True), "wss://relay.dev.example.org")
+            self.assertEqual(relay_url(" wss://Relay.{site_host}/nostr/ ", own=True), "wss://relay.dev.example.org/nostr")
+            self.assertEqual(relay_url("wss://{site_host}/relay", own=True), "wss://dev.example.org/relay")
+            # only a relay of the community, only the end of the host, once, and still a wss address
+            self.assertIsNone(relay_url("wss://relay.{site_host}"))
+            for wrong in ("wss://{site_host}.evil.example.org", "wss://relay.example.org/{site_host}",
+                          "wss://{site_host}.{site_host}", "ws://relay.{site_host}", "wss://relay.{site_host}:444",
+                          "wss://relay.{site_host}?x=1", "wss://relay.{SITE_HOST}", "wss://relay.{site_host}@evil.example.org",
+                          "{site_host}", "//relay.{site_host}"):
+                self.assertIsNone(relay_url(wrong, own=True), wrong)
+        for host in ("localhost", "example.org:8443", "evil.example.org/x?"):
+            with self.settings(SITE_HOST=host):
+                self.assertIsNone(relay_url("wss://relay.{site_host}", own=True), host)
+        with self.settings(SITE_HOST="example.org"), with_register(
+                relays=["wss://relay.{site_host}", "/relay"], public_relays=["wss://nos.lol", "wss://pub.{site_host}"]):
+            self.assertEqual(relays(), {"relays": ["wss://relay.example.org", "wss://example.org/relay"],
+                                        "public_relays": ["wss://nos.lol"]})
+            self.assertEqual(relay_problems(), ["register.public_relays: 'wss://pub.{site_host}' is not a wss address of "
+                                                "a relay (wss://host/path): it is not used"])
+
     def test_the_community_relays_and_the_public_ones(self):
         self.assertEqual(relays(), {"relays": [], "public_relays": []})
         with with_register(relays="wss://ours.example.org", public_relays=["wss://nos.lol", "wss://ours.example.org/",

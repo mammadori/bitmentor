@@ -166,14 +166,29 @@ def explorer_problems():
             "not used" for value in values if not explorer_url(value)]
 
 
-def relay_url(value):
+SITE_HOST_MARK = "{site_host}"
+
+
+def relay_url(value, own=False):
     """A well-written relay (wss, a domain name, a plain path, no port, query or fragment) without the final slash, or
     None. It ends up in a header too. A path alone, `/relay`, is a relay of the site itself: wss://SITE_HOST/relay, so
-    one community.yml serves a development site and the real one."""
+    one community.yml serves a development site and the real one. For the same reason one of the community's own
+    relays (`own`) may have `{site_host}` in its host, replaced with SITE_HOST: `wss://relay.{site_host}` is
+    wss://relay.dev.example.org on a development site and wss://relay.example.org on the real one. Only there: a public
+    relay is never a name of the site."""
     if not isinstance(value, str):
         return None
-    if value.strip().startswith("/") and not value.strip().startswith("//"):
-        value = f"wss://{settings.SITE_HOST}{value.strip()}"
+    value = value.strip()
+    if value.startswith("/") and not value.startswith("//"):
+        value = f"wss://{settings.SITE_HOST}{value}"
+    elif SITE_HOST_MARK in value:
+        scheme, _, rest = value.partition("://")
+        host, slash, path = rest.partition("/")
+        # A site without a domain name (localhost) has no names under it either
+        if (not own or value.count(SITE_HOST_MARK) != 1 or not host.endswith(SITE_HOST_MARK)
+                or not DOMAIN.match(settings.SITE_HOST)):
+            return None
+        value = f"{scheme}://{host.replace(SITE_HOST_MARK, settings.SITE_HOST)}{slash}{path}"
     found = weburl.parts(value, "wss")
     if found is None:
         return None
@@ -190,9 +205,13 @@ def listed_relays(name):
     return [listed] if isinstance(listed, str) else listed if isinstance(listed, list) else []
 
 
+def own_relays():
+    return [relay_url(value, own=True) for value in listed_relays("relays")]
+
+
 def relays():
     """The community's relays and the public ones an owner may add, each at most MAX_RELAYS, without repeats."""
-    community_relays = list(dict.fromkeys(url for url in map(relay_url, listed_relays("relays")) if url))[:MAX_RELAYS]
+    community_relays = list(dict.fromkeys(url for url in own_relays() if url))[:MAX_RELAYS]
     public = [url for url in dict.fromkeys(map(relay_url, listed_relays("public_relays")))
               if url and url not in community_relays][:MAX_RELAYS]
     return {"relays": community_relays, "public_relays": public}
@@ -201,7 +220,8 @@ def relays():
 def relay_problems():
     """What `manage.py check` says of `register.relays` and `register.public_relays`: a value the register will not use."""
     return [f"register.{name}: {value!r} is not a wss address of a relay (wss://host/path): it is not used"
-            for name in ("relays", "public_relays") for value in listed_relays(name) if not relay_url(value)]
+            for name in ("relays", "public_relays") for value in listed_relays(name)
+            if not relay_url(value, own=name == "relays")]
 
 
 def number(data, name, default, least, most):

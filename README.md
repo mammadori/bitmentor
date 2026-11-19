@@ -232,6 +232,10 @@ python3 deploy/tests/test_documents.py
 
 [examples/ci/gitlab-ci.yml](examples/ci/gitlab-ci.yml) is an example CI that runs both and publishes the images on a tag.
 
+[examples/git-hooks/commit-msg](examples/git-hooks/commit-msg) is an example git hook, off until you link it: each commit
+then says the height of the Bitcoin chain when it was made (`Block height: 976621`), asked to your own node
+(`BLOCK_HEIGHT_COMMAND`), to the addresses in `BLOCK_HEIGHT_URLS`, or to two public explorers. The commits of this repository carry that line from version 0.2.1.
+
 ## Credits
 
 Written by Marco Amadori with Claude, Anthropic's AI model, as a coding assistant.

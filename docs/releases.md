@@ -198,6 +198,13 @@ Read them from a machine you trust, right after the CI pipeline of the tag, and 
   `admin/login_with_wallet.html` (the login page with the link, used only when the wallet signs in), and
   `admin/second_factor.html` has a new section.
 
+### From 0.2.0 to 0.2.1
+
+- No migration, nothing to change. New, for a community with a test site and a real one: one of `register.relays` may
+  be written `"wss://relay.{site_host}"` (in quotes), a name under the site's own
+  ([Copies on Nostr](features/nostr-copies.md#turning-it-on)). Every address written before means what it meant.
+- An example git hook, `examples/git-hooks/commit-msg`, for whoever works on the code: off until it is linked.
+
 ### Going back
 
 When a release does not answer, `release.sh` puts the previous image back, **on the database the release has already

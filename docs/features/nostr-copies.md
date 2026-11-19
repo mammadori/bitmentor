@@ -21,11 +21,18 @@ In short, for organisers:
      relays: [wss://relay.example.org]          # always used; without it, no copy on Nostr
                                                  # /relay alone means wss://SITE_HOST/relay: the community
                                                  # must run that relay itself; bitmentor does not ship one
+                                                 # "wss://relay.{site_host}", in quotes, means a name under
+                                                 # the site's: wss://relay.<SITE_HOST>, also the community's
      public_relays: [wss://nos.lol]             # public relays an owner may add on the phone
    ```
 
    Each value is a `wss://` address with a domain name and a plain path, no port, query or fragment; anything else is
-   left out and `manage.py check` says so (`shops.W007`). At most 8 of each.
+   left out and `manage.py check` says so (`shops.W007`). At most 8 of each. In `relays` only, `{site_host}` at the
+   end of the host is replaced with `SITE_HOST`, so one `community.yml` serves a test site and the real one, each with
+   its own relay: `wss://relay.{site_host}` is `wss://relay.dev.example.org` on one and `wss://relay.example.org` on
+   the other. Write it in quotes, `relays: ["wss://relay.{site_host}"]`: inside square brackets YAML reads a bare
+   `{` as the start of a mapping and refuses the file. The register receives the whole address, as with any other
+   relay.
 2. The owner writes their **npub** in the register's settings, on the phone, and ticks the public relays to add.
 3. The staff registers paired **after** that get it in their pairing code (version 2, see
    [On-chain at the register](onchain-notes.md#staff-registers-the-pairing-code)): the owner's public key, a private key the

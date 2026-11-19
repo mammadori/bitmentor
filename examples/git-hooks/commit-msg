@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+"""An example git hook, off until someone turns it on: every commit says how high the Bitcoin chain was when it was
+made, in a line of its own at the end of the message, before the trailers when there are any:
+
+    Block height: 976621
+
+Turn it on in a clone with a link, from the root of the repository:
+
+    ln -s ../../examples/git-hooks/commit-msg .git/hooks/commit-msg
+
+Where the height comes from is yours to choose, with two variables of the environment (none is needed):
+
+    # your own Bitcoin node
+    # export BLOCK_HEIGHT_COMMAND="bitcoin-cli getblockcount"
+    # your own Lightning node (LND, Core Lightning)
+    # export BLOCK_HEIGHT_COMMAND="lncli getinfo | jq .block_height"
+    # export BLOCK_HEIGHT_COMMAND="lightning-cli getinfo | jq .blockheight"
+    # your own mempool or esplora instance, and a second one if the first does not answer
+    # export BLOCK_HEIGHT_URLS="https://mempool.example.org/api/blocks/tip/height https://other.example.org/height"
+
+BLOCK_HEIGHT_COMMAND is a command of your shell that prints the number alone: it is asked first, and its
+credentials stay where they already are. BLOCK_HEIGHT_URLS are addresses (separated by spaces) tried in order,
+each answering with the number alone. Without either, the two public explorers below are asked. A message that
+already has the line is left alone. When nothing answers the commit is made without the line, and a note says so:
+a commit never waits long. Commits made without hooks (`git commit-tree`, `--no-verify`) do not get the line."""
+import os
+import re
+import subprocess
+import sys
+import urllib.request
+
+SOURCES = ("https://mempool.space/api/blocks/tip/height", "https://blockstream.info/api/blocks/tip/height")
+LINE = re.compile(r"^block height: \d+\s*$", re.IGNORECASE | re.MULTILINE)
+TRAILER = re.compile(r"^[A-Za-z][A-Za-z0-9-]*: \S")
+
+
+def sources():
+    return tuple(os.environ.get("BLOCK_HEIGHT_URLS", "").split()) or SOURCES
+
+
+def a_height(text):
+    text = text.strip()
+    return int(text) if text.isdigit() and len(text) < 9 else None
+
+
+def asked_to_the_command():
+    command = os.environ.get("BLOCK_HEIGHT_COMMAND", "").strip()
+    if not command:
+        return None
+    try:
+        # The command is the user's own, from their environment: it runs in their shell, pipes included
+        done = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=6, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return a_height(done.stdout) if done.returncode == 0 else None
+
+
+def height():
+    found = asked_to_the_command()
+    if found is not None:
+        return found
+    for url in sources():
+        if not url.startswith(("https://", "http://")):
+            continue
+        try:
+            with urllib.request.urlopen(url, timeout=6) as answer:  # http and https only, checked above
+                text = answer.read(32).decode().strip()
+        except Exception:  # noqa: BLE001, S112 (any failure of a source: the next one)
+            continue
+        if a_height(text) is not None:
+            return a_height(text)
+    return None
+
+
+def with_height(message, found):
+    """The message as git will keep it (no comment lines), with the line added; None when there is nothing to do."""
+    kept = [line for line in message.splitlines() if not line.startswith("#")]
+    while kept and not kept[-1].strip():
+        kept.pop()
+    if not kept or LINE.search("\n".join(kept)):
+        return None
+    start = len(kept)
+    while start > 1 and TRAILER.match(kept[start - 1]):
+        start -= 1
+    trailers = kept[start:] if 0 < start < len(kept) and not kept[start - 1].strip() else []
+    body = kept[:len(kept) - len(trailers)]
+    while body and not body[-1].strip():
+        body.pop()
+    lines = [*body, "", f"Block height: {found}"]
+    if trailers:
+        lines += ["", *trailers]
+    return "\n".join(lines) + "\n"
+
+
+def main(path):
+    with open(path, encoding="utf-8") as f:
+        message = f.read()
+    if with_height(message, 0) is None:
+        return
+    found = height()
+    if found is None:
+        print("commit-msg: no source gave the block height, this commit has no «Block height» line", file=sys.stderr)
+        return
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(with_height(message, found))
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])

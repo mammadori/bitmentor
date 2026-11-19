@@ -35,7 +35,7 @@ currency: EUR
 #   explorers:
 #     mainnet: [https://mempool.space/api]
 #     signet: [https://mempool.space/signet/api]
-#   relays: [wss://relay.example.org]
+#   relays: [wss://relay.example.org]      # or "wss://relay.{site_host}" (in quotes): a name under the site's
 #   public_relays: [wss://nos.lol, wss://relay.damus.io]
 #   price_sources: [kraken, coinbase, mempool]
 tagline:
