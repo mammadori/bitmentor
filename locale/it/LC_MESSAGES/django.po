@@ -3258,13 +3258,6 @@ msgstr "mostra la ragione sociale"
 msgid "show the VAT number"
 msgstr "mostra la partita IVA"
 
-msgid "Start with the two letters of the country, like IT for Italy or DE for Germany."
-msgstr "Comincia con le due lettere del paese, come IT per l'Italia o DE per la Germania."
-
-#, python-format
-msgid "The letters %(prefix)s are not those of a country of the EU (IT, DE, FR, ES…)."
-msgstr "Le lettere %(prefix)s non sono quelle di un paese dell'UE (IT, DE, FR, ES…)."
-
 msgid "An Italian number is IT and eleven digits, the last one checks the others: one of them may be wrong."
 msgstr "Un numero italiano è IT e undici cifre, l'ultima controlla le altre: una potrebbe essere sbagliata."
 

@@ -15,8 +15,8 @@ writes or loads them; nobody but the owner changes what is shown for a shop that
 | Business name | hidden | the shop page only |
 | VAT number | hidden | the shop page only |
 
-- The business name (`legal_name`, the name on the invoices) and the VAT number (`vat_number`, the *partita IVA* or the
-  number of another country of the EU) are new. The owner writes them in the shop's form, under «Business details»; the
+- The business name (`legal_name`, the name on the invoices) and the VAT number (`vat_number`, the tax number of the
+  business, of whatever country) are new. The owner writes them in the shop's form, under «Business details»; the
   association in `/admin/shops/shop/`.
 - A detail that is **hidden is not there at all**: not empty, not in the page's source, not a key of `/shops.json`. A
   detail that is shown but empty is no line.
@@ -50,11 +50,13 @@ number, in the owner's form and in `/admin/` alike (a capital `ß` is two letter
 The check is light and **never blocks**: a number of a strange shape is saved as written, and the owner is told once
 («We saved your VAT number, but it may have a mistake») with what to look at; the association decides.
 
-- Italy: `IT` and eleven digits, the last one checks the others (the Luhn sum). A bare number of eleven digits that
-  passes is taken for Italian.
-- Another country of the EU (Greece is `EL`, Northern Ireland `XI`): its two letters, then two to twelve digits or
-  letters.
-- Other two letters, or a bare number that is not Italian: a doubt, with a sentence that says how to write it.
+Only what is known is looked at, and the software assumes no country:
+
+- with `IT` in front: eleven digits, the last one checks the others (the Luhn sum);
+- with the two letters of another country of the EU (Greece is `EL`, Northern Ireland `XI`): two to twelve digits or
+  letters after them;
+- any other number, with the letters of a country outside the EU (`CHE…`, `GB…`, `NO…`) or with none: no doubt,
+  whatever its shape. Eleven bare digits are not taken for an Italian number.
 - Only the length is refused: more than 32 signs once tidied is not a VAT number, and the column would not hold it.
 
 In `/admin/shops/shop/` the filter «VAT number» has «May have a mistake», and a save that wrote such a number warns (a

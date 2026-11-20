@@ -3358,13 +3358,6 @@ msgstr "Firmenname anzeigen"
 msgid "show the VAT number"
 msgstr "USt-IdNr. anzeigen"
 
-msgid "Start with the two letters of the country, like IT for Italy or DE for Germany."
-msgstr "Beginnen Sie mit den zwei Buchstaben des Landes, zum Beispiel IT für Italien oder DE für Deutschland."
-
-#, python-format
-msgid "The letters %(prefix)s are not those of a country of the EU (IT, DE, FR, ES…)."
-msgstr "Die Buchstaben %(prefix)s gehören zu keinem Land der EU (IT, DE, FR, ES …)."
-
 msgid "An Italian number is IT and eleven digits, the last one checks the others: one of them may be wrong."
 msgstr "Eine italienische Nummer besteht aus IT und elf Ziffern, die letzte prüft die anderen: Eine davon könnte falsch sein."
 

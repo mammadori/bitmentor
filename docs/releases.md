@@ -221,6 +221,10 @@ Read them from a machine you trust, right after the CI pipeline of the tag, and 
 - For a community's own code: `ShopPlace.objects.create(...)` and a place saved in `/admin/` are approved as they
   are saved, as before. `shop.places.all()` now also has the places that wait, are off the map or were taken away:
   what shows them to the public reads `place.shown`, or `shops.places.shown(shop)`.
+- **The VAT number of a shop assumes no country**: a number with the letters of a country outside the EU, or with
+  none, is saved with no doubt (it was «may have a mistake», and eleven bare digits were taken for an Italian
+  number). The checks of the numbers that start with `IT` or with another EU country's letters are as they were.
+  Two texts gone ([What customers see of a shop](features/shop-details.md#the-vat-number)).
 - 28 new texts to translate in a catalog of your own, all about the places (`python -m config.pot --since 0.3.0`
   lists them).
 - **Five more languages**: the software's texts (panel, register, map, emails) now come in Spanish, French, Dutch,

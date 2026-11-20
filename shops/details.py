@@ -115,20 +115,16 @@ def italian_check(digits):
 
 def vat_doubt(text):
     """Why a VAT number looks wrong, or "". It is a doubt, never a refusal: an unusual number is saved as written and the
-    association decides. Italy: eleven digits whose last one checks the others. Another country of the EU: its two
-    letters and a few digits or letters. A bare number is taken for Italian if it fits, and otherwise asks for the letters."""
+    association decides. Only what is known is looked at: with `IT` in front, eleven digits whose last one checks the
+    others; with the letters of another country of the EU, a few digits or letters after them. Any other number, with
+    the letters of a country outside the EU or with none, is the tax number of a place whose rules the software does
+    not know: no doubt, whatever its shape, and never taken for an Italian one."""
     number = normalize_vat(text)
     if not number:
         return ""
     prefix, body = (number[:2], number[2:]) if number[:2].isalpha() else ("", number)
-    if not prefix:
-        if ITALIAN.fullmatch(body) and italian_check(body):
-            return ""
-        return str(_("Start with the two letters of the country, like IT for Italy or DE for Germany."))
     if prefix not in EU_PREFIXES:
-        return str(
-            _("The letters %(prefix)s are not those of a country of the EU (IT, DE, FR, ES…).") % {"prefix": prefix}
-        )
+        return ""
     if prefix == "IT":
         if ITALIAN.fullmatch(body) and italian_check(body):
             return ""

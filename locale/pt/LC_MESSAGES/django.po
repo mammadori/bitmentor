@@ -4395,18 +4395,6 @@ msgid "show the VAT number"
 msgstr "mostrar o número de IVA"
 
 msgid ""
-"Start with the two letters of the country, like IT for Italy or DE for "
-"Germany."
-msgstr ""
-"Começa pelas duas letras do país, como PT para Portugal ou IT para Itália."
-
-#, python-format
-msgid ""
-"The letters %(prefix)s are not those of a country of the EU (IT, DE, FR, "
-"ES…)."
-msgstr "As letras %(prefix)s não são as de um país da UE (IT, DE, FR, ES…)."
-
-msgid ""
 "An Italian number is IT and eleven digits, the last one checks the others: "
 "one of them may be wrong."
 msgstr ""

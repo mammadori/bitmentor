@@ -4473,19 +4473,6 @@ msgid "show the VAT number"
 msgstr "btw-nummer tonen"
 
 msgid ""
-"Start with the two letters of the country, like IT for Italy or DE for "
-"Germany."
-msgstr ""
-"Begin met de twee letters van het land, zoals IT voor Italië of DE voor "
-"Duitsland."
-
-#, python-format
-msgid ""
-"The letters %(prefix)s are not those of a country of the EU (IT, DE, FR, "
-"ES…)."
-msgstr "De letters %(prefix)s zijn niet die van een EU-land (IT, DE, FR, ES…)."
-
-msgid ""
 "An Italian number is IT and eleven digits, the last one checks the others: "
 "one of them may be wrong."
 msgstr ""

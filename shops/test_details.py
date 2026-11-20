@@ -87,7 +87,6 @@ class Vat(SimpleTestCase):
     def test_an_italian_number_has_eleven_digits_and_the_check(self):
         good = italian("1234567890")
         self.assertEqual(details.vat_doubt("IT" + good), "")
-        self.assertEqual(details.vat_doubt(good), "")
         self.assertEqual(details.vat_doubt("it " + good[:3] + " " + good[3:]), "")
         wrong = good[:-1] + str((int(good[-1]) + 1) % 10)
         for number in ("IT" + wrong, "IT" + good[:-1], "IT" + good + "0", "ITABCDEFGHIJK"):
@@ -95,7 +94,7 @@ class Vat(SimpleTestCase):
 
     def test_the_known_numbers(self):
         # Numbers the tax office itself prints in its examples
-        for number in ("IT00743110157", "IT01234567897", "12345678903"):
+        for number in ("IT00743110157", "IT01234567897"):
             self.assertEqual(details.vat_doubt(number), "", number)
         self.assertNotEqual(details.vat_doubt("IT12345678900"), "")
 
@@ -111,15 +110,31 @@ class Vat(SimpleTestCase):
             "ESX1234567X",
         ):
             self.assertEqual(details.vat_doubt(number), "", number)
-        self.assertIn("not those of a country of the EU", details.vat_doubt("US123456789"))
-        self.assertIn("not those of a country of the EU", details.vat_doubt("GB123456789"))
         self.assertIn("few digits or letters", details.vat_doubt("DE1"))
         self.assertIn("few digits or letters", details.vat_doubt("DE12345678901234"))
         self.assertIn("few digits or letters", details.vat_doubt("DE123@56789"))
 
-    def test_a_bare_number_that_is_not_italian_asks_for_the_letters(self):
-        self.assertIn("two letters of the country", details.vat_doubt("123456789"))
-        self.assertIn("two letters of the country", details.vat_doubt("hello"[:1] + "12"))
+    def test_a_number_of_a_place_the_software_does_not_know_is_never_doubted(self):
+        """Outside the EU, or with no letters in front: Switzerland, the United Kingdom, Norway, the United States,
+        anywhere. Nothing says how such a number is made, so nothing is said about it."""
+        for number in (
+            "CHE-123.456.789 MWST",
+            "GB123456789",
+            "NO 987 654 321 MVA",
+            "US12-3456789",
+            "123456789",
+            "RFC ABC680524P76",
+            "h12",
+        ):
+            self.assertEqual(details.vat_doubt(number), "", number)
+
+    def test_eleven_bare_digits_are_not_taken_for_an_italian_number(self):
+        """They may be anybody's: no doubt when the Italian check fails, and none of the Italian words."""
+        good = italian("1234567890")
+        wrong = good[:-1] + str((int(good[-1]) + 1) % 10)
+        self.assertEqual(details.vat_doubt(good), "")
+        self.assertEqual(details.vat_doubt(wrong), "")
+        self.assertIn("eleven digits", details.vat_doubt("IT" + wrong))
 
     def test_nothing_written_is_nothing_to_doubt(self):
         self.assertEqual(details.vat_doubt(""), "")
@@ -588,13 +603,13 @@ class OwnerForm(TestCase):
         self.assertEqual(self.shop.name, NAME)
 
     def test_a_number_of_a_strange_shape_is_saved_with_a_word(self):
-        page = self.save(vat_number="7654Z")
+        page = self.save(vat_number="DE7")
         self.shop.refresh_from_db()
-        self.assertEqual(self.shop.vat_number, "7654Z")
+        self.assertEqual(self.shop.vat_number, "DE7")
         self.assertContains(page, "We saved your VAT number, but it may have a mistake.")
-        self.assertContains(page, "two letters of the country")
+        self.assertContains(page, "few digits or letters")
         # The number is not in the message
-        self.assertNotContains(page, "7654Z")
+        self.assertNotContains(page, "DE7")
 
     def test_an_italian_number_with_a_wrong_check_is_saved_with_a_word(self):
         page = self.save(vat_number="IT12345678900")
@@ -641,12 +656,12 @@ class OwnerForm(TestCase):
                     "name": "Second",
                     "lightning_address": "mario@example.org",
                     "legal_name": LEGAL,
-                    "vat_number": "12 34",
+                    "vat_number": "it 12 34",
                 },
                 follow=True,
             )
         shop = Shop.objects.get(name="Second")
-        self.assertEqual((shop.legal_name, shop.vat_number), (LEGAL, "1234"))
+        self.assertEqual((shop.legal_name, shop.vat_number), (LEGAL, "IT1234"))
         self.assertContains(response, "may have a mistake")
         # A new shop starts with the starting values
         self.assertEqual(
@@ -688,10 +703,10 @@ class AdminForm(TestCase):
         page = self.client.get(url)
         self.assertContains(page, 'name="legal_name"')
         self.assertContains(page, 'name="vat_number"')
-        data = {**admin_post_data(page), "legal_name": LEGAL, "vat_number": "xx 123 456"}
+        data = {**admin_post_data(page), "legal_name": LEGAL, "vat_number": "de 1"}
         response = self.client.post(url, data, follow=True)
         shop.refresh_from_db()
-        self.assertEqual((shop.legal_name, shop.vat_number), (LEGAL, "XX123456"))
+        self.assertEqual((shop.legal_name, shop.vat_number), (LEGAL, "DE1"))
         self.assertContains(response, "may have a mistake")
 
     def test_a_good_number_is_saved_without_a_word(self):
@@ -736,7 +751,7 @@ class AdminForm(TestCase):
 
     def test_the_list_filter_finds_the_numbers_that_look_wrong(self):
         make_shop(name="Fine")
-        make_shop(name="Odd", vat_number="123")
+        make_shop(name="Odd", vat_number="IT123")
         make_shop(name="Quiet", vat_number="")
         listing = self.client.get("/admin/shops/shop/?vat=doubtful").content.decode()
         self.assertIn(">Odd<", listing)
@@ -856,7 +871,7 @@ class AdminVat(TestCase):
         self.assertNotIn(">Loaded<", filtered)
 
     def test_a_tick_in_the_list_does_not_repeat_the_warning_about_the_number(self):
-        shop = make_shop(name="Loaded", vat_number="123")
+        shop = make_shop(name="Loaded", vat_number="IT123")
         response = self.client.post(
             "/admin/shops/shop/",
             {
@@ -878,7 +893,7 @@ class AdminVat(TestCase):
         url = f"/admin/shops/shop/{shop.id}/change/"
         again = self.client.post(url, {**admin_post_data(self.client.get(url)), "name": "Renamed"}, follow=True)
         self.assertNotContains(again, "may have a mistake")
-        written = self.client.post(url, {**admin_post_data(self.client.get(url)), "vat_number": "456"}, follow=True)
+        written = self.client.post(url, {**admin_post_data(self.client.get(url)), "vat_number": "IT456"}, follow=True)
         self.assertContains(written, "may have a mistake")
 
 
@@ -1003,17 +1018,17 @@ class ImportShops(TestCase):
         self.assertEqual((shop.legal_name, shop.vat_number), ("Mine", "DE111111111"))
 
     def test_a_strange_number_goes_in_with_a_word_that_does_not_repeat_the_number(self):
-        out = self.run_file([{"external_id": 1, "name": "Loaded", "vat_number": "98765"}])
-        self.assertEqual(Shop.objects.get().vat_number, "98765")
+        out = self.run_file([{"external_id": 1, "name": "Loaded", "vat_number": "IT98765"}])
+        self.assertEqual(Shop.objects.get().vat_number, "IT98765")
         self.assertIn("Shop 1: the VAT number may have a mistake", out)
         self.assertNotIn("98765", out)
 
     def test_the_word_about_a_strange_number_has_not_even_its_first_letters(self):
-        out = self.run_file([{"external_id": 1, "name": "Loaded", "vat_number": "zz 123 456"}])
+        out = self.run_file([{"external_id": 1, "name": "Loaded", "vat_number": "pl 123@456"}])
         self.assertIn("the VAT number may have a mistake: look at it in the admin.", out)
-        self.assertNotIn("ZZ", out.upper().replace("MISTAKE", "").replace("ADMIN", ""))
+        self.assertNotIn("PL", out.upper().replace("MISTAKE", "").replace("ADMIN", "").replace("UNCLAIMED", ""))
         self.assertNotIn("123", out)
-        self.assertEqual(Shop.objects.get().vat_number, "ZZ123456")
+        self.assertEqual(Shop.objects.get().vat_number, "PL123@456")
 
     def test_the_same_checks_as_the_other_fields(self):
         for bad in ({"legal_name": "x" * 201}, {"vat_number": "1" * 40}):
@@ -1124,24 +1139,24 @@ class Moving(TestCase):
                 self.importing(document)
 
     def test_a_strange_number_arrives_as_written_with_a_note_that_does_not_repeat_it(self):
-        make_shop(owner=an_owner(), vat_number="7654Z")
+        make_shop(owner=an_owner(), vat_number="IT7654Z")
         document = self.export()
         Shop.objects.all().delete()
         out = self.importing(document, "--apply")
-        self.assertEqual(Shop.objects.get().vat_number, "7654Z")
+        self.assertEqual(Shop.objects.get().vat_number, "IT7654Z")
         self.assertIn("Its VAT number may have a mistake", out)
         self.assertNotIn("7654Z", out)
 
     def test_the_note_about_a_strange_number_has_not_even_its_first_letters(self):
-        make_shop(owner=an_owner(), vat_number="ZZ123 SECRET")
+        make_shop(owner=an_owner(), vat_number="PL123 SECRET@")
         document = self.export()
         Shop.objects.all().delete()
         out = self.importing(document, "--apply")
         self.assertIn("Its VAT number may have a mistake: look at it in the admin. It arrives as written.", out)
         # Not "123" alone: a random part of the output (a code, a time) can hold those digits
-        for word in ("ZZ", "SECRET", "ZZ123", "letters", "country"):
+        for word in ("PL", "SECRET", "PL123", "letters", "country"):
             self.assertNotIn(word, out)
-        self.assertEqual(Shop.objects.get().vat_number, "ZZ123SECRET")
+        self.assertEqual(Shop.objects.get().vat_number, "PL123SECRET@")
 
     def test_values_too_long_for_the_columns_refuse_the_shop_and_not_the_import(self):
         make_shop(owner=an_owner(), name="Long one", vat_number="")
