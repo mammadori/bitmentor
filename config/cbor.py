@@ -47,7 +47,7 @@ def _argument(data, offset, info):
     size = sizes[info]
     if offset + size > len(data):
         raise CBORError("truncated")
-    return int.from_bytes(data[offset:offset + size], "big"), offset + size
+    return int.from_bytes(data[offset : offset + size], "big"), offset + size
 
 
 def _item(data, offset, depth):
@@ -71,7 +71,7 @@ def _item(data, offset, depth):
     if major in (2, 3):
         if number > len(data) - offset:
             raise CBORError("a string longer than the input")
-        chunk = data[offset:offset + number]
+        chunk = data[offset : offset + number]
         offset += number
         if major == 2:
             return chunk, offset

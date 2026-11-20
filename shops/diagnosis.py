@@ -21,6 +21,7 @@ has a time limit.
 
 No secrets in the output: no API keys, and the recovery email masked.
 """
+
 import logging
 import re
 import threading
@@ -163,42 +164,72 @@ class Run:
 
 # The checks, in the order they run. Each adds its findings to the run; an error in one does not stop the others.
 
+
 def check_shop(run):
     shop = run.shop
     if shop.suspended:
-        run.add("shop_suspended", WARNING,
-                _("The association has taken your shop off the map and the lists for now. The register still works."),
-                "suspended=True")
+        run.add(
+            "shop_suspended",
+            WARNING,
+            _("The association has taken your shop off the map and the lists for now. The register still works."),
+            "suspended=True",
+        )
     if shop.needs_approval and shop.set_aside_on:
         # The same code: the shop is still not approved, only no longer asked about (shops/approval.py, `set_aside`)
-        run.add("shop_awaiting_approval", WARNING,
-                _("The community set your shop aside: it will not go on the map. The register still works."), "approved_on empty, set aside")
+        run.add(
+            "shop_awaiting_approval",
+            WARNING,
+            _("The community set your shop aside: it will not go on the map. The register still works."),
+            "approved_on empty, set aside",
+        )
     elif shop.needs_approval:
-        run.add("shop_awaiting_approval", WARNING,
-                _("The community looks at every new shop before it goes on the map: yours is waiting. The register "
-                  "already works."), "approved_on empty")
+        run.add(
+            "shop_awaiting_approval",
+            WARNING,
+            _(
+                "The community looks at every new shop before it goes on the map: yours is waiting. The register "
+                "already works."
+            ),
+            "approved_on empty",
+        )
     if shop.closed:
-        run.add("shop_historic", WARNING,
-                _("Your shop is marked as historic ({note}): it stays on the map but does not count among the places "
-                  "to pay. The register and the sign still work.").format(note=shop.historic_note),
-                f"closed_on={shop.closed_on.isoformat()}")
+        run.add(
+            "shop_historic",
+            WARNING,
+            _(
+                "Your shop is marked as historic ({note}): it stays on the map but does not count among the places "
+                "to pay. The register and the sign still work."
+            ).format(note=shop.historic_note),
+            f"closed_on={shop.closed_on.isoformat()}",
+        )
     elif shop.closed_on:
         # Up to and including its closing day the shop is an ordinary one (Shop.closed)
-        run.add("shop_closing", WARNING,
-                _("Your shop has a closing day ({note}): until then nothing changes and it stays among the places to "
-                  "pay. From the day after it stays on the map as history. The register and the sign still "
-                  "work.").format(note=shop.historic_note),
-                f"closed_on={shop.closed_on.isoformat()}")
+        run.add(
+            "shop_closing",
+            WARNING,
+            _(
+                "Your shop has a closing day ({note}): until then nothing changes and it stays among the places to "
+                "pay. From the day after it stays on the map as history. The register and the sign still "
+                "work."
+            ).format(note=shop.historic_note),
+            f"closed_on={shop.closed_on.isoformat()}",
+        )
     if not shop.listed:
-        run.add("shop_unlisted", WARNING,
-                _("Your shop is not shown on the map or in the lists, as you chose. The register works the same."),
-                "listed=False")
+        run.add(
+            "shop_unlisted",
+            WARNING,
+            _("Your shop is not shown on the map or in the lists, as you chose. The register works the same."),
+            "listed=False",
+        )
     elif shop.suspended or shop.needs_approval:
         pass
-    elif (shop.latitude is None or shop.longitude is None):
-        run.add("shop_no_position", WARNING,
-                _("Your shop has no position, so it is not on the map. Add it in your shop page."),
-                "latitude or longitude empty")
+    elif shop.latitude is None or shop.longitude is None:
+        run.add(
+            "shop_no_position",
+            WARNING,
+            _("Your shop has no position, so it is not on the map. Add it in your shop page."),
+            "latitude or longitude empty",
+        )
     elif not shop.closed and not directory.waits_for_wallet(shop):
         run.add("shop_visible", OK, _("Your shop is on the map."), f"id={shop.id}")
 
@@ -208,9 +239,12 @@ def check_owner(run):
     if not shop.owner_id:
         # A shop moved here waits for its owner in a way check_waiting explains better
         if not moving.waiting_for(shop):
-            run.add("shop_no_owner", WARNING,
-                    _("Nobody has claimed this shop yet: it is on the map, but it has no register on this site."),
-                    f"no owner; external_id={shop.external_id or '-'}")
+            run.add(
+                "shop_no_owner",
+                WARNING,
+                _("Nobody has claimed this shop yet: it is on the map, but it has no register on this site."),
+                f"no owner; external_id={shop.external_id or '-'}",
+            )
         return
     user = shop.owner
     email = Profile.objects.filter(user=user).values_list("email", flat=True).first() or ""
@@ -226,18 +260,31 @@ def check_owner(run):
     seen = f"last login {user.last_login:%Y-%m-%d %H:%M} UTC" if user.last_login else "never logged in"
     detail = f"signs in with: {how}; {seen}"
     if user.is_staff or user.is_superuser:
-        run.add("owner_is_staff", WARNING,
-                _("This shop belongs to a staff account, which signs in only from the administration and does not open the pages of a shop: the shop needs an ordinary account."),
-                f"{detail}; staff account")
+        run.add(
+            "owner_is_staff",
+            WARNING,
+            _(
+                "This shop belongs to a staff account, which signs in only from the administration and does not open the pages of a shop: the shop needs an ordinary account."
+            ),
+            f"{detail}; staff account",
+        )
     if email:
-        run.add("owner_recovery_email", OK,
-                _("You can sign in with a link sent to your email, even without the wallet."),
-                f"{detail}; recovery email {masked(email)}")
+        run.add(
+            "owner_recovery_email",
+            OK,
+            _("You can sign in with a link sent to your email, even without the wallet."),
+            f"{detail}; recovery email {masked(email)}",
+        )
     else:
-        run.add("owner_no_recovery_email", WARNING,
-                _("There is no email to get back in: if you lose or change the wallet you sign in with, you cannot "
-                  "open your shop any more. Add an email in your profile."),
-                f"{detail}; no recovery email")
+        run.add(
+            "owner_no_recovery_email",
+            WARNING,
+            _(
+                "There is no email to get back in: if you lose or change the wallet you sign in with, you cannot "
+                "open your shop any more. Add an email in your profile."
+            ),
+            f"{detail}; no recovery email",
+        )
 
 
 def probe(run, address):
@@ -264,24 +311,42 @@ def check_lightning(run):
     finished, reason = verdict != "slow", None if verdict == "ok" else verdict
     detail = f"{address}; {took:.1f} s"
     if not finished:
-        run.add("lightning_slow", PROBLEM,
-                _("Your Lightning wallet takes too long to answer: the customer would wait too long. Try again in a "
-                  "few minutes; if it stays so, check the wallet app."),
-                f"{detail}: no verdict within {seconds:.0f} s")
+        run.add(
+            "lightning_slow",
+            PROBLEM,
+            _(
+                "Your Lightning wallet takes too long to answer: the customer would wait too long. Try again in a "
+                "few minutes; if it stays so, check the wallet app."
+            ),
+            f"{detail}: no verdict within {seconds:.0f} s",
+        )
     elif reason == "no_confirmation":
-        run.add("lightning_no_confirmation", PROBLEM,
-                _("Your Lightning wallet receives, but it does not tell the register when a payment arrives: check "
-                  "each payment in your wallet app before you confirm it on the register."),
-                f"{detail}: no LUD-21 verify URL, or it does not answer with settled")
+        run.add(
+            "lightning_no_confirmation",
+            PROBLEM,
+            _(
+                "Your Lightning wallet receives, but it does not tell the register when a payment arrives: check "
+                "each payment in your wallet app before you confirm it on the register."
+            ),
+            f"{detail}: no LUD-21 verify URL, or it does not answer with settled",
+        )
     elif reason == "no_answer":
-        run.add("lightning_no_answer", PROBLEM,
-                _("Your Lightning wallet is not answering: the register cannot show the Lightning payment code. Open "
-                  "the wallet app and check that it works."),
-                f"{detail}: LNURL-pay metadata or invoice not obtained")
+        run.add(
+            "lightning_no_answer",
+            PROBLEM,
+            _(
+                "Your Lightning wallet is not answering: the register cannot show the Lightning payment code. Open "
+                "the wallet app and check that it works."
+            ),
+            f"{detail}: LNURL-pay metadata or invoice not obtained",
+        )
     else:
-        run.add("lightning_ok", OK,
-                _("Your Lightning address answers and tells the register when a payment arrives."),
-                f"{detail}: LNURL-pay, invoice and LUD-21 verify all answered")
+        run.add(
+            "lightning_ok",
+            OK,
+            _("Your Lightning address answers and tells the register when a payment arrives."),
+            f"{detail}: LNURL-pay, invoice and LUD-21 verify all answered",
+        )
 
 
 def check_register(run):
@@ -291,17 +356,28 @@ def check_register(run):
         return
     data = register_data(shop)
     if not data:
-        why = ("fewer than two price sources in `register` in community.yml" if len(options()["sources"]) < 2
-               else "the Lightning address in the site database cannot be used by the register")
+        why = (
+            "fewer than two price sources in `register` in community.yml"
+            if len(options()["sources"]) < 2
+            else "the Lightning address in the site database cannot be used by the register"
+        )
         run.add("register_unavailable", PROBLEM, _("The register cannot take payments: write to the association."), why)
         return
-    run.add("register_ready", OK, _("The register is ready: it asks your Lightning wallet for each payment."),
-            f"register to {data['address']}, price sources {', '.join(data['sources'])}")
+    run.add(
+        "register_ready",
+        OK,
+        _("The register is ready: it asks your Lightning wallet for each payment."),
+        f"register to {data['address']}, price sources {', '.join(data['sources'])}",
+    )
 
 
 def first_day_names():
-    return {"sale": _("a first paid sale"), "map": _("the position on the map"),
-            "sign": _("the sign printed"), "staff": _("the register shown to the staff")}
+    return {
+        "sale": _("a first paid sale"),
+        "map": _("the position on the map"),
+        "sign": _("the sign printed"),
+        "staff": _("the register shown to the staff"),
+    }
 
 
 def check_first_day(run):
@@ -317,19 +393,29 @@ def check_first_day(run):
         run.add("first_day_done", OK, _("The first day is complete."), detail)
         return
     names = first_day_names()
-    run.add("first_day_todo", WARNING,
-            _("The first day: {done} of {total} done. Still to do: {steps}.").format(
-                done=done, total=len(counted), steps=", ".join(names[key] for key in todo)), detail)
+    run.add(
+        "first_day_todo",
+        WARNING,
+        _("The first day: {done} of {total} done. Still to do: {steps}.").format(
+            done=done, total=len(counted), steps=", ".join(names[key] for key in todo)
+        ),
+        detail,
+    )
 
 
 # What the site keeps about the shop: only the database, through the functions of the modules that own each rule. Each finding says what to tell the merchant (`say`) and what the helper does (`do`).
 
+
 def connect_help():
     if not features.enabled(features.PRACTICE):
-        return _("Help the merchant connect a wallet from their own panel: only they can. Never type an address or a "
-                 "key for them.")
-    return _("Help the merchant connect a wallet from their own panel: only they can. Never type an address or a key "
-             "for them. «Practise without money» works meanwhile.")
+        return _(
+            "Help the merchant connect a wallet from their own panel: only they can. Never type an address or a "
+            "key for them."
+        )
+    return _(
+        "Help the merchant connect a wallet from their own panel: only they can. Never type an address or a key "
+        "for them. «Practise without money» works meanwhile."
+    )
 
 
 def check_waiting(run):
@@ -337,34 +423,56 @@ def check_waiting(run):
     to) or for the owner's wallet (moved here, or saved before having one)."""
     shop = run.shop
     state = moving.waiting_for(shop)
-    moved = f"moved here {shop.moved_in:%Y-%m-%d}; had a register there: {'yes' if shop.moved_register else 'no'}" \
-        if shop.moved_in else ""
+    moved = (
+        f"moved here {shop.moved_in:%Y-%m-%d}; had a register there: {'yes' if shop.moved_register else 'no'}"
+        if shop.moved_in
+        else ""
+    )
     if state == "unclaimed":
-        run.add("moved_unclaimed", WARNING,
-                _("Your shop has moved to this site: open the link we sent you to take it back."),
-                f"{moved}; no owner; the one-time link exists and was not used; "
-                f"command: python manage.py import_moved_shops <file> --only {shop.pk} --new-codes --apply "
-                "--owners <new-list>.csv",
-                _("Send the owner again the one-time link from the list of owners the import wrote. If that link is "
-                  "lost, the command below makes a new one for this shop only, from the same file of the import, in a "
-                  "new list of owners: the old link stops working, the other shops keep theirs."))
+        run.add(
+            "moved_unclaimed",
+            WARNING,
+            _("Your shop has moved to this site: open the link we sent you to take it back."),
+            f"{moved}; no owner; the one-time link exists and was not used; "
+            f"command: python manage.py import_moved_shops <file> --only {shop.pk} --new-codes --apply "
+            "--owners <new-list>.csv",
+            _(
+                "Send the owner again the one-time link from the list of owners the import wrote. If that link is "
+                "lost, the command below makes a new one for this shop only, from the same file of the import, in a "
+                "new list of owners: the old link stops working, the other shops keep theirs."
+            ),
+        )
     elif state == "no_owner":
-        run.add("moved_no_owner", WARNING,
-                _("Your shop is here, but nobody has taken it yet: tell us who you are and we help you take it."),
-                f"{moved}; no owner and no one-time link",
-                _("Find the merchant: once they have signed in here, ask an administrator to assign the shop to their "
-                  "account in this administration."))
+        run.add(
+            "moved_no_owner",
+            WARNING,
+            _("Your shop is here, but nobody has taken it yet: tell us who you are and we help you take it."),
+            f"{moved}; no owner and no one-time link",
+            _(
+                "Find the merchant: once they have signed in here, ask an administrator to assign the shop to their "
+                "account in this administration."
+            ),
+        )
     elif state == "no_wallet":
-        run.add("moved_no_wallet", WARNING,
-                _("To take payments again, open your panel and connect your wallet."),
-                f"{moved}; the owner took the shop, which has no register"
-                + ("; off the map until the wallet is connected" if directory.waits_for_wallet(shop) else ""),
-                connect_help())
+        run.add(
+            "moved_no_wallet",
+            WARNING,
+            _("To take payments again, open your panel and connect your wallet."),
+            f"{moved}; the owner took the shop, which has no register"
+            + ("; off the map until the wallet is connected" if directory.waits_for_wallet(shop) else ""),
+            connect_help(),
+        )
     elif directory.waits_for_wallet(shop):
-        run.add("shop_waiting_wallet", WARNING,
-                _("You saved your shop before having a wallet, so it has no register yet and it is not on the map. "
-                  "Open your panel and connect your wallet: it takes a few minutes."),
-                "awaiting_wallet: the shop's page is saved, there is no register", connect_help())
+        run.add(
+            "shop_waiting_wallet",
+            WARNING,
+            _(
+                "You saved your shop before having a wallet, so it has no register yet and it is not on the map. "
+                "Open your panel and connect your wallet: it takes a few minutes."
+            ),
+            "awaiting_wallet: the shop's page is saved, there is no register",
+            connect_help(),
+        )
 
 
 def hidden_from_map(shop, now):
@@ -396,44 +504,73 @@ def closure_lines(run, shop):
     today = vacation.day_of()
     detail = "; ".join(closure_line(closure) for closure in closures[-5:])
     if shop.closed:
-        run.add("closed_ignored", WARNING,
-                _("Your closure dates are saved, but your shop is marked as historic: the map says nothing about "
-                  "them."), f"historic since {shop.closed_on}; {detail}",
-                _("A closure only counts for a shop that still trades: a historic shop is closed for good."))
+        run.add(
+            "closed_ignored",
+            WARNING,
+            _("Your closure dates are saved, but your shop is marked as historic: the map says nothing about them."),
+            f"historic since {shop.closed_on}; {detail}",
+            _("A closure only counts for a shop that still trades: a historic shop is closed for good."),
+        )
         return
     current = vacation.current(shop, today)
     if current:
         note = vacation.note(shop, today)
-        run.add("closed_now", OK,
-                _("On the map and on your shop page it says: «{note}». The register keeps working, and no alarm "
-                  "goes off for these days.").format(note=note), closure_line(current),
-                _("Nothing to fix. To change the dates the merchant uses «Change the dates» in their panel; the "
-                  "association edits the closure under the shop in the administration."))
+        run.add(
+            "closed_now",
+            OK,
+            _(
+                "On the map and on your shop page it says: «{note}». The register keeps working, and no alarm "
+                "goes off for these days."
+            ).format(note=note),
+            closure_line(current),
+            _(
+                "Nothing to fix. To change the dates the merchant uses «Change the dates» in their panel; the "
+                "association edits the closure under the shop in the administration."
+            ),
+        )
         if hidden_from_map(shop, timezone.now()):
-            run.add("closed_hidden", WARNING,
-                    _("You are marked as closed, but your shop is not on the map, so nobody reads the notice. The "
-                      "register works the same."), "the shop is suspended, unlisted, without a position, or waiting",
-                    _("Look at the shop_ lines: the notice shows only for a shop that is on the map."))
+            run.add(
+                "closed_hidden",
+                WARNING,
+                _(
+                    "You are marked as closed, but your shop is not on the map, so nobody reads the notice. The "
+                    "register works the same."
+                ),
+                "the shop is suspended, unlisted, without a position, or waiting",
+                _("Look at the shop_ lines: the notice shows only for a shop that is on the map."),
+            )
         first = vacation.long_closure(shop, today)
         if first is not None:
-            run.add("closed_long", WARNING,
-                    _("Is your shop coming back? If it is closed for good, tell us and we mark it as history on the "
-                      "map."), f"closed since {first} ({(today - first).days} days); the icons forgive at most "
-                               f"{vacation.MAX_CREDIT} closed days in {vacation.BUDGET_DAYS}",
-                    _("Ask the merchant whether the shop is coming back: an administrator can make a shop closed for "
-                      "good historic."))
+            run.add(
+                "closed_long",
+                WARNING,
+                _("Is your shop coming back? If it is closed for good, tell us and we mark it as history on the map."),
+                f"closed since {first} ({(today - first).days} days); the icons forgive at most "
+                f"{vacation.MAX_CREDIT} closed days in {vacation.BUDGET_DAYS}",
+                _(
+                    "Ask the merchant whether the shop is coming back: an administrator can make a shop closed for "
+                    "good historic."
+                ),
+            )
     else:
         upcoming = vacation.upcoming(shop, today)
         if upcoming:
             if vacation.info(shop, today):
-                run.add("closed_soon", OK,
-                        _("The map and your shop page already say: «{note}».").format(
-                            note=vacation.note(shop, today)), closure_line(upcoming))
+                run.add(
+                    "closed_soon",
+                    OK,
+                    _("The map and your shop page already say: «{note}».").format(note=vacation.note(shop, today)),
+                    closure_line(upcoming),
+                )
             else:
-                run.add("closed_planned", OK,
-                        _("A closure is saved from {date}: the map starts to say it {days} days before.").format(
-                            date=vacation.long_date(upcoming.first_day), days=vacation.SOON_DAYS),
-                        closure_line(upcoming))
+                run.add(
+                    "closed_planned",
+                    OK,
+                    _("A closure is saved from {date}: the map starts to say it {days} days before.").format(
+                        date=vacation.long_date(upcoming.first_day), days=vacation.SOON_DAYS
+                    ),
+                    closure_line(upcoming),
+                )
 
 
 def names(registers):
@@ -454,46 +591,88 @@ def check_staff(run):
     unopened = [register for register in never if not register.code_alive]
     working = [register for register in active if register.opened is not None]
     if active and not shop.has_register:
-        run.add("staff_no_register", PROBLEM,
-                _("The registers for your staff cannot work: your shop has no register of its own yet."),
-                f"{len(active)} staff register(s) turned on, the shop has no Lightning address: every link answers 404",
-                _("Connect the wallet first (see the lines about the register): the staff registers open as soon as "
-                  "the shop has one."))
+        run.add(
+            "staff_no_register",
+            PROBLEM,
+            _("The registers for your staff cannot work: your shop has no register of its own yet."),
+            f"{len(active)} staff register(s) turned on, the shop has no Lightning address: every link answers 404",
+            _(
+                "Connect the wallet first (see the lines about the register): the staff registers open as soon as "
+                "the shop has one."
+            ),
+        )
     if off:
-        run.add("staff_off", WARNING,
-                _("These registers are turned off, so they take no new payment: {names}. If the person still needs "
-                  "one, add a new one in «Registers for your staff».").format(names=names(off)),
-                "; ".join(f"{plain(register.name)} turned off {register.retired:%Y-%m-%d %H:%M} UTC"
-                          for register in off[:10]),
-                _("Nothing is broken: the owner turned them off. A turned-off register cannot be turned on again; "
-                  "the owner makes a new one."))
+        run.add(
+            "staff_off",
+            WARNING,
+            _(
+                "These registers are turned off, so they take no new payment: {names}. If the person still needs "
+                "one, add a new one in «Registers for your staff»."
+            ).format(names=names(off)),
+            "; ".join(
+                f"{plain(register.name)} turned off {register.retired:%Y-%m-%d %H:%M} UTC" for register in off[:10]
+            ),
+            _(
+                "Nothing is broken: the owner turned them off. A turned-off register cannot be turned on again; "
+                "the owner makes a new one."
+            ),
+        )
     if unopened:
-        run.add("staff_unopened", WARNING,
-                _("These registers were never opened on a phone, and their code is no longer valid: {names}. The "
-                  "code on the card works once and lasts 24 hours: make a new one in «Registers for your staff».")
-                .format(names=names(unopened)),
-                "; ".join(f"{plain(register.name)} made {register.created:%Y-%m-%d %H:%M} UTC, code used or expired"
-                          for register in unopened[:10]),
-                _("The owner opens «Registers for your staff», chooses the register and makes a new code, then the "
-                  "person scans it with their phone. The code is never read out on the phone."))
+        run.add(
+            "staff_unopened",
+            WARNING,
+            _(
+                "These registers were never opened on a phone, and their code is no longer valid: {names}. The "
+                "code on the card works once and lasts 24 hours: make a new one in «Registers for your staff»."
+            ).format(names=names(unopened)),
+            "; ".join(
+                f"{plain(register.name)} made {register.created:%Y-%m-%d %H:%M} UTC, code used or expired"
+                for register in unopened[:10]
+            ),
+            _(
+                "The owner opens «Registers for your staff», chooses the register and makes a new code, then the "
+                "person scans it with their phone. The code is never read out on the phone."
+            ),
+        )
     if waiting:
-        run.add("staff_code_waiting", WARNING,
-                _("These registers wait for the person to scan their code: {names}. The code works once, until "
-                  "the time shown.").format(names=names(waiting)),
-                "; ".join(f"{plain(register.name)} made {register.created:%Y-%m-%d %H:%M} UTC, code valid until "
-                          f"{register.code_until:%Y-%m-%d %H:%M} UTC" for register in waiting[:10]),
-                _("Nothing is broken: the person scans the code with their phone before it expires. If it has "
-                  "expired, the owner makes a new one. The code is never read out on the phone."))
+        run.add(
+            "staff_code_waiting",
+            WARNING,
+            _(
+                "These registers wait for the person to scan their code: {names}. The code works once, until "
+                "the time shown."
+            ).format(names=names(waiting)),
+            "; ".join(
+                f"{plain(register.name)} made {register.created:%Y-%m-%d %H:%M} UTC, code valid until "
+                f"{register.code_until:%Y-%m-%d %H:%M} UTC"
+                for register in waiting[:10]
+            ),
+            _(
+                "Nothing is broken: the person scans the code with their phone before it expires. If it has "
+                "expired, the owner makes a new one. The code is never read out on the phone."
+            ),
+        )
     # A register of a shop with no register of its own opens nothing: it is not «working»
     if working and shop.has_register:
-        run.add("staff_ok", OK, _("These registers are working: {names}.").format(names=names(working)),
-                "; ".join(f"{plain(register.name)} opened {register.opened:%Y-%m-%d}" for register in working[:10]))
+        run.add(
+            "staff_ok",
+            OK,
+            _("These registers are working: {names}.").format(names=names(working)),
+            "; ".join(f"{plain(register.name)} opened {register.opened:%Y-%m-%d}" for register in working[:10]),
+        )
 
 
 # What in a change of the account is more than a change of access: who can sign in, who owns the shop, who is told
-RISKY_CHANGES = {"username", "shop_owner", "shop_chat", "is_staff", "is_superuser", "deleted",
-                 # Where the money goes (shops/guard.py): the owner's own first connection is not in this list of rows
-                 "shop_lightning"}
+RISKY_CHANGES = {
+    "username",
+    "shop_owner",
+    "shop_chat",
+    "is_staff",
+    "is_superuser",
+    "deleted",
+    # Where the money goes (shops/guard.py): the owner's own first connection is not in this list of rows
+    "shop_lightning",
+}
 
 
 def check_account(run):
@@ -520,39 +699,57 @@ def check_account(run):
 
     # The most recent ones: the cut must never drop the latest, and the most serious is often that
     # Without the owner's own first connection of a wallet (Via.OWNER): it is not something whoever runs the site did
-    rows = [row for row in AccountChange.objects.filter(query, created__gte=since).exclude(via=AccountChange.Via.OWNER)
-            .order_by("-created")[:50]
-            if about_this_shop(row)][:20]
+    rows = [
+        row
+        for row in AccountChange.objects.filter(query, created__gte=since)
+        .exclude(via=AccountChange.Via.OWNER)
+        .order_by("-created")[:50]
+        if about_this_shop(row)
+    ][:20]
     rows.reverse()
     own = [row for row in rows if of_owner(row)]
     others = [row for row in rows if not of_owner(row)]
 
     def lines(found):
-        return " | ".join(f"{row.created:%Y-%m-%d %H:%M} UTC {row.changed} via {row.via}"
-                          f"{' by ' + plain(row.actor) if row.actor else ''}; told: {row.told or '-'}"
-                          f"{'; could not tell: ' + row.not_told if row.not_told else ''}" for row in found)
+        return " | ".join(
+            f"{row.created:%Y-%m-%d %H:%M} UTC {row.changed} via {row.via}"
+            f"{' by ' + plain(row.actor) if row.actor else ''}; told: {row.told or '-'}"
+            f"{'; could not tell: ' + row.not_told if row.not_told else ''}"
+            for row in found
+        )
 
     def changes(found):
         return {code for row in found for code in row.changed.split(",") if code}
 
     if own:
         codes = changes(own)
-        run.add("account_changed", PROBLEM if codes & RISKY_CHANGES else WARNING,
-                " ".join([*guard.words(codes, sentence=True), guard.advice(community().get("email", ""))]),
-                f"{len(own)} change(s) of the owner's account in the last {guard.RECENT.days} days: {lines(own)}",
-                _("Ask the merchant whether they expected it. If not, change nothing and tell whoever runs the site: "
-                  "«Account changes» in the administration says who changed what, from where, and who was told. "
-                  "Never ask for a password."))
+        run.add(
+            "account_changed",
+            PROBLEM if codes & RISKY_CHANGES else WARNING,
+            " ".join([*guard.words(codes, sentence=True), guard.advice(community().get("email", ""))]),
+            f"{len(own)} change(s) of the owner's account in the last {guard.RECENT.days} days: {lines(own)}",
+            _(
+                "Ask the merchant whether they expected it. If not, change nothing and tell whoever runs the site: "
+                "«Account changes» in the administration says who changed what, from where, and who was told. "
+                "Never ask for a password."
+            ),
+        )
     if others and not run.owner_view:
-        run.add("account_changed_other", WARNING,
-                _("The administration changed something that concerns this shop on {date}: {what}. It was done to "
-                  "another account, not to the one signed in now.").format(
-                    date=when(others[-1].created), what=", ".join(guard.words(changes(others)))),
-                f"{len(others)} change(s) naming this shop, of another or deleted account, in the last "
-                f"{guard.RECENT.days} days: {lines(others)}",
-                _("If the person on the phone is the one who had the shop before and got the email, ask whether they "
-                  "know why. If not, change nothing and tell whoever runs the site: «Account changes» in the "
-                  "administration says who did it. Never ask for a password."))
+        run.add(
+            "account_changed_other",
+            WARNING,
+            _(
+                "The administration changed something that concerns this shop on {date}: {what}. It was done to "
+                "another account, not to the one signed in now."
+            ).format(date=when(others[-1].created), what=", ".join(guard.words(changes(others)))),
+            f"{len(others)} change(s) naming this shop, of another or deleted account, in the last "
+            f"{guard.RECENT.days} days: {lines(others)}",
+            _(
+                "If the person on the phone is the one who had the shop before and got the email, ask whether they "
+                "know why. If not, change nothing and tell whoever runs the site: «Account changes» in the "
+                "administration says who did it. Never ask for a password."
+            ),
+        )
 
 
 def check_certificate(run):
@@ -562,31 +759,56 @@ def check_certificate(run):
     if not certified.enabled() or not journey.applies(shop):
         return
     if shop.certified_month:
-        run.add("certificate_done", OK,
-                _("Your shop is certified, since {month}.").format(
-                    month=formats.date_format(shop.certified_month, "YEAR_MONTH_FORMAT")),
-                f"certified_month={shop.certified_month}")
+        run.add(
+            "certificate_done",
+            OK,
+            _("Your shop is certified, since {month}.").format(
+                month=formats.date_format(shop.certified_month, "YEAR_MONTH_FORMAT")
+            ),
+            f"certified_month={shop.certified_month}",
+        )
         return
     if shop.certified_revoked:
-        run.add("certificate_revoked", WARNING,
-                _("The association has taken the certificate away from your shop: ask them why."),
-                "certified_revoked=True",
-                _("It was revoked in the administration and the site will not give it again until that is undone. "
-                  "Ask the association before saying more."))
+        run.add(
+            "certificate_revoked",
+            WARNING,
+            _("The association has taken the certificate away from your shop: ask them why."),
+            "certified_revoked=True",
+            _(
+                "It was revoked in the administration and the site will not give it again until that is undone. "
+                "Ask the association before saying more."
+            ),
+        )
         return
     address = shop.lightning_status == LightningStatus.OK and shop.lightning_checked_address == shop.lightning_address
     trained = training.has_pass(shop)
     detail = f"lightning_status={shop.lightning_status or '-'}; basic pass {'yes' if trained else 'no'}"
     if address and trained:
-        run.add("certificate_ready", OK,
-                _("You have everything for the certificate: the site gives it at its next check of your Lightning address."),
-                detail, str(certified.RULE))
+        run.add(
+            "certificate_ready",
+            OK,
+            _(
+                "You have everything for the certificate: the site gives it at its next check of your Lightning address."
+            ),
+            detail,
+            str(certified.RULE),
+        )
     else:
-        missing = [text for text, ok in ((_("a Lightning address that works"), address),
-                                         (_("the owner's basic pass of the training"), trained)) if not ok]
-        run.add("certificate_waiting", OK,
-                _("The certificate still waits for: {missing}.").format(missing=", ".join(missing)),
-                detail, str(certified.RULE))
+        missing = [
+            text
+            for text, ok in (
+                (_("a Lightning address that works"), address),
+                (_("the owner's basic pass of the training"), trained),
+            )
+            if not ok
+        ]
+        run.add(
+            "certificate_waiting",
+            OK,
+            _("The certificate still waits for: {missing}.").format(missing=", ".join(missing)),
+            detail,
+            str(certified.RULE),
+        )
 
 
 def check_customer_path(run):
@@ -596,28 +818,49 @@ def check_customer_path(run):
         return
     methods = customer.payable(shop)
     if methods is None:
-        run.add("customer_path_off", WARNING,
-                _("Customers who scan the card for people without a wallet see only the shop page, because nobody "
-                  "can pay at this shop now."),
-                f"suspended={shop.suspended}, closed_on={shop.closed_on or '-'}",
-                _("It follows from the lines about the shop: the guide opens again when the shop can take payments."))
+        run.add(
+            "customer_path_off",
+            WARNING,
+            _(
+                "Customers who scan the card for people without a wallet see only the shop page, because nobody "
+                "can pay at this shop now."
+            ),
+            f"suspended={shop.suspended}, closed_on={shop.closed_on or '-'}",
+            _("It follows from the lines about the shop: the guide opens again when the shop can take payments."),
+        )
     else:
         wallets = customer.usable(customer_links(translation.get_language())["wallets"], methods)
         if not wallets:
-            run.add("customer_wallets_empty", WARNING,
-                    _("The guide for customers without a wallet has no wallet to suggest for the way you get paid."),
-                    f"the shop takes {methods}; no wallet of shop_page.wallets sends it",
-                    _("The list is in the community's settings (shop_page.wallets): manage.py check says what it left "
-                      "out."))
+            run.add(
+                "customer_wallets_empty",
+                WARNING,
+                _("The guide for customers without a wallet has no wallet to suggest for the way you get paid."),
+                f"the shop takes {methods}; no wallet of shop_page.wallets sends it",
+                _(
+                    "The list is in the community's settings (shop_page.wallets): manage.py check says what it left "
+                    "out."
+                ),
+            )
         else:
-            run.add("customer_path_ok", OK,
-                    _("A customer without a wallet scans the card «Card for customers without a wallet» (in your "
-                      "panel) and the phone guides them in three steps."),
-                    f"the shop takes {methods}; {len(wallets)} wallet(s) offered")
+            run.add(
+                "customer_path_ok",
+                OK,
+                _(
+                    "A customer without a wallet scans the card «Card for customers without a wallet» (in your "
+                    "panel) and the phone guides them in three steps."
+                ),
+                f"the shop takes {methods}; {len(wallets)} wallet(s) offered",
+            )
     if features.enabled(features.PRACTICE) and first_day.applies(shop) and not shop.first_sale:
-        run.add("practice_offer", OK,
-                _("Before the first real sale you can try the register with a pretend customer: «Practise without "
-                  "money» in your panel. Nothing is charged."), f"practice page for {shop.id}")
+        run.add(
+            "practice_offer",
+            OK,
+            _(
+                "Before the first real sale you can try the register with a pretend customer: «Practise without "
+                "money» in your panel. Nothing is charged."
+            ),
+            f"practice page for {shop.id}",
+        )
 
 
 def check_training(run):
@@ -629,25 +872,64 @@ def check_training(run):
         return
     trainee = training.trainee_of_id(shop.owner_id)
     if trainee and trainee.base_earned:
-        run.add("training_done", OK, _("The owner has the basic pass of the training."),
-                f"base_earned={trainee.base_earned:%Y-%m-%d}")
+        run.add(
+            "training_done",
+            OK,
+            _("The owner has the basic pass of the training."),
+            f"base_earned={trainee.base_earned:%Y-%m-%d}",
+        )
         return
     detail = f"gate={training.gate_of(cfg, shop)}; NETWORK={settings.NETWORK}; no basic pass; since={cfg.since or '-'}"
     if training.locked(shop):
-        run.add("training_locked", WARNING, _("The register is waiting for the owner's basic pass."), detail,
-                _("The register page says «The register opens soon» and no new sale starts, by the community's choice. Tell "
-                  "the owner to open «Your merchant pass» in the panel: a few short modules. The practice register works "
-                  "meanwhile. Nothing else is wrong: do not change anything."))
+        run.add(
+            "training_locked",
+            WARNING,
+            _("The register is waiting for the owner's basic pass."),
+            detail,
+            _(
+                "The register page says «The register opens soon» and no new sale starts, by the community's choice. Tell "
+                "the owner to open «Your merchant pass» in the panel: a few short modules. The practice register works "
+                "meanwhile. Nothing else is wrong: do not change anything."
+            ),
+        )
     elif training.real_money(shop):
-        run.add("training_missing", OK, _("The owner has not done the training yet."), detail,
-                _("The register works for now. Remind the owner of the basic pass."))
+        run.add(
+            "training_missing",
+            OK,
+            _("The owner has not done the training yet."),
+            detail,
+            _("The register works for now. Remind the owner of the basic pass."),
+        )
 
 
-CHECKS = [check_shop, check_waiting, check_owner, check_lightning, check_register, check_first_day, check_closure,
-          check_staff, check_account, check_certificate, check_customer_path, check_training]
+CHECKS = [
+    check_shop,
+    check_waiting,
+    check_owner,
+    check_lightning,
+    check_register,
+    check_first_day,
+    check_closure,
+    check_staff,
+    check_account,
+    check_certificate,
+    check_customer_path,
+    check_training,
+]
 # These only read the database, and they are quick: they run even when the slow ones used up the time
-LOCAL_CHECKS = {check_shop, check_waiting, check_owner, check_register, check_first_day, check_closure, check_staff,
-                check_account, check_certificate, check_customer_path, check_training}
+LOCAL_CHECKS = {
+    check_shop,
+    check_waiting,
+    check_owner,
+    check_register,
+    check_first_day,
+    check_closure,
+    check_staff,
+    check_account,
+    check_certificate,
+    check_customer_path,
+    check_training,
+}
 
 
 def diagnose(shop, seconds=TOTAL_SECONDS, only=None, owner_view=False):
@@ -661,8 +943,12 @@ def diagnose(shop, seconds=TOTAL_SECONDS, only=None, owner_view=False):
     skipped = []
     run_checks(run, skipped, only)
     if skipped:
-        run.add("time_up", WARNING, _("Some checks did not finish in time: run it again in a minute."),
-                f"skipped: {', '.join(skipped)}; limit {seconds} s")
+        run.add(
+            "time_up",
+            WARNING,
+            _("Some checks did not finish in time: run it again in a minute."),
+            f"skipped: {', '.join(skipped)}; limit {seconds} s",
+        )
     return sorted(run.findings, key=lambda finding: LEVELS.index(finding.level))
 
 
@@ -680,9 +966,12 @@ def run_checks(run, skipped, only=None):
             skipped.append(name)
         except Exception as error:  # noqa: BLE001 - one broken check must not hide the others
             logger.error("Diagnosis check %s failed for shop %s: %s", name, run.shop.id, type(error).__name__)
-            run.add("check_failed", WARNING,
-                    _("One check could not be done: run it again; if it repeats, tell whoever runs the server."),
-                    f"{name}: {type(error).__name__}")
+            run.add(
+                "check_failed",
+                WARNING,
+                _("One check could not be done: run it again; if it repeats, tell whoever runs the server."),
+                f"{name}: {type(error).__name__}",
+            )
 
 
 def find_shops(text):

@@ -7,8 +7,10 @@ def wrong_features(app_configs, **kwargs):
     `web` say so. A warning, not an error, which would stop `migrate` and the whole site."""
     from config import features
 
-    return [checks.Warning(problem, hint="The block is documented in examples/community/community.yml",
-                           id="shops.W003") for problem in features.problems()]
+    return [
+        checks.Warning(problem, hint="The block is documented in examples/community/community.yml", id="shops.W003")
+        for problem in features.problems()
+    ]
 
 
 def wrong_experimental(app_configs, **kwargs):
@@ -16,8 +18,10 @@ def wrong_experimental(app_configs, **kwargs):
     log of `web` say so. A warning, like the others."""
     from config import features
 
-    return [checks.Warning(problem, hint="The block is documented in examples/community/community.yml",
-                           id="shops.W011") for problem in features.experimental_problems()]
+    return [
+        checks.Warning(problem, hint="The block is documented in examples/community/community.yml", id="shops.W011")
+        for problem in features.experimental_problems()
+    ]
 
 
 def wrong_limits(app_configs, **kwargs):
@@ -25,16 +29,18 @@ def wrong_limits(app_configs, **kwargs):
     the others."""
     from config import limits
 
-    return [checks.Warning(problem, hint="The block is documented in examples/community/community.yml",
-                           id="shops.W009") for problem in limits.problems()]
+    return [
+        checks.Warning(problem, hint="The block is documented in examples/community/community.yml", id="shops.W009")
+        for problem in limits.problems()
+    ]
 
 
 def limits_near(app_configs, databases=None, **kwargs):
     """A total at 80% of its limit or full (config/limits.py), for `manage.py check --database default`: it reads the database,
     so the plain `check` (which runs before `migrate` and before the tests) does not run it. Warnings."""
-    from config import limits
-
     from django.db import DatabaseError
+
+    from config import limits
 
     if not databases:
         return []
@@ -51,8 +57,10 @@ def wrong_privacy(app_configs, **kwargs):
     A warning, like the others."""
     from .privacy import problems
 
-    return [checks.Warning(problem, hint="The block is documented in examples/community/community.yml",
-                           id="shops.W004") for problem in problems()]
+    return [
+        checks.Warning(problem, hint="The block is documented in examples/community/community.yml", id="shops.W004")
+        for problem in problems()
+    ]
 
 
 def wrong_training(app_configs, **kwargs):
@@ -60,8 +68,14 @@ def wrong_training(app_configs, **kwargs):
     and the log of `web` say what and where. Warnings, not errors."""
     from .training import problems
 
-    return [checks.Warning(problem, hint="The format is next to the `training` block in examples/community/community.yml",
-                           id="shops.W005") for problem in problems()]
+    return [
+        checks.Warning(
+            problem,
+            hint="The format is next to the `training` block in examples/community/community.yml",
+            id="shops.W005",
+        )
+        for problem in problems()
+    ]
 
 
 def wrong_explorers(app_configs, **kwargs):
@@ -69,16 +83,20 @@ def wrong_explorers(app_configs, **kwargs):
     left): `manage.py check` and the log of `web` say so. A warning, like the others."""
     from .register import explorer_problems
 
-    return [checks.Warning(problem, hint="The block is documented in examples/community/community.yml",
-                           id="shops.W006") for problem in explorer_problems()]
+    return [
+        checks.Warning(problem, hint="The block is documented in examples/community/community.yml", id="shops.W006")
+        for problem in explorer_problems()
+    ]
 
 
 def wrong_relays(app_configs, **kwargs):
     """A relay in `register.relays` or `register.public_relays` that is not a wss address is left out."""
     from .register import relay_problems
 
-    return [checks.Warning(problem, hint="The block is documented in examples/community/community.yml",
-                           id="shops.W007") for problem in relay_problems()]
+    return [
+        checks.Warning(problem, hint="The block is documented in examples/community/community.yml", id="shops.W007")
+        for problem in relay_problems()
+    ]
 
 
 def wrong_register_numbers(app_configs, **kwargs):
@@ -86,8 +104,10 @@ def wrong_register_numbers(app_configs, **kwargs):
     applies."""
     from .register import number_problems
 
-    return [checks.Warning(problem, hint="The block is documented in examples/community/community.yml",
-                           id="shops.W008") for problem in number_problems()]
+    return [
+        checks.Warning(problem, hint="The block is documented in examples/community/community.yml", id="shops.W008")
+        for problem in number_problems()
+    ]
 
 
 def wrong_hooks(app_configs, **kwargs):
@@ -95,8 +115,10 @@ def wrong_hooks(app_configs, **kwargs):
     called, and `manage.py check` and the log of `web` say so."""
     from config import hooks
 
-    return [checks.Warning(problem, hint="The hooks are described in docs/architecture.md", id="shops.W012")
-            for problem in hooks.problems()]
+    return [
+        checks.Warning(problem, hint="The hooks are described in docs/architecture.md", id="shops.W012")
+        for problem in hooks.problems()
+    ]
 
 
 def wrong_moderators_emails(app_configs, **kwargs):
@@ -104,8 +126,10 @@ def wrong_moderators_emails(app_configs, **kwargs):
     `manage.py check` and the log of `web` say so. A warning, like the others."""
     from .notifications import read_moderators_emails
 
-    return [checks.Warning(problem, hint="The key is documented in examples/community/community.yml", id="shops.W013")
-            for problem in read_moderators_emails()[1]]
+    return [
+        checks.Warning(problem, hint="The key is documented in examples/community/community.yml", id="shops.W013")
+        for problem in read_moderators_emails()[1]
+    ]
 
 
 def wrong_announced_files(app_configs, **kwargs):
@@ -113,8 +137,10 @@ def wrong_announced_files(app_configs, **kwargs):
     it cannot use: left out, and `manage.py check` and the log of `web` say so. A warning, like the others."""
     from .events import announced_patterns
 
-    return [checks.Warning(problem, hint="The key is documented in examples/community/community.yml", id="shops.W014")
-            for problem in announced_patterns()[1]]
+    return [
+        checks.Warning(problem, hint="The key is documented in examples/community/community.yml", id="shops.W014")
+        for problem in announced_patterns()[1]
+    ]
 
 
 def wrong_stages(app_configs, **kwargs):
@@ -122,8 +148,10 @@ def wrong_stages(app_configs, **kwargs):
     say so. A warning, like the others."""
     from .stages import problems
 
-    return [checks.Warning(problem, hint="The block is documented in examples/community/community.yml", id="shops.W015")
-            for problem in problems()]
+    return [
+        checks.Warning(problem, hint="The block is documented in examples/community/community.yml", id="shops.W015")
+        for problem in problems()
+    ]
 
 
 def wallet_without_effect(app_configs, **kwargs):
@@ -133,11 +161,15 @@ def wallet_without_effect(app_configs, **kwargs):
 
     if not settings.ADMIN_WALLET_SIGN_IN or settings.ADMIN_SECOND_FACTOR == "optional":
         return []
-    return [checks.Warning(
-        f"ADMIN_WALLET_SIGN_IN is on and ADMIN_SECOND_FACTOR is {settings.ADMIN_SECOND_FACTOR}: a wallet signs in to "
-        "/admin/ only with optional, so the linked wallets stay unused",
-        hint="Set ADMIN_WALLET_SIGN_IN=off, or ADMIN_SECOND_FACTOR=optional on a site to try with a few friends "
-             "(docs/configuration.md)", id="shops.W016")]
+    return [
+        checks.Warning(
+            f"ADMIN_WALLET_SIGN_IN is on and ADMIN_SECOND_FACTOR is {settings.ADMIN_SECOND_FACTOR}: a wallet signs in to "
+            "/admin/ only with optional, so the linked wallets stay unused",
+            hint="Set ADMIN_WALLET_SIGN_IN=off, or ADMIN_SECOND_FACTOR=optional on a site to try with a few friends "
+            "(docs/configuration.md)",
+            id="shops.W016",
+        )
+    ]
 
 
 class ShopsConfig(AppConfig):
@@ -158,12 +190,14 @@ class ShopsConfig(AppConfig):
         checks.register(wrong_announced_files)
         checks.register(wrong_stages)
         checks.register(wallet_without_effect)
-        from config import guard as staff_apart  # noqa: F401  (a new sign-in ends the admin's session)
-
         from django.db.models.signals import post_migrate
 
-        from . import address_change  # noqa: F401  (every sign-in writes its time: the change asks a recent one)
-        from . import guard  # noqa: F401  (its signals watch the accounts of the shops' owners)
+        from config import guard as staff_apart  # noqa: F401  (a new sign-in ends the admin's session)
+
+        from . import (
+            address_change,  # noqa: F401  (every sign-in writes its time: the change asks a recent one)
+            guard,  # noqa: F401  (its signals watch the accounts of the shops' owners)
+        )
         from .moderators import on_post_migrate
         from .public_cache import connect as public_list_cache
 

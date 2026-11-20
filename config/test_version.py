@@ -29,17 +29,22 @@ class InUse(SimpleTestCase):
 
 class Commit(SimpleTestCase):
     def answers(self, top, short="abc1234", changed=""):
-        replies = {"rev-parse --show-toplevel": top, "rev-parse --short HEAD": short,
-                   "status --porcelain --untracked-files=no": changed}
+        replies = {
+            "rev-parse --show-toplevel": top,
+            "rev-parse --short HEAD": short,
+            "status --porcelain --untracked-files=no": changed,
+        }
         return patch.object(version, "_git", side_effect=lambda *a: replies[" ".join(a)])
 
     def test_clean(self):
         from django.conf import settings
+
         with self.answers(str(settings.BASE_DIR)):
             self.assertEqual(version.commit(), "abc1234")
 
     def test_dirty_with_uncommitted_changes(self):
         from django.conf import settings
+
         with self.answers(str(settings.BASE_DIR), changed=" M config/version.py"):
             self.assertEqual(version.commit(), "abc1234-dirty")
 
@@ -63,7 +68,9 @@ class Footer(TestCase):
 
     @override_settings(SITE_VERSION="0.1.7-site.1", BITMENTOR_VERSION="0.1.7")
     def test_every_page_shows_the_version_in_its_footer(self):
-        self.assertContains(self.client.get("/", follow=True), '<span class="version" title="Version in use">0.1.7-site.1</span>')
+        self.assertContains(
+            self.client.get("/", follow=True), '<span class="version" title="Version in use">0.1.7-site.1</span>'
+        )
 
     @override_settings(SITE_VERSION="", BITMENTOR_VERSION="")
     def test_no_version_is_said_too(self):

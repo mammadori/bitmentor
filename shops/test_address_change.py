@@ -1,4 +1,5 @@
 """The owner changes a shop's Lightning address from the panel (shops/address_change.py)."""
+
 import time
 from datetime import date, timedelta
 from unittest.mock import patch
@@ -20,10 +21,17 @@ class Change(TestCase):
     def setUp(self):
         self.owner = get_user_model().objects.create_user("owner")
         Profile.objects.create(user=self.owner, email="owner@mail.example")
-        self.shop = Shop.objects.create(name="Bar", owner=self.owner, lightning_address=OLD, lightning=True,
-                                        certified_month=date(2026, 9, 1), private_approved=timezone.now(),
-                                        lightning_status=LightningStatus.OK, lightning_checked_address=OLD,
-                                        lightning_worked=timezone.now())
+        self.shop = Shop.objects.create(
+            name="Bar",
+            owner=self.owner,
+            lightning_address=OLD,
+            lightning=True,
+            certified_month=date(2026, 9, 1),
+            private_approved=timezone.now(),
+            lightning_status=LightningStatus.OK,
+            lightning_checked_address=OLD,
+            lightning_worked=timezone.now(),
+        )
         self.client.force_login(self.owner)
         self.url = reverse("change_address", args=[self.shop.pk])
         self.probe = patch("shops.address_change.refusal", return_value=None)
@@ -52,8 +60,9 @@ class Change(TestCase):
         self.assertIsNotNone(shop.certified_month)
         self.assertIsNotNone(shop.private_approved)
         self.assertFalse(certified.owns_certified_shop(self.owner))
-        Shop.objects.filter(pk=shop.pk).update(lightning_checked_address=NEW, lightning_worked=timezone.now(),
-                                               lightning_status=LightningStatus.OK)
+        Shop.objects.filter(pk=shop.pk).update(
+            lightning_checked_address=NEW, lightning_worked=timezone.now(), lightning_status=LightningStatus.OK
+        )
         self.assertTrue(Shop.objects.get(pk=shop.pk).certified)
         self.assertTrue(certified.owns_certified_shop(self.owner))
         page = self.client.get(reverse("shops")).content.decode()
@@ -120,7 +129,9 @@ class Change(TestCase):
 
     def test_only_this_page_makes_a_replacement_the_owner_s(self):
         from django.test import RequestFactory
+
         from config.guard import current_request
+
         request = RequestFactory().post("/")
         request.user = self.owner
         token = current_request.set(request)

@@ -7,6 +7,7 @@ data (meetups/nostr_read.py decides what to believe) and what it does is limited
 - no proxy from the environment, a few seconds to connect, a total time per relay however slowly it sends, a ceiling on
   the size of a message and on the number of events, and no redirect (a WebSocket upgrade does not follow one);
 - an answer that is not NIP-01 is skipped, and an error is one relay failing: the others are still read."""
+
 import json
 import socket
 import time
@@ -63,8 +64,15 @@ def public_socket(host, port):
 
 
 def open_relay(url, own):
-    options = {"proxy": None, "open_timeout": CONNECT_SECONDS, "close_timeout": 3, "ping_interval": None,
-               "max_size": MESSAGE_BYTES, "max_queue": 64, "user_agent_header": "bitmentor"}
+    options = {
+        "proxy": None,
+        "open_timeout": CONNECT_SECONDS,
+        "close_timeout": 3,
+        "ping_interval": None,
+        "max_size": MESSAGE_BYTES,
+        "max_queue": 64,
+        "user_agent_header": "bitmentor",
+    }
     if url in own:
         return connect(url, **options)
     parts = urlsplit(url)
@@ -82,7 +90,7 @@ def build_filters(authors, since):
     """The questions for the authors, a block of them at a time: their calendar events and their deletions."""
     questions = []
     for start in range(0, len(authors), AUTHORS_PER_FILTER):
-        block = authors[start:start + AUTHORS_PER_FILTER]
+        block = authors[start : start + AUTHORS_PER_FILTER]
         questions.append({"kinds": CALENDAR_KINDS, "authors": block, "since": since, "limit": 500})
         questions.append({"kinds": [DELETION_KIND], "authors": block, "since": since, "limit": 200})
     return questions
@@ -127,8 +135,13 @@ def read(url, questions, own=(), seconds=TOTAL_SECONDS, limit=MAX_EVENTS):
                     if message[0] == "CLOSED" and message[1] == subscription:
                         complete = False
                         break
-                    if message[0] == "EVENT" and len(message) > 2 and message[1] == subscription and isinstance(message[2], dict) \
-                            and message[2].get("pubkey") in allowed:
+                    if (
+                        message[0] == "EVENT"
+                        and len(message) > 2
+                        and message[1] == subscription
+                        and isinstance(message[2], dict)
+                        and message[2].get("pubkey") in allowed
+                    ):
                         events.append(message[2])
                 if left <= 0 or received > TOTAL_BYTES:
                     break

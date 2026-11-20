@@ -1,4 +1,5 @@
 """For the pages of the volunteers' area (team/area.py)."""
+
 from django import template
 
 register = template.Library()

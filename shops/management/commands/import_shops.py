@@ -1,13 +1,14 @@
 """Imports shops not yet claimed from a JSON file: running it again updates, it does not duplicate."""
+
 import json
 import math
 from datetime import date
 
-from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 from django.core.validators import URLValidator
 from django.db import transaction
+from django.utils import timezone
 
 from shops import events
 from shops.details import normalize_vat, vat_doubt
@@ -15,8 +16,23 @@ from shops.models import Shop
 
 # The business name and the VAT number go in like the other fields, for shops that no owner has taken yet. What customers
 # see of them is the owner's choice (shops/details.py): a shop loaded here starts with the website and the address shown
-FIELDS = ("name", "description", "address", "city", "website", "email", "phone", "legal_name", "vat_number", "discount",
-          "listed", "lightning", "latitude", "longitude", "closed_on")
+FIELDS = (
+    "name",
+    "description",
+    "address",
+    "city",
+    "website",
+    "email",
+    "phone",
+    "legal_name",
+    "vat_number",
+    "discount",
+    "listed",
+    "lightning",
+    "latitude",
+    "longitude",
+    "closed_on",
+)
 
 
 def plain_website(value):
@@ -42,7 +58,9 @@ def closing_day(row):
     try:
         return date.fromisoformat(row["closed_on"])
     except (TypeError, ValueError):
-        raise CommandError(f"closed_on is not a YYYY-MM-DD date for {row['external_id']}: {row['closed_on']!r}") from None
+        raise CommandError(
+            f"closed_on is not a YYYY-MM-DD date for {row['external_id']}: {row['closed_on']!r}"
+        ) from None
 
 
 def checked(row, values, new):
@@ -86,17 +104,23 @@ class Command(BaseCommand):
                     # never the number, nor the letters it starts with
                     values["vat_number"] = normalize_vat(values["vat_number"])
                     if vat_doubt(values["vat_number"]):
-                        self.stdout.write(f"Shop {row['external_id']}: the VAT number may have a mistake: look at it in the admin.")
+                        self.stdout.write(
+                            f"Shop {row['external_id']}: the VAT number may have a mistake: look at it in the admin."
+                        )
                 values = checked(row, values, new=not Shop.objects.filter(external_id=str(row["external_id"])).exists())
-                shop, created = Shop.objects.get_or_create(external_id=str(row["external_id"]),
-                                                           defaults={**values, "approved_on": timezone.now(), "approved_by": "import"})
+                shop, created = Shop.objects.get_or_create(
+                    external_id=str(row["external_id"]),
+                    defaults={**values, "approved_on": timezone.now(), "approved_by": "import"},
+                )
                 if created:
                     events.send(events.shop_created, Shop, shop=shop, user=None, source="import")
                 # A shop moved from another site belongs to its owner even while it waits for them
                 if not created and shop.owner_id is None and not shop.moved_from:
                     Shop.objects.filter(pk=shop.pk).update(**values)
                     # One made while an older image was put back has no approval: the list approves it
-                    Shop.objects.filter(pk=shop.pk, approved_on=None).update(approved_on=timezone.now(), approved_by="import")
+                    Shop.objects.filter(pk=shop.pk, approved_on=None).update(
+                        approved_on=timezone.now(), approved_by="import"
+                    )
                 elif not created and "closed_on" in values:
                     # The association decides "historic" even for a claimed shop: the rest belongs to the owner
                     Shop.objects.filter(pk=shop.pk).update(closed_on=values["closed_on"])

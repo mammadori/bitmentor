@@ -9,6 +9,7 @@ later than the last one accepted for the account: the same code, or an older one
 is the caller's job (config/second_factor.py), atomically. The functions that hold a secret or a code are marked
 `sensitive_variables`: an error report shows none of their values.
 """
+
 import base64
 import binascii
 import hashlib
@@ -49,8 +50,8 @@ def hotp(key, counter, digits=DIGITS, digest=hashlib.sha1):
     """The code of `counter` for the key (bytes), as a string of `digits` digits (RFC 4226, dynamic truncation)."""
     mac = hmac.new(key, struct.pack(">Q", counter), digest).digest()
     offset = mac[-1] & 0x0F
-    number = struct.unpack(">I", mac[offset:offset + 4])[0] & 0x7FFFFFFF
-    return str(number % 10 ** digits).zfill(digits)
+    number = struct.unpack(">I", mac[offset : offset + 4])[0] & 0x7FFFFFFF
+    return str(number % 10**digits).zfill(digits)
 
 
 def step_of(seconds):
@@ -94,12 +95,13 @@ def uri(secret, account, issuer):
     parameter, as the apps expect."""
     # Each part on its own: a colon inside one of them must not pass for the separator
     label = f"{quote(issuer, safe='@')}:{quote(account, safe='@')}"
-    query = urlencode({"secret": secret, "issuer": issuer, "algorithm": "SHA1", "digits": DIGITS, "period": STEP},
-                      quote_via=quote)
+    query = urlencode(
+        {"secret": secret, "issuer": issuer, "algorithm": "SHA1", "digits": DIGITS, "period": STEP}, quote_via=quote
+    )
     return f"otpauth://totp/{label}?{query}"
 
 
 @sensitive_variables()
 def grouped(secret):
     """The secret in groups of four, to copy by hand into an app."""
-    return " ".join(secret[index:index + 4] for index in range(0, len(secret), 4))
+    return " ".join(secret[index : index + 4] for index in range(0, len(secret), 4))

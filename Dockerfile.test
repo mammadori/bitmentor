@@ -3,16 +3,18 @@
 # headless Chromium for the tests that look at the register's page, git for the Blossom tool from a checkout, and the
 # README (Dockerfile.test.dockerignore lets it in here only). Production images never get any of them.
 # Chromium comes from Debian and moves with its security updates: a test that measures the page may need a look then.
-# Also tblib (requirements-test.lock), for readable failures in parallel.
-# node pinned by digest (24.22.2); it needs libstdc++6.
-FROM node:24.22.2-trixie-slim@sha256:0820eaa85e07d0490446dd01d14707e17e6108a36988cf374899cd057eb3812d AS node
+# Also tblib (requirements-test.lock), for readable failures in parallel, and ruff with the repository's ruff.toml,
+# for the style and the lint of the code.
+# node pinned by digest (24.22.3); it needs libstdc++6.
+FROM node:24.22.3-trixie-slim@sha256:af02d57b57719b9657a45199a79264a9437940cd55b3c7b3fc99615654f124a0 AS node
 FROM website
 USER root
-RUN apt-get update && apt-get install -y --no-install-recommends libstdc++6 chromium-headless-shell git \
+RUN grep -q 'https://deb.debian.org' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update && apt-get install -y --no-install-recommends libstdc++6 chromium-headless-shell git \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
-# tblib: with --parallel, a failing test shows its traceback instead of «cannot pickle traceback»
+# tblib: with --parallel, a failing test shows its traceback instead of «cannot pickle traceback»; ruff: the checks
 RUN pip install --no-cache-dir --require-hashes --no-deps -r requirements-test.lock
-COPY README.md .
+COPY README.md ruff.toml ./
 USER app
 RUN node --version && chromium-headless-shell --version && git --version

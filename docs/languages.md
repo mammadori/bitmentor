@@ -49,6 +49,39 @@ already has in most languages.
 The community's catalog comes before the software's: the same way a community can change a text of the Italian or
 German translation, by putting only that text in its own `locale/it/` or `locale/de/`.
 
+## Read by a native speaker, or not
+
+The language switcher puts a small `*` next to a language no native speaker has read, and one line explains it:
+always in the open menu of a small screen, on a large one when the switcher is pointed at or reached with the
+keyboard. The community's own language, the first of `languages`, never has the mark. Nothing else changes: the
+pages have no notice.
+
+Each catalog says it of itself, in a header at its top:
+
+```
+"X-Native-Reviewed: no\n"
+```
+
+`no`, empty or missing in a catalog of the software means not read; anything else means read, and says what was
+read (a version, a date: `0.2.1`). Of the catalogs bitmentor carries, Italian has been read; German and the English
+the texts are written in have not (`locale/django.pot` speaks for English). A catalog of the community speaks before
+the software's for its language, and a language with no catalog that says anything gets no mark.
+
+The community has the last word, in `community.yml`:
+
+```yaml
+# One language at a time, whatever the catalogs say
+native_reviewed:
+  de: true
+  fr: false
+# Or no mark at all
+# native_reviewed: true
+```
+
+A native speaker who reads a catalog of the software and sends the corrections changes its header, and the mark
+goes for every community with the next release. What was read is the texts of that day: the ones a later release
+adds have not been, and the header's value says up to where.
+
 ## After each release
 
 A release can add texts or change them, and a changed text is a new one for gettext: until it is translated it is

@@ -1,5 +1,6 @@
 """When a merchant calls (shops/diagnosis.py and manage.py diagnose_shop): every check with fake answers of the
 Lightning provider, read-only proven on every test, no secrets in the output."""
+
 import ast
 import io
 import json
@@ -29,6 +30,7 @@ WRITES = re.compile(r"^\s*(INSERT|UPDATE|DELETE|REPLACE)\b", re.I)
 
 def provider(verify=True, fail=None):
     """The shop's Lightning provider as lnaddress.fetch sees it: LNURL-pay, invoice, LUD-21."""
+
     def fetch(url):
         if fail:
             raise fail
@@ -39,6 +41,7 @@ def provider(verify=True, fail=None):
             host = url.split("/")[2]
             return {"pr": "lntbs10n1fake", **({"verify": f"https://{host}/verify/1"} if verify else {})}
         return {"status": "OK", "settled": False, "pr": "lntbs10n1fake"}
+
     return fetch
 
 
@@ -49,9 +52,18 @@ class Base(TestCase):
         self.owner = get_user_model().objects.create(username="02" + "ab" * 32, last_login=timezone.now())
         Profile.objects.create(user=self.owner, email="mario.rossi@example.org")
         self.shop = Shop.objects.create(
-            owner=self.owner, name="Central Bar", city="Town",
-            lightning_address="bar@ln.example.org", lightning=True, telegram_chat="12345", latitude=41.9, longitude=12.5, sign_printed=timezone.now(),
-            register_shared=timezone.now(), first_sale=timezone.now())
+            owner=self.owner,
+            name="Central Bar",
+            city="Town",
+            lightning_address="bar@ln.example.org",
+            lightning=True,
+            telegram_chat="12345",
+            latitude=41.9,
+            longitude=12.5,
+            sign_printed=timezone.now(),
+            register_shared=timezone.now(),
+            first_sale=timezone.now(),
+        )
         self.fetch = provider()
         self.domains = []
         # The customers' guide offers a wallet (the example community lists none)
@@ -63,9 +75,12 @@ class Base(TestCase):
     def run_diagnosis(self, shop=None, seconds=diagnosis.TOTAL_SECONDS):
         """diagnose with the fake provider, proving on the way that nothing is written to the database."""
         fetch = self.fetch
-        with patch("shops.lnaddress.fetch", side_effect=lambda url: (self.domains.append(url.split("/")[2]),
-                                                                       fetch(url))[1]), \
-                CaptureQueriesContext(connection) as queries:
+        with (
+            patch(
+                "shops.lnaddress.fetch", side_effect=lambda url: (self.domains.append(url.split("/")[2]), fetch(url))[1]
+            ),
+            CaptureQueriesContext(connection) as queries,
+        ):
             findings = diagnose(shop or self.shop, seconds)
         self.assertEqual([query["sql"] for query in queries.captured_queries if WRITES.match(query["sql"])], [])
         return findings
@@ -115,6 +130,7 @@ class Lightning(Base):
         def slow(url):
             release.wait(5)
             raise requests.ConnectionError("late")
+
         self.fetch = slow
         try:
             with patch.object(diagnosis, "LIGHTNING_SECONDS", 0.6):
@@ -185,6 +201,7 @@ class Limits(Base):
     def test_a_broken_check_does_not_stop_the_others(self):
         def broken(run):
             raise RuntimeError("boom")
+
         checks = [broken if check is diagnosis.check_register else check for check in diagnosis.CHECKS]
         with patch.object(diagnosis, "CHECKS", checks), self.assertLogs("shops.diagnosis", "ERROR") as logs:
             codes = self.codes(self.run_diagnosis())
@@ -284,8 +301,15 @@ class Waiting(Base):
     """A shop with no register because it waits: for its owner, for the owner's wallet."""
 
     def moved(self, **fields):
-        data = {"name": "Moved Bar", "moved_in": timezone.now(), "moved_from": str(uuid.uuid4()), "moved_register": True,
-                "latitude": 41.9, "longitude": 12.5, **fields}
+        data = {
+            "name": "Moved Bar",
+            "moved_in": timezone.now(),
+            "moved_from": str(uuid.uuid4()),
+            "moved_register": True,
+            "latitude": 41.9,
+            "longitude": 12.5,
+            **fields,
+        }
         return Shop.objects.create(**data)
 
     def test_saved_without_a_wallet(self):
@@ -326,7 +350,11 @@ class Waiting(Base):
         self.assertIn("shop_visible", self.codes(self.run_diagnosis(shop)))
 
     def test_the_dashboard_and_the_diagnosis_agree(self):
-        shops = [self.moved(claim_hash="b" * 64, name="A"), self.moved(name="B"), self.moved(owner=self.owner, name="C")]
+        shops = [
+            self.moved(claim_hash="b" * 64, name="A"),
+            self.moved(name="B"),
+            self.moved(owner=self.owner, name="C"),
+        ]
         listed = {item.shop.pk: item.code for item in dashboard.moved_items(timezone.now())}
         self.assertEqual(len(listed), 3)
         for shop in shops:
@@ -351,8 +379,11 @@ class Closures(Base):
 
     def close(self, start, end=None, reason="holiday"):
         return Closure.objects.create(
-            shop=self.shop, first_day=self.today + timedelta(days=start), reason=reason,
-            reopens_on=None if end is None else self.today + timedelta(days=end))
+            shop=self.shop,
+            first_day=self.today + timedelta(days=start),
+            reason=reason,
+            reopens_on=None if end is None else self.today + timedelta(days=end),
+        )
 
     def test_closed_for_holidays(self):
         self.close(-2, 5)
@@ -405,7 +436,6 @@ class Closures(Base):
         self.assertNotIn("lightning_ok", codes)
 
 
-
 class StaffRegisters(Base):
     def register(self, name="Anna", **fields):
         register = StaffRegister.objects.create(shop=self.shop, name=name, **fields)
@@ -440,7 +470,9 @@ class StaffRegisters(Base):
         self.assertIn("used or expired", found.detail)
         self.assertNotIn("staff_code_waiting", codes)
         # An expired one too
-        StaffRegister.objects.filter(pk=register.pk).update(code="x" * 30, code_until=timezone.now() - timedelta(hours=1))
+        StaffRegister.objects.filter(pk=register.pk).update(
+            code="x" * 30, code_until=timezone.now() - timedelta(hours=1)
+        )
         self.assertIn("staff_unopened", self.codes(self.run_diagnosis()))
 
     def test_names_come_out_as_a_terminal_shows_them(self):
@@ -484,8 +516,16 @@ class StaffRegisters(Base):
 
 class Account(Base):
     def change(self, changed="username", ago=1, **fields):
-        data = {"user": self.owner, "shops": self.shop.name, "changed": changed, "actor": "gino", "via": "admin",
-                "told": "email", "created": timezone.now() - timedelta(days=ago), **fields}
+        data = {
+            "user": self.owner,
+            "shops": self.shop.name,
+            "changed": changed,
+            "actor": "gino",
+            "via": "admin",
+            "told": "email",
+            "created": timezone.now() - timedelta(days=ago),
+            **fields,
+        }
         return AccountChange.objects.create(**data)
 
     def test_a_change_of_how_the_owner_signs_in(self):
@@ -542,7 +582,7 @@ class Account(Base):
         self.assertNotIn("account_changed", codes)
 
     def test_the_latest_changes_are_kept_when_there_are_many(self):
-        for number in range(25):
+        for _number in range(25):
             self.change("groups", ago=5, told="")
         self.change("username", ago=1)
         found = self.codes(self.run_diagnosis())["account_changed"]
@@ -569,8 +609,9 @@ class Certificate(Base):
         self.assertEqual(self.codes(self.run_diagnosis())["certificate_revoked"].level, WARNING)
 
     def works(self):
-        Shop.objects.filter(pk=self.shop.pk).update(lightning_status=LightningStatus.OK,
-                                                    lightning_checked_address=self.shop.lightning_address)
+        Shop.objects.filter(pk=self.shop.pk).update(
+            lightning_status=LightningStatus.OK, lightning_checked_address=self.shop.lightning_address
+        )
         self.shop.refresh_from_db()
 
     def test_waiting_for_the_address_and_the_pass(self):
@@ -630,8 +671,11 @@ class NewSectionsCommand(Base):
 
     def test_the_helper_reads_what_to_do_after_an_arrow(self):
         self.shop.listed = True
-        Closure.objects.create(shop=self.shop, first_day=vacation.day_of() - timedelta(days=1),
-                               reopens_on=vacation.day_of() + timedelta(days=4))
+        Closure.objects.create(
+            shop=self.shop,
+            first_day=vacation.day_of() - timedelta(days=1),
+            reopens_on=vacation.day_of() + timedelta(days=4),
+        )
         _code, out, _err = self.call("central")
         lines = out.splitlines()
         index = next(number for number, line in enumerate(lines) if "[closed_now]" in line)
@@ -650,15 +694,18 @@ class NewSectionsCommand(Base):
         self.assertNotIn("\x1b", err)
 
     def test_json_carries_what_to_do(self):
-        Closure.objects.create(shop=self.shop, first_day=vacation.day_of(), reopens_on=vacation.day_of() + timedelta(days=4))
+        Closure.objects.create(
+            shop=self.shop, first_day=vacation.day_of(), reopens_on=vacation.day_of() + timedelta(days=4)
+        )
         _code, out, _err = self.call("central", "--json")
         found = {item["code"]: item for item in json.loads(out)["findings"]}
         self.assertIn("Nothing to fix", found["closed_now"]["do"])
         self.assertEqual(found["lightning_ok"]["do"], "")
 
     def test_a_moved_shop_is_found_by_its_old_id_and_told_in_italian(self):
-        shop = Shop.objects.create(name="Moved Bar", moved_in=timezone.now(), moved_from=str(uuid.uuid4()),
-                                   claim_hash="c" * 64)
+        shop = Shop.objects.create(
+            name="Moved Bar", moved_in=timezone.now(), moved_from=str(uuid.uuid4()), claim_hash="c" * 64
+        )
         code, out, _err = self.call(shop.moved_from, "--language", "it")
         self.assertEqual(code, 0)
         self.assertIn("! Il tuo negozio si è trasferito su questo sito", out)
@@ -674,17 +721,26 @@ class EveryNewLine(Base):
         self.run_diagnosis()
         probed = len(self.domains)
         today = vacation.day_of()
-        Closure.objects.create(shop=self.shop, first_day=today - timedelta(days=2), reopens_on=today + timedelta(days=9))
+        Closure.objects.create(
+            shop=self.shop, first_day=today - timedelta(days=2), reopens_on=today + timedelta(days=9)
+        )
         Shop.objects.filter(pk=self.shop.pk).update(created=timezone.now() - timedelta(days=70))
         self.shop.refresh_from_db()
         register = StaffRegister.objects.create(shop=self.shop, name="Anna")
         staff.new_code(register)
         StaffRegister.objects.create(shop=self.shop, name="Luca", opened=timezone.now(), retired=timezone.now())
         StaffRegister.objects.create(shop=self.shop, name="Rosa", opened=timezone.now())
-        AccountChange.objects.create(user=self.owner, shops=self.shop.name, changed="username,groups", actor="gino",
-                                     via="admin", told="email")
-        moved = Shop.objects.create(name="Moved Bar", moved_in=timezone.now(), moved_from=str(uuid.uuid4()),
-                                    claim_hash="d" * 64, latitude=45, longitude=11)
+        AccountChange.objects.create(
+            user=self.owner, shops=self.shop.name, changed="username,groups", actor="gino", via="admin", told="email"
+        )
+        moved = Shop.objects.create(
+            name="Moved Bar",
+            moved_in=timezone.now(),
+            moved_from=str(uuid.uuid4()),
+            claim_hash="d" * 64,
+            latitude=45,
+            longitude=11,
+        )
         seen = set()
         for language in ("en", "it", "de"):
             before_domains = len(self.domains)
@@ -700,24 +756,40 @@ class EveryNewLine(Base):
             for secret in (register.key, register.code, "d" * 64, self.owner.username):
                 self.assertNotIn(secret, text, language)
             seen |= codes
-        for code in ("closed_now", "staff_code_waiting", "staff_off", "staff_ok", "account_changed",
-                     "certificate_waiting", "customer_path_ok", "moved_unclaimed"):
+        for code in (
+            "closed_now",
+            "staff_code_waiting",
+            "staff_off",
+            "staff_ok",
+            "account_changed",
+            "certificate_waiting",
+            "customer_path_ok",
+            "moved_unclaimed",
+        ):
             self.assertIn(code, seen)
 
 
 class Translations(TestCase):
     def test_every_sentence_in_italian_and_german(self):
         tree = ast.parse(Path(diagnosis.__file__).read_text())
-        texts = {node.args[0].value for node in ast.walk(tree)
-                 if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "_" and node.args
-                 and isinstance(node.args[0], ast.Constant)}
+        texts = {
+            node.args[0].value
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and getattr(node.func, "id", "") == "_"
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+        }
         self.assertGreater(len(texts), 40)
         for language in ("it", "de"):
             with translation.override(language):
                 missing = [text for text in texts if translation.gettext(text) == text]
             self.assertEqual(missing, [], language)
-            plurals = [tuple(arg.value for arg in node.args[:2]) for node in ast.walk(tree)
-                       if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "ngettext"]
+            plurals = [
+                tuple(arg.value for arg in node.args[:2])
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "ngettext"
+            ]
             for one, many in plurals:
                 with translation.override(language):
                     self.assertNotEqual(translation.ngettext(one, many, 1), one)
@@ -726,5 +798,8 @@ class Translations(TestCase):
             for text in texts:
                 # The placeholders survive the translation
                 with translation.override(language):
-                    self.assertEqual(sorted(re.findall(r"\{\w+\}", translation.gettext(text))),
-                                     sorted(re.findall(r"\{\w+\}", text)), text)
+                    self.assertEqual(
+                        sorted(re.findall(r"\{\w+\}", translation.gettext(text))),
+                        sorted(re.findall(r"\{\w+\}", text)),
+                        text,
+                    )

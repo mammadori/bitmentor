@@ -51,6 +51,7 @@ class Pages(TestCase):
     def test_a_page_is_converted_once(self):
         """Markdown costs: the same page with the same text is converted only once per process."""
         from website.views import page_html
+
         page_html.cache_clear()
         with patch("website.views.markdown.markdown", wraps=markdown.markdown) as convert:
             first = self.client.get("/it/").content
@@ -76,7 +77,9 @@ class Pages(TestCase):
         self.assertIn('<xhtml:link rel="alternate" hreflang="en" href="https://website.example/en/about/"/>', entry)
         default = f"https://website.example/{settings.LANGUAGE_CODE}/about/"
         self.assertIn(f'<xhtml:link rel="alternate" hreflang="x-default" href="{default}"/>', entry)
-        self.assertIn('hreflang="x-default" href="https://website.example/' + settings.LANGUAGE_CODE + '/shops/map/"', xml)
+        self.assertIn(
+            'hreflang="x-default" href="https://website.example/' + settings.LANGUAGE_CODE + '/shops/map/"', xml
+        )
         self.assertIn('xmlns:xhtml="http://www.w3.org/1999/xhtml"', xml)
 
     def test_missing_page(self):
@@ -88,7 +91,9 @@ class Pages(TestCase):
 
     def test_page_image_becomes_absolute(self):
         with patch("website.views.parse", return_value=({"image": "/theme/a.png"}, "text")):
-            self.assertContains(self.client.get("/it/"), 'property="og:image" content="https://website.example/theme/a.png"')
+            self.assertContains(
+                self.client.get("/it/"), 'property="og:image" content="https://website.example/theme/a.png"'
+            )
 
     def test_absolute_page_image_is_left_alone(self):
         with patch("website.views.parse", return_value=({"image": "https://example.org/a.png"}, "text")):
@@ -184,8 +189,13 @@ class StructuredData(TestCase):
             graph = self.structured("/it/about/")
         self.assertEqual(graph[0]["@type"], "BreadcrumbList")
         steps = [(step["position"], step["name"], step["item"]) for step in graph[0]["itemListElement"]]
-        self.assertEqual(steps, [(1, "Example community", "https://website.example/it/"),
-                                 (2, "About us", "https://website.example/it/about/")])
+        self.assertEqual(
+            steps,
+            [
+                (1, "Example community", "https://website.example/it/"),
+                (2, "About us", "https://website.example/it/about/"),
+            ],
+        )
 
     def test_a_page_without_a_title_has_no_structured_data(self):
         with patch("website.views.parse", return_value=({}, "text")):
@@ -246,8 +256,15 @@ class ShareImage(TestCase):
         self.assertNotIn("preview", head)
 
     def test_a_jpeg_tells_its_size(self):
-        jpeg = (b"\xff\xd8\xff\xe0" + struct.pack(">H", 16) + b"JFIF\x00" + bytes(9)
-                + b"\xff\xff\xc2" + struct.pack(">HBHH", 17, 8, 630, 1200) + bytes(12))
+        jpeg = (
+            b"\xff\xd8\xff\xe0"
+            + struct.pack(">H", 16)
+            + b"JFIF\x00"
+            + bytes(9)
+            + b"\xff\xff\xc2"
+            + struct.pack(">HBHH", 17, 8, 630, 1200)
+            + bytes(12)
+        )
         (self.root / "theme/photo.jpg").write_bytes(jpeg)
         self.assertEqual(image_size(theme_image("/theme/photo.jpg")), (1200, 630))
 
@@ -302,9 +319,10 @@ class ExampleCommunity(TestCase):
             self.assertEqual(menu("en"), [{"href": "/en/shops/map/", "label": "Map"}])
             self.assertEqual(self.client.get("/en/").status_code, 200)
 
-
     def test_the_till_icon_says_what_the_logo_is(self):
-        shop = Shop.objects.create(name="Bar", lightning_address="bar@ln.example.org", discount=0, latitude=1, longitude=1)
+        shop = Shop.objects.create(
+            name="Bar", lightning_address="bar@ln.example.org", discount=0, latitude=1, longitude=1
+        )
         icon = self.client.get(f"/register/{shop.id}/manifest.webmanifest").json()["icons"][0]
         self.assertEqual((icon["sizes"], icon["type"]), ("any", "image/svg+xml"))
 
@@ -359,7 +377,9 @@ class ThreeLanguages(TestCase):
     def test_every_language_is_offered(self):
         html = self.client.get("/it/shops/map/").content.decode()
         for code, _ in settings.LANGUAGES:
-            self.assertIn(f'<link rel="alternate" hreflang="{code}" href="https://website.example/{code}/shops/map/">', html)
+            self.assertIn(
+                f'<link rel="alternate" hreflang="{code}" href="https://website.example/{code}/shops/map/">', html
+            )
             self.assertIn(f'<a href="/{code}/shops/map/" hreflang="{code}"', html)
 
     def test_a_page_missing_in_german_is_a_404_and_is_not_announced(self):
@@ -389,7 +409,9 @@ class ThemeOwnsItsColours(TestCase):
 
 class Responsive(TestCase):
     def test_reduced_copies_become_a_srcset(self):
-        with patch("website.views.reduced_copies", return_value=[("/theme/a-480.webp", 480), ("/theme/a-800.webp", 800)]):
+        with patch(
+            "website.views.reduced_copies", return_value=[("/theme/a-480.webp", 480), ("/theme/a-800.webp", 800)]
+        ):
             html = responsive('<img src="/theme/a.webp" alt="x" width="1200" height="600">')
         self.assertIn('srcset="/theme/a-480.webp 480w, /theme/a-800.webp 800w, /theme/a.webp 1200w"', html)
         self.assertIn('decoding="async"', html)
@@ -400,7 +422,9 @@ class Responsive(TestCase):
         self.assertEqual(html.count('loading="lazy"'), 1)
 
     def test_copies_wider_than_the_original_are_ignored(self):
-        with patch("website.views.reduced_copies", return_value=[("/theme/a-480.webp", 480), ("/theme/a-800.webp", 800)]):
+        with patch(
+            "website.views.reduced_copies", return_value=[("/theme/a-480.webp", 480), ("/theme/a-800.webp", 800)]
+        ):
             html = responsive('<img src="/theme/a.webp" alt="x" width="600" height="600">')
         self.assertIn('srcset="/theme/a-480.webp 480w, /theme/a.webp 600w"', html)
 
@@ -441,7 +465,12 @@ class ThemeFiles(TestCase):
     def test_every_image_format_is_cached_long(self):
         """An image a page uses beside its WebP copy (AVIF in a <picture>) must not be asked again at every page."""
         theme = Path(self.folder.name) / "theme"
-        for name, kind in (("a.avif", "image/avif"), ("a.jpeg", "image/jpeg"), ("a.gif", "image/gif"), ("a.webp", "image/webp")):
+        for name, kind in (
+            ("a.avif", "image/avif"),
+            ("a.jpeg", "image/jpeg"),
+            ("a.gif", "image/gif"),
+            ("a.webp", "image/webp"),
+        ):
             (theme / name).write_bytes(b"x")
             response = self.client.get(f"/theme/{name}")
             self.assertEqual(response["Cache-Control"], "public, max-age=2592000", name)
@@ -541,7 +570,11 @@ class Neutral(TestCase):
         self.assertEqual(len(blocks), 1)
         self.assertLess(blocks[0].count("\n"), 6)
         for path in ROOT.rglob("*"):
-            if path.is_file() and path != ROOT / "README.md" and not {".git", "staticroot", "__pycache__"} & set(path.parts):
+            if (
+                path.is_file()
+                and path != ROOT / "README.md"
+                and not {".git", "staticroot", "__pycache__"} & set(path.parts)
+            ):
                 self.assertNotIn(MARK, path.read_text(errors="ignore"), path)
 
 
@@ -582,13 +615,25 @@ class SiteModes(TestCase):
         shop = uuid.uuid4()
         for code, _name in settings.LANGUAGES:
             with override(code):
-                closed = [reverse(name, args=[shop]) for name in ("edit_shop", "delete_shop", "staff_registers", "till_card",
-                                                                  "first_day")]
+                closed = [
+                    reverse(name, args=[shop])
+                    for name in ("edit_shop", "delete_shop", "staff_registers", "till_card", "first_day")
+                ]
                 # the panel and the login are the same page, even when the login remembers where to go back to
-                closed += [reverse("shops"), f"{reverse('shops')}?next=/", reverse("new_shop"), reverse("recovery"),
-                           reverse("recovery_login"), reverse("confirm_email")]
-                public = [reverse("home"), reverse("page", args=["about"]), reverse("shop_map"),
-                          reverse("shop_detail", args=[shop])]
+                closed += [
+                    reverse("shops"),
+                    f"{reverse('shops')}?next=/",
+                    reverse("new_shop"),
+                    reverse("recovery"),
+                    reverse("recovery_login"),
+                    reverse("confirm_email"),
+                ]
+                public = [
+                    reverse("home"),
+                    reverse("page", args=["about"]),
+                    reverse("shop_map"),
+                    reverse("shop_detail", args=[shop]),
+                ]
                 # the till and the sign open, so the engine reads their noindex (NotIndexed in shops/tests.py)
                 public += [reverse("register", args=[shop]), reverse("shop_sign", args=[shop])]
             for path in closed:
@@ -656,10 +701,12 @@ class ThemeRange(TestCase):
 
 class OnionLocation(TestCase):
     """ONION_LOCATION goes to Caddy as it is: manage.py check says when it is not an onion's address (website.W007)."""
+
     NAME = "abcdefghijklmnopqrstuvwxyz234567abcdefghijklmnopqrstuvwx.onion"
 
     def found(self, value):
         from website.apps import wrong_onion_location
+
         with override_settings(ONION_LOCATION=value):
             return [problem.id for problem in wrong_onion_location(None)]
 
@@ -669,21 +716,30 @@ class OnionLocation(TestCase):
                 self.assertEqual(self.found(value), [])
 
     def test_anything_else_is_named(self):
-        for value in (f"http://{self.NAME}/", self.NAME, f"ftp://{self.NAME}", "https://example.org",
-                      "http://short.onion", f"http://{self.NAME}\nX-Other: 1"):
+        for value in (
+            f"http://{self.NAME}/",
+            self.NAME,
+            f"ftp://{self.NAME}",
+            "https://example.org",
+            "http://short.onion",
+            f"http://{self.NAME}\nX-Other: 1",
+        ):
             with self.subTest(value):
                 self.assertEqual(self.found(value), ["website.W007"])
 
 
 @override_settings(PUBLIC_URL=PUBLIC)
-@override_settings(BLOSSOM_HOSTS=("blossom.example.org", "files.example.net"),
-                   ALLOWED_HOSTS=["blossom.example.org", "files.example.net", "testserver"])
+@override_settings(
+    BLOSSOM_HOSTS=("blossom.example.org", "files.example.net"),
+    ALLOWED_HOSTS=["blossom.example.org", "files.example.net", "testserver"],
+)
 class Blossom(TestCase):
     """Read-only Blossom (BUD-01): the theme files by their SHA-256, on the hosts of BLOSSOM_HOSTS, only when
     `blossom: true`."""
 
     def setUp(self):
         from website import blossom
+
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
         self.root = Path(folder.name) / "community"
@@ -700,6 +756,7 @@ class Blossom(TestCase):
         self.addCleanup(community.cache_clear)
         self.addCleanup(blossom.reset)
         from website import blossom_visits
+
         blossom_visits.reset()
         self.addCleanup(blossom_visits.reset)
         self.site = self.client
@@ -708,6 +765,7 @@ class Blossom(TestCase):
 
     def turn(self, on):
         from website import blossom
+
         data = yaml.safe_load((self.root / "community.yml").read_text())
         data["blossom"] = on
         (self.root / "community.yml").write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False))
@@ -756,6 +814,7 @@ class Blossom(TestCase):
 
     def test_a_changed_file_is_found_by_its_new_hash(self):
         from website import blossom
+
         (self.root / "theme/photo.png").write_bytes(b"new bytes")
         blossom.reset()
         self.assertEqual(self.client.get(f"/{self.digest}").status_code, 404)
@@ -774,19 +833,29 @@ class Blossom(TestCase):
         data = response.json()
         self.assertEqual(data["server"], "https://blossom.example.org")
         item = next(item for item in data["files"] if item["sha256"] == self.digest)
-        self.assertEqual(item, {"sha256": self.digest, "size": len(self.photo), "type": "image/png",
-                                "url": f"{PUBLIC}/theme/photo.png", "blossom": f"https://blossom.example.org/{self.digest}.png"})
+        self.assertEqual(
+            item,
+            {
+                "sha256": self.digest,
+                "size": len(self.photo),
+                "type": "image/png",
+                "url": f"{PUBLIC}/theme/photo.png",
+                "blossom": f"https://blossom.example.org/{self.digest}.png",
+            },
+        )
 
     def test_every_error_has_cors_and_its_reason(self):
-        cases = [("get", "/" + "0" * 64, 404, "blob not found"),
-                 ("get", "/not-a-hash", 400, "not a sha256, with an optional extension"),
-                 ("get", f"/{self.digest}.p-g", 400, "not a sha256, with an optional extension"),
-                 ("put", "/upload", 403, "read-only server"),
-                 ("get", "/upload", 403, "read-only server"),
-                 ("put", "/mirror", 403, "read-only server"),
-                 ("head", "/media", 403, "read-only server"),
-                 ("delete", f"/{self.digest}", 403, "read-only server"),
-                 ("post", "/list", 403, "read-only server")]
+        cases = [
+            ("get", "/" + "0" * 64, 404, "blob not found"),
+            ("get", "/not-a-hash", 400, "not a sha256, with an optional extension"),
+            ("get", f"/{self.digest}.p-g", 400, "not a sha256, with an optional extension"),
+            ("put", "/upload", 403, "read-only server"),
+            ("get", "/upload", 403, "read-only server"),
+            ("put", "/mirror", 403, "read-only server"),
+            ("head", "/media", 403, "read-only server"),
+            ("delete", f"/{self.digest}", 403, "read-only server"),
+            ("post", "/list", 403, "read-only server"),
+        ]
         for method, address, status, reason in cases:
             response = getattr(self.client, method)(address)
             self.assertEqual((response.status_code, response["X-Reason"]), (status, reason), (method, address))
@@ -810,7 +879,12 @@ class Blossom(TestCase):
             # Every name gives the first as the server
             self.assertEqual(self.client.get("/list", HTTP_HOST=name).json()["server"], "https://blossom.example.org")
         for address, status in (("/", 404), ("/en/", 400), ("/admin/", 400), ("/upload", 403)):
-            for name in ("blossom.example.org", "blossom.example.org.", "BLOSSOM.example.org:8443", "files.example.net"):
+            for name in (
+                "blossom.example.org",
+                "blossom.example.org.",
+                "BLOSSOM.example.org:8443",
+                "files.example.net",
+            ):
                 response = self.client.get(address, HTTP_HOST=name)
                 self.assertEqual(response.status_code, status, (name, address))
                 self.assertNotIn("Set-Cookie", response, address)
@@ -824,6 +898,7 @@ class Blossom(TestCase):
     def test_the_users_are_counted_without_their_address(self):
         from website import blossom_visits
         from website.models import BlossomVisit
+
         phone = {"REMOTE_ADDR": "93.40.1.7", "HTTP_USER_AGENT": "Amethyst/1"}
         self.client.get(f"/{self.digest}", **phone)
         self.client.get(f"/{self.digest}", **{**phone, "REMOTE_ADDR": "93.40.1.99"})  # same /24, same app
@@ -842,9 +917,12 @@ class Blossom(TestCase):
 
     def test_the_moderators_are_told_once_at_three_users(self):
         from website.models import BlossomMilestone
+
         told = []
-        with patch("shops.notifications.deliver_to_moderators", side_effect=lambda *a: told.append(a) or ("x", [])), \
-                patch("threading.Thread.start", lambda thread: thread.run()):
+        with (
+            patch("shops.notifications.deliver_to_moderators", side_effect=lambda *a: told.append(a) or ("x", [])),
+            patch("threading.Thread.start", lambda thread: thread.run()),
+        ):
             for number in range(1, 6):
                 with self.captureOnCommitCallbacks(execute=True):
                     self.client.get(f"/{self.digest}", REMOTE_ADDR=f"93.40.{number}.1", HTTP_USER_AGENT="A")
@@ -863,6 +941,7 @@ class Blossom(TestCase):
 
         from website import blossom_visits
         from website.models import BlossomVisit
+
         old = timezone.localdate() - datetime.timedelta(days=91)
         BlossomVisit.objects.create(day=old, month=old.strftime("%Y-%m"), who="a" * 64, kind="blob")
         self.client.get(f"/{self.digest}", REMOTE_ADDR="93.40.1.7", HTTP_USER_AGENT="A")
@@ -872,6 +951,7 @@ class Blossom(TestCase):
     def retire(self, **keys):
         """An old file in the folder of the retired ones, and the community's settings for them."""
         from website import blossom
+
         self.old = b"the photo as it was"
         self.old_digest = hashlib.sha256(self.old).hexdigest()
         (self.root / "blossom-retired").mkdir(exist_ok=True)
@@ -887,13 +967,17 @@ class Blossom(TestCase):
         response = self.client.get(f"/{self.old_digest}")
         self.assertEqual((response.status_code, response["X-Reason"]), (404, "blob not found"))
         from website.models import BlossomRetired
+
         self.assertFalse(BlossomRetired.objects.exists())
 
     def test_a_retired_file_is_served_for_its_days_with_sunset_then_gone(self):
         import datetime
+
         from django.utils.http import parse_http_date
+
         from website import blossom
         from website.models import BlossomRetired
+
         self.retire(blossom_retire_days=30)
         response = self.client.get(f"/{self.old_digest}.png")
         self.assertEqual(response.status_code, 200)
@@ -943,6 +1027,7 @@ class Blossom(TestCase):
 
     def test_the_days_of_a_retired_file_start_when_it_is_in_the_folder_not_when_asked(self):
         from website.models import BlossomRetired
+
         self.retire(blossom_retire_days=30)
         self.client.get("/" + "1" * 64)
         self.assertEqual(list(BlossomRetired.objects.values_list("sha256", "size")), [(self.old_digest, len(self.old))])
@@ -952,12 +1037,27 @@ class Blossom(TestCase):
 
     def test_past_its_days_a_retired_file_is_found_at_a_mirror_that_has_it(self):
         import datetime
+
         import requests
+
         from website import blossom, blossom_retire
         from website.models import BlossomRetired
-        self.retire(blossom_retire_days=30, blossom_mirrors=[
-            "https://files.example.net/", "http://plain.example.net", "https://a.example.net/path", "https://u@b.example.net", 7,
-            "https://localhost", "https://10.0.0.5", "https://[::1]:8443", "https://169.254.169.254", "https://db.internal"])
+
+        self.retire(
+            blossom_retire_days=30,
+            blossom_mirrors=[
+                "https://files.example.net/",
+                "http://plain.example.net",
+                "https://a.example.net/path",
+                "https://u@b.example.net",
+                7,
+                "https://localhost",
+                "https://10.0.0.5",
+                "https://[::1]:8443",
+                "https://169.254.169.254",
+                "https://db.internal",
+            ],
+        )
         self.assertEqual(blossom_retire.mirrors(), ["https://files.example.net"])
         asked = []
 
@@ -1003,9 +1103,13 @@ class Blossom(TestCase):
 
     def test_the_mirrors_are_asked_in_the_background_and_not_at_every_request(self):
         from website import blossom_retire
+
         self.retire(blossom_retire_days=30, blossom_mirrors=["https://files.example.net"])
         started = []
-        with patch("website.blossom_retire.threading.Thread", lambda **options: type("T", (), {"start": lambda self: started.append(options["target"])})()):
+        with patch(
+            "website.blossom_retire.threading.Thread",
+            lambda **options: type("T", (), {"start": lambda self: started.append(options["target"])})(),
+        ):
             for _ in range(3):
                 self.client.get(f"/{self.old_digest}")
         self.assertEqual(len(started), 1)
@@ -1016,7 +1120,9 @@ class Blossom(TestCase):
 
     def test_the_tool_puts_aside_the_old_files_from_an_older_copy(self):
         import importlib.util
+
         from website import blossom
+
         spec = importlib.util.spec_from_file_location("blossom_retire_tool", ROOT / "deploy/blossom-retire.py")
         tool = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(tool)
@@ -1030,8 +1136,9 @@ class Blossom(TestCase):
         tool.main([str(self.root), "--from", str(old)])
         tool.main([str(self.root), "--from", str(old)])  # again changes nothing
         retired = self.root / "blossom-retired"
-        self.assertEqual(sorted(path.relative_to(retired).as_posix() for path in retired.rglob("*") if path.is_file()),
-                         ["photo.png"])
+        self.assertEqual(
+            sorted(path.relative_to(retired).as_posix() for path in retired.rglob("*") if path.is_file()), ["photo.png"]
+        )
         # A second old version of the same path keeps both, and the site serves them and knows their path
         (old / "theme/photo.png").write_bytes(b"second photo")
         tool.main([str(self.root), "--from", str(old)])
@@ -1043,6 +1150,7 @@ class Blossom(TestCase):
         for content in (b"first photo", b"second photo"):
             self.assertEqual(self.client.get("/" + hashlib.sha256(content).hexdigest()).status_code, 200)
         from website.models import BlossomRetired
+
         BlossomRetired.objects.update(seen=timezone.now() - timezone.timedelta(days=2))
         blossom.reset()
         self.assertEqual(self.client.get(f"/{second}")["X-Reason"], f"retired; the file is now {self.digest}")
@@ -1051,6 +1159,7 @@ class Blossom(TestCase):
     def test_the_tool_puts_aside_the_old_files_from_git(self):
         import importlib.util
         import subprocess
+
         spec = importlib.util.spec_from_file_location("blossom_retire_tool", ROOT / "deploy/blossom-retire.py")
         tool = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(tool)
@@ -1060,8 +1169,11 @@ class Blossom(TestCase):
         (work / "theme/logo.svg").write_bytes(b"<svg>old</svg>")
 
         def git(*arguments):
-            subprocess.run(["git", "-C", str(work), "-c", "user.name=t", "-c", "user.email=t@example.org", *arguments],
-                           check=True, capture_output=True)
+            subprocess.run(
+                ["git", "-C", str(work), "-c", "user.name=t", "-c", "user.email=t@example.org", *arguments],
+                check=True,
+                capture_output=True,
+            )
 
         git("init", "-q")
         git("add", ".")
@@ -1079,7 +1191,6 @@ class Blossom(TestCase):
         os.utime(work / "blossom-retired/logo.svg", (0, 0))
         tool.main([str(work), "--prune", "30"])
         self.assertFalse((work / "blossom-retired/logo.svg").exists())
-
 
 
 class SourceLink(TestCase):
@@ -1114,24 +1225,36 @@ class SourceLink(TestCase):
         staff = StaffRegister.objects.create(shop=shop, name="Anna")
         self.client.force_login(owner)
         admin = self.client_class()
-        sign_in_as_staff_session(admin, get_user_model().objects.create_user("root", password="x", is_staff=True,
-                                                                             is_superuser=True))
-        pages = [(self.client, f"/en/shops/register/{shop.id}/"), (self.client, f"/en/shops/sign/{shop.id}/"),
-                 (self.client, f"/en/shops/card/{shop.id}/"), (self.client, f"/en/shops/customer-card/{shop.id}/"),
-                 (self.client_class(), f"/en/shops/register/p/{staff.id}/?k={staff.key}"),
-                 (admin, reverse("admin:index")), (admin, reverse("admin:shops_shop_changelist")),
-                 (admin, reverse("admin_dashboard")), (self.client_class(), reverse("admin:login"))]
+        sign_in_as_staff_session(
+            admin, get_user_model().objects.create_user("root", password="x", is_staff=True, is_superuser=True)
+        )
+        pages = [
+            (self.client, f"/en/shops/register/{shop.id}/"),
+            (self.client, f"/en/shops/sign/{shop.id}/"),
+            (self.client, f"/en/shops/card/{shop.id}/"),
+            (self.client, f"/en/shops/customer-card/{shop.id}/"),
+            (self.client_class(), f"/en/shops/register/p/{staff.id}/?k={staff.key}"),
+            (admin, reverse("admin:index")),
+            (admin, reverse("admin:shops_shop_changelist")),
+            (admin, reverse("admin_dashboard")),
+            (self.client_class(), reverse("admin:login")),
+        ]
         if features.enabled("practice"):
-            pages += [(self.client, f"/en/shops/practice/{shop.id}/"),
-                      (self.client_class(), f"/en/shops/register/p/{staff.id}/practice/?k={staff.key}")]
+            pages += [
+                (self.client, f"/en/shops/practice/{shop.id}/"),
+                (self.client_class(), f"/en/shops/register/p/{staff.id}/practice/?k={staff.key}"),
+            ]
         with override_settings(SOURCE_URL="https://git.example.org/our/bitmentor"):
             for client, path in pages:
                 with self.subTest(path=path):
                     response = client.get(path)
                     self.assertEqual(response.status_code, 200)
                     self.assertNotContains(response, '<footer class="bottom">')
-                    self.assertContains(response, '<a href="https://git.example.org/our/bitmentor" rel="noopener">'
-                                                  'Source code (AGPLv3)</a>', count=1)
+                    self.assertContains(
+                        response,
+                        '<a href="https://git.example.org/our/bitmentor" rel="noopener">Source code (AGPLv3)</a>',
+                        count=1,
+                    )
             with self.assertLogs("django.security.csrf", "WARNING"):
                 expired = Client(enforce_csrf_checks=True).post("/en/shops/sign-out/")
             self.assertContains(expired, "Page expired", status_code=403)
@@ -1144,16 +1267,19 @@ class SourceLink(TestCase):
         shop = Shop.objects.create(owner=owner, name="Bar", lightning_address="till@ln.example.org")
         self.client.force_login(owner)
         register = self.client.get(f"/en/shops/register/{shop.id}/").content.decode()
-        keypad = register[register.index('<section id="keypad"'):register.index('<dialog id="menu"')]
+        keypad = register[register.index('<section id="keypad"') : register.index('<dialog id="menu"')]
         self.assertNotIn(settings.SOURCE_URL, keypad)
-        menu_sheet = register[register.index('<dialog id="menu"'):register.index("</dialog>")]
+        menu_sheet = register[register.index('<dialog id="menu"') : register.index("</dialog>")]
         self.assertIn(settings.SOURCE_URL, menu_sheet)
         # A sheet's tools are not printed (`no-print`), and the link is among them
         sign = self.client.get(f"/en/shops/sign/{shop.id}/").content.decode()
         self.assertIn("no-print", next(line for line in sign.splitlines() if settings.SOURCE_URL in line))
         for path, name in ((f"/en/shops/card/{shop.id}/", "till"), (f"/en/shops/customer-card/{shop.id}/", "customer")):
             page = self.client.get(path).content.decode()
-            tools, sheet = page.index(f'<div class="{name}-tools no-print">'), page.index(f'<article class="{name}-sheet">')
+            tools, sheet = (
+                page.index(f'<div class="{name}-tools no-print">'),
+                page.index(f'<article class="{name}-sheet">'),
+            )
             self.assertTrue(tools < page.index(settings.SOURCE_URL) < sheet, path)
 
 
@@ -1186,3 +1312,60 @@ class Embeddable(TestCase):
             panel = self.client.get("/en/shops/")
         self.assertEqual(panel["X-Frame-Options"], "DENY")
         self.assertIn("frame-ancestors 'none'", panel["Content-Security-Policy"])
+
+
+class NativeReviewed(TestCase):
+    """The language switcher marks the languages no native speaker has read (config/languages.py)."""
+
+    def setUp(self):
+        from config import languages
+
+        self.languages = languages
+        languages.declared.cache_clear()
+        self.addCleanup(languages.declared.cache_clear)
+
+    def test_the_catalogs_say_it_of_themselves(self):
+        self.assertIs(self.languages.declared("it"), True)
+        self.assertIs(self.languages.declared("de"), False)
+        # English is the language the texts are written in: the template speaks for it
+        self.assertIs(self.languages.declared("en"), False)
+        # A language with no catalog: nobody says, and nothing is marked
+        self.assertIsNone(self.languages.declared("sl"))
+        self.assertTrue(self.languages.reviewed("sl"))
+
+    def test_a_header_is_read_from_the_first_entry_only(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "django.po"
+            path.write_text(
+                'msgid ""\nmsgstr ""\n"Language: fr\\n"\n"X-Native-Reviewed: 2026-11\\n"\n\nmsgid "a"\nmsgstr "b"\n'
+            )
+            self.assertEqual(self.languages.header(path), "2026-11")
+            path.write_text('msgid ""\nmsgstr ""\n"Language: fr\\n"\n\nmsgid "X-Native-Reviewed: yes"\nmsgstr "b"\n')
+            self.assertIsNone(self.languages.header(path))
+            self.assertIsNone(self.languages.header(Path(folder) / "missing.po"))
+
+    def test_the_community_has_the_last_word(self):
+        data = dict(community())
+        with patch("config.languages.community", return_value={**data, "native_reviewed": {"de": True, "it": False}}):
+            self.assertTrue(self.languages.reviewed("de"))
+            self.assertFalse(self.languages.reviewed("it"))
+            self.assertFalse(self.languages.reviewed("en"))
+        with patch("config.languages.community", return_value={**data, "native_reviewed": True}):
+            self.assertTrue(self.languages.reviewed("en"))
+        # A value that is not yes or no for a language leaves the catalog's word
+        with patch("config.languages.community", return_value={**data, "native_reviewed": {"de": "maybe"}}):
+            self.assertFalse(self.languages.reviewed("de"))
+
+    def test_the_mark_is_in_the_switcher_and_never_on_the_community_s_own_language(self):
+        # The example community: English first, then Italian. English is not read, but it is the community's own
+        page = self.client.get("/en/").content.decode()
+        self.assertNotIn("langs-note", page)
+        self.assertNotIn('aria-hidden="true">*', page)
+        with override_settings(LANGUAGE_CODE="it"):
+            page = self.client.get("/it/").content.decode()
+            self.assertIn('lang="en" title="English" aria-label="English" aria-describedby="langs-note"', page)
+            self.assertIn('en<span aria-hidden="true">*</span>', page)
+            self.assertIn(
+                '<small class="langs-note" id="langs-note">* Non ancora riletto da un madrelingua.</small>', page
+            )
+            self.assertNotIn('it<span aria-hidden="true">*</span>', page)

@@ -1,4 +1,5 @@
 """A shop saved before its owner has a wallet: off the map and without a register until the guide adds the wallet."""
+
 from datetime import date
 from unittest.mock import patch
 
@@ -13,9 +14,15 @@ from .directory import public_shops
 from .models import Profile, RequestCount, Shop
 from .test_moving import Files
 
-WALLET = {"name": "Example Wallet", "link": "https://wallet.example.org/", "platforms": ["android", "ios"],
-          "description": {"en": "Free, and the keys stay with you.", "it": "Gratis, e le chiavi restano a te."},
-          "open_source": True, "self_custody": True, "free": True}
+WALLET = {
+    "name": "Example Wallet",
+    "link": "https://wallet.example.org/",
+    "platforms": ["android", "ios"],
+    "description": {"en": "Free, and the keys stay with you.", "it": "Gratis, e le chiavi restano a te."},
+    "open_source": True,
+    "self_custody": True,
+    "free": True,
+}
 
 
 def with_wallets(*wallets, **form):
@@ -80,7 +87,9 @@ class OffTheMap(Base):
     def test_no_register(self):
         shop = self.waiting()
         self.assertEqual(self.client.get(f"/en/shops/register/{shop.id}/").status_code, 404)
-        self.assertEqual(self.client.post(f"/register/{shop.id}/sale/", "{}", content_type="application/json").status_code, 404)
+        self.assertEqual(
+            self.client.post(f"/register/{shop.id}/sale/", "{}", content_type="application/json").status_code, 404
+        )
 
     def test_its_page_asks_nobody_to_pay_and_is_not_indexed(self):
         shop = self.waiting()
@@ -130,30 +139,39 @@ class Guide(Base):
         shop = self.waiting()
         self.client.force_login(get_user_model().objects.create(username="other"))
         self.assertEqual(self.client.get(f"/en/shops/wallet/{shop.id}/").status_code, 404)
-        self.assertEqual(self.client.post(f"/en/shops/wallet/{shop.id}/", {"lightning_address": "x@example.org"}).status_code, 404)
+        self.assertEqual(
+            self.client.post(f"/en/shops/wallet/{shop.id}/", {"lightning_address": "x@example.org"}).status_code, 404
+        )
         self.client.logout()
         self.assertEqual(self.client.get(f"/en/shops/wallet/{shop.id}/").status_code, 302)
 
     def test_post_needs_csrf(self):
         shop = self.waiting()
         from django.test import Client
+
         client = Client(enforce_csrf_checks=True)
         client.force_login(self.user)
-        self.assertEqual(client.post(f"/en/shops/wallet/{shop.id}/", {"lightning_address": "x@example.org"}).status_code, 403)
+        self.assertEqual(
+            client.post(f"/en/shops/wallet/{shop.id}/", {"lightning_address": "x@example.org"}).status_code, 403
+        )
 
     def test_the_wallet_makes_the_register_and_the_map(self):
         shop = self.waiting()
         response = self.client.post(f"/en/shops/wallet/{shop.id}/", {"lightning_address": " Mario@Example.org. "})
         self.assertRedirects(response, "/en/shops/?saved=1", fetch_redirect_response=False)
         shop.refresh_from_db()
-        self.assertEqual((shop.lightning_address, shop.lightning, shop.awaiting_wallet, shop.name),
-                         ("mario@example.org", True, False, "Bar"))
+        self.assertEqual(
+            (shop.lightning_address, shop.lightning, shop.awaiting_wallet, shop.name),
+            ("mario@example.org", True, False, "Bar"),
+        )
         # A new shop waits for the community's approval (shops/approval.py) as well
         self.assertTrue(shop.needs_approval)
         Shop.objects.filter(pk=shop.pk).update(approved_on="2026-11-17T10:00Z")
         self.assertContains(self.client.get("/en/shops/map/"), str(shop.id))
         # Once there is a wallet the guide never opens again: the destination does not change from here
-        self.assertRedirects(self.client.get(f"/en/shops/wallet/{shop.id}/"), "/en/shops/", fetch_redirect_response=False)
+        self.assertRedirects(
+            self.client.get(f"/en/shops/wallet/{shop.id}/"), "/en/shops/", fetch_redirect_response=False
+        )
         self.client.post(f"/en/shops/wallet/{shop.id}/", {"lightning_address": "thief@example.org"})
         shop.refresh_from_db()
         self.assertEqual(shop.lightning_address, "mario@example.org")
@@ -161,11 +179,14 @@ class Guide(Base):
     def test_the_details_stay_as_they_are(self):
         shop = self.waiting()
         Shop.objects.filter(pk=shop.pk).update(website="https://bar.example.org", discount=10, description="Good")
-        self.client.post(f"/en/shops/wallet/{shop.id}/", {"lightning_address": "mario@example.org", "name": "Other",
-                                                          "website": "", "discount": "0"})
+        self.client.post(
+            f"/en/shops/wallet/{shop.id}/",
+            {"lightning_address": "mario@example.org", "name": "Other", "website": "", "discount": "0"},
+        )
         shop.refresh_from_db()
-        self.assertEqual((shop.name, shop.website, shop.discount, shop.description),
-                         ("Bar", "https://bar.example.org", 10, "Good"))
+        self.assertEqual(
+            (shop.name, shop.website, shop.discount, shop.description), ("Bar", "https://bar.example.org", 10, "Good")
+        )
 
     def test_empty_is_an_error_and_nothing_is_made(self):
         shop = self.waiting()
@@ -185,8 +206,9 @@ class Guide(Base):
     def test_suspended_takes_no_register_historic_does(self):
         shop = self.waiting()
         Shop.objects.filter(pk=shop.pk).update(suspended=True)
-        self.assertRedirects(self.client.get(f"/en/shops/wallet/{shop.id}/"), "/en/shops/",
-                             fetch_redirect_response=False)
+        self.assertRedirects(
+            self.client.get(f"/en/shops/wallet/{shop.id}/"), "/en/shops/", fetch_redirect_response=False
+        )
         # The register of a historic shop has no end, however long ago it closed
         Shop.objects.filter(pk=shop.pk).update(suspended=False, closed_on="2025-01-01")
         self.assertEqual(self.client.get(f"/en/shops/wallet/{shop.id}/").status_code, 200)
@@ -223,9 +245,18 @@ class CommunityWallets(TestCase):
     def test_read_in_the_language(self):
         with with_wallets(WALLET):
             found = shop_form_links("it")["wallets"]
-        self.assertEqual(found, [{"name": "Example Wallet", "link": "https://wallet.example.org/",
-                                  "description": "Gratis, e le chiavi restano a te.", "platforms": ["android", "ios"],
-                                  "methods": ["lightning", "onchain"]}])
+        self.assertEqual(
+            found,
+            [
+                {
+                    "name": "Example Wallet",
+                    "link": "https://wallet.example.org/",
+                    "description": "Gratis, e le chiavi restano a te.",
+                    "platforms": ["android", "ios"],
+                    "methods": ["lightning", "onchain"],
+                }
+            ],
+        )
 
     def test_none_without_the_three_promises(self):
         """MiCAR: only open source, non-custodial and free tools. The community states it for every wallet."""
@@ -238,9 +269,15 @@ class CommunityWallets(TestCase):
             self.assertIn(f"`{missing}: true`", problems[0])
 
     def test_wrong_wallets_are_left_out_and_said(self):
-        wrong = [{**WALLET, "link": "javascript:alert(1)"}, {**WALLET, "link": "http://wallet.example.org/"},
-                 {**WALLET, "name": ""}, {**WALLET, "name": "x" * 41}, {**WALLET, "platforms": ["nokia"]},
-                 {**WALLET, "description": "x" * 201}, "Example Wallet"]
+        wrong = [
+            {**WALLET, "link": "javascript:alert(1)"},
+            {**WALLET, "link": "http://wallet.example.org/"},
+            {**WALLET, "name": ""},
+            {**WALLET, "name": "x" * 41},
+            {**WALLET, "platforms": ["nokia"]},
+            {**WALLET, "description": "x" * 201},
+            "Example Wallet",
+        ]
         problems = []
         with with_wallets(*wrong, WALLET):
             found = shop_form_links("en", problems.append)["wallets"]
@@ -263,8 +300,15 @@ class MovedShop(Base):
 
     def setUp(self):
         super().setUp()
-        self.shop = Shop.objects.create(owner=self.user, name="Moved", latitude=41.9, longitude=12.5,
-                                        moved_register=True, moved_from="x", moved_in="2026-11-04T10:00Z")
+        self.shop = Shop.objects.create(
+            owner=self.user,
+            name="Moved",
+            latitude=41.9,
+            longitude=12.5,
+            moved_register=True,
+            moved_from="x",
+            moved_in="2026-11-04T10:00Z",
+        )
 
     def test_off_the_map_without_payments_on_its_page(self):
         self.assertNotIn(self.shop, public_shops())
@@ -312,6 +356,7 @@ class EdgeCases(Base):
     def test_editing_the_details_never_undoes_a_wallet_connected_meanwhile(self):
         shop = self.waiting()
         from .forms import ShopDetailsForm
+
         valid = ShopDetailsForm.is_valid
 
         def connected_meanwhile(form):
@@ -319,11 +364,15 @@ class EdgeCases(Base):
             return valid(form)
 
         with patch.object(ShopDetailsForm, "is_valid", connected_meanwhile):
-            self.client.post(f"/en/shops/edit/{shop.id}/", {"name": "New Bar", "latitude": "41.9",
-                                                                 "longitude": "12.5", "discount": "3"})
+            self.client.post(
+                f"/en/shops/edit/{shop.id}/",
+                {"name": "New Bar", "latitude": "41.9", "longitude": "12.5", "discount": "3"},
+            )
         shop.refresh_from_db()
-        self.assertEqual((shop.name, shop.discount, shop.lightning_address, shop.awaiting_wallet),
-                         ("New Bar", 3, "mario@example.org", False))
+        self.assertEqual(
+            (shop.name, shop.discount, shop.lightning_address, shop.awaiting_wallet),
+            ("New Bar", 3, "mario@example.org", False),
+        )
 
     def test_no_promise_no_sign_no_window_while_waiting(self):
         shop = self.waiting()
@@ -354,8 +403,9 @@ class MovingWithoutWallet(Files, TestCase):
     def test_it_arrives_waiting_for_its_wallet(self):
         owner = get_user_model().objects.create(username="email:0123")
         Profile.objects.create(user=owner, email="anna@example.org")
-        Shop.objects.create(owner=owner, name="No wallet", latitude=42.0, longitude=12.6, discount=10,
-                            awaiting_wallet=True)
+        Shop.objects.create(
+            owner=owner, name="No wallet", latitude=42.0, longitude=12.6, discount=10, awaiting_wallet=True
+        )
         document = self.export()
         row = document["shops"][0]
         self.assertEqual((row["register"], row["lightning"]), (True, False))
@@ -369,7 +419,9 @@ class MovingWithoutWallet(Files, TestCase):
         self.assertNotIn(arrived, public_shops())
 
     def test_a_historic_one_moves_as_a_place_of_the_map(self):
-        Shop.objects.create(name="Closed", latitude=42.0, longitude=12.6, awaiting_wallet=True, closed_on=date(2020, 1, 1))
+        Shop.objects.create(
+            name="Closed", latitude=42.0, longitude=12.6, awaiting_wallet=True, closed_on=date(2020, 1, 1)
+        )
         self.assertFalse(self.export()["shops"][0]["register"])
 
 

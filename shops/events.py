@@ -53,6 +53,7 @@ Every event but the last is sent after the transaction commits (`transaction.on_
 at once): a change rolled back says nothing. `theme_file_served` has no transaction, and is sent before the answer
 leaves. A receiver that raises is written in the log, with its name and the exception's class, and stops nothing: not
 the page, not the command, not the other receivers. With no receivers an event costs nothing."""
+
 import logging
 
 from django.db import transaction
@@ -71,9 +72,15 @@ lightning_address_working = Signal()
 lightning_address_changed = Signal()
 theme_file_served = Signal()
 
-NAMES = {shop_created: "shop_created", shop_claimed: "shop_claimed", shop_approved: "shop_approved",
-         lightning_address_broken: "lightning_address_broken", lightning_address_working: "lightning_address_working",
-         lightning_address_changed: "lightning_address_changed", theme_file_served: "theme_file_served"}
+NAMES = {
+    shop_created: "shop_created",
+    shop_claimed: "shop_claimed",
+    shop_approved: "shop_approved",
+    lightning_address_broken: "lightning_address_broken",
+    lightning_address_working: "lightning_address_working",
+    lightning_address_changed: "lightning_address_changed",
+    theme_file_served: "theme_file_served",
+}
 
 
 def dispatch(signal, sender, kwargs):
@@ -82,8 +89,13 @@ def dispatch(signal, sender, kwargs):
     for receiver, outcome in signal.send_robust(sender, **kwargs):
         if isinstance(outcome, Exception):
             name = getattr(receiver, "__qualname__", None) or repr(receiver)
-            logger.error("Event %s: the receiver %s.%s raised %s", NAMES.get(signal, "?"),
-                         getattr(receiver, "__module__", "?"), name, type(outcome).__name__)
+            logger.error(
+                "Event %s: the receiver %s.%s raised %s",
+                NAMES.get(signal, "?"),
+                getattr(receiver, "__module__", "?"),
+                name,
+                type(outcome).__name__,
+            )
 
 
 def send(signal, sender=None, *, now=False, **kwargs):
@@ -107,8 +119,12 @@ def announced_patterns():
     if value is None:
         return [], []
     if not isinstance(value, list):
-        return [], [(f"`announced_files` is a list of up to {MAX_ANNOUNCED} shell patterns of theme files, not "
-                     f"{type(value).__name__}: no file is announced")]
+        return [], [
+            (
+                f"`announced_files` is a list of up to {MAX_ANNOUNCED} shell patterns of theme files, not "
+                f"{type(value).__name__}: no file is announced"
+            )
+        ]
     found, problems = [], []
     for place, pattern in enumerate(value, 1):
         if not isinstance(pattern, str) or not pattern.strip():
@@ -124,7 +140,7 @@ def announced_patterns():
 
 
 def client_kind(request):
-    """"browser" or "program", for `theme_file_served`. Every browser of today sends `Sec-Fetch-Mode` with each request,
+    """ "browser" or "program", for `theme_file_served`. Every browser of today sends `Sec-Fetch-Mode` with each request,
     and programs (curl, wget, a podcast app, a robot) as a rule do not; a User-Agent that names a robot or a tool
     (website/blossom_visits.py, BOTS) is a program even with the header. Nothing of the request is kept or passed on."""
     from website.blossom_visits import BOTS

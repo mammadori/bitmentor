@@ -1,6 +1,7 @@
 """The network layer of the Lightning address checks (shops/lnaddress.py): the connection that goes only to the addresses
 already checked, the watchdog that cuts a slow answer, and the places that keep slow servers from holding the site's
 threads. Nothing leaves the machine: the servers are sockets on 127.0.0.1."""
+
 import socket
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -37,7 +38,9 @@ def closed_port():
 
 class PinnedSocket(SimpleTestCase):
     def connection(self, **options):
-        return SimpleNamespace(socket_options=options.get("socket_options"), timeout=options.get("timeout", _DEFAULT_TIMEOUT))
+        return SimpleNamespace(
+            socket_options=options.get("socket_options"), timeout=options.get("timeout", _DEFAULT_TIMEOUT)
+        )
 
     def test_it_goes_to_the_first_address_that_answers_with_the_options_and_the_timeout(self):
         server = listening()
@@ -121,8 +124,14 @@ class PublicAddresses(SimpleTestCase):
 
 class Fetch(SimpleTestCase):
     def test_only_https_to_a_public_name_on_the_standard_port_within_a_budget(self):
-        for url in ("http://a.example.org/x", "https://a.example.org:8443/x", "https:///x", "https://localhost/x",
-                    "https://printer.local/x", "ftp://a.example.org/x"):
+        for url in (
+            "http://a.example.org/x",
+            "https://a.example.org:8443/x",
+            "https:///x",
+            "https://localhost/x",
+            "https://printer.local/x",
+            "ftp://a.example.org/x",
+        ):
             with self.assertRaises(ValueError, msg=url):
                 lnaddress.fetch(url)
         for kwargs in ({"seconds": 0}, {"seconds": -1}, {"size": 0}):
@@ -130,8 +139,11 @@ class Fetch(SimpleTestCase):
                 lnaddress.fetch("https://a.example.org/x", **kwargs)
 
     def test_the_name_that_took_all_the_time_leaves_none_for_the_connection(self):
-        with patch("shops.lnaddress.public_addresses", return_value=[("fake",)]), \
-                patch("shops.lnaddress.time.monotonic", side_effect=[0, 1000]), self.assertRaises(SlowName):
+        with (
+            patch("shops.lnaddress.public_addresses", return_value=[("fake",)]),
+            patch("shops.lnaddress.time.monotonic", side_effect=[0, 1000]),
+            self.assertRaises(SlowName),
+        ):
             lnaddress.fetch("https://a.example.org/x", seconds=5)
 
     def test_an_answer_cut_by_the_watchdog_is_never_taken_as_complete(self):
@@ -142,15 +154,20 @@ class Fetch(SimpleTestCase):
         session.__enter__.return_value = session
         session.get.return_value = response
         cut = SimpleNamespace(fired=True)
-        with patch("shops.lnaddress.public_addresses", return_value=[("fake",)]), \
-                patch("shops.lnaddress.requests.Session", return_value=session), \
-                patch("shops.lnaddress.Watchdog", return_value=cut), self.assertRaises(ValueError):
+        with (
+            patch("shops.lnaddress.public_addresses", return_value=[("fake",)]),
+            patch("shops.lnaddress.requests.Session", return_value=session),
+            patch("shops.lnaddress.Watchdog", return_value=cut),
+            self.assertRaises(ValueError),
+        ):
             lnaddress.fetch("https://a.example.org/x")
         # Not cut, the same bytes are the answer
         cut.fired = False
-        with patch("shops.lnaddress.public_addresses", return_value=[("fake",)]), \
-                patch("shops.lnaddress.requests.Session", return_value=session), \
-                patch("shops.lnaddress.Watchdog", return_value=cut):
+        with (
+            patch("shops.lnaddress.public_addresses", return_value=[("fake",)]),
+            patch("shops.lnaddress.requests.Session", return_value=session),
+            patch("shops.lnaddress.Watchdog", return_value=cut),
+        ):
             self.assertEqual(lnaddress.fetch("https://a.example.org/x"), {"tag": "payRequest"})
 
     def test_an_answer_too_nested_to_read_is_a_wrong_answer(self):
@@ -160,9 +177,11 @@ class Fetch(SimpleTestCase):
         session = MagicMock()
         session.__enter__.return_value = session
         session.get.return_value = response
-        with patch("shops.lnaddress.public_addresses", return_value=[("fake",)]), \
-                patch("shops.lnaddress.requests.Session", return_value=session), \
-                patch("shops.lnaddress.Watchdog", return_value=SimpleNamespace(fired=False)):
+        with (
+            patch("shops.lnaddress.public_addresses", return_value=[("fake",)]),
+            patch("shops.lnaddress.requests.Session", return_value=session),
+            patch("shops.lnaddress.Watchdog", return_value=SimpleNamespace(fired=False)),
+        ):
             with self.assertRaises(ValueError):
                 lnaddress.fetch("https://a.example.org/x", size=100000)
 

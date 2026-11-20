@@ -4,6 +4,7 @@ accountant, the merge of two histories and the encrypted copy.
 Without a JavaScript engine the script is read as text, and the encrypted copy is opened here with Python from a file
 the script made (register-copy-v1.json): the format is a promise to the merchants, who must be able to open an old copy
 on a new phone. With node (NODE=/path/to/node, or node on the PATH) the script itself runs too."""
+
 import base64
 import json
 import os
@@ -33,8 +34,11 @@ def open_copy(envelope, passphrase):
     salt, iv = base64.b64decode(envelope["salt"]), base64.b64decode(envelope["iv"])
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=envelope["iterations"])
     key = kdf.derive(passphrase.encode())
-    additional = json.dumps([envelope[name] for name in ("format", "version", "kdf", "iterations", "cipher", "salt", "iv")],
-                            separators=(",", ":"), ensure_ascii=False).encode()
+    additional = json.dumps(
+        [envelope[name] for name in ("format", "version", "kdf", "iterations", "cipher", "salt", "iv")],
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode()
     return json.loads(AESGCM(key).decrypt(iv, base64.b64decode(envelope["data"]), additional))
 
 
@@ -64,7 +68,9 @@ class Source(SimpleTestCase):
     def test_the_register_pages_load_the_book_before_the_register(self):
         # Outside the scripts block: the practice register, which replaces the block, has it too
         page = (settings.BASE_DIR / "templates" / "shops" / "register.html").read_text()
-        self.assertLess(page.index("<script src=\"{% static 'register-book.js' %}\"></script>"), page.index("{% block scripts %}"))
+        self.assertLess(
+            page.index("<script src=\"{% static 'register-book.js' %}\"></script>"), page.index("{% block scripts %}")
+        )
 
 
 class CopyFormat(SimpleTestCase):
@@ -72,8 +78,10 @@ class CopyFormat(SimpleTestCase):
 
     def test_a_copy_made_by_the_register_opens_with_its_passphrase(self):
         envelope = json.loads(COPY.read_text())
-        self.assertEqual((envelope["format"], envelope["version"], envelope["kdf"], envelope["cipher"]),
-                         ("bitmentor-register-copy", 1, "PBKDF2-SHA256", "AES-256-GCM"))
+        self.assertEqual(
+            (envelope["format"], envelope["version"], envelope["kdf"], envelope["cipher"]),
+            ("bitmentor-register-copy", 1, "PBKDF2-SHA256", "AES-256-GCM"),
+        )
         payload = open_copy(envelope, PASSPHRASE)
         self.assertEqual([sale["status"] for sale in payload["sales"]], ["paid", "confirmed"])
         self.assertEqual(payload["sales"][0]["sources"][0]["source"], "kraken")
@@ -309,8 +317,13 @@ class Running(SimpleTestCase):
         with tempfile.TemporaryDirectory() as folder:
             harness = Path(folder) / "harness.js"
             harness.write_text(HARNESS)
-            result = subprocess.run([node, str(harness), str(BOOK), str(COPY), PASSPHRASE], capture_output=True, text=True,
-                                    env={**os.environ, "TZ": "Europe/Rome"}, timeout=60)
+            result = subprocess.run(
+                [node, str(harness), str(BOOK), str(COPY), PASSPHRASE],
+                capture_output=True,
+                text=True,
+                env={**os.environ, "TZ": "Europe/Rome"},
+                timeout=60,
+            )
         if result.returncode:
             raise AssertionError(result.stderr)
         cls.out = json.loads(result.stdout)
@@ -344,9 +357,22 @@ class Running(SimpleTestCase):
     def test_the_day_closing_counts_what_was_collected_by_method(self):
         totals = self.out["totals"]
         self.assertEqual([sale["id"] for sale in totals["sales"]], ["1", "3", "5", "2"])
-        self.assertEqual(totals["lines"], [
-            {"method": "lightning", "currency": "EUR", "count": 2, "cents": 500, "sats": 5000, "byHand": 1,
-             "reported": 0, "verified": 0, "late": 0}])
+        self.assertEqual(
+            totals["lines"],
+            [
+                {
+                    "method": "lightning",
+                    "currency": "EUR",
+                    "count": 2,
+                    "cents": 500,
+                    "sats": 5000,
+                    "byHand": 1,
+                    "reported": 0,
+                    "verified": 0,
+                    "late": 0,
+                }
+            ],
+        )
         self.assertEqual(totals["counts"], {"paid": 1, "expired": 1, "unchecked": 1, "confirmed": 1})
         self.assertEqual(self.out["dayList"], ["2026-11-10", "2026-11-09"])
         # One register only: one group, the same lines
@@ -355,15 +381,64 @@ class Running(SimpleTestCase):
     def test_the_day_closing_splits_the_same_totals_by_register(self):
         totals = self.out["mixedTotals"]
         line = {"count": 0, "cents": 0, "sats": 0, "byHand": 0, "reported": 0, "verified": 0, "late": 0}
-        self.assertEqual(totals["registers"], [
-            {"who": "", "lines": [{**line, "method": "lightning", "currency": "EUR", "count": 2, "cents": 410, "sats": 3331,
-                                   "byHand": 1, "late": 1}]},
-            {"who": "Anna", "lines": [{**line, "method": "lightning", "currency": "EUR", "count": 2, "cents": 1100,
-                                       "sats": 10996, "byHand": 1, "reported": 2}]},
-            {"who": "Bruno", "lines": [
-                {**line, "method": "lightning", "currency": "CHF", "count": 1, "cents": 250, "sats": 2603, "verified": 1},
-                {**line, "method": "onchain", "currency": "EUR", "count": 1, "cents": 1205, "sats": 12001, "reported": 1}]},
-        ])
+        self.assertEqual(
+            totals["registers"],
+            [
+                {
+                    "who": "",
+                    "lines": [
+                        {
+                            **line,
+                            "method": "lightning",
+                            "currency": "EUR",
+                            "count": 2,
+                            "cents": 410,
+                            "sats": 3331,
+                            "byHand": 1,
+                            "late": 1,
+                        }
+                    ],
+                },
+                {
+                    "who": "Anna",
+                    "lines": [
+                        {
+                            **line,
+                            "method": "lightning",
+                            "currency": "EUR",
+                            "count": 2,
+                            "cents": 1100,
+                            "sats": 10996,
+                            "byHand": 1,
+                            "reported": 2,
+                        }
+                    ],
+                },
+                {
+                    "who": "Bruno",
+                    "lines": [
+                        {
+                            **line,
+                            "method": "lightning",
+                            "currency": "CHF",
+                            "count": 1,
+                            "cents": 250,
+                            "sats": 2603,
+                            "verified": 1,
+                        },
+                        {
+                            **line,
+                            "method": "onchain",
+                            "currency": "EUR",
+                            "count": 1,
+                            "cents": 1205,
+                            "sats": 12001,
+                            "reported": 1,
+                        },
+                    ],
+                },
+            ],
+        )
         # The subtotals add up to the day's lines, for every method and currency and every count, in the same whole units
         summed = {}
         for register in totals["registers"]:
@@ -373,8 +448,9 @@ class Running(SimpleTestCase):
                 for field in line:
                     self.assertIsInstance(sub[field], int)
                     into[field] += sub[field]
-        self.assertEqual(summed, {(day["method"], day["currency"]): {field: day[field] for field in line}
-                                  for day in totals["lines"]})
+        self.assertEqual(
+            summed, {(day["method"], day["currency"]): {field: day[field] for field in line} for day in totals["lines"]}
+        )
         self.assertEqual(len(totals["lines"]), 3)
         # Sales not collected are only counted, as before: they make no register's subtotal
         self.assertEqual(totals["counts"], {"paid": 4, "confirmed": 2, "expired": 1, "unchecked": 1})
@@ -400,8 +476,20 @@ class Running(SimpleTestCase):
         italian = self.out["csvIt"]
         self.assertTrue(italian.startswith("﻿When;Day;Amount;"))
         row = italian.split("\r\n")[1].split(";")
-        self.assertEqual(row[:9], ["2026-11-09 09:05:03", "2026-11-09", "3,50", "EUR", "Pagato", "lightning", "3500",
-                                   "81234,50", "two agreed"])
+        self.assertEqual(
+            row[:9],
+            [
+                "2026-11-09 09:05:03",
+                "2026-11-09",
+                "3,50",
+                "EUR",
+                "Pagato",
+                "lightning",
+                "3500",
+                "81234,50",
+                "two agreed",
+            ],
+        )
         self.assertEqual(row[9], "kraken 81200,00 2026-11-09T08:05:00.000Z + coinbase 81269,00")
         # A name that looks like a formula stays text
         self.assertEqual(row[11], "'=HYPERLINK(1)")
@@ -410,7 +498,10 @@ class Running(SimpleTestCase):
         english = self.out["csvEn"].split("\r\n")[1].split(",")
         self.assertEqual(english[2], "3.50")
         self.assertEqual(english[8], "agreed")
-        self.assertEqual(self.out["csvOtherMonth"], "﻿When,Day,Amount,Currency,Status,Method,Sats,Rate,How,Sources,Hash,Who,Reported,Discount,List,Address,Tx,ID\r\n")
+        self.assertEqual(
+            self.out["csvOtherMonth"],
+            "﻿When,Day,Amount,Currency,Status,Method,Sats,Rate,How,Sources,Hash,Who,Reported,Discount,List,Address,Tx,ID\r\n",
+        )
 
     def test_the_discount_is_rounded_to_the_cent(self):
         self.assertEqual(self.out["discounted"], [1350, 899, 1000, 1000])
@@ -423,8 +514,10 @@ class Running(SimpleTestCase):
         sale = merged["oc"]
         # In the mempool in the file: this phone cannot know how it went on, it is to look for in the wallet
         self.assertEqual(sale["status"], "unchecked")
-        self.assertEqual((sale["address"], sale["path"], sale["index"], sale["list"], sale["discount"]),
-                         ("bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu", "2", 7, 1000, 10))
+        self.assertEqual(
+            (sale["address"], sale["path"], sale["index"], sale["list"], sale["discount"]),
+            ("bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu", "2", 7, 1000, 10),
+        )
         self.assertNotIn("before", sale)
         # Indexes that no key has are dropped
         self.assertNotIn("path", merged["bad"])
@@ -432,9 +525,22 @@ class Running(SimpleTestCase):
         self.assertNotIn("before", self.out["chainCompact"])
         self.assertEqual(self.out["chainCompact"]["txid"], "ab" * 32)
         totals = self.out["chainTotals"]
-        self.assertEqual(totals["lines"], [
-            {"method": "onchain", "currency": "EUR", "count": 1, "cents": 900, "sats": 9000, "byHand": 0,
-             "reported": 0, "verified": 0, "late": 0}])
+        self.assertEqual(
+            totals["lines"],
+            [
+                {
+                    "method": "onchain",
+                    "currency": "EUR",
+                    "count": 1,
+                    "cents": 900,
+                    "sats": 9000,
+                    "byHand": 0,
+                    "reported": 0,
+                    "verified": 0,
+                    "late": 0,
+                }
+            ],
+        )
         self.assertEqual(totals["counts"], {"paid": 1, "seen": 1})
         row = self.out["csvChain"].split("\r\n")[1].split(",")
         self.assertEqual(row[12:], ["", "10", "10.00", "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu", "ab" * 32, "oc"])
@@ -446,7 +552,10 @@ class Running(SimpleTestCase):
         # A copy or a file never brings «verified»; the URL and the hash come, the sale stays reported
         clean = self.out["verifiedClean"]
         self.assertNotIn("verified", clean)
-        self.assertEqual((clean["reported"], clean["verify"], clean["hash"]), ("shop:staff", "https://ln.example/verify/1", "ab" * 32))
+        self.assertEqual(
+            (clean["reported"], clean["verify"], clean["hash"]),
+            ("shop:staff", "https://ln.example/verify/1", "ab" * 32),
+        )
         # What this phone checked stays checked when a later copy of the sale comes in
         self.assertTrue(self.out["verifiedKept"]["verified"])
         # The check URL stays on a staff register's finished sales and on the reported ones, not on this register's own
@@ -492,7 +601,9 @@ class Running(SimpleTestCase):
 
     def test_a_staff_sale_imported_while_waiting_ends_as_its_register_says(self):
         waiting = self.out["staffWaiting"]
-        self.assertEqual((waiting["status"], waiting["wasWaiting"], waiting["reported"]), ("unchecked", True, "owner:staff-1"))
+        self.assertEqual(
+            (waiting["status"], waiting["wasWaiting"], waiting["reported"]), ("unchecked", True, "owner:staff-1")
+        )
         ended = self.out["staffEnded"]
         self.assertEqual(ended["updated"], 1)
         self.assertEqual((ended["list"][0]["status"], ended["list"][0]["reported"]), ("cancelled", "owner:staff-1"))
@@ -516,7 +627,9 @@ class Running(SimpleTestCase):
 
     def test_a_staff_copy_does_not_change_a_sale_of_another_register_with_the_same_id(self):
         merged = self.out["sameId"]
-        self.assertEqual([(sale["id"], sale["status"]) for sale in merged["list"]], [("o4", "expired"), ("o5", "expired")])
+        self.assertEqual(
+            [(sale["id"], sale["status"]) for sale in merged["list"]], [("o4", "expired"), ("o5", "expired")]
+        )
         self.assertEqual((merged["updated"], merged["refused"]), (0, 2))
 
     def test_the_practice_and_a_real_register_never_take_each_other_s_sales(self):
@@ -544,8 +657,12 @@ class Running(SimpleTestCase):
         self.assertIsNone(none)
 
     def test_the_copy_opens_with_its_passphrase_only(self):
-        self.assertEqual(self.out["opened"], {"sales": [{"id": "1", "at": 1, "cents": 1, "status": "paid"}], "till": "t"})
-        self.assertEqual(self.out["reasons"], ["passphrase", "passphrase", "format", "version", "format", "format", "format"])
+        self.assertEqual(
+            self.out["opened"], {"sales": [{"id": "1", "at": 1, "cents": 1, "status": "paid"}], "till": "t"}
+        )
+        self.assertEqual(
+            self.out["reasons"], ["passphrase", "passphrase", "format", "version", "format", "format", "format"]
+        )
         # What the script seals, Python opens as the format says
         self.assertEqual(open_copy(self.out["sealed"], "a passphrase ok")["till"], "t")
         # And the copy of version 1 kept with the tests still opens in the script

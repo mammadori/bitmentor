@@ -23,6 +23,7 @@ a shop's money must not become easier to change for whoever runs the site, and a
 suspending a shop, marking it historic, writing a closure, revoking a certificate and handing a shop to an owner are
 for the people who have all the rights (docs/features/staff-and-shops.md).
 """
+
 import logging
 from functools import reduce
 from operator import or_
@@ -83,7 +84,8 @@ def sync(apps=global_apps, using=DEFAULT_DB_ALIAS):
         # The app's own configuration, as the signal passes it: the registry of `migrate` holds only stubs of them
         create_permissions(global_apps.get_app_config(label), verbosity=0, using=using, apps=apps)
     rights = Permission.objects.using(using).filter(
-        reduce(or_, (Q(content_type__app_label=label, codename=codename) for label, codename in expected), Q(pk__in=[])))
+        reduce(or_, (Q(content_type__app_label=label, codename=codename) for label, codename in expected), Q(pk__in=[]))
+    )
     found = {(right.content_type.app_label, right.codename) for right in rights.select_related("content_type")}
     for label, codename in sorted(expected - found):
         # A right the app should have and does not: a mistake in the list, which the tests catch. It must not stop
@@ -96,8 +98,10 @@ def sync(apps=global_apps, using=DEFAULT_DB_ALIAS):
     if before - found:
         # Somebody gave the group more than the work asks: it is taken away, and the log says so, as an error: it is
         # one for whoever runs the site
-        logger.error("Rights taken away from the moderators' group, which are not on the list: %s",
-                     ", ".join(f"{label}.{codename}" for label, codename in sorted(before - found)))
+        logger.error(
+            "Rights taken away from the moderators' group, which are not on the list: %s",
+            ", ".join(f"{label}.{codename}" for label, codename in sorted(before - found)),
+        )
     return found
 
 

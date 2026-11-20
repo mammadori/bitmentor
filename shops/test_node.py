@@ -1,5 +1,6 @@
 """The register's tests need node and skip themselves without it. With REQUIRE_NODE=1 (the CI) a missing node is an
 error, not a hundred tests silently skipped."""
+
 import os
 import shutil
 import subprocess

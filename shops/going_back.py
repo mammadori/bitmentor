@@ -9,6 +9,7 @@ one the rule of its model, CASCADE or SET NULL. It reads pg_constraint and chang
 second `migrate` changes nothing. A NOT NULL column added to an old table gets a `db_default` instead.
 Only on PostgreSQL, which production runs: SQLite (development and tests) cannot change a constraint in place.
 """
+
 from django.db import connections, models
 
 ACTIONS = {models.CASCADE: "CASCADE", models.SET_NULL: "SET NULL"}
@@ -29,8 +30,11 @@ def foreign_keys_of(apps, *labels):
 
 def site_foreign_keys(apps):
     """Every foreign key of the site's own models (APPS), unmanaged and proxy models left out."""
-    labels = [model._meta.label_lower for model in apps.get_models()
-              if model._meta.app_label in APPS and model._meta.managed and not model._meta.proxy]
+    labels = [
+        model._meta.label_lower
+        for model in apps.get_models()
+        if model._meta.app_label in APPS and model._meta.managed and not model._meta.proxy
+    ]
     return list(foreign_keys_of(apps, *labels))
 
 
@@ -40,7 +44,9 @@ def constraint_of(cursor, table, column):
         "SELECT con.conname, con.confdeltype FROM pg_constraint con "
         "JOIN pg_attribute att ON att.attrelid = con.conrelid AND att.attnum = con.conkey[1] "
         "WHERE con.contype = 'f' AND con.conrelid = to_regclass(%s) AND array_length(con.conkey, 1) = 1 "
-        "AND att.attname = %s", [table, column])
+        "AND att.attname = %s",
+        [table, column],
+    )
     found = cursor.fetchall()
     if len(found) != 1:
         raise RuntimeError(f"{table}.{column}: expected one foreign key constraint, found {[row[0] for row in found]}")
@@ -73,7 +79,8 @@ def align(connection, foreign_keys):
             cursor.execute(
                 f"ALTER TABLE {quote(table)} DROP CONSTRAINT {quote(name)}, ADD CONSTRAINT {quote(name)} "
                 f"FOREIGN KEY ({quote(column)}) REFERENCES {quote(target.model._meta.db_table)} ({quote(target.column)}) "
-                f"ON DELETE {action} DEFERRABLE INITIALLY DEFERRED")
+                f"ON DELETE {action} DEFERRABLE INITIALLY DEFERRED"
+            )
             changed.append(f"{table}.{column}")
     return changed
 

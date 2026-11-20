@@ -1,6 +1,7 @@
 """A historic shop keeps its register, may connect a wallet and change its address, for as long as its owner wants: the
 closing is about the map and the history, not the payments. It is no longer a place to pay, and the guardian of the
 Lightning addresses leaves it alone."""
+
 from datetime import date, timedelta
 from unittest.mock import patch
 
@@ -21,8 +22,9 @@ class Historic(TestCase):
         self.client.force_login(self.owner)
 
     def shop(self, closed_on, address="", name="Bar"):
-        return Shop.objects.create(name=name, owner=self.owner, closed_on=closed_on, lightning_address=address,
-                                   lightning=bool(address))
+        return Shop.objects.create(
+            name=name, owner=self.owner, closed_on=closed_on, lightning_address=address, lightning=bool(address)
+        )
 
     def test_closing_soon_without_wallet_can_add_it(self):
         shop = self.shop(timezone.localdate() + timedelta(days=9))
@@ -83,16 +85,31 @@ class Historic(TestCase):
         self.assertEqual(Shop.objects.filter(register_kept(date(2099, 1, 1))).count(), Shop.objects.count())
 
     def test_suspended_keeps_its_register(self):
-        shop = Shop.objects.create(name="Sus", owner=self.owner, suspended=True, lightning_address="s@wallet.example",
-                                   lightning=True)
+        shop = Shop.objects.create(
+            name="Sus", owner=self.owner, suspended=True, lightning_address="s@wallet.example", lightning=True
+        )
         with patch("shops.training.locked", return_value=False):
             self.assertEqual(self.client.get(reverse("register", args=[shop.pk])).status_code, 200)
 
     def test_panel_says_the_register_stays(self):
-        Shop.objects.create(name="Bar", owner=self.owner, closed_on=timezone.localdate() - timedelta(days=200),
-                            lightning_address="bar@wallet.example", lightning=True, latitude=45, longitude=11)
-        old = Shop.objects.create(name="Old", owner=self.owner, closed_on=timezone.localdate() - timedelta(days=4000),
-                                  lightning_address="old@wallet.example", lightning=True, latitude=45, longitude=11)
+        Shop.objects.create(
+            name="Bar",
+            owner=self.owner,
+            closed_on=timezone.localdate() - timedelta(days=200),
+            lightning_address="bar@wallet.example",
+            lightning=True,
+            latitude=45,
+            longitude=11,
+        )
+        old = Shop.objects.create(
+            name="Old",
+            owner=self.owner,
+            closed_on=timezone.localdate() - timedelta(days=4000),
+            lightning_address="old@wallet.example",
+            lightning=True,
+            latitude=45,
+            longitude=11,
+        )
         page = self.client.get(reverse("shops")).content.decode()
         self.assertEqual(page.count("The register stays yours and keeps working, for as long as you want."), 2)
         self.assertNotIn("keep working until", page)
@@ -100,8 +117,9 @@ class Historic(TestCase):
         self.assertIn(f'href="{reverse("register", args=[old.pk])}"', page)
 
     def test_suspended_historic_without_address_says_suspended(self):
-        shop = Shop.objects.create(name="Sus", owner=self.owner, suspended=True,
-                                   closed_on=timezone.localdate() - timedelta(days=400))
+        shop = Shop.objects.create(
+            name="Sus", owner=self.owner, suspended=True, closed_on=timezone.localdate() - timedelta(days=400)
+        )
         page = self.client.get(reverse("edit_shop", args=[shop.pk])).content.decode()
         self.assertIn("Suspended: no register can be added.", page)
         self.assertNotIn("Historic shop: no register.", page)
@@ -110,8 +128,10 @@ class Historic(TestCase):
         """The association's list of moved shops is about places to pay: a historic one waits for nothing there, and its
         owner may still connect a wallet."""
         from . import moving
-        shop = Shop.objects.create(name="Moved", owner=self.owner, moved_in=timezone.now(), moved_register=True,
-                                   closed_on=timezone.localdate())
+
+        shop = Shop.objects.create(
+            name="Moved", owner=self.owner, moved_in=timezone.now(), moved_register=True, closed_on=timezone.localdate()
+        )
         self.assertEqual(moving.waiting_for(shop), "no_wallet")
         moved = [item.code for item in dashboard.moved_items(timezone.now()) if item.shop.pk == shop.pk]
         self.assertEqual(moved, ["moved_no_wallet"])

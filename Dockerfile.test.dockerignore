@@ -1,3 +1,5 @@
-# Dockerfile.test takes only the README from the tree: the rest is in the site image it starts from
+# Dockerfile.test takes only the README and ruff's configuration from the tree: the rest is in the site image it
+# starts from
 *
 !README.md
+!ruff.toml

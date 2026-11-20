@@ -19,6 +19,7 @@ What a closure changes, and what it does not:
 - The register is never touched: a closed shop can sell, and its money goes where it always went.
 
 The owner changes it from the panel (`shops/vacation_views.py`), the association from /admin/."""
+
 import logging
 from datetime import date, timedelta
 from smtplib import SMTPException
@@ -51,8 +52,12 @@ LONGEST = 366
 WELCOME_DAYS = 14
 WELCOME_HOUR = 8
 
-WHAT = {Closure.Reason.HOLIDAY: _("Closed for holidays"), Closure.Reason.WORKS: _("Closed for works"),
-        Closure.Reason.PERSONAL: _("Closed for personal reasons"), Closure.Reason.OTHER: _("Closed for a while")}
+WHAT = {
+    Closure.Reason.HOLIDAY: _("Closed for holidays"),
+    Closure.Reason.WORKS: _("Closed for works"),
+    Closure.Reason.PERSONAL: _("Closed for personal reasons"),
+    Closure.Reason.OTHER: _("Closed for a while"),
+}
 # The four sentences of the public notice. Translators: {what} is one of the sentences above, the dates are written
 # with the language's own format
 CLOSED_BACK = _("{what} · back on {date}")
@@ -102,8 +107,11 @@ def current(shop, day=None):
 def upcoming(shop, day=None):
     """The next closure that starts after `day`."""
     day = day or day_of()
-    return min((closure for closure in closures(shop) if closure.first_day > day), key=lambda c: (c.first_day, c.pk),
-               default=None)
+    return min(
+        (closure for closure in closures(shop) if closure.first_day > day),
+        key=lambda c: (c.first_day, c.pk),
+        default=None,
+    )
 
 
 def holds(shop, day):
@@ -133,8 +141,17 @@ def is_quiet(shop, day=None):
     if shop.closed:
         return False
     if not enabled():
-        found = max((closure for closure in stored(shop) if closure.reopens_on is not None and covers(closure, day)
-                     and (day - closure.first_day).days <= MAX_CREDIT), key=latest_end, default=None)
+        found = max(
+            (
+                closure
+                for closure in stored(shop)
+                if closure.reopens_on is not None
+                and covers(closure, day)
+                and (day - closure.first_day).days <= MAX_CREDIT
+            ),
+            key=latest_end,
+            default=None,
+        )
     else:
         found = current(shop, day)
     return found is not None
@@ -234,8 +251,11 @@ def text(found):
     if not found:
         return ""
     what = str(WHAT.get(found["reason"], WHAT[Closure.Reason.OTHER]))
-    values = {"what": what, "date": long_date(found["from"] if found["state"] == "soon" else found["back"] or found["from"]),
-              "back": long_date(found["back"]) if found["back"] else ""}
+    values = {
+        "what": what,
+        "date": long_date(found["from"] if found["state"] == "soon" else found["back"] or found["from"]),
+        "back": long_date(found["back"]) if found["back"] else "",
+    }
     if found["state"] == "closed":
         return (str(CLOSED_BACK) if found["back"] else str(CLOSED_OPEN)).format(**values)
     return (str(SOON_BACK) if found["back"] else str(SOON_OPEN)).format(**values)
@@ -248,8 +268,13 @@ def note(shop, day=None):
 def texts():
     """The sentences for map.js, which writes the notice itself from the JSON: the dates come in the page's language
     from the browser, the words from here."""
-    return {"what": {reason: str(WHAT[reason]) for reason in WHAT}, "closed_back": str(CLOSED_BACK),
-            "closed_open": str(CLOSED_OPEN), "soon_back": str(SOON_BACK), "soon_open": str(SOON_OPEN)}
+    return {
+        "what": {reason: str(WHAT[reason]) for reason in WHAT},
+        "closed_back": str(CLOSED_BACK),
+        "closed_open": str(CLOSED_OPEN),
+        "soon_back": str(SOON_BACK),
+        "soon_open": str(SOON_OPEN),
+    }
 
 
 def panel(shop, day=None):
@@ -262,10 +287,20 @@ def panel(shop, day=None):
         state = "planned"
     if found is None:
         return None
-    words = {"state": "closed" if state == "closed" else "soon", "reason": found.reason, "from": found.first_day,
-             "back": found.reopens_on}
-    return {"state": state, "closure": found, "first_day": found.first_day, "reopens_on": found.reopens_on,
-            "reason": found.reason, "text": text(words)}
+    words = {
+        "state": "closed" if state == "closed" else "soon",
+        "reason": found.reason,
+        "from": found.first_day,
+        "back": found.reopens_on,
+    }
+    return {
+        "state": state,
+        "closure": found,
+        "first_day": found.first_day,
+        "reopens_on": found.reopens_on,
+        "reason": found.reason,
+        "text": text(words),
+    }
 
 
 def welcome(shop, now=None):
@@ -275,8 +310,14 @@ def welcome(shop, now=None):
     day = day_of(now)
     if shop.closed or is_closed(shop, day):
         return None
-    ended = [closure for closure in closures(shop) if closure.reopens_on and closure.reopens_on <= day
-             and (day - closure.reopens_on).days <= WELCOME_DAYS and closure.seen is None]
+    ended = [
+        closure
+        for closure in closures(shop)
+        if closure.reopens_on
+        and closure.reopens_on <= day
+        and (day - closure.reopens_on).days <= WELCOME_DAYS
+        and closure.seen is None
+    ]
     if not ended:
         return None
     latest = max(ended, key=lambda closure: (closure.reopens_on, closure.pk))
@@ -287,11 +328,21 @@ def welcome(shop, now=None):
 class BreakForm(forms.Form):
     """«I close from … until …», with a reason. For a closure already started the first day cannot change. The days are
     the community's calendar: «today» is the site's today."""
+
     reason = forms.ChoiceField(label=_("Why"), choices=Closure.Reason.choices)
-    first_day = forms.DateField(label=_("Closed from"), required=False,
-                                widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"), input_formats=["%Y-%m-%d"])
-    reopens_on = forms.DateField(label=_("I open again on"), required=False, help_text=_("The first day the shop is open."),
-                                 widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"), input_formats=["%Y-%m-%d"])
+    first_day = forms.DateField(
+        label=_("Closed from"),
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+        input_formats=["%Y-%m-%d"],
+    )
+    reopens_on = forms.DateField(
+        label=_("I open again on"),
+        required=False,
+        help_text=_("The first day the shop is open."),
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+        input_formats=["%Y-%m-%d"],
+    )
     until_told = forms.BooleanField(label=_("I will say when I open again"), required=False)
 
     def __init__(self, *args, day, editing=None, **kwargs):
@@ -301,8 +352,9 @@ class BreakForm(forms.Form):
         if not self.is_bound:
             self.initial.setdefault("first_day", editing.first_day if editing else day)
             if editing:
-                self.initial.update(reason=editing.reason, reopens_on=editing.reopens_on,
-                                    until_told=editing.reopens_on is None)
+                self.initial.update(
+                    reason=editing.reason, reopens_on=editing.reopens_on, until_told=editing.reopens_on is None
+                )
 
     def clean(self):
         data = super().clean()
@@ -324,7 +376,9 @@ class BreakForm(forms.Form):
             elif self.started and back < self.day:
                 self.add_error("reopens_on", _("Choose today or a day to come."))
             elif first is not None and (back - first).days > LONGEST:
-                self.add_error("reopens_on", _("That is more than a year: choose an earlier day, or tick that you will say."))
+                self.add_error(
+                    "reopens_on", _("That is more than a year: choose an earlier day, or tick that you will say.")
+                )
         return data
 
 
@@ -431,14 +485,23 @@ def welcome_text(shop, broken):
     if broken:
         # The register did work while the shop was closed, but the address does not now, and may not have for long: no
         # "while you were away", and the small payment waits for it to work
-        body += [gettext("One thing to look at: your Lightning address does not work now, and customers cannot pay you "
-                         "with it. Your panel says what to do."),
-                 gettext("When it works again, try a small payment of your own: open the register and pay it from "
-                         "another phone.")]
+        body += [
+            gettext(
+                "One thing to look at: your Lightning address does not work now, and customers cannot pay you "
+                "with it. Your panel says what to do."
+            ),
+            gettext(
+                "When it works again, try a small payment of your own: open the register and pay it from another phone."
+            ),
+        ]
     else:
-        body.append(gettext("The register worked while you were away, so there is nothing to turn on. To be sure that "
-                            "everything works, try a small payment of your own: open the register and pay it from "
-                            "another phone."))
+        body.append(
+            gettext(
+                "The register worked while you were away, so there is nothing to turn on. To be sure that "
+                "everything works, try a small payment of your own: open the register and pay it from "
+                "another phone."
+            )
+        )
     return f"{community()['name']}: {subject}", "\n\n".join(body)
 
 

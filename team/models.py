@@ -2,6 +2,7 @@
 invites that make them, and the sign-in challenges. None of them is an account: a team key signs in to nothing, owns
 nothing and has no right in /admin/ (config/guard.py keeps the staff's accounts away from wallets on purpose). All it does is
 give a browser a pass (team/access.py)."""
+
 import hashlib
 import logging
 import secrets
@@ -15,10 +16,12 @@ from django.utils.translation import gettext_lazy as _
 INVITE_LIFETIME = timedelta(hours=24)
 INVITE_KEPT = timedelta(days=30)
 CHALLENGE_LIFETIME = timedelta(minutes=5)
-APPROVES_HELP = _("In the volunteers' area: approve the new shops that wait, except those that look like a copy of "
-                  "another shop. Only staff who may approve shops can set it. On an invite, the link is worth this right: "
-                  "whoever opens it first and signs gets it. Send it by a channel you trust, delete the invite if it went "
-                  "astray, revoke the key if it was taken.")
+APPROVES_HELP = _(
+    "In the volunteers' area: approve the new shops that wait, except those that look like a copy of "
+    "another shop. Only staff who may approve shops can set it. On an invite, the link is worth this right: "
+    "whoever opens it first and signs gets it. Send it by a channel you trust, delete the invite if it went "
+    "astray, revoke the key if it was taken."
+)
 # Challenges alive at the same time, whoever asks for them: with the limits by address, the table cannot grow past
 # these. The sign-in codes, which anybody can ask for, and the codes of the invites' pages, which only whoever holds an
 # open invite can, are counted apart: strangers asking for sign-in codes cannot keep an invited person out
@@ -85,6 +88,7 @@ class TeamKey(models.Model):
 class TeamInvite(models.Model):
     """A one-time invite: the first wallet that signs it becomes a TeamKey with this name and role. Only the hash of
     its token is kept: the link is shown once, to the admin who makes it."""
+
     name = models.CharField(_("name"), max_length=150)
     role = models.CharField(_("role"), max_length=20, choices=TeamKey.Role.choices, default=TeamKey.Role.TEAM)
     # The volunteers' area (team/area.py): this key may also approve new shops there. Set by an administrator only
@@ -93,8 +97,9 @@ class TeamInvite(models.Model):
     created = models.DateTimeField(_("created"), auto_now_add=True)
     expires = models.DateTimeField(_("expires"), editable=False)
     used = models.DateTimeField(_("used"), null=True, blank=True, editable=False)
-    key = models.ForeignKey(TeamKey, on_delete=models.SET_NULL, null=True, blank=True, editable=False,
-                            verbose_name=_("team key"))
+    key = models.ForeignKey(
+        TeamKey, on_delete=models.SET_NULL, null=True, blank=True, editable=False, verbose_name=_("team key")
+    )
 
     class Meta:
         ordering = ("-created",)
@@ -136,6 +141,7 @@ class TeamChallenge(models.Model):
     The k1 of an invite's page is worth the invite until it is signed: it is not the primary key (Django's admin lets a
     list be filtered through a relation down to the related row's primary key), no admin shows it, and no page asks for
     an address that has it in the path."""
+
     k1 = models.CharField(max_length=64, unique=True)
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     linking_key = models.CharField(max_length=66, blank=True)
@@ -152,8 +158,11 @@ class TeamChallenge(models.Model):
         cls.objects.filter(created__lt=timezone.now() - CHALLENGE_LIFETIME).delete()
         most = CHALLENGES_ALIVE if invite is None else INVITE_CHALLENGES_ALIVE
         if cls.objects.filter(invite__isnull=invite is None).count() >= most:
-            logger.warning("team access: %d %s alive, the most at one time: no new one until some expire (five minutes)",
-                           most, "sign-in codes" if invite is None else "codes of invite pages")
+            logger.warning(
+                "team access: %d %s alive, the most at one time: no new one until some expire (five minutes)",
+                most,
+                "sign-in codes" if invite is None else "codes of invite pages",
+            )
             return None
         return cls.objects.create(k1=secrets.token_hex(32), invite=invite)
 
@@ -170,8 +179,14 @@ class TeamAction(models.Model):
         APPROVED = "approved", _("approved a new shop")
         OSM_DONE = "osm_done", _("marked an OpenStreetMap request as done")
 
-    key = models.ForeignKey(TeamKey, on_delete=models.SET_NULL, null=True, blank=True, related_name="area_actions",
-                            verbose_name=_("team key"))
+    key = models.ForeignKey(
+        TeamKey,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="area_actions",
+        verbose_name=_("team key"),
+    )
     name = models.CharField(_("name"), max_length=150)
     action = models.CharField(_("action"), max_length=20, choices=Action.choices)
     # What it was done to, in words: "help request 12: <shop>"

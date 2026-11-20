@@ -1,0 +1,21 @@
+# The style and the checks of the Python code: `ruff format` and `ruff check` (internal/ci-checks.sh runs both).
+line-length = 120
+# The site runs on Python 3.14; the target is one version lower so that the formatter keeps the parentheses of
+# `except (A, B):`, which read the same to everybody
+target-version = "py313"
+# Django writes the migrations: they stay as it wrote them. The examples inside the documents are laid out by hand,
+# with their comments beside the lines
+extend-exclude = ["*/migrations/*", "*.md"]
+
+[lint]
+# Few rules, the ones that find mistakes: syntax and names (E4, E7, E9, F), the order of the imports (I), common
+# bugs (B), characters that hide what the code does (PLE)
+select = ["E4", "E7", "E9", "F", "I", "B", "PLE"]
+# B905: every `zip` here walks two lists made together, of the same length; `strict=` would only add words
+ignore = ["B905"]
+
+[lint.per-file-ignores]
+# The tests feed the site invisible and right-to-left characters on purpose, written as they would arrive
+"**/test*.py" = ["PLE2502", "PLE2515"]
+# Its second block of imports comes after the helpers that those modules import from it
+"shops/test_experimental.py" = ["E402"]

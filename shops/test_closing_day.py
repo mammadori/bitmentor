@@ -1,6 +1,7 @@
 """A closing day (`Shop.closed_on`) acts only from the day after: up to and including that day the shop is an ordinary
 one that says «closes on …»; from the next day it is historic (`Shop.closed`, `models.closed_for_good`). Each family of
 readers is tried on the day before, the closing day itself and the day after, with the clock patched."""
+
 import json
 import subprocess
 from contextlib import contextmanager
@@ -34,9 +35,17 @@ def on(day):
 class ClosingDay(TestCase):
     def setUp(self):
         self.owner = get_user_model().objects.create_user("owner")
-        self.shop = Shop.objects.create(name="Bar", city="Example", latitude=1, longitude=1, discount=9, lightning=True,
-                                        owner=self.owner, lightning_address="bar@wallet.example",
-                                        closed_on=CLOSING_DAY)
+        self.shop = Shop.objects.create(
+            name="Bar",
+            city="Example",
+            latitude=1,
+            longitude=1,
+            discount=9,
+            lightning=True,
+            owner=self.owner,
+            lightning_address="bar@wallet.example",
+            closed_on=CLOSING_DAY,
+        )
         # A Lightning address that worked: the icons' bands have something to say
         Shop.objects.filter(pk=self.shop.pk).update(lightning_worked=timezone.now())
 
@@ -59,7 +68,9 @@ class ClosingDay(TestCase):
         for day, closed in DAYS:
             with self.subTest(day=day), on(day):
                 note = self.fresh().historic_note
-                self.assertEqual(note, "Historic · closed on 30 November 2026" if closed else "Closes on 30 November 2026")
+                self.assertEqual(
+                    note, "Historic · closed on 30 November 2026" if closed else "Closes on 30 November 2026"
+                )
                 # The shop page: a notice of a closing to come, or of a historic shop
                 page = self.client.get(f"/en/shops/s/{self.shop.id}/").content.decode()
                 kind = "shop-historic" if closed else "shop-closing"
@@ -85,7 +96,9 @@ class ClosingDay(TestCase):
                 self.assertContains(page, shop.historic_note)
                 # The card for customers without a wallet, from the panel
                 self.client.force_login(self.owner)
-                self.assertEqual(self.client.get(f"/en/shops/customer-card/{shop.id}/").status_code, 404 if closed else 200)
+                self.assertEqual(
+                    self.client.get(f"/en/shops/customer-card/{shop.id}/").status_code, 404 if closed else 200
+                )
                 self.client.logout()
 
     def test_the_places_to_pay_and_their_counts(self):
@@ -127,7 +140,9 @@ class ClosingDay(TestCase):
                 self.assertEqual(vacation.info(shop) is None, closed)
                 # The panel's card to close for a while
                 panel = self.client.get("/en/shops/").content.decode()
-                self.assertEqual(f'href="/en/shops/break/{shop.id}/"' in panel or "I am back today" in panel, not closed)
+                self.assertEqual(
+                    f'href="/en/shops/break/{shop.id}/"' in panel or "I am back today" in panel, not closed
+                )
 
     def test_the_first_day_the_journey_and_the_moves(self):
         for day, closed in DAYS:
@@ -173,13 +188,19 @@ class AddressPending(TestCase):
         for name, changed in (("kept", None), ("changed", now - timedelta(days=365))):
             owner = get_user_model().objects.create_user(name)
             address = f"{name}@wallet.example"
-            shop = Shop.objects.create(name=name, owner=owner, lightning_address=address, lightning=True,
-                                       closed_on=CLOSING_DAY)
+            shop = Shop.objects.create(
+                name=name, owner=owner, lightning_address=address, lightning=True, closed_on=CLOSING_DAY
+            )
             # Certified, approved for the private part, and the guardian saw the (new) address work
             Shop.objects.filter(pk=shop.pk).update(
-                certified_month=date(2026, 9, 1), private_approved=now, lightning_changed=changed,
-                lightning_checked_address=address, lightning_worked=now - timedelta(days=1), lightning_status="ok",
-                lightning_checked=now - timedelta(hours=1))
+                certified_month=date(2026, 9, 1),
+                private_approved=now,
+                lightning_changed=changed,
+                lightning_checked_address=address,
+                lightning_worked=now - timedelta(days=1),
+                lightning_status="ok",
+                lightning_checked=now - timedelta(hours=1),
+            )
             self.owners.append(owner)
             self.shops.append(shop)
 
@@ -242,9 +263,11 @@ class MapScript(SimpleTestCase):
 
         node = node_or_skip(self)
         script = (STATIC / "map.js").read_text()
-        part = script[script.index("const pad = "):script.index("// Recognizable without colors too")]
-        harness = (f"const element = {{ dataset: {json.dumps({'today': today} if today else {})} }};\n{part}\n"
-                   f"process.stdout.write(JSON.stringify([historic({{ closed_on: {json.dumps(closed_on)} }}), today]));")
+        part = script[script.index("const pad = ") : script.index("// Recognizable without colors too")]
+        harness = (
+            f"const element = {{ dataset: {json.dumps({'today': today} if today else {})} }};\n{part}\n"
+            f"process.stdout.write(JSON.stringify([historic({{ closed_on: {json.dumps(closed_on)} }}), today]));"
+        )
         result = subprocess.run([node, "-e", harness], capture_output=True, text=True, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)

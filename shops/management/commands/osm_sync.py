@@ -10,6 +10,7 @@ Exit code: 0 done; 1 the reading failed (Overpass down, too slow, an answer that
 the failure is kept); with --send, 10 when a summary was sent.
 
 Without --apply nothing is written, not even the report: it only prints what a run would do."""
+
 import sys
 
 from django.conf import settings
@@ -28,10 +29,18 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--dry-run", action="store_true", help="Print what would be done and write nothing")
-        parser.add_argument("--accept-fewer", action="store_true", help="Trust an answer with less than half the elements of "
-                            "the last reading (a region that really shrank); otherwise such an answer is refused")
-        parser.add_argument("--send", action="store_true", help="Send the monthly summary to the moderators, when there is "
-                            "something to look at; exit 10 when one was sent")
+        parser.add_argument(
+            "--accept-fewer",
+            action="store_true",
+            help="Trust an answer with less than half the elements of "
+            "the last reading (a region that really shrank); otherwise such an answer is refused",
+        )
+        parser.add_argument(
+            "--send",
+            action="store_true",
+            help="Send the monthly summary to the moderators, when there is "
+            "something to look at; exit 10 when one was sent",
+        )
 
     def handle(self, *args, dry_run=False, send=False, accept_fewer=False, **options):
         config = osm.settings(warn=lambda problem: self.stderr.write(f"community.yml: {problem}"))
@@ -49,7 +58,9 @@ class Command(BaseCommand):
         except osm.OsmError as error:
             if not dry_run:
                 osm.save_run(error=str(error))
-            raise CommandError(f"OpenStreetMap was not read: {error}. Nothing was changed; the next run tries again.") from None
+            raise CommandError(
+                f"OpenStreetMap was not read: {error}. Nothing was changed; the next run tries again."
+            ) from None
         before = previous.report if previous else None
         report = osm.synchronize(config, elements, skipped, apply=not dry_run, previous=before)
         if not dry_run:
@@ -62,14 +73,17 @@ class Command(BaseCommand):
             f"{found['suggested']}, shops with fields filled: {found['filled']}, with a contact offered: {found['offers']}, "
             f"doubtful: {found['ambiguous']}, linked but not found: {found['missing']}, candidates: "
             f"{found['total_candidates']} ({found['candidates']} new), OpenStreetMap says no longer: {found['says_no']}, checked "
-            f"there later than here: {found['newer']}. Proposed changes: {found['proposals']} in {found['shops']} shops.")
+            f"there later than here: {found['newer']}. Proposed changes: {found['proposals']} in {found['shops']} shops."
+        )
         if dry_run:
             return
         # A reading made by hand, without --send, tells nobody: the next one does not take it as the last that was told
         run = osm.save_run(report if send else {**report, "silent": True})
         if send and osm.worth_telling(report, before):
             with translation.override(settings.LANGUAGE_CODE):
-                subject, text = osm.summary(report, before, f"{settings.PUBLIC_URL}{reverse('admin:shops_osmrun_changelist')}")
+                subject, text = osm.summary(
+                    report, before, f"{settings.PUBLIC_URL}{reverse('admin:shops_osmrun_changelist')}"
+                )
             where, problems = deliver_to_moderators(subject, text)
             if where is None:
                 # Kept, but the next reading does not take it as the one that told: what was new is told then

@@ -20,12 +20,12 @@ from django.utils._os import safe_join
 from django.utils.html import escape
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.safestring import mark_safe
-from django.utils.translation import get_language, gettext as _, override
+from django.utils.translation import get_language, override
+from django.utils.translation import gettext as _
 from django.views.static import serve
 
 from config import ratelimit
-from config.community import (COMMUNITY_DIR, community, front_matter, localized, page_path,
-                              public_slugs)
+from config.community import COMMUNITY_DIR, community, front_matter, localized, page_path, public_slugs
 from config.middleware import CSP, csp_with_connect
 from meetups import conf as meetups_conf
 from shops import details, events
@@ -40,16 +40,35 @@ RANGE_CHUNK = 4 * 1024 * 1024
 SWITCHES_PER_HOUR = 120
 COOKIE_SECONDS = 365 * 24 * 3600
 LONG_LIVED = (".woff2", ".webp", ".avif", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".pdf", ".mp4", ".webm", ".epub")
-SERVICE_WORKER = re.compile(r"sw(-[a-z]+)?\.js\Z")  # it lives in /theme/, but the theme may use it for a page outside it
+SERVICE_WORKER = re.compile(
+    r"sw(-[a-z]+)?\.js\Z"
+)  # it lives in /theme/, but the theme may use it for a page outside it
 CONNECT_ORIGIN = re.compile(r"https://[a-z0-9.-]+\Z")
 # The shop pages that robots.txt closes in every language: those of people who have an account. The map and a shop's
 # page stay open. The till and the sign stay open too, as they are found in a link or a QR: with Disallow a search
 # engine does not open them, does not see their noindex and may keep the address in its results. The panel and the
 # sign-in are `shops/` and nothing else: with `$` the line closes only that address, with `?` the same with `?next=`.
-PRIVATE_SHOP_PATHS = ("$", "?", "edit/", "remove/", "new/", "recovery/", "email/", "card/", "first-day/",
-                      "window/", "registers/", "openstreetmap/")
+PRIVATE_SHOP_PATHS = (
+    "$",
+    "?",
+    "edit/",
+    "remove/",
+    "new/",
+    "recovery/",
+    "email/",
+    "card/",
+    "first-day/",
+    "window/",
+    "registers/",
+    "openstreetmap/",
+)
 # Missing in the slim image: without them, fonts arrive as application/octet-stream
-for kind, extension in (("font/woff2", ".woff2"), ("application/epub+zip", ".epub"), ("video/webm", ".webm"), ("text/vtt", ".vtt")):
+for kind, extension in (
+    ("font/woff2", ".woff2"),
+    ("application/epub+zip", ".epub"),
+    ("video/webm", ".webm"),
+    ("text/vtt", ".vtt"),
+):
     mimetypes.add_type(kind, extension)
 
 
@@ -83,8 +102,16 @@ def theme_file(request, path):
         stream.seek(start)
         chunk = stream.read(end - start + 1)
     announce_file(request, path, start == 0)
-    return HttpResponse(chunk, status=206, content_type=mimetypes.guess_type(path)[0], headers={
-        "Content-Range": f"bytes {start}-{end}/{size}", "Accept-Ranges": "bytes", "Cache-Control": response["Cache-Control"]})
+    return HttpResponse(
+        chunk,
+        status=206,
+        content_type=mimetypes.guess_type(path)[0],
+        headers={
+            "Content-Range": f"bytes {start}-{end}/{size}",
+            "Accept-Ranges": "bytes",
+            "Cache-Control": response["Cache-Control"],
+        },
+    )
 
 
 def announced(path):
@@ -105,8 +132,14 @@ def announce_file(request, path, first_byte):
         return
     relative = announced(path)
     if relative is not None:
-        events.send(events.theme_file_served, None, now=True, path=relative, first_byte=first_byte,
-                    client_kind=events.client_kind(request))
+        events.send(
+            events.theme_file_served,
+            None,
+            now=True,
+            path=relative,
+            first_byte=first_byte,
+            client_kind=events.client_kind(request),
+        )
 
 
 @lru_cache(maxsize=1024)
@@ -140,6 +173,7 @@ def responsive(html):
         if "decoding=" not in tag:
             extra.append('decoding="async"')
         return f"{tag[:-1].rstrip('/ ')} {' '.join(extra)}>" if extra else tag
+
     return THEME_IMAGE.sub(rewrite, html)
 
 
@@ -190,18 +224,24 @@ def parse(text):
 
 def route():
     language = get_language()
-    stops = [{**stop, "name": localized(stop["name"], language), "text": localized(stop["text"], language)}
-             for stop in community().get("route", [])]
+    stops = [
+        {**stop, "name": localized(stop["name"], language), "text": localized(stop["text"], language)}
+        for stop in community().get("route", [])
+    ]
     return {"route": stops, "route_json": json.dumps(stops)}
 
 
 def donations():
-    return [{"label": label, "value": value, "qr": segno.make(value, error="m").svg_data_uri(scale=5, border=2)}
-            for label, value in community().get("donations", {}).items()]
+    return [
+        {"label": label, "value": value, "qr": segno.make(value, error="m").svg_data_uri(scale=5, border=2)}
+        for label, value in community().get("donations", {}).items()
+    ]
 
 
 def convert(text, backlink):
-    return responsive(markdown.markdown(text, extensions=EXTENSIONS, extension_configs={"footnotes": {"BACKLINK_TITLE": backlink}}))
+    return responsive(
+        markdown.markdown(text, extensions=EXTENSIONS, extension_configs={"footnotes": {"BACKLINK_TITLE": backlink}})
+    )
 
 
 @lru_cache(maxsize=128)
@@ -237,15 +277,29 @@ def render_page(request, slug):
     try:
         text = filtered(text, private)
     except MarkError:
-        raise Http404  # wrong marks hide the page rather than show what might be private: the check website.W003 says where
+        raise Http404 from None  # wrong marks hide the page rather than show what might be private: the check website.W003 says where
     featured = featured_shops(city=community().get("map", {}).get("featured_city"))
-    data = {"stats": statistics(), "featured": [InertShop(shop) for shop in featured], **route(), "donations": donations()}
+    data = {
+        "stats": statistics(),
+        "featured": [InertShop(shop) for shop in featured],
+        **route(),
+        "donations": donations(),
+    }
     html = engines["django"].from_string(text).render(data, request)
     body = page_html(html, _("Back to note %d in the text"))
     template = select_template([f"website/{slug}.html", "website/page.html"])
-    response = render(request, template.template.name, {
-        "body": body, "slug": slug, "page_title": meta.get("title", ""), "page_description": meta.get("description", ""),
-        "page_image": meta.get("image", ""), "wide": meta.get("layout") == "wide"})
+    response = render(
+        request,
+        template.template.name,
+        {
+            "body": body,
+            "slug": slug,
+            "page_title": meta.get("title", ""),
+            "page_description": meta.get("description", ""),
+            "page_image": meta.get("image", ""),
+            "wide": meta.get("layout") == "wide",
+        },
+    )
     origins = [origin for origin in meta.get("connect", "").split() if CONNECT_ORIGIN.match(origin)]
     if origins:
         response.headers["Content-Security-Policy"] = csp_with_connect(origins)
@@ -253,7 +307,9 @@ def render_page(request, slug):
     # staff page, and never the panel or the register, which are not community pages
     if not is_staff_page(meta) and not is_private_page(meta) and embeddable(slug):
         csp = response.headers.get("Content-Security-Policy", CSP)
-        response.headers["Content-Security-Policy"] = csp.replace("frame-ancestors 'none'", f"frame-ancestors {embed_from()}")
+        response.headers["Content-Security-Policy"] = csp.replace(
+            "frame-ancestors 'none'", f"frame-ancestors {embed_from()}"
+        )
         response.xframe_options_exempt = True
     return response
 
@@ -268,7 +324,11 @@ def embeddable(slug):
 
 def embed_from():
     """Which sites may show those pages: `embed_from` in community.yml, a list of https origins; every site when missing."""
-    origins = [origin for origin in community().get("embed_from") or [] if isinstance(origin, str) and CONNECT_ORIGIN.match(origin)]
+    origins = [
+        origin
+        for origin in community().get("embed_from") or []
+        if isinstance(origin, str) and CONNECT_ORIGIN.match(origin)
+    ]
     return " ".join(origins) if origins else "*"
 
 
@@ -290,15 +350,23 @@ def sitemap(request):
                 meetups[language] = f"{base}{reverse('meetups')}"
     entries = []
     for language in languages:
-        for group in [versions[slug] for slug in public_slugs(language)] + [shop_map] + ([meetups] if language in meetups else []):
+        for group in (
+            [versions[slug] for slug in public_slugs(language)]
+            + [shop_map]
+            + ([meetups] if language in meetups else [])
+        ):
             alternates = list(group.items())
             if settings.LANGUAGE_CODE in group:
                 alternates.append(("x-default", group[settings.LANGUAGE_CODE]))
-            links = "".join(f'<xhtml:link rel="alternate" hreflang="{code}" href="{escape(url)}"/>' for code, url in alternates)
+            links = "".join(
+                f'<xhtml:link rel="alternate" hreflang="{code}" href="{escape(url)}"/>' for code, url in alternates
+            )
             entries.append(f"<url><loc>{escape(group[language])}</loc>{links}</url>")
-    return HttpResponse('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'
-                        f' xmlns:xhtml="http://www.w3.org/1999/xhtml">{"".join(entries)}</urlset>',
-                        content_type="application/xml")
+    return HttpResponse(
+        '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'
+        f' xmlns:xhtml="http://www.w3.org/1999/xhtml">{"".join(entries)}</urlset>',
+        content_type="application/xml",
+    )
 
 
 def robots(request):
@@ -308,8 +376,9 @@ def robots(request):
     paths = ["/admin/", "/register/", "/lnurl-auth/"]
     paths += [f"/{language}/shops/{page}" for language in community()["languages"] for page in PRIVATE_SHOP_PATHS]
     closed = "".join(f"Disallow: {path}\n" for path in paths)
-    return HttpResponse(f"User-agent: *\n{closed}Sitemap: {settings.PUBLIC_URL}/sitemap.xml\n",
-                        content_type="text/plain")
+    return HttpResponse(
+        f"User-agent: *\n{closed}Sitemap: {settings.PUBLIC_URL}/sitemap.xml\n", content_type="text/plain"
+    )
 
 
 def switch_view(request):
@@ -326,6 +395,12 @@ def switch_view(request):
     if not (target.startswith("/") and url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()})):
         target = "/"
     response = HttpResponseRedirect(target)
-    response.set_cookie(COOKIE, "on" if request.POST.get("private") == "on" else "off", max_age=COOKIE_SECONDS,
-                        secure=settings.SESSION_COOKIE_SECURE, httponly=True, samesite="Lax")
+    response.set_cookie(
+        COOKIE,
+        "on" if request.POST.get("private") == "on" else "off",
+        max_age=COOKIE_SECONDS,
+        secure=settings.SESSION_COOKIE_SECURE,
+        httponly=True,
+        samesite="Lax",
+    )
     return response

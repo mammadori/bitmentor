@@ -2,6 +2,7 @@
 user name or password, a port that is a number. Each caller adds its own rules (a domain name only, no port, a plain
 path, …): these addresses end up in the Content-Security-Policy and in requests the site or the browser makes, so a
 check must refuse, never raise, and never be looser than here."""
+
 from urllib.parse import urlsplit
 
 

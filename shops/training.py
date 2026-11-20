@@ -30,6 +30,7 @@ The unlock is the only thing here that can stop a till, and it is built so that 
 - a community with a rule of its own can give an owner some days more (`grace_of`), and count the practice as done for
   whoever practised elsewhere: both through its own code (config/hooks.py), never through `community.yml`.
 """
+
 import hashlib
 import json
 import logging
@@ -79,11 +80,17 @@ STEP_KEYS = ("practice", "backup", "withdrawal")
 # --- What the software says, in the pages' language (the msgid is the text the hash of the version comes from) ----------
 
 STEP_TEXTS = {
-    "practice": _("I did the exercises of the practice register. I know what the register says when a customer pays, "
-                  "says they paid but the payment has not arrived, or does not pay, and when the phone switches off."),
-    "backup": _("I checked my wallet's backup. My recovery words are written on paper, in a place only I know, and I "
-                "checked them against the wallet."),
-    "withdrawal": _("I tried a withdrawal. I sent a small amount from my wallet to another address, and I saw it arrive."),
+    "practice": _(
+        "I did the exercises of the practice register. I know what the register says when a customer pays, "
+        "says they paid but the payment has not arrived, or does not pay, and when the phone switches off."
+    ),
+    "backup": _(
+        "I checked my wallet's backup. My recovery words are written on paper, in a place only I know, and I "
+        "checked them against the wallet."
+    ),
+    "withdrawal": _(
+        "I tried a withdrawal. I sent a small amount from my wallet to another address, and I saw it arrive."
+    ),
 }
 STEP_NAMES = {"practice": _("Practice done"), "backup": _("Backup checked"), "withdrawal": _("Withdrawal tried")}
 STEP_HINTS = {
@@ -99,11 +106,14 @@ STAFF_RULES = (
 # The sign on the shop page and on the map
 TRAINED = _("Trained merchant")
 TERMS_TITLE = _("The conditions of the help")
-TERMS_STATEMENT = _("I read the conditions of the help. I know what the volunteers do and what stays with me: my wallet, "
-                    "my recovery words, my backup and the count of my sales.")
+TERMS_STATEMENT = _(
+    "I read the conditions of the help. I know what the volunteers do and what stays with me: my wallet, "
+    "my recovery words, my backup and the count of my sales."
+)
 
 
 # --- The block in community.yml ----------------------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class Question:
@@ -170,7 +180,9 @@ def version_of(key, text):
 def text_ok(value):
     """Text, or a text for each language."""
     if isinstance(value, dict):
-        return bool(value) and all(isinstance(item, str) and item.strip() and len(item) <= MAX_TEXT for item in value.values())
+        return bool(value) and all(
+            isinstance(item, str) and item.strip() and len(item) <= MAX_TEXT for item in value.values()
+        )
     return isinstance(value, str) and bool(value.strip()) and len(value) <= MAX_TEXT
 
 
@@ -181,11 +193,17 @@ def shown(value, language=None):
 
 def parse_question(entry, where, warn):
     if not isinstance(entry, dict) or not text_ok(entry.get("text")) or not text_ok(entry.get("explain")):
-        warn(f"{where}: a question needs `text`, `options`, `answer` and `explain`, each text up to {MAX_TEXT} characters")
+        warn(
+            f"{where}: a question needs `text`, `options`, `answer` and `explain`, each text up to {MAX_TEXT} characters"
+        )
         return None
     options = entry.get("options")
     answer = entry.get("answer")
-    if (not isinstance(options, list) or not 2 <= len(options) <= MAX_OPTIONS or not all(text_ok(item) for item in options)):
+    if (
+        not isinstance(options, list)
+        or not 2 <= len(options) <= MAX_OPTIONS
+        or not all(text_ok(item) for item in options)
+    ):
         warn(f"{where}: `options` is a list of 2 to {MAX_OPTIONS} texts")
         return None
     if type(answer) is not int or not 1 <= answer <= len(options):
@@ -198,8 +216,12 @@ def parse_statements(module_id, entries, where, warn):
     found = []
     for number, entry in enumerate(entries if isinstance(entries, list) else [], 1):
         ident = entry.get("id") if isinstance(entry, dict) else None
-        if (not isinstance(ident, str) or not SLUG.fullmatch(ident) or not text_ok(entry.get("text"))
-                or any(ident == other.id for other in found)):
+        if (
+            not isinstance(ident, str)
+            or not SLUG.fullmatch(ident)
+            or not text_ok(entry.get("text"))
+            or any(ident == other.id for other in found)
+        ):
             warn(f"{where}, declaration {number}: it needs a new `id` (letters, digits and dashes) and a `text`")
             continue
         key = f"{module_id}:{ident}"
@@ -216,7 +238,9 @@ def parse_module(entry, number, taken, warn):
         return None
     ident = entry.get("id")
     if not isinstance(ident, str) or not SLUG.fullmatch(ident) or ident in RESERVED or ident in taken:
-        warn(f"{where}: `id` is a word of letters, digits and dashes that no other module has (and not {', '.join(RESERVED)})")
+        warn(
+            f"{where}: `id` is a word of letters, digits and dashes that no other module has (and not {', '.join(RESERVED)})"
+        )
         return None
     where = f"`training.modules` {ident}"
     if not text_ok(entry.get("title")):
@@ -229,8 +253,11 @@ def parse_module(entry, number, taken, warn):
         except ValueError as error:
             warn(f"{where}: `page`: {error}")
             page = None
-    questions = tuple(question for count, item in enumerate(entry.get("questions") or [], 1)
-                      if (question := parse_question(item, f"{where}, question {count}", warn)))[:MAX_QUESTIONS]
+    questions = tuple(
+        question
+        for count, item in enumerate(entry.get("questions") or [], 1)
+        if (question := parse_question(item, f"{where}, question {count}", warn))
+    )[:MAX_QUESTIONS]
     statements = parse_statements(ident, entry.get("declarations"), where, warn)
     if not questions and not statements:
         warn(f"{where}: it needs questions or declarations")
@@ -268,7 +295,9 @@ def parse(warn=None):
         if type(value) is int and low <= value <= high:
             numbers[name] = value
         else:
-            say(f"`training.{name}` must be a whole number from {low} to {high}: {value!r}; {DEFAULTS[name]} counts instead")
+            say(
+                f"`training.{name}` must be a whole number from {low} to {high}: {value!r}; {DEFAULTS[name]} counts instead"
+            )
             numbers[name] = DEFAULTS[name]
     gate = data.get("gate", "unlock")
     if gate not in GATES:
@@ -281,17 +310,25 @@ def parse(warn=None):
     quick = data.get("quick_start", 0)
     if quick is None or quick is False:
         quick = 0
-    if (isinstance(quick, bool) or not isinstance(quick, (int, float)) or not 0 <= quick <= QUICK_START_MAX
-            or 0 < quick < 0.01):
-        say(f"`training.quick_start` is an amount from 0 to {QUICK_START_MAX} in the community's currency (0: off): "
-            f"{data.get('quick_start')!r}; it stays off")
+    if (
+        isinstance(quick, bool)
+        or not isinstance(quick, (int, float))
+        or not 0 <= quick <= QUICK_START_MAX
+        or 0 < quick < 0.01
+    ):
+        say(
+            f"`training.quick_start` is an amount from 0 to {QUICK_START_MAX} in the community's currency (0: off): "
+            f"{data.get('quick_start')!r}; it stays off"
+        )
         quick = 0
     nudge = data.get("nudge_days", NUDGE_DAYS)
     if nudge is False or (type(nudge) is int and nudge == 0):
         nudge = 0
     elif type(nudge) is not int or not NUDGE_LIMITS[0] <= nudge <= NUDGE_LIMITS[1]:
-        say(f"`training.nudge_days` is a whole number from {NUDGE_LIMITS[0]} to {NUDGE_LIMITS[1]} (0 or false: off): "
-            f"{nudge!r}; {NUDGE_DAYS} counts instead")
+        say(
+            f"`training.nudge_days` is a whole number from {NUDGE_LIMITS[0]} to {NUDGE_LIMITS[1]} (0 or false: off): "
+            f"{nudge!r}; {NUDGE_DAYS} counts instead"
+        )
         nudge = NUDGE_DAYS
     since = data.get("since")
     if isinstance(since, str):
@@ -324,16 +361,40 @@ def parse(warn=None):
     terms = None
     if terms_link(settings.LANGUAGE_CODE):
         key = f"{TERMS}:accept"
-        terms = Module(TERMS, TERMS_TITLE, community().get("merchant_terms") or community().get("help_terms"), True, (),
-                       (Statement("accept", key, TERMS_STATEMENT, version_of(key, TERMS_STATEMENT)),))
+        terms = Module(
+            TERMS,
+            TERMS_TITLE,
+            community().get("merchant_terms") or community().get("help_terms"),
+            True,
+            (),
+            (Statement("accept", key, TERMS_STATEMENT, version_of(key, TERMS_STATEMENT)),),
+        )
     rules = data.get("staff_rules")
-    if rules is not None and not (isinstance(rules, list) and 1 <= len(rules) <= MAX_STATEMENTS and all(text_ok(rule) for rule in rules)):
-        say(f"`training.staff_rules` is a list of 1 to {MAX_STATEMENTS} texts, each up to {MAX_TEXT} characters: the software's own rules count instead")
+    if rules is not None and not (
+        isinstance(rules, list) and 1 <= len(rules) <= MAX_STATEMENTS and all(text_ok(rule) for rule in rules)
+    ):
+        say(
+            f"`training.staff_rules` is a list of 1 to {MAX_STATEMENTS} texts, each up to {MAX_TEXT} characters: the software's own rules count instead"
+        )
         rules = None
-    flag = lambda name: data.get(name, True) is not False
-    return Config(gate, numbers["review_months"], numbers["refresh_days"], since or None,
-                  flag("public_sign"), guides, tuple(modules), terms, tuple(rules or ()), round(quick * 100),
-                  gate_imported, nudge)
+
+    def flag(name):
+        return data.get(name, True) is not False
+
+    return Config(
+        gate,
+        numbers["review_months"],
+        numbers["refresh_days"],
+        since or None,
+        flag("public_sign"),
+        guides,
+        tuple(modules),
+        terms,
+        tuple(rules or ()),
+        round(quick * 100),
+        gate_imported,
+        nudge,
+    )
 
 
 def problems():
@@ -374,11 +435,25 @@ def guide_url(cfg, name, language=None):
 
 # --- Months and days -------------------------------------------------------------------------------------------------
 
+
 def add_months(day, months):
     index = day.year * 12 + day.month - 1 + months
     year, month = divmod(index, 12)
     month += 1
-    last = [31, 29 if year % 4 == 0 and (year % 100 or year % 400 == 0) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1]
+    last = [
+        31,
+        29 if year % 4 == 0 and (year % 100 or year % 400 == 0) else 28,
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
+    ][month - 1]
     return date(year, month, min(day.day, last))
 
 
@@ -387,6 +462,7 @@ def today(now=None):
 
 
 # --- The account's standing -------------------------------------------------------------------------------------------
+
 
 def trainee_of(user):
     return Trainee.objects.filter(user=user).first() if getattr(user, "is_authenticated", False) else None
@@ -428,9 +504,17 @@ def module_state(module, results, declared):
         state = "declare"
     else:
         state = "done"
-    return {"module": module, "id": module.id, "quiz": passed, "state": state, "states": states,
-            "done": state == "done", "statements_done": states.count("done"), "statements_total": len(states),
-            "attempts": results[module.id].attempts if module.id in results else 0}
+    return {
+        "module": module,
+        "id": module.id,
+        "quiz": passed,
+        "state": state,
+        "states": states,
+        "done": state == "done",
+        "statements_done": states.count("done"),
+        "statements_total": len(states),
+        "attempts": results[module.id].attempts if module.id in results else 0,
+    }
 
 
 def results_of(user):
@@ -465,13 +549,26 @@ def badge_list(trainee, declared, user=None):
     this owner already practised at a register (config/hooks.py, `training_practice_done`)."""
     base = bool(trainee and trainee.base_earned)
     practised = bool(user) and hooks.yes("training_practice_done", user)
-    found = [{"key": "base", "name": gettext("Basic pass"), "earned": base,
-              "hint": gettext("Do the modules of the path: it takes a few minutes each.")}]
+    found = [
+        {
+            "key": "base",
+            "name": gettext("Basic pass"),
+            "earned": base,
+            "hint": gettext("Do the modules of the path: it takes a few minutes each."),
+        }
+    ]
     for name in step_keys():
-        found.append({"key": name, "name": str(STEP_NAMES[name]),
-                      "earned": (step_version(name) in declared.get(step_key(name), set())
-                                 or (name == "practice" and practised)),
-                      "hint": str(STEP_HINTS[name]), "step": True})
+        found.append(
+            {
+                "key": name,
+                "name": str(STEP_NAMES[name]),
+                "earned": (
+                    step_version(name) in declared.get(step_key(name), set()) or (name == "practice" and practised)
+                ),
+                "hint": str(STEP_HINTS[name]),
+                "step": True,
+            }
+        )
     return found
 
 
@@ -524,8 +621,15 @@ def review_state(cfg, trainee, now=None):
     last = trainee.reviewed or trainee.base_earned
     due = add_months(certified.local_day(last), cfg.review_months)
     current = today(now)
-    state = "late" if current > due + timedelta(days=cfg.refresh_days) else "due" if current >= due \
-        else "soon" if current >= due - timedelta(days=REVIEW_WARNING) else "ok"
+    state = (
+        "late"
+        if current > due + timedelta(days=cfg.refresh_days)
+        else "due"
+        if current >= due
+        else "soon"
+        if current >= due - timedelta(days=REVIEW_WARNING)
+        else "ok"
+    )
     return {"due": due, "state": state, "days": (due - current).days}
 
 
@@ -558,11 +662,25 @@ def standing(user, shop=None, now=None, cfg=None):
     grace = grace_of(user, now) if waits else None
     held = locked_for(cfg, user.pk, shop, now, trainee, user, grace if waits else False) if shop else False
     grace = grace if shop and shop.has_register else None
-    return Standing(cfg, user, shop, trainee, modules, base, ready, steps, badges, review, grace, held,
-                    base and (not review or review["state"] != "late"))
+    return Standing(
+        cfg,
+        user,
+        shop,
+        trainee,
+        modules,
+        base,
+        ready,
+        steps,
+        badges,
+        review,
+        grace,
+        held,
+        base and (not review or review["state"] != "late"),
+    )
 
 
 # --- Doing things ----------------------------------------------------------------------------------------------------
+
 
 def grade(question, given):
     """True if `given` (what the form sent) is the right option."""
@@ -601,22 +719,34 @@ def record(user, shop, key, version, text, register=None, now=None):
     """Writes one declaration, once for the same person, statement, version and shop. Returns whether it is new. The row
     carries no address of the connection: who (the account's name, or the register's), the shop, the text shown and when."""
     who = register.name if register else user.get_username()
-    values = {"who": who[:150], "shop_name": (shop.name if shop else "")[:120], "text": text,
-              "language": (translation.get_language() or "")[:10], "made": now or timezone.now()}
+    values = {
+        "who": who[:150],
+        "shop_name": (shop.name if shop else "")[:120],
+        "text": text,
+        "language": (translation.get_language() or "")[:10],
+        "made": now or timezone.now(),
+    }
     try:
         with transaction.atomic():
             if register:
-                found = Declaration.objects.get_or_create(register=register, key=key, version=version,
-                                                          defaults={**values, "shop": shop})
+                found = Declaration.objects.get_or_create(
+                    register=register, key=key, version=version, defaults={**values, "shop": shop}
+                )
             elif shop:
-                found = Declaration.objects.get_or_create(user=user, key=key, version=version, shop=shop,
-                                                          defaults=values)
+                found = Declaration.objects.get_or_create(
+                    user=user, key=key, version=version, shop=shop, defaults=values
+                )
             else:
                 # Without a shop: never one of the rows a deleted shop left behind, which have no shop either but
                 # keep its name (and can be more than one)
-                found = Declaration.objects.get_or_create(user=user, key=key, version=version, shop=None, shop_name="",
-                                                          defaults={name: value for name, value in values.items()
-                                                                    if name != "shop_name"})
+                found = Declaration.objects.get_or_create(
+                    user=user,
+                    key=key,
+                    version=version,
+                    shop=None,
+                    shop_name="",
+                    defaults={name: value for name, value in values.items() if name != "shop_name"},
+                )
     except IntegrityError:
         return False
     return found[1]
@@ -680,9 +810,14 @@ def answer_review(user, cfg, post, now=None):
             continue
         question = module.questions[index]
         given = post.get(f"a-{module.id}")
-        marks.append({"module": module, "index": index, "question": question, "given": given, "right": grade(question, given)})
-    everything = bool(marks) and len(marks) == sum(1 for module in all_modules(cfg) if module.questions) and all(
-        mark["right"] for mark in marks)
+        marks.append(
+            {"module": module, "index": index, "question": question, "given": given, "right": grade(question, given)}
+        )
+    everything = (
+        bool(marks)
+        and len(marks) == sum(1 for module in all_modules(cfg) if module.questions)
+        and all(mark["right"] for mark in marks)
+    )
     if everything:
         if Trainee.objects.filter(user=user, base_earned__isnull=False).update(reviewed=now or timezone.now()):
             public_cache.changed()
@@ -690,6 +825,7 @@ def answer_review(user, cfg, post, now=None):
 
 
 # --- The unlock of the real till ---------------------------------------------------------------------------------------
+
 
 def grace_of(user, now=None):
     """The days the community's own rule gives this owner (config/hooks.py, `training_grace_until`): the last day on which
@@ -758,11 +894,13 @@ def quick_start(shop, user, now=None):
 
 # --- Who is stuck in the path, for the day's list (shops/dashboard.py) ----------------------------------------------
 
+
 @dataclass
 class Stuck:
     """An owner the association could call: `waiting` when the real register of `shops` is locked by the pass now, else
     they stopped half-way through the basic modules. `since` is when the wait began or they last moved (a datetime);
     `step` the title of the next module of the basic pass, in the page's language, or ''."""
+
     owner_id: int
     waiting: bool
     shops: list
@@ -802,7 +940,8 @@ def stuck(cfg, shops, now=None):
         return []
     declared, last = {}, {}
     for user_id, key, version, made in Declaration.objects.filter(user_id__in=owners).values_list(
-            "user_id", "key", "version", "made"):
+        "user_id", "key", "version", "made"
+    ):
         last[user_id] = max(last.get(user_id, made), made)
         if not key.startswith("step:"):
             declared.setdefault(user_id, {}).setdefault(key, set()).add(version)
@@ -810,8 +949,13 @@ def stuck(cfg, shops, now=None):
     for result in ModuleResult.objects.filter(user_id__in=owners):
         results.setdefault(result.user_id, {})[result.module] = result
     # The wallet connected (or its address changed) last, per owner: a shop made long ago may have had a register only now
-    connected = dict(AccountChange.objects.filter(user_id__in=owners, changed__contains="shop_lightning")
-                     .order_by().values("user_id").annotate(latest=Max("created")).values_list("user_id", "latest"))
+    connected = dict(
+        AccountChange.objects.filter(user_id__in=owners, changed__contains="shop_lightning")
+        .order_by()
+        .values("user_id")
+        .annotate(latest=Max("created"))
+        .values_list("user_id", "latest")
+    )
     rule = hooks.defined("training_grace_until")
     users = {user.pk: user for user in get_user_model().objects.filter(pk__in=owners)} if rule else {}
     base = [module for module in all_modules(cfg) if module.base]
@@ -820,16 +964,19 @@ def stuck(cfg, shops, now=None):
     found = []
     for owner_id, owned in owners.items():
         theirs = declared.get(owner_id, {})
-        pending = next((module for module in base
-                        if not module_state(module, results.get(owner_id, {}), theirs)["done"]), None)
+        pending = next(
+            (module for module in base if not module_state(module, results.get(owner_id, {}), theirs)["done"]), None
+        )
         trainee = trainees.get(owner_id)
         until, grace = None, False
         if rule and any(gate_of(cfg, shop) == "unlock" and real_money(shop) for shop in owned) and in_force(cfg, now):
             try:
                 until = grace_until(users.get(owner_id))
             except DatabaseError:
-                logger.warning("training_grace_until failed for an owner: their register counts as open on the "
-                               "day's list", exc_info=True)
+                logger.warning(
+                    "training_grace_until failed for an owner: their register counts as open on the day's list",
+                    exc_info=True,
+                )
                 until, grace = None, {"until": None, "days": 0}
             else:
                 grace = grace_from(until, now)
@@ -854,6 +1001,7 @@ def stuck(cfg, shops, now=None):
 
 # --- The rest of the community's pages: the sign, the staff rules -----------------------------------
 
+
 def formed_trainee(cfg, trainee, now=None):
     """The sign of a trained merchant: the pass is earned and the review is not late."""
     if not trainee or not trainee.base_earned:
@@ -869,8 +1017,11 @@ def mark_trained(shops, now=None):
     owners = {shop.owner_id for shop in shops if shop.owner_id}
     trained = set()
     if cfg and cfg.public_sign and owners:
-        trained = {trainee.user_id for trainee in Trainee.objects.filter(user_id__in=owners, base_earned__isnull=False)
-                   if formed_trainee(cfg, trainee, now)}
+        trained = {
+            trainee.user_id
+            for trainee in Trainee.objects.filter(user_id__in=owners, base_earned__isnull=False)
+            if formed_trainee(cfg, trainee, now)
+        }
     for shop in shops:
         shop.trained = shop.owner_id in trained
     return shops
@@ -925,6 +1076,7 @@ def accept_staff_rules(staff, cfg=None, now=None):
 
 # --- The owner's panel --------------------------------------------------------------------------------------------------
 
+
 def panel(user, shops, now=None):
     """What the panel's training card shows, or None where the community has no training. `shops` are the account's, with
     `till_locked` already worked out by the panel."""
@@ -933,7 +1085,11 @@ def panel(user, shops, now=None):
         return None
     state = standing(user, None, now, cfg)
     pending = next((item for item in state.modules if not item["done"]), None)
-    return {"state": state, "next": pending, "next_title": shown(pending["module"].title) if pending else "",
-            "stale": [item for item in state.modules if item["state"] == "update" and item["module"].base],
-            "locked": [shop for shop in shops if getattr(shop, "till_locked", False)],
-            "quick": [shop for shop in shops if getattr(shop, "till_quick", 0)]}
+    return {
+        "state": state,
+        "next": pending,
+        "next_title": shown(pending["module"].title) if pending else "",
+        "stale": [item for item in state.modules if item["state"] == "update" and item["module"].base],
+        "locked": [shop for shop in shops if getattr(shop, "till_locked", False)],
+        "quick": [shop for shop in shops if getattr(shop, "till_quick", 0)],
+    }

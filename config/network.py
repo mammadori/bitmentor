@@ -2,6 +2,7 @@
 
 Used wherever bitmentor connects to a host written by a user or sent by another server (Lightning addresses, Nostr
 relays, OpenStreetMap)."""
+
 import ipaddress
 import socket
 import threading

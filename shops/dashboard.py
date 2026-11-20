@@ -12,6 +12,7 @@ sees no sale, so nothing here is about sales or money.
 
 The rules are the ones of the modules that own them, never copied here: `lightning_watch.panel` for the Lightning
 address, `first_day.steps` for the first day, `training.stuck` for the owners stuck in the merchant's training."""
+
 import hashlib
 import logging
 import re
@@ -80,7 +81,13 @@ def shops(now):
     """The trading shops, with their closures."""
     # `shared`: the address is also on a shop of another owner, historic ones too (certified.shared_with_another_owner),
     # read in the same query
-    return list(trading(now).defer("description").annotate(shared=certified.shared_with_another_owner()).prefetch_related("closures").order_by("name", "pk"))
+    return list(
+        trading(now)
+        .defer("description")
+        .annotate(shared=certified.shared_with_another_owner())
+        .prefetch_related("closures")
+        .order_by("name", "pk")
+    )
 
 
 def shop_link(shop):
@@ -101,12 +108,28 @@ def lightning_item(shop):
         what = _("The Lightning address has never answered: customers cannot pay with Lightning.")
     else:
         what = _("The Lightning address stopped answering: customers cannot pay with Lightning.")
-    return Item(PROBLEM, f"lightning_{watch['status']}", what, shop=shop, since=shop.lightning_since,
-                do=_("Call the merchant: the panel already shows them what to do. If the wallet changed, only they "
-                     "can change the address, from their panel. Never change it for them."),
-                say=" ".join(filter(None, [watch["customer"], _("Open your wallet and check that your Lightning "
-                                                              "address is still the one in your shop page.")])),
-                command=diagnose(shop), links=[shop_link(shop)])
+    return Item(
+        PROBLEM,
+        f"lightning_{watch['status']}",
+        what,
+        shop=shop,
+        since=shop.lightning_since,
+        do=_(
+            "Call the merchant: the panel already shows them what to do. If the wallet changed, only they "
+            "can change the address, from their panel. Never change it for them."
+        ),
+        say=" ".join(
+            filter(
+                None,
+                [
+                    watch["customer"],
+                    _("Open your wallet and check that your Lightning address is still the one in your shop page."),
+                ],
+            )
+        ),
+        command=diagnose(shop),
+        links=[shop_link(shop)],
+    )
 
 
 def first_day_items(shop):
@@ -116,10 +139,19 @@ def first_day_items(shop):
     found = []
     steps = {step["key"]: step for step in first_day.steps(shop)}
     if steps["map"]["state"] == first_day.TODO:
-        found.append(Item(INFO, "no_position", _("The shop has no position, so it is not on the map."), shop=shop,
-                          do=_("Ask the merchant to add the address in their shop page, or ask an administrator to "
-                               "add the position."),
-                          links=[shop_link(shop)]))
+        found.append(
+            Item(
+                INFO,
+                "no_position",
+                _("The shop has no position, so it is not on the map."),
+                shop=shop,
+                do=_(
+                    "Ask the merchant to add the address in their shop page, or ask an administrator to "
+                    "add the position."
+                ),
+                links=[shop_link(shop)],
+            )
+        )
     return found
 
 
@@ -136,9 +168,20 @@ def closed_lightning_items(shop):
         do = _("Nothing to do now: the merchant and the association hear about it the day the shop opens again.")
     else:
         do = _("Nothing to do now: the association hears about it the day the closure ends.")
-    return [Item(INFO, "closed_lightning",
-                 _("Closed for a while, and the Lightning address does not work: nobody is told until the shop opens "
-                   "again."), shop=shop, since=shop.lightning_since, do=do, links=[shop_link(shop)])]
+    return [
+        Item(
+            INFO,
+            "closed_lightning",
+            _(
+                "Closed for a while, and the Lightning address does not work: nobody is told until the shop opens "
+                "again."
+            ),
+            shop=shop,
+            since=shop.lightning_since,
+            do=do,
+            links=[shop_link(shop)],
+        )
+    ]
 
 
 def closed_items(shop, today):
@@ -147,13 +190,23 @@ def closed_items(shop, today):
     found = closed_lightning_items(shop)
     first = vacation.long_closure(shop, today)
     if first is not None:
-        found.append(Item(INFO, "closed_long", _("Closed for a while for over three months."), shop=shop,
-                          since=timezone.make_aware(datetime.combine(first, time.min), timezone.get_default_timezone()),
-                          do=_("Ask the merchant whether the shop is coming back: an administrator can make a shop "
-                               "closed for good historic."),
-                          say=_("Is your shop coming back? If it is closed for good, tell us and we mark it as history on "
-                                "the map."),
-                          links=[shop_link(shop)]))
+        found.append(
+            Item(
+                INFO,
+                "closed_long",
+                _("Closed for a while for over three months."),
+                shop=shop,
+                since=timezone.make_aware(datetime.combine(first, time.min), timezone.get_default_timezone()),
+                do=_(
+                    "Ask the merchant whether the shop is coming back: an administrator can make a shop "
+                    "closed for good historic."
+                ),
+                say=_(
+                    "Is your shop coming back? If it is closed for good, tell us and we mark it as history on the map."
+                ),
+                links=[shop_link(shop)],
+            )
+        )
     return found
 
 
@@ -161,38 +214,67 @@ def moved_items(now):
     """Shops moved here from another site that still wait for their owner, or for the owner's wallet. A moved shop
     that has a register again is among the trading ones, with their items, and not here a second time."""
     found = []
-    waiting = (Shop.objects.filter(moved_in__isnull=False).filter(Q(owner__isnull=True) | Q(lightning_address=""))
-               .filter(still_trading(timezone.localdate(now)))
-               .exclude(pk__in=trading(now).values("pk"))
-               .only("pk", "name", "owner", "lightning_address", "claim_hash", "moved_in", "moved_register")
-               .order_by("moved_in", "pk"))
+    waiting = (
+        Shop.objects.filter(moved_in__isnull=False)
+        .filter(Q(owner__isnull=True) | Q(lightning_address=""))
+        .filter(still_trading(timezone.localdate(now)))
+        .exclude(pk__in=trading(now).values("pk"))
+        .only("pk", "name", "owner", "lightning_address", "claim_hash", "moved_in", "moved_register")
+        .order_by("moved_in", "pk")
+    )
     for shop in waiting:
         if shop.owner_id is None and shop.claim_hash:
-            found.append(Item(INFO, "moved_unclaimed", _("Moved here: the owner has not taken the shop yet."),
-                              shop=shop, since=shop.moved_in,
-                              do=_("Send the owner again the one-time link from the list of owners the import wrote. "
-                                   "If that link is lost, the command below makes a new one for this shop only, from "
-                                   "the same file of the import, in a new list of owners: the old link stops working, "
-                                   "the other shops keep theirs."),
-                              say=_("Your shop has moved to this site: open the link we sent you to take it back."),
-                              command=COMMAND.format(command=f"import_moved_shops <file> --only {shop.pk} --new-codes "
-                                                             "--apply --owners <new-list>.csv"),
-                              links=[shop_link(shop)]))
+            found.append(
+                Item(
+                    INFO,
+                    "moved_unclaimed",
+                    _("Moved here: the owner has not taken the shop yet."),
+                    shop=shop,
+                    since=shop.moved_in,
+                    do=_(
+                        "Send the owner again the one-time link from the list of owners the import wrote. "
+                        "If that link is lost, the command below makes a new one for this shop only, from "
+                        "the same file of the import, in a new list of owners: the old link stops working, "
+                        "the other shops keep theirs."
+                    ),
+                    say=_("Your shop has moved to this site: open the link we sent you to take it back."),
+                    command=COMMAND.format(
+                        command=f"import_moved_shops <file> --only {shop.pk} --new-codes "
+                        "--apply --owners <new-list>.csv"
+                    ),
+                    links=[shop_link(shop)],
+                )
+            )
         elif shop.owner_id is None:
-            found.append(Item(INFO, "moved_no_owner", _("Moved here without an owner to tell."), shop=shop,
-                              since=shop.moved_in,
-                              do=_("Find the merchant: once they have signed in here, ask an administrator to assign "
-                                   "the shop to their account in this administration."),
-                              links=[shop_link(shop)]))
+            found.append(
+                Item(
+                    INFO,
+                    "moved_no_owner",
+                    _("Moved here without an owner to tell."),
+                    shop=shop,
+                    since=shop.moved_in,
+                    do=_(
+                        "Find the merchant: once they have signed in here, ask an administrator to assign "
+                        "the shop to their account in this administration."
+                    ),
+                    links=[shop_link(shop)],
+                )
+            )
         else:
-            found.append(Item(INFO, "moved_no_wallet",
-                              _("Moved here: the owner took the shop but has not connected a wallet, so there is no "
-                                "register.") if shop.moved_register else
-                              _("Moved here: the owner took the shop, which has no register yet."),
-                              shop=shop, since=shop.moved_in,
-                              do=_("Help the merchant connect a wallet from their panel: only they can."),
-                              say=_("To take payments again, open your panel and connect your wallet."),
-                              links=[shop_link(shop)]))
+            found.append(
+                Item(
+                    INFO,
+                    "moved_no_wallet",
+                    _("Moved here: the owner took the shop but has not connected a wallet, so there is no register.")
+                    if shop.moved_register
+                    else _("Moved here: the owner took the shop, which has no register yet."),
+                    shop=shop,
+                    since=shop.moved_in,
+                    do=_("Help the merchant connect a wallet from their panel: only they can."),
+                    say=_("To take payments again, open your panel and connect your wallet."),
+                    links=[shop_link(shop)],
+                )
+            )
     return found
 
 
@@ -202,10 +284,18 @@ def approval_items():
     not among the trading ones."""
     from .approval import waiting
 
-    return [Item(WARNING, "approve", _("A new shop waits for your approval before it goes on the map."), shop=shop,
-                 since=shop.created, do=_("Look at the shop and its owner; if all is well, approve it."),
-                 links=[shop_link(shop)])
-            for shop in waiting().order_by("created")[:50]]
+    return [
+        Item(
+            WARNING,
+            "approve",
+            _("A new shop waits for your approval before it goes on the map."),
+            shop=shop,
+            since=shop.created,
+            do=_("Look at the shop and its owner; if all is well, approve it."),
+            links=[shop_link(shop)],
+        )
+        for shop in waiting().order_by("created")[:50]
+    ]
 
 
 def certificate_items(found_shops):
@@ -221,16 +311,34 @@ def certificate_items(found_shops):
             # The same rule as certified.waiting_approval, on shops already in memory
             if shop.certified_month is None or shop.private_approved is not None or shop.suspended or not shop.owner_id:
                 continue
-            found.append(Item(WARNING, "private_waiting", _("Certified: the private part waits for your approval."),
-                              shop=shop, do=_("Look at the shop and its owner; if all is well, open the private part with "
-                                              "the action «Open the private part to the owner»."),
-                              links=[shop_link(shop)]))
+            found.append(
+                Item(
+                    WARNING,
+                    "private_waiting",
+                    _("Certified: the private part waits for your approval."),
+                    shop=shop,
+                    do=_(
+                        "Look at the shop and its owner; if all is well, open the private part with "
+                        "the action «Open the private part to the owner»."
+                    ),
+                    links=[shop_link(shop)],
+                )
+            )
     for shop in found_shops:
         if shop.owner_id and shop.shared:
-            found.append(Item(PROBLEM, "lightning_shared", _("Its Lightning address is also on a shop of another owner."),
-                              shop=shop, do=_("Find out whose wallet it is: the other owner's shop must change its address. "
-                                              "Until then the site certifies neither shop."),
-                              links=[shop_link(shop)]))
+            found.append(
+                Item(
+                    PROBLEM,
+                    "lightning_shared",
+                    _("Its Lightning address is also on a shop of another owner."),
+                    shop=shop,
+                    do=_(
+                        "Find out whose wallet it is: the other owner's shop must change its address. "
+                        "Until then the site certifies neither shop."
+                    ),
+                    links=[shop_link(shop)],
+                )
+            )
     return found
 
 
@@ -249,33 +357,58 @@ def training_items(found_shops, now):
         return []
     # Not a shop the community set aside (a trial, a duplicate): nobody to call for it. One that only waits for its
     # approval is: its register is locked all the same
-    candidates = [shop for shop in found_shops if shop.owner_id and not shop.suspended and not is_demo(shop)
-                  and not (shop.set_aside_on and not shop.approved_on)]
+    candidates = [
+        shop
+        for shop in found_shops
+        if shop.owner_id
+        and not shop.suspended
+        and not is_demo(shop)
+        and not (shop.set_aside_on and not shop.approved_on)
+    ]
     found = []
     for row in sorted(training.stuck(cfg, candidates, now), key=lambda row: row.since)[:NUDGES_SHOWN]:
         # Names chosen by the owners, as an alert shows them: the line also goes to Telegram and to a terminal
-        names = ", ".join(alert_text(shop.name) for shop in sorted(row.shops, key=lambda shop: (shop.name.lower(), shop.pk)))
+        names = ", ".join(
+            alert_text(shop.name) for shop in sorted(row.shops, key=lambda shop: (shop.name.lower(), shop.pk))
+        )
         shop = min(row.shops, key=lambda shop: (shop.created, shop.pk))
         if not row.waiting:
             what = _("The owner stopped half-way through the basic pass of the training: %(shops)s.")
-            do = _("Call them: in their panel «Your merchant pass» goes on from where they stopped, the step "
-                   "«%(step)s». Without the basic pass their register will wait for it.")
+            do = _(
+                "Call them: in their panel «Your merchant pass» goes on from where they stopped, the step "
+                "«%(step)s». Without the basic pass their register will wait for it."
+            )
         else:
             what = _("The real register waits for the owner's basic pass of the training: %(shops)s.")
             if not row.step:
-                do = _("Call them: their register waits for the basic pass, and «Your merchant pass» in their panel "
-                       "says what is left.")
+                do = _(
+                    "Call them: their register waits for the basic pass, and «Your merchant pass» in their panel "
+                    "says what is left."
+                )
             elif cfg.quick_start:
-                do = _("Call them: in their panel «Your merchant pass» goes on from where they stopped, the step "
-                       "«%(step)s». Until the basic pass their register takes only the quick start, then waits; the "
-                       "practice register works meanwhile.")
+                do = _(
+                    "Call them: in their panel «Your merchant pass» goes on from where they stopped, the step "
+                    "«%(step)s». Until the basic pass their register takes only the quick start, then waits; the "
+                    "practice register works meanwhile."
+                )
             else:
-                do = _("Call them: in their panel «Your merchant pass» goes on from where they stopped, the step "
-                       "«%(step)s». Until the basic pass their register says «The register opens soon» and takes no "
-                       "new sale; the practice register works meanwhile.")
-        found.append(Item(WARNING, "training_register_waits" if row.waiting else "training_stopped",
-                          what % {"shops": names}, do % {"step": row.step}, shop=shop, since=row.since, last=True,
-                          links=[shop_link(shop)]))
+                do = _(
+                    "Call them: in their panel «Your merchant pass» goes on from where they stopped, the step "
+                    "«%(step)s». Until the basic pass their register says «The register opens soon» and takes no "
+                    "new sale; the practice register works meanwhile."
+                )
+        found.append(
+            Item(
+                WARNING,
+                "training_register_waits" if row.waiting else "training_stopped",
+                what % {"shops": names},
+                do % {"step": row.step},
+                shop=shop,
+                since=row.since,
+                last=True,
+                links=[shop_link(shop)],
+            )
+        )
     return found
 
 
@@ -289,11 +422,22 @@ def freshness(found_shops, now):
         checked = [shop.lightning_checked for shop in watched if shop.lightning_checked]
         last = max(checked, default=None)
         if last is None or now - last > GUARDIAN_LATE:
-            items.append(Item(WARNING, "guardian_late", _("The Lightning addresses have not been checked for a while: "
-                                                          "what this page says about them may be old.")
-                              if last else _("The Lightning addresses have never been checked."), since=last, last=True,
-                              do=_("Check the timer that runs check_lightning."),
-                              command=COMMAND.format(command="check_lightning")))
+            items.append(
+                Item(
+                    WARNING,
+                    "guardian_late",
+                    _(
+                        "The Lightning addresses have not been checked for a while: "
+                        "what this page says about them may be old."
+                    )
+                    if last
+                    else _("The Lightning addresses have never been checked."),
+                    since=last,
+                    last=True,
+                    do=_("Check the timer that runs check_lightning."),
+                    command=COMMAND.format(command="check_lightning"),
+                )
+            )
     return items
 
 
@@ -308,17 +452,37 @@ def help_items(now):
     }
     found = []
     for row in HelpRequest.objects.filter(resolved__isnull=True).select_related("shop").order_by("created", "pk"):
-        found.append(Item(PROBLEM, "help_request", _("Asked for help: %(symptom)s.") % {"symptom": row.get_symptom_display()},
-                          shop=row.shop, since=row.created,
-                          do=" ".join([asking[row.channel], _("Start from the diagnosis in the request, and run the "
-                                                              "command below to probe the Lightning address again. When it is "
-                                                              "done, mark the request solved: the merchant sees "
-                                                              "«Solved» in their panel.")]),
-                          say=_("We have your request and we are looking at it now."), wrote=plain(row.note),
-                          command=diagnose(row.shop),
-                          links=[{"url": reverse("admin:shops_helprequest_change", args=[row.pk]),
-                                  "text": _("The request and its diagnosis"), "perm": "shops.view_helprequest"},
-                                 shop_link(row.shop)]))
+        found.append(
+            Item(
+                PROBLEM,
+                "help_request",
+                _("Asked for help: %(symptom)s.") % {"symptom": row.get_symptom_display()},
+                shop=row.shop,
+                since=row.created,
+                do=" ".join(
+                    [
+                        asking[row.channel],
+                        _(
+                            "Start from the diagnosis in the request, and run the "
+                            "command below to probe the Lightning address again. When it is "
+                            "done, mark the request solved: the merchant sees "
+                            "«Solved» in their panel."
+                        ),
+                    ]
+                ),
+                say=_("We have your request and we are looking at it now."),
+                wrote=plain(row.note),
+                command=diagnose(row.shop),
+                links=[
+                    {
+                        "url": reverse("admin:shops_helprequest_change", args=[row.pk]),
+                        "text": _("The request and its diagnosis"),
+                        "perm": "shops.view_helprequest",
+                    },
+                    shop_link(row.shop),
+                ],
+            )
+        )
     return found
 
 
@@ -334,72 +498,170 @@ def osm_items(now):
     upload = features.enabled(features.OSM_UPLOAD)
     for row in OsmRequest.objects.filter(state=OsmRequest.State.OPEN).select_related("shop").order_by("created", "pk"):
         adding = row.kind == OsmRequest.Kind.ADD
-        found.append(Item(WARNING, "osm_request", _("Asked the association to put the shop on OpenStreetMap.") if adding else
-                          _("Asked the association to update the shop's entry on OpenStreetMap."),
-                          shop=row.shop, since=row.created,
-                          do=(_("Add the shop in the editor with the lines of the request, or tell the merchant it cannot be "
-                                "done. Then mark the request done in the administration: the merchant sees it in the panel. "
-                                "The site never writes to OpenStreetMap by itself.") if adding else
-                              _("Run the command below: it shows what would change, asks before it sends anything, and marks "
-                                "the request done. Or edit by hand with the lines of the request, then mark it done in the "
-                                "administration.") if upload else
-                              _("Update the shop's entry in the editor with the lines of the request, or tell the merchant it "
-                                "cannot be done. Then mark the request done in the administration: the merchant sees it in "
-                                "the panel. The site never writes to OpenStreetMap by itself.")),
-                          say=_("We have your request about OpenStreetMap: a person of the association does it by hand."),
-                          command=COMMAND.format(command="osm_upload") if upload and not adding else "",
-                          links=[{"url": reverse("admin:shops_osmrequest_change", args=[row.pk]),
-                                  "text": _("The request"), "perm": "shops.view_osmrequest"}, shop_link(row.shop)]))
+        found.append(
+            Item(
+                WARNING,
+                "osm_request",
+                _("Asked the association to put the shop on OpenStreetMap.")
+                if adding
+                else _("Asked the association to update the shop's entry on OpenStreetMap."),
+                shop=row.shop,
+                since=row.created,
+                do=(
+                    _(
+                        "Add the shop in the editor with the lines of the request, or tell the merchant it cannot be "
+                        "done. Then mark the request done in the administration: the merchant sees it in the panel. "
+                        "The site never writes to OpenStreetMap by itself."
+                    )
+                    if adding
+                    else _(
+                        "Run the command below: it shows what would change, asks before it sends anything, and marks "
+                        "the request done. Or edit by hand with the lines of the request, then mark it done in the "
+                        "administration."
+                    )
+                    if upload
+                    else _(
+                        "Update the shop's entry in the editor with the lines of the request, or tell the merchant it "
+                        "cannot be done. Then mark the request done in the administration: the merchant sees it in "
+                        "the panel. The site never writes to OpenStreetMap by itself."
+                    )
+                ),
+                say=_("We have your request about OpenStreetMap: a person of the association does it by hand."),
+                command=COMMAND.format(command="osm_upload") if upload and not adding else "",
+                links=[
+                    {
+                        "url": reverse("admin:shops_osmrequest_change", args=[row.pk]),
+                        "text": _("The request"),
+                        "perm": "shops.view_osmrequest",
+                    },
+                    shop_link(row.shop),
+                ],
+            )
+        )
     if osm.settings() is None:
         return found
     run = osm.last_run(ok=False)
     good = run if run is not None and run.ok else osm.last_run()
     if run is not None and not run.ok:
-        found.append(Item(INFO, "osm_failed", _("The last reading of OpenStreetMap failed: %(reason)s.") % {"reason": plain(run.error)},
-                          since=run.created, do=_("Nothing was changed. The monthly timer tries again; to try now run the command below."),
-                          command=COMMAND.format(command="osm_sync")))
+        found.append(
+            Item(
+                INFO,
+                "osm_failed",
+                _("The last reading of OpenStreetMap failed: %(reason)s.") % {"reason": plain(run.error)},
+                since=run.created,
+                do=_("Nothing was changed. The monthly timer tries again; to try now run the command below."),
+                command=COMMAND.format(command="osm_sync"),
+            )
+        )
     if good is None or now - good.created > timedelta(days=osm.LATE_DAYS):
-        found.append(Item(INFO, "osm_late", _("The shops have not been compared with OpenStreetMap for a while.")
-                          if good else _("The shops have never been compared with OpenStreetMap."),
-                          since=good.created if good else None, last=good is not None,
-                          do=_("Check the timer that runs osm_sync."), command=COMMAND.format(command="osm_sync --send")))
+        found.append(
+            Item(
+                INFO,
+                "osm_late",
+                _("The shops have not been compared with OpenStreetMap for a while.")
+                if good
+                else _("The shops have never been compared with OpenStreetMap."),
+                since=good.created if good else None,
+                last=good is not None,
+                do=_("Check the timer that runs osm_sync."),
+                command=COMMAND.format(command="osm_sync --send"),
+            )
+        )
     proposed = Shop.objects.exclude(osm_proposed="").count()
     if proposed:
-        found.append(Item(INFO, "osm_links", ngettext("%(count)d shop has a link to OpenStreetMap proposed, waiting for you to confirm it.",
-                                                      "%(count)d shops have a link to OpenStreetMap proposed, waiting for you to confirm it.",
-                                                      proposed) % {"count": proposed},
-                          do=_("Open the shops with a link proposed, look at the element in each shop's page, then use the action "
-                               "«Confirm the OpenStreetMap link proposed» (or «Refuse»). Nothing is read from an element, and nothing "
-                               "is written for it, until you confirm it."),
-                          links=[{"url": f"{reverse('admin:shops_shop_changelist')}?osm=proposed", "text": _("The shops"),
-                                  "perm": "shops.view_shop"}]))
-    offered = sum(1 for notes in Shop.objects.exclude(osm_ref="").values_list("osm_notes", flat=True)
-                  if isinstance(notes, dict) and any(isinstance(entry, dict) and entry.get("state") == osm.OFFERED
-                                                     for entry in (notes.get("fields") or {}).values()))
+        found.append(
+            Item(
+                INFO,
+                "osm_links",
+                ngettext(
+                    "%(count)d shop has a link to OpenStreetMap proposed, waiting for you to confirm it.",
+                    "%(count)d shops have a link to OpenStreetMap proposed, waiting for you to confirm it.",
+                    proposed,
+                )
+                % {"count": proposed},
+                do=_(
+                    "Open the shops with a link proposed, look at the element in each shop's page, then use the action "
+                    "«Confirm the OpenStreetMap link proposed» (or «Refuse»). Nothing is read from an element, and nothing "
+                    "is written for it, until you confirm it."
+                ),
+                links=[
+                    {
+                        "url": f"{reverse('admin:shops_shop_changelist')}?osm=proposed",
+                        "text": _("The shops"),
+                        "perm": "shops.view_shop",
+                    }
+                ],
+            )
+        )
+    offered = sum(
+        1
+        for notes in Shop.objects.exclude(osm_ref="").values_list("osm_notes", flat=True)
+        if isinstance(notes, dict)
+        and any(
+            isinstance(entry, dict) and entry.get("state") == osm.OFFERED
+            for entry in (notes.get("fields") or {}).values()
+        )
+    )
     if offered:
-        found.append(Item(INFO, "osm_contacts", ngettext("%(count)d shop has a website or a phone offered by OpenStreetMap, waiting for you to accept it.",
-                                                         "%(count)d shops have a website or a phone offered by OpenStreetMap, waiting for you to accept it.",
-                                                         offered) % {"count": offered},
-                          do=_("They are never written by the reading: a stranger can write a website on OpenStreetMap. Look at the "
-                               "offer in the shop's page, then use the action «Accept the website and phone offered by OpenStreetMap»."),
-                          links=[{"url": reverse("admin:shops_shop_changelist"), "text": _("The shops"), "perm": "shops.view_shop"}]))
+        found.append(
+            Item(
+                INFO,
+                "osm_contacts",
+                ngettext(
+                    "%(count)d shop has a website or a phone offered by OpenStreetMap, waiting for you to accept it.",
+                    "%(count)d shops have a website or a phone offered by OpenStreetMap, waiting for you to accept it.",
+                    offered,
+                )
+                % {"count": offered},
+                do=_(
+                    "They are never written by the reading: a stranger can write a website on OpenStreetMap. Look at the "
+                    "offer in the shop's page, then use the action «Accept the website and phone offered by OpenStreetMap»."
+                ),
+                links=[
+                    {"url": reverse("admin:shops_shop_changelist"), "text": _("The shops"), "perm": "shops.view_shop"}
+                ],
+            )
+        )
     count = sum(len(item["changes"]) for item in osm.waiting(good))
     if count:
-        found.append(Item(INFO, "osm_proposals", (ngettext("%(count)d change proposed for OpenStreetMap waits for a person to send it.",
-                                                           "%(count)d changes proposed for OpenStreetMap wait for a person to send them.",
-                                                           count) if upload else
-                                                  ngettext("%(count)d tag of our shops on OpenStreetMap is not what this site knows.",
-                                                           "%(count)d tags of our shops on OpenStreetMap are not what this site knows.",
-                                                           count)) % {"count": count},
-                          since=good.created,
-                          do=_("Read them in the administration. To send them, run the command below with the OpenStreetMap "
-                               "account that signs the edits: it asks before it sends anything. The site never sends them by itself.")
-                          if upload else
-                          _("Read them in the administration: they are what OpenStreetMap should say of each shop. A person "
-                            "can change them by hand on openstreetmap.org, with their own account. The site sends nothing."),
-                          command=COMMAND.format(command="osm_upload") if upload else "",
-                          links=[{"url": reverse("admin:shops_osmrun_change", args=[good.pk]), "text": _("The reading and its proposals"),
-                                  "perm": "shops.view_osmrun"}]))
+        found.append(
+            Item(
+                INFO,
+                "osm_proposals",
+                (
+                    ngettext(
+                        "%(count)d change proposed for OpenStreetMap waits for a person to send it.",
+                        "%(count)d changes proposed for OpenStreetMap wait for a person to send them.",
+                        count,
+                    )
+                    if upload
+                    else ngettext(
+                        "%(count)d tag of our shops on OpenStreetMap is not what this site knows.",
+                        "%(count)d tags of our shops on OpenStreetMap are not what this site knows.",
+                        count,
+                    )
+                )
+                % {"count": count},
+                since=good.created,
+                do=_(
+                    "Read them in the administration. To send them, run the command below with the OpenStreetMap "
+                    "account that signs the edits: it asks before it sends anything. The site never sends them by itself."
+                )
+                if upload
+                else _(
+                    "Read them in the administration: they are what OpenStreetMap should say of each shop. A person "
+                    "can change them by hand on openstreetmap.org, with their own account. The site sends nothing."
+                ),
+                command=COMMAND.format(command="osm_upload") if upload else "",
+                links=[
+                    {
+                        "url": reverse("admin:shops_osmrun_change", args=[good.pk]),
+                        "text": _("The reading and its proposals"),
+                        "perm": "shops.view_osmrun",
+                    }
+                ],
+            )
+        )
     return found
 
 
@@ -413,31 +675,65 @@ def limit_items(rows):
             continue
         full = row["level"] == "full"
         if row["key"].startswith("emails_"):
-            what = (_("%(what)s: %(used)d of %(limit)d. The limit is reached: only the security notices still go out, "
-                      "up to the total.") if full else _("%(what)s: %(used)d of %(limit)d, close to the limit."))
-            found.append(Item(PROBLEM if full else WARNING, f"limit_{row['key']}",
-                              what % {"what": capfirst(row["what"]), "used": row["used"], "limit": row["limit"]},
-                              do=_("Look in the web log for who asks for so many links (limits.emails_per_month, "
-                                   "limits.emails_per_day): many addresses at once is an attack, and the quota of the "
-                                   "mail provider is what it uses up. Raise the limit only if the provider allows more.")))
+            what = (
+                _(
+                    "%(what)s: %(used)d of %(limit)d. The limit is reached: only the security notices still go out, "
+                    "up to the total."
+                )
+                if full
+                else _("%(what)s: %(used)d of %(limit)d, close to the limit.")
+            )
+            found.append(
+                Item(
+                    PROBLEM if full else WARNING,
+                    f"limit_{row['key']}",
+                    what % {"what": capfirst(row["what"]), "used": row["used"], "limit": row["limit"]},
+                    do=_(
+                        "Look in the web log for who asks for so many links (limits.emails_per_month, "
+                        "limits.emails_per_day): many addresses at once is an attack, and the quota of the "
+                        "mail provider is what it uses up. Raise the limit only if the provider allows more."
+                    ),
+                )
+            )
             continue
-        what = (_("%(what)s: %(used)d of %(limit)d. The limit is reached: the site refuses new ones, and keeps all it has.")
-                if full else _("%(what)s: %(used)d of %(limit)d, close to the limit."))
-        found.append(Item(PROBLEM if full else WARNING, f"limit_{row['key']}",
-                          what % {"what": capfirst(row["what"]), "used": row["used"], "limit": row["limit"]},
-                          do=_("Clear what nobody needs any more in the administration, or raise the limit: "
-                               "`limits.%(key)s` in community.yml, then restart the site. Spam and a site that grows "
-                               "are the two reasons for a full limit: look before raising it.") % {"key": row["key"]}))
+        what = (
+            _("%(what)s: %(used)d of %(limit)d. The limit is reached: the site refuses new ones, and keeps all it has.")
+            if full
+            else _("%(what)s: %(used)d of %(limit)d, close to the limit.")
+        )
+        found.append(
+            Item(
+                PROBLEM if full else WARNING,
+                f"limit_{row['key']}",
+                what % {"what": capfirst(row["what"]), "used": row["used"], "limit": row["limit"]},
+                do=_(
+                    "Clear what nobody needs any more in the administration, or raise the limit: "
+                    "`limits.%(key)s` in community.yml, then restart the site. Spam and a site that grows "
+                    "are the two reasons for a full limit: look before raising it."
+                )
+                % {"key": row["key"]},
+            )
+        )
     many = mailbudget.crowded()
     if many:
         cap = limits.get("emails_per_address_day")
-        found.append(Item(WARNING, "emails_one_address",
-                          ngettext("%(count)d address received more than %(cap)d emails today.",
-                                   "%(count)d addresses received more than %(cap)d emails today.", many)
-                          % {"count": many, "cap": cap},
-                          do=_("A shop with many notices may be in trouble (its Lightning address, a change of "
-                               "address): look at its page in the administration. Many sign-in links to one address "
-                               "are someone using the site against it.")))
+        found.append(
+            Item(
+                WARNING,
+                "emails_one_address",
+                ngettext(
+                    "%(count)d address received more than %(cap)d emails today.",
+                    "%(count)d addresses received more than %(cap)d emails today.",
+                    many,
+                )
+                % {"count": many, "cap": cap},
+                do=_(
+                    "A shop with many notices may be in trouble (its Lightning address, a change of "
+                    "address): look at its page in the administration. Many sign-in links to one address "
+                    "are someone using the site against it."
+                ),
+            )
+        )
     return found
 
 
@@ -453,19 +749,33 @@ def community_items():
     found = []
     for row in hooks.rows("dashboard_items"):
         # One line of plain text each, as the software's own: they also go to a terminal, an email and Telegram
-        what, do = (plain(" ".join(str(text).split()))[:300] if type(text) is str else "" for text in (row.get("what"), row.get("do")))
+        what, do = (
+            plain(" ".join(str(text).split()))[:300] if type(text) is str else ""
+            for text in (row.get("what"), row.get("do"))
+        )
         if not (what and do):
             continue
         given = row.get("links")
-        links = [{"text": plain(" ".join(link["text"].split()))[:80], "url": link["url"]}
-                 for link in (given if isinstance(given, (list, tuple)) else ())
-                 if isinstance(link, dict) and type(link.get("text")) is str and type(link.get("url")) is str
-                 and len(link["url"]) <= COMMUNITY_LINK_LENGTH and COMMUNITY_LINK.fullmatch(link["url"])]
+        links = [
+            {"text": plain(" ".join(link["text"].split()))[:80], "url": link["url"]}
+            for link in (given if isinstance(given, (list, tuple)) else ())
+            if isinstance(link, dict)
+            and type(link.get("text")) is str
+            and type(link.get("url")) is str
+            and len(link["url"]) <= COMMUNITY_LINK_LENGTH
+            and COMMUNITY_LINK.fullmatch(link["url"])
+        ]
         code = row.get("code")
         # Each line needs a name of its own: the morning message tells a line once, by its code. Without one, the
         # text itself names it, so that a new line is told while another one stands
-        name = code if type(code) is str and re.fullmatch(r"[a-z0-9_]{1,40}", code) else hashlib.sha256(what.encode()).hexdigest()[:12]
-        found.append(Item(row.get("level") if row.get("level") in LEVELS else INFO, f"community_{name}", what, do, links=links))
+        name = (
+            code
+            if type(code) is str and re.fullmatch(r"[a-z0-9_]{1,40}", code)
+            else hashlib.sha256(what.encode()).hexdigest()[:12]
+        )
+        found.append(
+            Item(row.get("level") if row.get("level") in LEVELS else INFO, f"community_{name}", what, do, links=links)
+        )
     return found
 
 
@@ -523,6 +833,12 @@ def summary(now=None):
     items = help_items(now) + [item for item in osm_found if item.code == "osm_request"] + items
     counts["to_look"] = len({item.shop.pk for item in items if item.shop and item.level != INFO})
     # The shops closed for a while are in none of the counts: nothing to look at
-    return {"items": items, "counts": counts, "shops": len(found_shops), "closed": closed_now, "now": now,
-            "limits": limit_rows,
-            "telegram": bool(settings.TELEGRAM_BOT_TOKEN)}
+    return {
+        "items": items,
+        "counts": counts,
+        "shops": len(found_shops),
+        "closed": closed_now,
+        "now": now,
+        "limits": limit_rows,
+        "telegram": bool(settings.TELEGRAM_BOT_TOKEN),
+    }

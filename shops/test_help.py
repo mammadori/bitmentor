@@ -2,6 +2,7 @@
 database alone (no other server asked while it loads), «Look again» with its limits, the request to the association
 (the limit, the double tap, hostile text, Telegram that refuses or is not there), what the dashboard and the panel say
 about it, the administration, and the diagnosis that stays the same."""
+
 import io
 import re
 import threading
@@ -13,13 +14,14 @@ from unittest import skipUnless
 from unittest.mock import patch
 
 import requests
-from config.test_translations import untranslated
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.db import connection, connections
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone, translation
+
+from config.test_translations import untranslated
 
 from . import dashboard, diagnosis, helpdesk
 from .management.commands import dashboard as dashboard_command
@@ -41,8 +43,10 @@ def in_one_hour():
 
 def nobody_outside():
     """Any request to another server fails the test."""
-    return (patch("requests.sessions.Session.request", side_effect=CALLED_OUT),
-            patch("shops.lnaddress.fetch", side_effect=CALLED_OUT))
+    return (
+        patch("requests.sessions.Session.request", side_effect=CALLED_OUT),
+        patch("shops.lnaddress.fetch", side_effect=CALLED_OUT),
+    )
 
 
 class Base(TestCase):
@@ -51,8 +55,17 @@ class Base(TestCase):
         self.owner = User.objects.create(username="merchant")
         Profile.objects.create(user=self.owner, email="mario.rossi@example.org")
         self.shop = Shop.objects.create(
-            owner=self.owner, name="Central Bar", city="Town", phone="0123 456",
-            lightning_address="bar@ln.example.org", lightning=True, telegram_chat="12345", latitude=41.9, longitude=12.5, first_sale=timezone.now())
+            owner=self.owner,
+            name="Central Bar",
+            city="Town",
+            phone="0123 456",
+            lightning_address="bar@ln.example.org",
+            lightning=True,
+            telegram_chat="12345",
+            latitude=41.9,
+            longitude=12.5,
+            first_sale=timezone.now(),
+        )
         self.client.force_login(self.owner)
 
     def url(self, name, *args, shop=None):
@@ -67,10 +80,15 @@ class Base(TestCase):
 # Who opens the pages
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 class Access(Base):
     def routes(self):
-        return [("get", self.url("help_home")), ("get", self.url("help_symptom", "pay")),
-                ("post", self.url("help_again", "pay")), ("post", self.url("help_ask"))]
+        return [
+            ("get", self.url("help_home")),
+            ("get", self.url("help_symptom", "pay")),
+            ("post", self.url("help_again", "pay")),
+            ("post", self.url("help_ask")),
+        ]
 
     def test_a_stranger_is_sent_to_sign_in_and_nothing_is_made(self):
         self.client.logout()
@@ -84,7 +102,9 @@ class Access(Base):
         other = User.objects.create(username="other")
         self.client.force_login(other)
         for verb, url in self.routes():
-            self.assertEqual(getattr(self.client, verb)(url, {"symptom": "pay", "channel": "page"}).status_code, 404, url)
+            self.assertEqual(
+                getattr(self.client, verb)(url, {"symptom": "pay", "channel": "page"}).status_code, 404, url
+            )
         self.assertEqual(HelpRequest.objects.count(), 0)
 
     def test_the_staff_is_a_visitor_here_whoever_owns_the_shop(self):
@@ -94,8 +114,12 @@ class Access(Base):
         admin_session(self.client)
         boss = User.objects.get(username="boss")
         shop = Shop.objects.create(owner=boss, name="Staff shop", lightning_address="x@example.org")
-        for verb, url in (("get", self.url("help_home", shop=shop)), ("get", self.url("help_symptom", "pay", shop=shop)),
-                          ("post", self.url("help_again", "pay", shop=shop)), ("post", self.url("help_ask", shop=shop))):
+        for verb, url in (
+            ("get", self.url("help_home", shop=shop)),
+            ("get", self.url("help_symptom", "pay", shop=shop)),
+            ("post", self.url("help_again", "pay", shop=shop)),
+            ("post", self.url("help_ask", shop=shop)),
+        ):
             response = getattr(self.client, verb)(url, {"symptom": "pay", "channel": "page"})
             self.assertEqual(response.status_code, 302, url)
             self.assertFalse(response.wsgi_request.user.is_authenticated)
@@ -114,6 +138,7 @@ class Access(Base):
 
     def test_the_forms_have_the_csrf_token(self):
         from django.test import Client
+
         strict = Client(enforce_csrf_checks=True)
         strict.force_login(self.owner)
         self.assertEqual(strict.post(self.url("help_ask"), {"symptom": "pay", "channel": "page"}).status_code, 403)
@@ -127,13 +152,20 @@ class Access(Base):
 # The page: from the database, in seconds
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 class Pages(Base):
     def test_the_home_has_a_big_button_for_every_symptom(self):
         page = self.client.get(self.url("help_home")).content.decode()
         for key in helpdesk.KINDS:
             self.assertIn(self.url("help_symptom", key), page)
-        for text in ("A customer cannot pay", "A payment stays on «waiting»", "The register does not open",
-                     "I lost my phone or changed phone", "Too much change given, or a customer paid too much", "Something else"):
+        for text in (
+            "A customer cannot pay",
+            "A payment stays on «waiting»",
+            "The register does not open",
+            "I lost my phone or changed phone",
+            "Too much change given, or a customer paid too much",
+            "Something else",
+        ):
             self.assertIn(text, page)
 
     def test_the_panel_has_the_button_for_every_shop(self):
@@ -145,10 +177,14 @@ class Pages(Base):
 
     def test_the_page_never_tells_the_changes_made_to_another_shop_that_shares_the_name(self):
         from .models import AccountChange
+
         stranger = User.objects.create(username="other")
-        AccountChange.objects.create(user=stranger, shops="Central Bar", changed="shop_owner,username", via="admin",
-                                     actor="boss")
-        AccountChange.objects.create(user=self.owner, shops="Central Bar", changed="username", via="admin", actor="boss")
+        AccountChange.objects.create(
+            user=stranger, shops="Central Bar", changed="shop_owner,username", via="admin", actor="boss"
+        )
+        AccountChange.objects.create(
+            user=self.owner, shops="Central Bar", changed="username", via="admin", actor="boss"
+        )
         # The shop of the other account has the same name: its owner's own row is not this shop's owner's
         for key in ("open", "phone", "other"):
             page = self.client.get(self.url("help_symptom", key)).content.decode()
@@ -157,14 +193,19 @@ class Pages(Base):
         # The diagnosis for whoever helps keeps both
         codes = {item.code for item in diagnosis.diagnose(self.shop, only={diagnosis.check_account})}
         self.assertEqual(codes, {"account_changed", "account_changed_other"})
-        owner_view = {item.code for item in diagnosis.diagnose(self.shop, only={diagnosis.check_account}, owner_view=True)}
+        owner_view = {
+            item.code for item in diagnosis.diagnose(self.shop, only={diagnosis.check_account}, owner_view=True)
+        }
         self.assertEqual(owner_view, {"account_changed"})
 
     def test_a_confirmation_that_never_comes_is_not_called_a_silence(self):
         Shop.objects.filter(pk=self.shop.pk).update(
-            lightning_status=LightningStatus.NO_CONFIRMATION, lightning_checked_address="bar@ln.example.org",
-            lightning_since=timezone.now() - timedelta(hours=3), lightning_checked=timezone.now(),
-            lightning_worked=timezone.now())
+            lightning_status=LightningStatus.NO_CONFIRMATION,
+            lightning_checked_address="bar@ln.example.org",
+            lightning_since=timezone.now() - timedelta(hours=3),
+            lightning_checked=timezone.now(),
+            lightning_worked=timezone.now(),
+        )
         page = self.client.get(self.url("help_symptom", "waiting")).content.decode()
         self.assertIn("it answers, but it does not tell the register when a payment arrives", page)
         self.assertNotIn("has not answered since", page)
@@ -196,25 +237,36 @@ class Pages(Base):
     def test_the_page_reads_a_few_queries_whatever_the_symptom(self):
         from django.db import connection
         from django.test.utils import CaptureQueriesContext
+
         for key in helpdesk.KINDS:
             with CaptureQueriesContext(connection) as queries:
                 self.client.get(self.url("help_symptom", key))
             self.assertLess(len(queries), 45, key)
-            self.assertEqual([q for q in queries.captured_queries if re.match(r"\s*(INSERT|UPDATE|DELETE)", q["sql"], re.I)
-                              and "django_session" not in q["sql"]], [], key)
+            self.assertEqual(
+                [
+                    q
+                    for q in queries.captured_queries
+                    if re.match(r"\s*(INSERT|UPDATE|DELETE)", q["sql"], re.I) and "django_session" not in q["sql"]
+                ],
+                [],
+                key,
+            )
 
     def test_the_steps_are_there_in_order_and_in_plain_words(self):
         page = self.client.get(self.url("help_symptom", "waiting")).content.decode()
-        self.assertEqual(page.count('<li>', page.index('class="help-steps"')), len(helpdesk.KINDS["waiting"].steps))
+        self.assertEqual(page.count("<li>", page.index('class="help-steps"')), len(helpdesk.KINDS["waiting"].steps))
         self.assertIn("Do not ask the customer to pay again", page)
         for word in ("LUD", "LNURL", "webhook", "BTCPay"):
             self.assertNotIn(word, page)
 
     def test_a_lightning_address_the_guardian_found_broken_is_the_first_thing_said(self):
         Shop.objects.filter(pk=self.shop.pk).update(
-            lightning_status=LightningStatus.NO_ANSWER, lightning_checked_address="bar@ln.example.org",
-            lightning_since=timezone.now() - timedelta(hours=3), lightning_checked=timezone.now(),
-            lightning_worked=timezone.now() - timedelta(days=1))
+            lightning_status=LightningStatus.NO_ANSWER,
+            lightning_checked_address="bar@ln.example.org",
+            lightning_since=timezone.now() - timedelta(hours=3),
+            lightning_checked=timezone.now(),
+            lightning_worked=timezone.now() - timedelta(days=1),
+        )
         page = self.client.get(self.url("help_symptom", "pay")).content.decode()
         self.assertIn("help-problem", page)
         self.assertIn("cannot pay you", page)
@@ -225,8 +277,11 @@ class Pages(Base):
     def test_an_address_that_works_is_said_and_no_payment(self):
         now = timezone.now()
         Shop.objects.filter(pk=self.shop.pk).update(
-            lightning_status=LightningStatus.OK, lightning_checked_address="bar@ln.example.org", lightning_checked=now,
-            lightning_worked=now)
+            lightning_status=LightningStatus.OK,
+            lightning_checked_address="bar@ln.example.org",
+            lightning_checked=now,
+            lightning_worked=now,
+        )
         page = self.client.get(self.url("help_symptom", "waiting")).content.decode()
         self.assertIn("it worked when it last checked", page)
         # The site sees no sale: nothing about the last payment, and no «Sales» page to send the merchant to
@@ -239,8 +294,9 @@ class Pages(Base):
         self.assertNotIn('href="#ask"', page)
 
     def test_a_staff_register_never_opened_is_on_the_page_of_the_register_that_does_not_open(self):
-        StaffRegister.objects.create(shop=self.shop, name="Anna", code="", opened=None,
-                                     code_until=timezone.now() - timedelta(hours=1))
+        StaffRegister.objects.create(
+            shop=self.shop, name="Anna", code="", opened=None, code_until=timezone.now() - timedelta(hours=1)
+        )
         page = self.client.get(self.url("help_symptom", "open")).content.decode()
         self.assertIn("never opened on a phone", page)
         self.assertIn("Anna", page)
@@ -260,8 +316,13 @@ class Pages(Base):
         self.assertNotIn("/again/", self.client.get(self.url("help_symptom", "phone")).content.decode())
 
     def test_a_note_with_markup_is_text_on_every_page(self):
-        HelpRequest.objects.create(shop=self.shop, asked_by=self.owner, symptom="pay", note="<script>alert(1)</script> <b>x</b>",
-                                   channel="page")
+        HelpRequest.objects.create(
+            shop=self.shop,
+            asked_by=self.owner,
+            symptom="pay",
+            note="<script>alert(1)</script> <b>x</b>",
+            channel="page",
+        )
         for url in (self.url("help_home"), reverse("shops")):
             page = self.client.get(url).content.decode()
             self.assertNotIn("<script>alert(1)", page)
@@ -281,6 +342,7 @@ class Pages(Base):
 # Look again
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 @override_settings(TELEGRAM_BOT_TOKEN="bot-token-secret")
 class LookAgain(Base):
     def setUp(self):
@@ -289,7 +351,9 @@ class LookAgain(Base):
 
     def again(self, key="pay", fetch=None):
         fetch = fetch or provider()
-        with patch("shops.lnaddress.fetch", side_effect=lambda url: (self.domains.append(url.split("/")[2]), fetch(url))[1]):
+        with patch(
+            "shops.lnaddress.fetch", side_effect=lambda url: (self.domains.append(url.split("/")[2]), fetch(url))[1]
+        ):
             return self.client.post(self.url("help_again", key))
 
     def test_it_asks_the_address(self):
@@ -345,6 +409,7 @@ class LookAgain(Base):
         def slow(url):
             release.wait(5)
             raise requests.ReadTimeout("slow")
+
         started = time.monotonic()
         try:
             with patch("shops.lnaddress.fetch", side_effect=slow), patch("shops.helpdesk.LOOK_SECONDS", 1):
@@ -359,8 +424,10 @@ class LookAgain(Base):
 # The request
 # ---------------------------------------------------------------------------------------------------------------------
 
-@override_settings(TELEGRAM_BOT_TOKEN="bot-token-secret", TELEGRAM_MODERATION_CHAT=MODERATORS,
-                   PUBLIC_URL="https://shops.example.org")
+
+@override_settings(
+    TELEGRAM_BOT_TOKEN="bot-token-secret", TELEGRAM_MODERATION_CHAT=MODERATORS, PUBLIC_URL="https://shops.example.org"
+)
 class Asking(Base):
     def setUp(self):
         super().setUp()
@@ -396,9 +463,14 @@ class Asking(Base):
         chat, text = self.sent[0]
         self.assertEqual(chat, MODERATORS)
         row = HelpRequest.objects.get()
-        for part in ("Central Bar asks for help.", "Symptom: A customer cannot pay", "Call back: on Telegram",
-                     "They wrote: «No code on the screen»", "Problems: lightning_no_answer",
-                     f"https://shops.example.org/admin/shops/helprequest/{row.pk}/change/"):
+        for part in (
+            "Central Bar asks for help.",
+            "Symptom: A customer cannot pay",
+            "Call back: on Telegram",
+            "They wrote: «No code on the screen»",
+            "Problems: lightning_no_answer",
+            f"https://shops.example.org/admin/shops/helprequest/{row.pk}/change/",
+        ):
             self.assertIn(part, text)
         for private in ("mario.rossi", "12345", "0123 456", "bar@ln.example.org", "bot-token-secret"):
             self.assertNotIn(private, text)
@@ -441,7 +513,11 @@ class Asking(Base):
         response = self.go("pay", seed, "page")
         self.assertIn("never write it here", response.content.decode())
         self.assertNotIn("abandon ability", response.content.decode().replace('value="' + seed + '"', ""))
-        response = self.go("pay", "xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHi", "page")
+        response = self.go(
+            "pay",
+            "xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHi",
+            "page",
+        )
         self.assertIn("never write it here", response.content.decode())
         self.assertEqual(HelpRequest.objects.count(), 0)
         self.assertEqual(self.sent, [])
@@ -511,7 +587,10 @@ class Asking(Base):
         self.assertEqual(HelpRequest.objects.get().delivery, "off")
 
     def test_a_diagnosis_that_breaks_never_loses_the_request(self):
-        with patch("shops.diagnosis.diagnose", side_effect=RuntimeError("boom")), self.assertLogs("shops.helpdesk", "ERROR"):
+        with (
+            patch("shops.diagnosis.diagnose", side_effect=RuntimeError("boom")),
+            self.assertLogs("shops.helpdesk", "ERROR"),
+        ):
             response = self.ask("pay", "help", "page")
         self.assertEqual(response.status_code, 302)
         row = HelpRequest.objects.get()
@@ -520,6 +599,7 @@ class Asking(Base):
 
     def test_no_free_place_for_a_probe_is_not_a_problem_of_the_shop(self):
         from . import diagnosis as module
+
         places = threading.BoundedSemaphore(1)
         places.acquire()
         with patch.object(module, "THREADS", places), patch.object(module, "LIGHTNING_SECONDS", 0.5):
@@ -528,8 +608,11 @@ class Asking(Base):
         self.assertNotIn("lightning_slow", row.summary)
         self.assertIn("[time_up]", row.summary)
         self.assertNotIn("lightning_slow", self.sent[0][1])
-        with patch.object(module, "THREADS", places), patch.object(module, "LIGHTNING_SECONDS", 0.5), \
-                patch("shops.helpdesk.LOOK_SECONDS", 3):
+        with (
+            patch.object(module, "THREADS", places),
+            patch.object(module, "LIGHTNING_SECONDS", 0.5),
+            patch("shops.helpdesk.LOOK_SECONDS", 3),
+        ):
             page = self.client.post(self.url("help_again", "pay")).content.decode()
         self.assertNotIn("Your Lightning wallet takes too long", page)
         self.assertIn("did not finish in time", page)
@@ -549,6 +632,7 @@ class Asking(Base):
         def spy(shop, seconds, only=None):
             seen.append(seconds)
             return real(shop, seconds, only=only)
+
         with patch("shops.diagnosis.diagnose", side_effect=spy):
             self.go("phone", "", "page")
         self.assertEqual(seen, [helpdesk.ASK_SECONDS])
@@ -636,8 +720,11 @@ class Asking(Base):
                 owner = User.objects.create(username=f"t{number}")
                 shop = Shop.objects.create(owner=owner, name=f"Shop {number}", lightning_address="x@example.org")
                 self.client.force_login(owner)
-                response = self.client.post(self.url("help_ask", shop=shop), {"symptom": "phone", "channel": "page"},
-                                            REMOTE_ADDR=f"203.0.113.{number}")
+                response = self.client.post(
+                    self.url("help_ask", shop=shop),
+                    {"symptom": "phone", "channel": "page"},
+                    REMOTE_ADDR=f"203.0.113.{number}",
+                )
                 self.assertEqual(response.status_code, 302)
         self.assertEqual(len(self.sent), 2)
         last = HelpRequest.objects.get(shop__name="Shop 2")
@@ -651,8 +738,12 @@ class Asking(Base):
                 owner = User.objects.create(username=f"u{number}")
                 shop = Shop.objects.create(owner=owner, name=f"Net {number}", lightning_address="x@example.org")
                 self.client.force_login(owner)
-                self.client.post(self.url("help_ask", shop=shop), {"symptom": "phone", "channel": "page"},
-                                 REMOTE_ADDR="198.51.100.7", HTTP_X_FORWARDED_FOR="198.51.100.7")
+                self.client.post(
+                    self.url("help_ask", shop=shop),
+                    {"symptom": "phone", "channel": "page"},
+                    REMOTE_ADDR="198.51.100.7",
+                    HTTP_X_FORWARDED_FOR="198.51.100.7",
+                )
         self.assertEqual(len(self.sent), 1)
         self.assertEqual(HelpRequest.objects.get(shop__name="Net 1").delivery, "failed")
 
@@ -673,6 +764,7 @@ class Asking(Base):
 
     def test_the_message_names_the_site_first(self):
         from .management.commands.dashboard import site_label
+
         self.go("pay", "", "page")
         lines = self.sent[0][1].splitlines()
         self.assertEqual(lines[0], site_label())
@@ -690,7 +782,9 @@ class Asking(Base):
     def test_only_the_owners_own_requests_show(self):
         other_owner = User.objects.create(username="other")
         other = Shop.objects.create(owner=other_owner, name="Other", lightning_address="x@example.org")
-        HelpRequest.objects.create(shop=other, asked_by=other_owner, symptom="pay", note="private line of another", channel="page")
+        HelpRequest.objects.create(
+            shop=other, asked_by=other_owner, symptom="pay", note="private line of another", channel="page"
+        )
         self.assertNotIn("private line of another", self.client.get(self.url("help_home")).content.decode())
         self.assertNotIn("private line of another", self.client.get(reverse("shops")).content.decode())
 
@@ -699,22 +793,37 @@ class Asking(Base):
 # The association: the dashboard and the administration
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 @override_settings(TELEGRAM_BOT_TOKEN="", TELEGRAM_MODERATION_CHAT="")
 class Association(Base):
     def make(self, shop=None, minutes=0, **fields):
-        values = {"symptom": "pay", "note": "", "channel": "email", "summary": "✗ [lightning_no_answer] x\n    detail",
-                  "asked_by": (shop or self.shop).owner}
+        values = {
+            "symptom": "pay",
+            "note": "",
+            "channel": "email",
+            "summary": "✗ [lightning_no_answer] x\n    detail",
+            "asked_by": (shop or self.shop).owner,
+        }
         values.update(fields)
-        return HelpRequest.objects.create(shop=shop or self.shop, created=timezone.now() - timedelta(minutes=minutes), **values)
+        return HelpRequest.objects.create(
+            shop=shop or self.shop, created=timezone.now() - timedelta(minutes=minutes), **values
+        )
 
     def test_the_open_requests_are_on_top_of_the_dashboard_whatever_else_is_wrong(self):
         # A broken address since long ago would be first by itself
         broken = Shop.objects.create(
-            owner=User.objects.create(username="b"), name="Broken", 
-            lightning_address="b@example.org", latitude=1, longitude=2, first_sale=timezone.now(),
-            lightning_status=LightningStatus.NO_ANSWER, lightning_since=timezone.now() - timedelta(days=30),
-            lightning_checked=timezone.now(), lightning_worked=timezone.now() - timedelta(days=40),
-            lightning_checked_address="b@example.org")
+            owner=User.objects.create(username="b"),
+            name="Broken",
+            lightning_address="b@example.org",
+            latitude=1,
+            longitude=2,
+            first_sale=timezone.now(),
+            lightning_status=LightningStatus.NO_ANSWER,
+            lightning_since=timezone.now() - timedelta(days=30),
+            lightning_checked=timezone.now(),
+            lightning_worked=timezone.now() - timedelta(days=40),
+            lightning_checked_address="b@example.org",
+        )
         first = self.make(minutes=30, note="older")
         second = self.make(shop=broken, minutes=5, symptom="waiting", note="newer")
         items = dashboard.summary()["items"]
@@ -765,17 +874,25 @@ class Association(Base):
         admin_session(self.client)
         listing = self.client.get(reverse("admin:shops_helprequest_changelist"))
         self.assertContains(listing, "Central Bar")
-        self.assertContains(self.client.get(reverse("admin:shops_helprequest_changelist") + "?state=open"), "Central Bar")
-        self.assertNotContains(self.client.get(reverse("admin:shops_helprequest_changelist") + "?state=solved"), "Central Bar")
+        self.assertContains(
+            self.client.get(reverse("admin:shops_helprequest_changelist") + "?state=open"), "Central Bar"
+        )
+        self.assertNotContains(
+            self.client.get(reverse("admin:shops_helprequest_changelist") + "?state=solved"), "Central Bar"
+        )
         detail = self.client.get(reverse("admin:shops_helprequest_change", args=[row.pk]))
         self.assertContains(detail, "lightning_no_answer")
         self.assertContains(detail, "detail of it")
         self.assertContains(detail, "mario.rossi@example.org")
         self.assertNotContains(detail, "whsec-very-secret")
         self.assertEqual(self.client.get(reverse("admin:shops_helprequest_add")).status_code, 403)
-        self.assertEqual(self.client.post(reverse("admin:shops_helprequest_delete", args=[row.pk]), {"post": "yes"}).status_code, 403)
+        self.assertEqual(
+            self.client.post(reverse("admin:shops_helprequest_delete", args=[row.pk]), {"post": "yes"}).status_code, 403
+        )
         # Nothing can be edited from the form of one request
-        self.client.post(reverse("admin:shops_helprequest_change", args=[row.pk]), {"note": "changed", "resolved_0": "2026-01-01"})
+        self.client.post(
+            reverse("admin:shops_helprequest_change", args=[row.pk]), {"note": "changed", "resolved_0": "2026-01-01"}
+        )
         row.refresh_from_db()
         self.assertEqual((row.note, row.resolved), ("line", None))
 
@@ -798,7 +915,9 @@ class Association(Base):
 
     def test_the_link_to_the_request_is_only_for_who_can_open_it(self):
         from django.contrib.auth.models import Permission
+
         from config.guard import ADMIN_SESSION
+
         self.make()
         moderator = User.objects.create_user("moderator", password="x", is_staff=True)
         moderator.user_permissions.add(Permission.objects.get(codename="view_shop"))
@@ -820,7 +939,9 @@ class Association(Base):
 
     def test_the_actions_need_the_permission_to_change(self):
         from django.contrib.auth.models import Permission
+
         from config.guard import ADMIN_SESSION
+
         row = self.make()
         reader = User.objects.create_user("reader", password="x", is_staff=True)
         reader.user_permissions.add(Permission.objects.get(codename="view_helprequest"))
@@ -855,11 +976,16 @@ class Association(Base):
         self.client.force_login(staff)
         session = self.client.session
         from config.guard import ADMIN_SESSION
+
         session[ADMIN_SESSION] = True
         session.save()
         self.assertEqual(self.client.get(reverse("admin:shops_helprequest_changelist")).status_code, 403)
-        self.assertEqual(self.client.post(reverse("admin:shops_helprequest_changelist"),
-                                          {"action": "solve", "_selected_action": [row.pk]}).status_code, 403)
+        self.assertEqual(
+            self.client.post(
+                reverse("admin:shops_helprequest_changelist"), {"action": "solve", "_selected_action": [row.pk]}
+            ).status_code,
+            403,
+        )
 
     def test_a_deleted_shop_takes_its_requests(self):
         self.make()
@@ -871,12 +997,16 @@ class Association(Base):
 # The diagnosis stays the same
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 @override_settings(TELEGRAM_BOT_TOKEN="bot-token-secret")
 class DiagnosisUnchanged(Base):
     def test_without_only_every_check_runs_and_with_it_only_those(self):
         with patch("shops.lnaddress.fetch", side_effect=provider()):
             everything = {finding.code for finding in diagnosis.diagnose(self.shop)}
-            some = {finding.code for finding in diagnosis.diagnose(self.shop, only={diagnosis.check_shop, diagnosis.check_owner})}
+            some = {
+                finding.code
+                for finding in diagnosis.diagnose(self.shop, only={diagnosis.check_shop, diagnosis.check_owner})
+            }
         self.assertIn("lightning_ok", everything)
         self.assertEqual(some, {"shop_visible", "owner_recovery_email"})
 
@@ -905,15 +1035,17 @@ class DiagnosisUnchanged(Base):
 # Words in three languages
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 class Translations(TestCase):
     """Every string of the pages and of the symptoms is translated into Italian and German: the .po files are written by
     hand, and a string added without them shows in English."""
+
     def python_ids(self):
         found = set()
         for name in ("helpdesk.py", "help_views.py", "dashboard.py", "admin.py", "models.py"):
             text = (Path(__file__).parent / name).read_text()
             if name in ("dashboard.py", "admin.py", "models.py"):
-                text = text[text.index("class HelpRequest") if name == "models.py" else 0:]
+                text = text[text.index("class HelpRequest") if name == "models.py" else 0 :]
             for match in re.finditer(r"""(?:\b_|gettext_lazy)\(\s*((?:"(?:[^"\\]|\\.)*"\s*)+)""", text):
                 pieces = re.findall(r'"((?:[^"\\]|\\.)*)"', match.group(1))
                 found.add("".join(pieces).replace('\\"', '"'))
@@ -940,6 +1072,7 @@ class Translations(TestCase):
         # The example community has no German site: the strings are the ones the communities that have it will show
         with translation.override("de"):
             from django.utils.translation import gettext
+
             self.assertEqual(gettext("Something wrong?"), "Stimmt etwas nicht?")
             self.assertEqual(str(HelpRequest.Symptom.WAITING.label), "Eine Zahlung bleibt auf „Wartet“")
 
@@ -983,9 +1116,20 @@ class TwoAtOnce(TransactionTestCase):
 class AlertText(TestCase):
     def test_no_web_address_or_link_to_an_app_survives(self):
         from .notifications import alert_text
-        for text in ("see https://evil.example/x", "tg://resolve?domain=evil", "ftp://files.example/x", "tg:resolve?domain=x",
-                     "www.evil.example", "evil.example/path", "javascript://x%0Aalert(1)", "HTTP://EVIL.EXAMPLE"):
+
+        for text in (
+            "see https://evil.example/x",
+            "tg://resolve?domain=evil",
+            "ftp://files.example/x",
+            "tg:resolve?domain=x",
+            "www.evil.example",
+            "evil.example/path",
+            "javascript://x%0Aalert(1)",
+            "HTTP://EVIL.EXAMPLE",
+        ):
             shown = alert_text(text, 200)
             self.assertNotRegex(shown, r"(?i)://|tg:|www\.|evil", text)
-        self.assertEqual(alert_text("Il cliente ha pagato alle 10:20 e resta in attesa", 200),
-                         "Il cliente ha pagato alle 10:20 e resta in attesa")
+        self.assertEqual(
+            alert_text("Il cliente ha pagato alle 10:20 e resta in attesa", 200),
+            "Il cliente ha pagato alle 10:20 e resta in attesa",
+        )

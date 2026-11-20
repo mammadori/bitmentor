@@ -1,5 +1,6 @@
 """Moving shops between two bitmentor sites (shops/moving.py): export_shops, import_moved_shops, the panel's notice and
 the page that connects the wallet of a moved shop."""
+
 import csv
 import json
 import os
@@ -8,8 +9,8 @@ import tempfile
 from datetime import date, timedelta
 from io import StringIO
 from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlsplit
 
 from django.contrib.auth import get_user_model
 from django.core.management import CommandError, call_command
@@ -64,20 +65,53 @@ def source_site():
     Profile.objects.create(user=wallet, email="mario@example.org")
     mail = users.create(username="email:0123")
     Profile.objects.create(user=mail, email="anna@example.org")
-    Shop.objects.create(owner=wallet, name="Central Bar", description="Coffee\nand cake", address="Main Street 1",
-                        city="Example", latitude=41.9, longitude=12.55, website="https://bar.example.org",
-                        email="bar@example.org", phone="+39 0461 000", discount=5, nip05_name="bar",
-                        nostr_pubkey="a" * 64, telegram_chat="12345",
-                        lightning_address="bar@wallet.example.org", lightning=True, certified_month=date(2026, 9, 1),
-                        sign_printed="2026-10-01T10:00Z")
-    Shop.objects.create(owner=mail, name="Bookshop", latitude=42.0, longitude=12.6,
-                        lightning_address="anna@wallet.example.org", lightning=True)
+    Shop.objects.create(
+        owner=wallet,
+        name="Central Bar",
+        description="Coffee\nand cake",
+        address="Main Street 1",
+        city="Example",
+        latitude=41.9,
+        longitude=12.55,
+        website="https://bar.example.org",
+        email="bar@example.org",
+        phone="+39 0461 000",
+        discount=5,
+        nip05_name="bar",
+        nostr_pubkey="a" * 64,
+        telegram_chat="12345",
+        lightning_address="bar@wallet.example.org",
+        lightning=True,
+        certified_month=date(2026, 9, 1),
+        sign_printed="2026-10-01T10:00Z",
+    )
+    Shop.objects.create(
+        owner=mail,
+        name="Bookshop",
+        latitude=42.0,
+        longitude=12.6,
+        lightning_address="anna@wallet.example.org",
+        lightning=True,
+    )
     cyclist = users.create(username=OTHER_KEY)
-    Shop.objects.create(owner=cyclist, name="Cyclist", latitude=42.05, longitude=12.65,
-                        lightning_address="bike@wallet.example.org", lightning=True)
+    Shop.objects.create(
+        owner=cyclist,
+        name="Cyclist",
+        latitude=42.05,
+        longitude=12.65,
+        lightning_address="bike@wallet.example.org",
+        lightning=True,
+    )
     Shop.objects.create(name="Directory shop", external_id="42", latitude=42.1, longitude=12.7, lightning=True)
-    Shop.objects.create(name="Old shop", external_id="7", latitude=42.2, longitude=12.8, closed_on=date(2020, 1, 31),
-                        suspended=True, listed=False)
+    Shop.objects.create(
+        name="Old shop",
+        external_id="7",
+        latitude=42.2,
+        longitude=12.8,
+        closed_on=date(2020, 1, 31),
+        suspended=True,
+        listed=False,
+    )
 
 
 def code_of(link):
@@ -90,8 +124,10 @@ def code_of(link):
 def comparable(document):
     """The shops without their id, which changes, and their owner, who is found again by other ways (an email account,
     or the one-time link)."""
-    return sorted(({key: value for key, value in row.items() if key not in ("id", "owner")} for row in document["shops"]),
-                  key=lambda row: row["name"])
+    return sorted(
+        ({key: value for key, value in row.items() if key not in ("id", "owner")} for row in document["shops"]),
+        key=lambda row: row["name"],
+    )
 
 
 class Export(Files, TestCase):
@@ -103,8 +139,15 @@ class Export(Files, TestCase):
         document = self.export()
         self.assertEqual((document["format"], document["version"]), (moving.FORMAT, moving.VERSION))
         text = Path(self.path()).read_text()
-        for secret in (KEY, OTHER_KEY, "bar@wallet.example.org", "anna@wallet.example.org", "2026-09", "2026-10-01",
-                       "certified"):
+        for secret in (
+            KEY,
+            OTHER_KEY,
+            "bar@wallet.example.org",
+            "anna@wallet.example.org",
+            "2026-09",
+            "2026-10-01",
+            "certified",
+        ):
             self.assertNotIn(secret, text)
         bar = next(row for row in document["shops"] if row["name"] == "Central Bar")
         self.assertEqual(bar["owner"], {"email": "mario@example.org", "wallet": True})
@@ -174,7 +217,9 @@ class Import(Files, TestCase):
         self.assertEqual(bar.lightning_address, "")
         self.assertIsNone(bar.certified_month)
         self.assertIsNone(bar.sign_printed)
-        self.assertEqual((bar.description, bar.discount, bar.nip05_name, bar.latitude), ("Coffee\nand cake", 5, "bar", 41.9))
+        self.assertEqual(
+            (bar.description, bar.discount, bar.nip05_name, bar.latitude), ("Coffee\nand cake", 5, "bar", 41.9)
+        )
         library = Shop.objects.get(name="Bookshop")
         self.assertTrue(library.owner.username.startswith("email:"))
         self.assertEqual(library.owner.profile.email, "anna@example.org")
@@ -263,9 +308,18 @@ class Import(Files, TestCase):
         return document
 
     def test_rows_go_through_the_shop_form_rules(self):
-        cases = {"discount": 150, "latitude": 200, "website": "javascript:alert(1)", "email": "not an email",
-                 "description": "x" * 1001, "name": "", "nostr_pubkey": "npub1xyz",
-                 "address": "abandon " * 11 + "about", "external_id": "x" * 65, "closed_on": "31/01/2020"}
+        cases = {
+            "discount": 150,
+            "latitude": 200,
+            "website": "javascript:alert(1)",
+            "email": "not an email",
+            "description": "x" * 1001,
+            "name": "",
+            "nostr_pubkey": "npub1xyz",
+            "address": "abandon " * 11 + "about",
+            "external_id": "x" * 65,
+            "closed_on": "31/01/2020",
+        }
         for name, value in cases.items():
             with self.subTest(name):
                 self.addCleanup(Shop.objects.all().delete)
@@ -337,10 +391,15 @@ class Import(Files, TestCase):
         rows = self.listing("owners.csv")
         self.assertEqual(set(rows), {"Central Bar", "Bookshop", "Cyclist"})
         bar, cyclist = rows["Central Bar"], rows["Cyclist"]
-        self.assertEqual((bar["email"], bar["sign_in"], bar["to_do"], bar["link"]), ("mario@example.org", "email", "connect_wallet", ""))
+        self.assertEqual(
+            (bar["email"], bar["sign_in"], bar["to_do"], bar["link"]),
+            ("mario@example.org", "email", "connect_wallet", ""),
+        )
         self.assertIn("Central Bar", bar["message"])
         self.assertIn("mario@example.org", bar["message"])
-        self.assertEqual((cyclist["email"], cyclist["sign_in"], cyclist["to_do"]), ("", "wallet", "open_link_then_connect_wallet"))
+        self.assertEqual(
+            (cyclist["email"], cyclist["sign_in"], cyclist["to_do"]), ("", "wallet", "open_link_then_connect_wallet")
+        )
         self.assertIn(cyclist["link"], cyclist["message"])
         self.assertIn("wallet", cyclist["message"])
 
@@ -374,7 +433,9 @@ class Import(Files, TestCase):
         first = self.listing("a.csv")
         library = Shop.objects.get(name="Bookshop")
         kept = Shop.objects.get(name="Cyclist").claim_hash
-        out = self.run_import(document, "--apply", "--new-codes", "--only", str(library.pk), "--owners", self.path("b.csv"))
+        out = self.run_import(
+            document, "--apply", "--new-codes", "--only", str(library.pk), "--owners", self.path("b.csv")
+        )
         alone = self.listing("b.csv")
         self.assertEqual(set(alone), {"Bookshop"})
         self.assertIn("0 moved, 1 already here, 0 not moved, of 1.", out)
@@ -387,17 +448,25 @@ class Import(Files, TestCase):
         self.assertEqual(set(everyone), {"Bookshop", "Cyclist"})
         for column in ("shop", "email", "sign_in", "to_do"):
             self.assertEqual(alone["Bookshop"][column], everyone["Bookshop"][column])
-        self.run_import(document, "--apply", "--new-codes", "--only", library.moved_from.upper(), "--owners", self.path("c.csv"))
+        self.run_import(
+            document, "--apply", "--new-codes", "--only", library.moved_from.upper(), "--owners", self.path("c.csv")
+        )
         self.assertEqual(set(self.listing("c.csv")), {"Bookshop"})
 
     def test_only_a_moved_shop_that_is_in_the_file(self):
         self.run_import(self.document, "--apply")
         here = Shop.objects.create(name="Born here")
-        cases = [(str(here.pk), "was not moved here"), ("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "is not in"),
-                 ("999999", "--only takes"), ("x\x1b[2J", "--only takes")]
+        cases = [
+            (str(here.pk), "was not moved here"),
+            ("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "is not in"),
+            ("999999", "--only takes"),
+            ("x\x1b[2J", "--only takes"),
+        ]
         for number, (only, reason) in enumerate(cases):
             with self.subTest(only), self.assertRaisesMessage(CommandError, reason):
-                self.run_import(self.document, "--apply", "--new-codes", "--only", only, "--owners", self.path(f"{number}.csv"))
+                self.run_import(
+                    self.document, "--apply", "--new-codes", "--only", only, "--owners", self.path(f"{number}.csv")
+                )
             # Refused before the list of owners is opened: no empty file to mistake for one
             self.assertFalse(os.path.exists(self.path(f"{number}.csv")))
         with self.assertRaises(CommandError) as refused:
@@ -447,7 +516,9 @@ class Import(Files, TestCase):
         self.assertIn("0 moved, 5 already here", self.run_import(document, "--apply"))
 
     def test_a_replaced_directory_shop_keeps_what_this_site_decided(self):
-        Shop.objects.create(name="Directory", external_id="42", suspended=True, listed=False, closed_on=date(2021, 5, 1))
+        Shop.objects.create(
+            name="Directory", external_id="42", suspended=True, listed=False, closed_on=date(2021, 5, 1)
+        )
         self.run_import(self.document, "--apply")
         shop = Shop.objects.get(external_id="42")
         self.assertEqual((shop.name, shop.suspended, shop.listed), ("Directory shop", True, False))
@@ -476,8 +547,15 @@ class ConnectWallet(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create(username=KEY)
         self.client.force_login(self.user)
-        self.shop = Shop.objects.create(owner=self.user, name="Bar", latitude=41.9, longitude=12.5,
-                                        moved_register=True, moved_from="x", moved_in="2026-11-04T10:00Z")
+        self.shop = Shop.objects.create(
+            owner=self.user,
+            name="Bar",
+            latitude=41.9,
+            longitude=12.5,
+            moved_register=True,
+            moved_from="x",
+            moved_in="2026-11-04T10:00Z",
+        )
         probe = patch("shops.views.refusal", return_value=None)
         probe.start()
         self.addCleanup(probe.stop)
@@ -519,8 +597,11 @@ class ConnectWallet(TestCase):
 
     def test_a_suspended_shop_takes_no_register(self):
         Shop.objects.filter(pk=self.shop.pk).update(suspended=True)
-        self.assertRedirects(self.client.post(self.url(), {"lightning_address": "bar@example.org"}), "/en/shops/",
-                             fetch_redirect_response=False)
+        self.assertRedirects(
+            self.client.post(self.url(), {"lightning_address": "bar@example.org"}),
+            "/en/shops/",
+            fetch_redirect_response=False,
+        )
         self.assertEqual(Shop.objects.get(pk=self.shop.pk).lightning_address, "")
 
     def test_a_historic_shop_takes_a_register_however_old(self):
@@ -530,7 +611,9 @@ class ConnectWallet(TestCase):
 
     def test_a_refused_address_writes_nothing(self):
         with patch("shops.views.refusal", return_value="does not tell the register"):
-            self.assertContains(self.client.post(self.url(), {"lightning_address": "bar@example.org"}), "does not tell the register")
+            self.assertContains(
+                self.client.post(self.url(), {"lightning_address": "bar@example.org"}), "does not tell the register"
+            )
         self.assertEqual(Shop.objects.get(pk=self.shop.pk).lightning_address, "")
 
     def test_the_form_has_only_the_lightning_address_and_needs_it(self):
@@ -549,11 +632,17 @@ class ConnectWallet(TestCase):
 
 class Claim(TestCase):
     """The one-time link of a shop that waits for its owner."""
+
     CODE = "A" * 31 + "b"
 
     def setUp(self):
-        self.shop = Shop.objects.create(name="Cyclist", moved_register=True, moved_in="2026-11-04T10:00Z", moved_from="x",
-                                        claim_hash=claim_digest(self.CODE))
+        self.shop = Shop.objects.create(
+            name="Cyclist",
+            moved_register=True,
+            moved_in="2026-11-04T10:00Z",
+            moved_from="x",
+            claim_hash=claim_digest(self.CODE),
+        )
         self.user = get_user_model().objects.create(username=KEY)
         self.client.force_login(self.user)
 
@@ -565,8 +654,11 @@ class Claim(TestCase):
 
     def test_an_address_of_another_owner_is_refused(self):
         Shop.objects.filter(pk=self.shop.pk).update(lightning_address="Cyclist@wallet.example")
-        Shop.objects.create(name="Other", owner=get_user_model().objects.create(username="other"),
-                            lightning_address="cyclist@wallet.example")
+        Shop.objects.create(
+            name="Other",
+            owner=get_user_model().objects.create(username="other"),
+            lightning_address="cyclist@wallet.example",
+        )
         page = self.post()
         self.assertContains(page, "already used by another shop", status_code=409)
         self.assertNotContains(page, "Other", status_code=409)
@@ -651,11 +743,17 @@ class Claim(TestCase):
 
 class ClaimSignIn(TestCase):
     """Signing in from a one-time link: the sign-in pages name the shop being taken, and only for a code that is real."""
+
     CODE = "C" * 31 + "d"
 
     def setUp(self):
-        Shop.objects.create(name="Cyclist", moved_register=True, moved_in="2026-11-04T10:00Z", moved_from="x",
-                            claim_hash=claim_digest(self.CODE))
+        Shop.objects.create(
+            name="Cyclist",
+            moved_register=True,
+            moved_in="2026-11-04T10:00Z",
+            moved_from="x",
+            claim_hash=claim_digest(self.CODE),
+        )
 
     def test_the_sign_in_pages_name_the_shop(self):
         target = f"/en/shops/claim/?code={self.CODE}"
@@ -668,4 +766,6 @@ class ClaimSignIn(TestCase):
             page = self.client.get("/en/shops/", {"next": f"/en/shops/claim/?code={code}"})
             self.assertNotContains(page, "You are taking")
         Shop.objects.update(owner=get_user_model().objects.create(username="owner"), claim_hash="")
-        self.assertNotContains(self.client.get("/en/shops/", {"next": f"/en/shops/claim/?code={self.CODE}"}), "You are taking")
+        self.assertNotContains(
+            self.client.get("/en/shops/", {"next": f"/en/shops/claim/?code={self.CODE}"}), "You are taking"
+        )

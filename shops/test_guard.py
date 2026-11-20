@@ -1,5 +1,6 @@
 """Whoever runs the site cannot pass for a merchant: the staff and the sessions born from the admin's password are
 visitors outside /admin/ (config/guard.py). The changes to the account of a shop's owner: test_guard_watch.py."""
+
 import re
 from collections import Counter
 from datetime import timedelta
@@ -46,6 +47,7 @@ class Base(TestCase):
 # The staff is a visitor outside /admin/
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 def routes(patterns, prefix=""):
     """Every route of the site, as a string with the converters in <>: the languages' prefix included."""
     for pattern in patterns:
@@ -68,16 +70,29 @@ class StaffWalk(Base):
         self.boss = User.objects.get(username="boss")
         self.shop = Shop.objects.create(owner=self.boss, name="Bar", lightning_address="bar@ln.example.org")
         self.waiting = Shop.objects.create(owner=self.boss, name="Waiting", awaiting_wallet=True)
-        self.register = StaffRegister.objects.create(shop=self.shop, name="Anna", code="c" * 32,
-                                                     code_until=timezone.now() + timedelta(hours=1))
+        self.register = StaffRegister.objects.create(
+            shop=self.shop, name="Anna", code="c" * 32, code_until=timezone.now() + timedelta(hours=1)
+        )
         self.client.raise_request_exception = False
         self.stranger = self.client_class(raise_request_exception=False)
-        self.values = {"shop": str(self.shop.id), "register": str(self.register.id), "invoice": "inv1", "external": "x",
-                       "pk": "00000000-0000-0000-0000-000000000001", "slug": "home", "path": "x",
-                       "year": "2026", "secret": "s3cret", "name": "0" * 64, "month": "10", "number": "1",
-                       "address": "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx",
-                       # Team access (team/): a challenge and an invite's token
-                       "k1": "a" * 64, "token": "t" * 43}
+        self.values = {
+            "shop": str(self.shop.id),
+            "register": str(self.register.id),
+            "invoice": "inv1",
+            "external": "x",
+            "pk": "00000000-0000-0000-0000-000000000001",
+            "slug": "home",
+            "path": "x",
+            "year": "2026",
+            "secret": "s3cret",
+            "name": "0" * 64,
+            "month": "10",
+            "number": "1",
+            "address": "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx",
+            # Team access (team/): a challenge and an invite's token
+            "k1": "a" * 64,
+            "token": "t" * 43,
+        }
 
     def url(self, route):
         return "/" + re.sub(r"<(?:\w+:)?(\w+)>", lambda found: self.values[found.group(1)], route)
@@ -89,10 +104,18 @@ class StaffWalk(Base):
     def test_the_walk_sees_the_whole_site(self):
         found = self.all_routes()
         # Not an empty walk: the pages of the merchant are in it, and nothing under /admin/
-        for route in ("en/shops/edit/<uuid:shop>/", "en/shops/wallet/<uuid:shop>/", "en/shops/connect/<uuid:shop>/",
-                      "en/shops/registers/<uuid:shop>/", "en/shops/preview/<uuid:shop>/",
-                      "en/shops/claim/", "en/shops/sign/<uuid:shop>/", "en/shops/", "en/shops/email/confirm/",
-                      "register/<uuid:shop>/manifest.webmanifest"):
+        for route in (
+            "en/shops/edit/<uuid:shop>/",
+            "en/shops/wallet/<uuid:shop>/",
+            "en/shops/connect/<uuid:shop>/",
+            "en/shops/registers/<uuid:shop>/",
+            "en/shops/preview/<uuid:shop>/",
+            "en/shops/claim/",
+            "en/shops/sign/<uuid:shop>/",
+            "en/shops/",
+            "en/shops/email/confirm/",
+            "register/<uuid:shop>/manifest.webmanifest",
+        ):
             self.assertIn(route, found)
         self.assertGreater(len(found), 50)
         self.assertFalse([route for route in found if route.startswith("admin")])
@@ -120,8 +143,19 @@ class StaffWalk(Base):
         self.assertEqual(Shop.objects.count(), 2)
 
     def test_the_merchants_pages_send_the_staff_to_the_sign_in_page_which_says_why(self):
-        for route in ("edit/{s}/", "wallet/{w}/", "connect/{w}/", "registers/{s}/", "sign/{s}/", "preview/{s}/",
-                      "card/{s}/", "remove/{s}/", "claim/", "first-day/{s}/", "new/"):
+        for route in (
+            "edit/{s}/",
+            "wallet/{w}/",
+            "connect/{w}/",
+            "registers/{s}/",
+            "sign/{s}/",
+            "preview/{s}/",
+            "card/{s}/",
+            "remove/{s}/",
+            "claim/",
+            "first-day/{s}/",
+            "new/",
+        ):
             url = "/en/shops/" + route.format(s=self.shop.id, w=self.waiting.id)
             response = self.client.get(url)
             self.assertEqual(response.status_code, 302, url)
@@ -203,13 +237,26 @@ class StaffWalk(Base):
         linked (config/admin_wallet.py): staff pages, 404 unless ADMIN_WALLET_SIGN_IN is on."""
         from config import admin_wallet
 
-        under = {str(pattern.pattern): pattern for pattern in get_resolver().url_patterns
-                 if str(pattern.pattern).startswith("admin")}
-        self.assertEqual(sorted(under), ["admin/", "admin/login/", "admin/login/code/", "admin/login/wallet/",
-                                         "admin/login/wallet/status/", "admin/second-factor/",
-                                         "admin/second-factor/wallet/status/",
-                                         "admin/today/", "admin/today/approve/<uuid:shop>/",
-                                         "admin/today/set-aside/<uuid:shop>/"])
+        under = {
+            str(pattern.pattern): pattern
+            for pattern in get_resolver().url_patterns
+            if str(pattern.pattern).startswith("admin")
+        }
+        self.assertEqual(
+            sorted(under),
+            [
+                "admin/",
+                "admin/login/",
+                "admin/login/code/",
+                "admin/login/wallet/",
+                "admin/login/wallet/status/",
+                "admin/second-factor/",
+                "admin/second-factor/wallet/status/",
+                "admin/today/",
+                "admin/today/approve/<uuid:shop>/",
+                "admin/today/set-aside/<uuid:shop>/",
+            ],
+        )
         self.assertEqual(under["admin/login/"].callback, site_urls.admin_login)
         self.assertEqual(under["admin/login/code/"].callback, site_urls.admin_code)
         self.assertEqual(under["admin/login/wallet/"].callback, admin_wallet.login_page)
@@ -217,8 +264,11 @@ class StaffWalk(Base):
         self.assertEqual(under["admin/today/"].name, "admin_dashboard")
         self.assertEqual((under["admin/"].app_name, under["admin/"].namespace), ("admin", "admin"))
         # And a path that tries to leave /admin/ for a shop's page finds nothing
-        for url in (f"/admin/../en/shops/edit/{self.shop.id}/", f"/admin/%2e%2e/en/shops/edit/{self.shop.id}/",
-                    f"/admin//en/shops/edit/{self.shop.id}/"):
+        for url in (
+            f"/admin/../en/shops/edit/{self.shop.id}/",
+            f"/admin/%2e%2e/en/shops/edit/{self.shop.id}/",
+            f"/admin//en/shops/edit/{self.shop.id}/",
+        ):
             self.assertEqual(self.client.get(url).status_code, 404, url)
 
     def test_a_page_added_tomorrow_is_apart_too(self):
@@ -263,14 +313,16 @@ class SignInAgain(Base):
     def test_the_admins_own_sign_in_still_sets_it(self):
         staff = User.objects.create_user("volunteer", password="a long password to sign in 42", is_staff=True)
         client = Client()
-        response = client.post("/admin/login/", {"username": "volunteer", "password": "a long password to sign in 42",
-                                                 "next": "/admin/"})
+        response = client.post(
+            "/admin/login/", {"username": "volunteer", "password": "a long password to sign in 42", "next": "/admin/"}
+        )
         self.assertEqual(response.status_code, 302)
         self.assertTrue(client.session[ADMIN_SESSION])
         self.assertEqual(client.get("/admin/").status_code, 200)
         # Again, from a session that already has it: signing in sets it again after the sign-in has cleared it
-        response = client.post("/admin/login/", {"username": "volunteer", "password": "a long password to sign in 42",
-                                                 "next": "/admin/"})
+        response = client.post(
+            "/admin/login/", {"username": "volunteer", "password": "a long password to sign in 42", "next": "/admin/"}
+        )
         self.assertTrue(client.session[ADMIN_SESSION])
         self.assertEqual(client.get("/admin/").status_code, 200)
         self.assertEqual(staff.pk, int(client.session["_auth_user_id"]))
@@ -303,8 +355,9 @@ urlpatterns = [*site_urls.urlpatterns, path("tomorrow/", tomorrow)]
 class Middleware(TestCase):
     def test_a_visitor_without_a_cookie_does_not_open_the_session(self):
         request = RequestFactory().get("/en/shops/map/")
-        from django.contrib.sessions.backends.db import SessionStore
         from django.contrib.auth.middleware import AuthenticationMiddleware
+        from django.contrib.sessions.backends.db import SessionStore
+
         request.session = SessionStore()
         AuthenticationMiddleware(lambda r: None).process_request(request)
         seen = {}

@@ -9,8 +9,15 @@ def wrong_settings(app_configs, **kwargs):
     the whole site."""
     from .conf import problems
 
-    return [checks.Warning(problem, hint="The format is in docs/features/meetups.md and next to the `meetups` block in "
-                                         "examples/community/community.yml", id="meetups.W001") for problem in problems()]
+    return [
+        checks.Warning(
+            problem,
+            hint="The format is in docs/features/meetups.md and next to the `meetups` block in "
+            "examples/community/community.yml",
+            id="meetups.W001",
+        )
+        for problem in problems()
+    ]
 
 
 class MeetupsConfig(AppConfig):

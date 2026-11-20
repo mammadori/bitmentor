@@ -2,7 +2,18 @@ from django.urls import path
 
 from config.features import ONCHAIN, PRACTICE, VACATION, gated
 
-from . import address_change, chain_count, customer, help_views, osm_views, practice, staff, training_views, vacation_views, views
+from . import (
+    address_change,
+    chain_count,
+    customer,
+    help_views,
+    osm_views,
+    practice,
+    staff,
+    training_views,
+    vacation_views,
+    views,
+)
 
 urlpatterns = [
     path("", views.index, name="shops"),

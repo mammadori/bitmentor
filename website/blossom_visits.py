@@ -10,6 +10,7 @@ Not counted: the addresses of DEV_ALLOWED_IPS, private and local networks, and t
 month is not counted twice. When it reaches `blossom_alert_users` of community.yml (3 when unset; 0 never tells) for
 the first time, the moderators are told, the way the morning summary goes.
 """
+
 import datetime
 import hashlib
 import hmac
@@ -67,6 +68,7 @@ def counted(request):
     if ip is None or not ip.is_global:
         return None
     from .visibility import allowed_networks
+
     if any(ip in network for network in allowed_networks()):
         return None
     if BOTS.search(request.headers.get("User-Agent", "")):
@@ -97,6 +99,7 @@ def seen(request, kind):
 
 def record(day, month, hashed, kind):
     from .models import BlossomVisit
+
     if _cleaned["day"] != day:
         BlossomVisit.objects.filter(day__lt=day - datetime.timedelta(days=KEEP_DAYS)).delete()
         _cleaned["day"] = day
@@ -112,9 +115,13 @@ def record(day, month, hashed, kind):
 def users(day=None):
     """The different users who asked for a blob in the last 30 days, counted within one month's key."""
     from .models import BlossomVisit
+
     day = day or timezone.localdate()
-    per_month = (BlossomVisit.objects.filter(kind=BLOB, day__gt=day - datetime.timedelta(days=WINDOW_DAYS))
-                 .values("month").annotate(users=Count("who", distinct=True)))
+    per_month = (
+        BlossomVisit.objects.filter(kind=BLOB, day__gt=day - datetime.timedelta(days=WINDOW_DAYS))
+        .values("month")
+        .annotate(users=Count("who", distinct=True))
+    )
     return max((row["users"] for row in per_month), default=0)
 
 
@@ -125,6 +132,7 @@ def threshold():
 
 def maybe_tell(day):
     from .models import BlossomMilestone
+
     goal = threshold()
     if not goal or users(day) < goal:
         return
@@ -136,9 +144,13 @@ def maybe_tell(day):
 
     def deliver():
         from shops.notifications import deliver_to_moderators
+
         from . import blossom
-        text = (f"Blossom: {goal} different users in the last {WINDOW_DAYS} days, for the first time "
-                f"({blossom.server()}/list).")
+
+        text = (
+            f"Blossom: {goal} different users in the last {WINDOW_DAYS} days, for the first time "
+            f"({blossom.server()}/list)."
+        )
         where, problems = deliver_to_moderators("Blossom users", text)
         if where is None:
             logger.warning("blossom: the moderators could not be told: %s", "; ".join(problems))

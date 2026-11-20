@@ -1,5 +1,6 @@
 """The volunteers' area: who may give a key the right to approve shops, and what the area gives beyond the Moderators
 group, on purpose (team/area.py, `BEYOND_THE_GROUP`)."""
+
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -25,9 +26,12 @@ class WhoGivesApproves(AreaBase):
         super().setUp()
         self.key, _browser = self.moderator("Ugo")
         staff = User.objects.create_user("keeper", is_staff=True)
-        staff.user_permissions.add(*Permission.objects.filter(
-            content_type__app_label="team", codename__in=("view_teamkey", "change_teamkey", "view_teaminvite",
-                                                           "add_teaminvite")))
+        staff.user_permissions.add(
+            *Permission.objects.filter(
+                content_type__app_label="team",
+                codename__in=("view_teamkey", "change_teamkey", "view_teaminvite", "add_teaminvite"),
+            )
+        )
         self.keeper = self.client_class()
         sign_in_as_staff_session(self.keeper, staff)
 
@@ -41,7 +45,9 @@ class WhoGivesApproves(AreaBase):
         self.assertFalse(self.key.approves)
         add = reverse("admin:team_teaminvite_add")
         self.assertNotIn('name="approves"', self.keeper.get(add).content.decode())
-        self.assertEqual(self.keeper.post(add, {"name": "Nina", "role": "moderator", "approves": "on"}).status_code, 200)
+        self.assertEqual(
+            self.keeper.post(add, {"name": "Nina", "role": "moderator", "approves": "on"}).status_code, 200
+        )
         self.assertFalse(TeamInvite.objects.get(name="Nina").approves)
         # A key that has it keeps it when such a person changes its name
         TeamKey.objects.filter(pk=self.key.pk).update(approves=True)
@@ -53,8 +59,10 @@ class WhoGivesApproves(AreaBase):
         boss = self.client_class()
         sign_in_as_staff_session(boss, User.objects.create_superuser("boss"))
         self.assertIn('name="approves"', boss.get(reverse("admin:team_teaminvite_add")).content.decode())
-        boss.post(reverse("admin:team_teamkey_change", args=[self.key.pk]),
-                  {"name": "Ugo", "role": "moderator", "approves": "on"})
+        boss.post(
+            reverse("admin:team_teamkey_change", args=[self.key.pk]),
+            {"name": "Ugo", "role": "moderator", "approves": "on"},
+        )
         self.key.refresh_from_db()
         self.assertTrue(self.key.approves)
 
@@ -72,6 +80,7 @@ class TheExceptions(AreaBase):
         TeamKey.objects.filter(pk=key.pk).update(approves=True)
         original = access.volunteer
         for change in ({"approves": False}, {"revoked": timezone.now()}):
+
             def late(request, change=change):
                 found = original(request)
                 if found is not None and request.method == "POST":

@@ -27,6 +27,7 @@ it now: the next sign-in asks again.
 
 Nothing here reads, shows or logs a password or a hash.
 """
+
 import unicodedata
 
 from django.conf import settings
@@ -136,7 +137,11 @@ class TemporaryPassword:
     @staticmethod
     def must_change(request):
         # Without the session's cookie nobody is signed in: nothing is looked up (as in StaffApart)
-        if settings.SESSION_COOKIE_NAME not in request.COOKIES or not comes_from_admin(request) or exempt(request.path_info):
+        if (
+            settings.SESSION_COOKIE_NAME not in request.COOKIES
+            or not comes_from_admin(request)
+            or exempt(request.path_info)
+        ):
             return False
         user = request.user
         # Who the admin lets in: if it would not let them in, there is no change of password for them to be sent to
@@ -147,15 +152,20 @@ class TemporaryPassword:
 
 class NewPasswordForm(AdminPasswordChangeForm):
     """The admin's form (old password, the new one twice, the validators of the settings), and not the old password again."""
-    error_messages = {**AdminPasswordChangeForm.error_messages,
-                      "password_reused": gettext_lazy("The new password must be different from the old one.")}
+
+    error_messages = {
+        **AdminPasswordChangeForm.error_messages,
+        "password_reused": gettext_lazy("The new password must be different from the old one."),
+    }
 
     def clean(self):
         cleaned = super().clean()
         # Only when the old password was right, so that the form cannot be used to test guesses of it
         old, new = cleaned.get("old_password"), cleaned.get("new_password1")
         if old and new and old == new:
-            self.add_error("new_password1", ValidationError(self.error_messages["password_reused"], code="password_reused"))
+            self.add_error(
+                "new_password1", ValidationError(self.error_messages["password_reused"], code="password_reused")
+            )
         return cleaned
 
     def save(self, commit=True):
@@ -184,17 +194,26 @@ def password_change(request, extra_context=None):
     guessing = request.method in ("POST", "PUT")
     counted = []
     if guessing:
-        counted = [(f"admin-password:{ratelimit.client_ip(request)}", 10), (f"admin-password-net:{ratelimit.client_network(request)}", 30)]
+        counted = [
+            (f"admin-password:{ratelimit.client_ip(request)}", 10),
+            (f"admin-password-net:{ratelimit.client_network(request)}", 30),
+        ]
         # Both are counted, whatever the first says
         if any([ratelimit.over_limit(name, limit, WINDOW) for name, limit in counted]):
-            response = TemplateResponse(request, TEMPLATE, {**site.each_context(request), "title": _("Password change"),
-                                                            "wait": True, "temporary": temporary}, status=429)
+            response = TemplateResponse(
+                request,
+                TEMPLATE,
+                {**site.each_context(request), "title": _("Password change"), "wait": True, "temporary": temporary},
+                status=429,
+            )
             response["Retry-After"] = str(ratelimit.seconds_left(WINDOW))
             return response
-    options = {"form_class": NewPasswordForm,
-               "template_name": TEMPLATE,
-               "success_url": reverse("admin:password_change_done", current_app=site.name),
-               "extra_context": {**site.each_context(request), **(extra_context or {}), "temporary": temporary}}
+    options = {
+        "form_class": NewPasswordForm,
+        "template_name": TEMPLATE,
+        "success_url": reverse("admin:password_change_done", current_app=site.name),
+        "extra_context": {**site.each_context(request), **(extra_context or {}), "temporary": temporary},
+    }
     response = PasswordChangeView.as_view(**options)(request)
     if guessing and not wrong_old_password(response):
         for name, _limit in counted:

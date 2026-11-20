@@ -1,5 +1,6 @@
 """The volunteers' area, stage 3 (team/area.py): approving new shops, the OpenStreetMap requests, the register of the
 changes to the owners' accounts."""
+
 import re
 from datetime import timedelta
 from unittest.mock import patch
@@ -31,9 +32,17 @@ class NewShops(AreaBase):
         baker = User.objects.create_user("baker", date_joined=OLD)
         Profile.objects.create(user=baker, email="baker.secret@mail.example")
         self.waiting = Shop.objects.create(
-            name="Forno Nuovo", approved_on=None, owner=baker, city="Lucca", address="Via Roma 1",
-            website="https://forno.example/", phone="+39 0583 1", show_phone=True,
-            lightning_address="forno.secret@wallet.example", description=f"Bread. Pay {ADDRESS}")
+            name="Forno Nuovo",
+            approved_on=None,
+            owner=baker,
+            city="Lucca",
+            address="Via Roma 1",
+            website="https://forno.example/",
+            phone="+39 0583 1",
+            show_phone=True,
+            lightning_address="forno.secret@wallet.example",
+            description=f"Bread. Pay {ADDRESS}",
+        )
 
     def approver(self):
         key, browser = self.moderator("Ada")
@@ -46,7 +55,14 @@ class NewShops(AreaBase):
         page = browser.get("/team/shops/")
         self.assertEqual(page.status_code, 200)
         content = page.content.decode()
-        for text in ("Forno Nuovo", "Lucca", "Via Roma 1", "https://forno.example/", "+39 0583 1", "me…@wallet.example"):
+        for text in (
+            "Forno Nuovo",
+            "Lucca",
+            "Via Roma 1",
+            "https://forno.example/",
+            "+39 0583 1",
+            "me…@wallet.example",
+        ):
             self.assertIn(text, content)
         for text in ("forno.secret", "baker.secret", ADDRESS, "/admin/"):
             self.assertNotIn(text, content)
@@ -66,7 +82,9 @@ class NewShops(AreaBase):
         self.assertEqual(TeamAction.objects.count(), 1)
         boss = self.client_class()
         sign_in_as_staff_session(boss, User.objects.create_superuser("boss"))
-        self.assertContains(boss.get(reverse("admin:shops_shop_change", args=[self.waiting.pk])), f"[team key {key.pk}] Ada")
+        self.assertContains(
+            boss.get(reverse("admin:shops_shop_change", args=[self.waiting.pk])), f"[team key {key.pk}] Ada"
+        )
 
     def test_a_key_that_does_not_approve_gets_404(self):
         _key, browser = self.moderator()
@@ -83,8 +101,12 @@ class NewShops(AreaBase):
         self.assertIn("You do not approve new shops", browser.get("/team/me/").content.decode())
 
     def test_a_shop_that_looks_like_a_copy_stays_for_an_administrator(self):
-        Shop.objects.create(name="Forno Nuovo", owner=User.objects.create_user("other", date_joined=OLD), city="Lucca",
-                            approved_on=timezone.now())
+        Shop.objects.create(
+            name="Forno Nuovo",
+            owner=User.objects.create_user("other", date_joined=OLD),
+            city="Lucca",
+            approved_on=timezone.now(),
+        )
         _key, browser = self.approver()
         page = browser.get("/team/shops/").content.decode()
         self.assertIn("This shop is not approved from here", page)
@@ -136,7 +158,9 @@ class NewShops(AreaBase):
         self.client.get("/team/auth/", signed(k1_of(lnurl), coincurve.PrivateKey()))
         self.assertTrue(TeamKey.objects.get(name="Lia").approves)
         key, _browser = self.moderator("Ugo")
-        boss.post(reverse("admin:team_teamkey_change", args=[key.pk]), {"name": "Ugo", "role": "moderator", "approves": "on"})
+        boss.post(
+            reverse("admin:team_teamkey_change", args=[key.pk]), {"name": "Ugo", "role": "moderator", "approves": "on"}
+        )
         key.refresh_from_db()
         self.assertTrue(key.approves)
         history = LogEntry.objects.filter(object_id=str(key.pk), content_type__app_label="team").latest("action_time")
@@ -146,8 +170,11 @@ class NewShops(AreaBase):
 class OsmRequests(AreaBase):
     def setUp(self):
         super().setUp()
-        self.ask = OsmRequest.objects.create(shop=self.shop, kind=OsmRequest.Kind.ADD,
-                                             summary=f"name = Bar\nwebsite = https://bar.example/\ncontact = {ADDRESS}")
+        self.ask = OsmRequest.objects.create(
+            shop=self.shop,
+            kind=OsmRequest.Kind.ADD,
+            summary=f"name = Bar\nwebsite = https://bar.example/\ncontact = {ADDRESS}",
+        )
 
     def test_the_page_and_mark_as_done(self):
         key, browser = self.moderator()
@@ -168,8 +195,9 @@ class OsmRequests(AreaBase):
         self.assertFalse(OsmRequest.objects.filter(state=OsmRequest.State.OPEN).exists())
 
     def test_closed_from_the_admin_names_nobody(self):
-        OsmRequest.objects.filter(pk=self.ask.pk).update(state=OsmRequest.State.DECLINED, done=timezone.now(),
-                                                          done_by="bossname", answer="Not a shop")
+        OsmRequest.objects.filter(pk=self.ask.pk).update(
+            state=OsmRequest.State.DECLINED, done=timezone.now(), done_by="bossname", answer="Not a shop"
+        )
         _key, browser = self.moderator()
         page = browser.get("/team/osm/").content.decode()
         self.assertNotIn("bossname", page)
@@ -186,8 +214,15 @@ class OsmRequests(AreaBase):
 class AccountChanges(AreaBase):
     def test_the_register_with_who_did_it_and_nothing_of_the_account(self):
         for number in range(60):
-            AccountChange.objects.create(user=self.owner, shops=f"Bar {number}", changed="username,shop_lightning",
-                                         actor="bossname", via=AccountChange.Via.ADMIN, told="email", not_told="telegram")
+            AccountChange.objects.create(
+                user=self.owner,
+                shops=f"Bar {number}",
+                changed="username,shop_lightning",
+                actor="bossname",
+                via=AccountChange.Via.ADMIN,
+                told="email",
+                not_told="telegram",
+            )
         _key, browser = self.moderator()
         page = browser.get("/team/changes/")
         self.assertEqual(page.status_code, 200)

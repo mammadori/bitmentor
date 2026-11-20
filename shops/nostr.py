@@ -1,4 +1,5 @@
 """Nostr events signed by the community: the list of shops outlives the site."""
+
 import hashlib
 import json
 import re
@@ -72,8 +73,15 @@ def sign(secret, kind, content, tags, created_at=None):
     created_at = created_at or int(time.time())
     digest = event_id(pubkey, created_at, kind, tags, content)
     signature = coincurve.PrivateKey(bytes.fromhex(secret)).sign_schnorr(digest)
-    return {"id": digest.hex(), "pubkey": pubkey, "created_at": created_at, "kind": kind, "tags": tags,
-            "content": content, "sig": signature.hex()}
+    return {
+        "id": digest.hex(),
+        "pubkey": pubkey,
+        "created_at": created_at,
+        "kind": kind,
+        "tags": tags,
+        "content": content,
+        "sig": signature.hex(),
+    }
 
 
 SHOP_KIND = 30402
@@ -88,10 +96,16 @@ def deletion_event(secret, kind, identifiers, event_ids=()):
 
 
 def shop_event(secret, shop, url):
-    tags = [["d", str(shop.id)], ["title", shop.name], ["t", "bitcoin"], ["r", url],
-            # The street only if the owner shows the address (shops/details.py); the town otherwise. Nothing else of the
-            # shop's details goes out: not the phone, the email, the business name or the VAT number, shown or not
-            ["location", details.place(shop)], ["g", geohash(shop.latitude, shop.longitude)]]
+    tags = [
+        ["d", str(shop.id)],
+        ["title", shop.name],
+        ["t", "bitcoin"],
+        ["r", url],
+        # The street only if the owner shows the address (shops/details.py); the town otherwise. Nothing else of the
+        # shop's details goes out: not the phone, the email, the business name or the VAT number, shown or not
+        ["location", details.place(shop)],
+        ["g", geohash(shop.latitude, shop.longitude)],
+    ]
     # A historic shop stays, with its date and without a discount: the new event replaces the one that had it. One that
     # closes later on has its date, and its discount until its closing day
     if shop.closed_on:

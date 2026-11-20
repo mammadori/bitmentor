@@ -1,6 +1,7 @@
 """The owner's pages for a closure (shops/vacation.py): the form «I close from … until …», «closed from today until I say
 so», «I am back today», cancelling one still to come, and the owner closing the «welcome back» card. Only the shop's
 owner; every change is a POST with the CSRF token and a limit of requests; nothing here touches the register."""
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponseBadRequest
@@ -10,6 +11,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from config import ratelimit
+
 from . import vacation
 from .directory import waits_for_wallet
 from .models import Closure
@@ -55,9 +57,20 @@ def shop_break(request, shop):
             else:
                 messages.success(request, _("Saved: the shop will say it is closed."))
             return back(shop)
-    return render(request, "shops/break.html", {
-        "shop": shop, "form": form, "editing": editing, "started": form.started, "today": day,
-        "state": vacation.panel(shop, day), "note": vacation.note(shop, day), "limit": vacation.LONGEST})
+    return render(
+        request,
+        "shops/break.html",
+        {
+            "shop": shop,
+            "form": form,
+            "editing": editing,
+            "started": form.started,
+            "today": day,
+            "state": vacation.panel(shop, day),
+            "note": vacation.note(shop, day),
+            "limit": vacation.LONGEST,
+        },
+    )
 
 
 def quick(request, shop, action):
@@ -75,10 +88,12 @@ def quick(request, shop, action):
 @require_POST
 def break_now(request, shop):
     """«Closed from today, I open again when I say so»: one tap."""
+
     def act(found, day):
         reason = request.POST.get("reason", "")
         vacation.close_now(found, reason if reason in Closure.Reason.values else Closure.Reason.OTHER, day)
         messages.success(request, _("Saved: the shop says it is closed."))
+
     return quick(request, shop, act)
 
 
@@ -87,12 +102,14 @@ def break_now(request, shop):
 @require_POST
 def break_over(request, shop):
     """«I am back»: the closure in course ends today, one still to come is cancelled."""
+
     def act(found, day):
         done = vacation.reopen_today(found, day)
         if done == "reopened":
             messages.success(request, _("Welcome back! The shop says it is open again."))
         elif done == "cancelled":
             messages.success(request, _("Cancelled: the shop is open."))
+
     return quick(request, shop, act)
 
 

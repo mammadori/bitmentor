@@ -13,6 +13,7 @@ panel shows a solved request for three days, and a request is never forgotten un
 
 `email_prints_days`: how long the email budget keeps its prints of the recipients (config/mailbudget.py); at least 32, since
 it counts a month. The site applies no law of its own: these are defaults, and each community sets its own."""
+
 from config.community import community
 
 DEFAULTS = {"help_requests_days": 365, "email_prints_days": 62}
@@ -35,8 +36,10 @@ def days(name, warn=None):
     if isinstance(value, int) and not isinstance(value, bool) and floor <= value <= CEILING:
         return value
     if warn:
-        warn(f"`privacy.{name}` is a whole number of days from {floor} to {CEILING}, or 0 or false for never: {value!r}; "
-             f"{DEFAULTS[name]} counts instead")
+        warn(
+            f"`privacy.{name}` is a whole number of days from {floor} to {CEILING}, or 0 or false for never: {value!r}; "
+            f"{DEFAULTS[name]} counts instead"
+        )
     return DEFAULTS[name]
 
 

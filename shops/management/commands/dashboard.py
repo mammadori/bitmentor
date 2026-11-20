@@ -10,12 +10,12 @@ DashboardDigest (codes and shops, no text), and only once it was delivered.
 
 Exit code: 0 nothing to do, or only things to know; 2 at least one problem or one thing to look at (1 stays an error of
 the command itself). With --send: 10 a summary was sent, 0 none was needed, 1 it could not be delivered."""
+
 import sys
 from datetime import timedelta
 from smtplib import SMTPException
 
 from django.conf import settings
-from config.mail import NOT_SENT, send_mail
 from django.core.management.base import BaseCommand, CommandError
 from django.urls import reverse
 from django.utils import timezone, translation
@@ -24,6 +24,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import ngettext
 
 from config.community import community
+from config.mail import NOT_SENT, send_mail
 from shops.dashboard import INFO, PROBLEM, WARNING, plain, summary
 from shops.models import DashboardDigest, is_demo
 from shops.notifications import NotificationFailed, alert_text, moderators_emails, telegram
@@ -63,13 +64,17 @@ def line(item):
 def message(items, new, solved, since=None):
     """The summary: (subject, text). The new things first, then those still to do, how many were solved since the last
     summary, and the link. `since` is the date of the last summary, for a reminder with nothing new."""
-    subject = ngettext("%(site)s: %(count)d thing to do about the shops' registers",
-                       "%(site)s: %(count)d things to do about the shops' registers", len(items)) % {
-        "site": site_label(), "count": len(items)}
+    subject = ngettext(
+        "%(site)s: %(count)d thing to do about the shops' registers",
+        "%(site)s: %(count)d things to do about the shops' registers",
+        len(items),
+    ) % {"site": site_label(), "count": len(items)}
     lines = [subject]
     if since:
-        lines.append(_("Nothing new since the summary of %(date)s: a reminder, once a week.")
-                     % {"date": date_format(timezone.localtime(since), "DATE_FORMAT")})
+        lines.append(
+            _("Nothing new since the summary of %(date)s: a reminder, once a week.")
+            % {"date": date_format(timezone.localtime(since), "DATE_FORMAT")}
+        )
     fresh = [item for item in items if key(item) in new]
     old = [item for item in items if key(item) not in new]
     room = SENT_LINES
@@ -81,10 +86,19 @@ def message(items, new, solved, since=None):
     if len(items) > SENT_LINES:
         lines.append(_("…and {count} more").format(count=len(items) - SENT_LINES))
     if solved:
-        lines.append(ngettext("%(count)d thing solved since the last summary.",
-                              "%(count)d things solved since the last summary.", solved) % {"count": solved})
-    lines.append(_("What to do, and the words for the merchant: {link}").format(
-        link=f"{settings.PUBLIC_URL}{reverse('admin_dashboard')}"))
+        lines.append(
+            ngettext(
+                "%(count)d thing solved since the last summary.",
+                "%(count)d things solved since the last summary.",
+                solved,
+            )
+            % {"count": solved}
+        )
+    lines.append(
+        _("What to do, and the words for the merchant: {link}").format(
+            link=f"{settings.PUBLIC_URL}{reverse('admin_dashboard')}"
+        )
+    )
     return subject, "\n".join(lines)
 
 
@@ -95,9 +109,13 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--language", default=settings.LANGUAGE_CODE, help="The language of the text")
         parser.add_argument("--all", action="store_true", help="Also the things to know, not only what to do")
-        parser.add_argument("--send", action="store_true", help="Send a short summary to the moderators' Telegram chat "
-                            "(or the community's email) when the things to do changed, or a week later; exit 10 when "
-                            "one was sent")
+        parser.add_argument(
+            "--send",
+            action="store_true",
+            help="Send a short summary to the moderators' Telegram chat "
+            "(or the community's email) when the things to do changed, or a week later; exit 10 when "
+            "one was sent",
+        )
 
     def handle(self, *args, language, all, send=False, **options):
         with translation.override(language):
@@ -112,8 +130,9 @@ class Command(BaseCommand):
 
     def show(self, found, all):
         counts = found["counts"]
-        self.stdout.write(_("Registers: %(working)d with a Lightning address that works, %(to_look)d shops to look at.")
-                          % counts)
+        self.stdout.write(
+            _("Registers: %(working)d with a Lightning address that works, %(to_look)d shops to look at.") % counts
+        )
         items = [item for item in found["items"] if all or item.level != INFO]
         hidden = len(found["items"]) - len(items)
         for item in items:
@@ -128,9 +147,14 @@ class Command(BaseCommand):
             if item.command:
                 self.stdout.write(f"    {item.command}")
         if hidden:
-            self.stdout.write(ngettext("%(count)d more thing to know: --all, or /admin/today/.",
-                                       "%(count)d more things to know: --all, or /admin/today/.", hidden)
-                              % {"count": hidden})
+            self.stdout.write(
+                ngettext(
+                    "%(count)d more thing to know: --all, or /admin/today/.",
+                    "%(count)d more things to know: --all, or /admin/today/.",
+                    hidden,
+                )
+                % {"count": hidden}
+            )
 
     def send(self, found):
         """The summary when the list changed or waited a week; True when one was delivered. Without the shops of the
@@ -149,8 +173,10 @@ class Command(BaseCommand):
         new, solved = set(keys) - before, len(before - set(keys))
         reminder = not new and not solved
         if reminder and now - last.sent < REMIND_EVERY:
-            self.stdout.write(f"The same {len(keys)} things to do as in the summary of {last.sent:%Y-%m-%d}: no message "
-                              "(a reminder goes a week after it).")
+            self.stdout.write(
+                f"The same {len(keys)} things to do as in the summary of {last.sent:%Y-%m-%d}: no message "
+                "(a reminder goes a week after it)."
+            )
             return False
         subject, text = message(items, new, solved, since=last.sent if reminder else None)
         where = self.deliver(subject, text)
@@ -184,7 +210,9 @@ class Command(BaseCommand):
                     else:
                         problems.append(f"`moderators_emails`: address {place} of {len(addresses)}: {NOT_SENT}")
                 except (OSError, SMTPException, ValueError) as error:
-                    problems.append(f"`moderators_emails`: address {place} of {len(addresses)} failed ({type(error).__name__})")
+                    problems.append(
+                        f"`moderators_emails`: address {place} of {len(addresses)} failed ({type(error).__name__})"
+                    )
             if sent:
                 if before:
                     self.stderr.write(f"{problems[0]}: sent by email instead.")

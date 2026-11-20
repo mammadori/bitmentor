@@ -19,6 +19,7 @@ what Overpass said, so they are tested with made-up answers; the requests are in
 
 Everything Overpass says is written by strangers: the answer is read field by field (`parse`), a value is used only
 after it passed the rules of the field it would fill, and a name that reaches a message goes through `alert_text`."""
+
 import ipaddress
 import json
 import re
@@ -104,6 +105,7 @@ class OsmError(Exception):
 
 # --- Settings ---------------------------------------------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class Settings:
     bbox: tuple
@@ -180,10 +182,23 @@ def https_url(value, name, say):
         literal = not ipaddress.ip_address(host).is_global
     except ValueError:
         literal = False
-    if (parts.scheme != "https" or not host or port not in (None, 443) or parts.username or parts.password
-            or parts.query or parts.fragment or host.endswith(PRIVATE_NAMES) or host == "localhost" or literal
-            or CONTROL.search(value) or UNPLAIN.search(value)):
-        say(f"`osm.{name}` must be an https:// address on a public server, with a plain name, no port, query or password: {value!r}")
+    if (
+        parts.scheme != "https"
+        or not host
+        or port not in (None, 443)
+        or parts.username
+        or parts.password
+        or parts.query
+        or parts.fragment
+        or host.endswith(PRIVATE_NAMES)
+        or host == "localhost"
+        or literal
+        or CONTROL.search(value)
+        or UNPLAIN.search(value)
+    ):
+        say(
+            f"`osm.{name}` must be an https:// address on a public server, with a plain name, no port, query or password: {value!r}"
+        )
         return None
     return value.strip().rstrip("/") if name == "api_url" else value.strip()
 
@@ -208,12 +223,15 @@ def settings_from(data, warn=None):
         say("`osm` is not a list of fields")
         return None
     box = data.get("bbox")
-    if (not isinstance(box, (list, tuple)) or len(box) != 4
-            or any(number(value, -180, 180) is None for value in box)):
+    if not isinstance(box, (list, tuple)) or len(box) != 4 or any(number(value, -180, 180) is None for value in box):
         say("`osm.bbox` must be four numbers: south, west, north, east (degrees)")
         return None
     south, west, north, east = (float(value) for value in box)
-    if not (-90 <= south < north <= 90 and -180 <= west < east <= 180) or north - south > LARGEST_SPAN or east - west > LARGEST_SPAN:
+    if (
+        not (-90 <= south < north <= 90 and -180 <= west < east <= 180)
+        or north - south > LARGEST_SPAN
+        or east - west > LARGEST_SPAN
+    ):
         say(f"`osm.bbox` must be south < north and west < east, within {LARGEST_SPAN} degrees each way: {box!r}")
         return None
     found = {"bbox": (south, west, north, east)}
@@ -221,19 +239,33 @@ def settings_from(data, warn=None):
         if data.get(key) is not None:
             found[key] = https_url(data[key], key, say) or default
             if key == "api_url" and not api_server(found[key]):
-                say(f"`osm.api_url` must be {' or '.join(API_HOSTS)}: the token of the account that signs the edits goes there: {data[key]!r}")
+                say(
+                    f"`osm.api_url` must be {' or '.join(API_HOSTS)}: the token of the account that signs the edits goes there: {data[key]!r}"
+                )
                 found[key] = default
     found["discount_tag"] = tag_name(data.get("discount_tag"), "discount_tag", say)
     operator = data.get("operator")
     if operator is not None:
         tag, value = (operator.get("tag"), operator.get("value")) if isinstance(operator, dict) else (None, None)
-        if (not isinstance(tag, str) or not TAG_KEY.match(tag) or not isinstance(value, str) or not value.strip()
-                or len(value) > MAX_TEXT or CONTROL.search(value) or ";" in value):
-            say("`osm.operator` must be `{tag: payment:bitcoin:operator, value: the-operator.example}`: "
-                "one value, no `;`")
+        if (
+            not isinstance(tag, str)
+            or not TAG_KEY.match(tag)
+            or not isinstance(value, str)
+            or not value.strip()
+            or len(value) > MAX_TEXT
+            or CONTROL.search(value)
+            or ";" in value
+        ):
+            say(
+                "`osm.operator` must be `{tag: payment:bitcoin:operator, value: the-operator.example}`: "
+                "one value, no `;`"
+            )
         else:
             found["operator_tag"], found["operator_value"] = tag, value.strip()
-    for key, default, low, high in (("name_similarity", DEFAULT_SIMILARITY, 0.5, 1), ("distance_metres", DEFAULT_METRES, 5, 2000)):
+    for key, default, low, high in (
+        ("name_similarity", DEFAULT_SIMILARITY, 0.5, 1),
+        ("distance_metres", DEFAULT_METRES, 5, 2000),
+    ):
         if data.get(key) is not None:
             value = number(data[key], low, high)
             if value is None:
@@ -247,11 +279,19 @@ def settings_from(data, warn=None):
     comment = data.get("comment")
     if comment is not None:
         texts = comment.values() if isinstance(comment, dict) else [comment]
-        if not texts or not all(isinstance(text, str) and text.strip() and len(text) <= COMMENT_OWN and not CONTROL.search(text) for text in texts):
-            say(f"`osm.comment` must be a line of text ({COMMENT_OWN} characters at most: the site adds where the data come from), or one per language")
+        if not texts or not all(
+            isinstance(text, str) and text.strip() and len(text) <= COMMENT_OWN and not CONTROL.search(text)
+            for text in texts
+        ):
+            say(
+                f"`osm.comment` must be a line of text ({COMMENT_OWN} characters at most: the site adds where the data come from), or one per language"
+            )
         else:
             found["comment"] = comment
-    for key, name, low, high in (("timeout", "seconds", 5, LONGEST_SECONDS), ("max_megabytes", "max_bytes", 1, LARGEST_BYTES // 2**20)):
+    for key, name, low, high in (
+        ("timeout", "seconds", 5, LONGEST_SECONDS),
+        ("max_megabytes", "max_bytes", 1, LARGEST_BYTES // 2**20),
+    ):
         if data.get(key) is not None:
             value = number(data[key], low, high)
             if value is None:
@@ -278,10 +318,11 @@ def changeset_comment(config, language=None):
 
     base = str(localized(config.comment, language or django_settings.LANGUAGE_CODE)).strip().rstrip(".")
     sentence = f". Data from the Lightning addresses checked by {django_settings.SITE_HOST}."
-    return base[:COMMENT_LIMIT - len(sentence)] + sentence
+    return base[: COMMENT_LIMIT - len(sentence)] + sentence
 
 
 # --- Reading what Overpass said ---------------------------------------------------------------------------------------
+
 
 @dataclass
 class Element:
@@ -421,8 +462,11 @@ def one_element(raw, meta):
             element.version = version
         if raw["type"] == "way":
             nodes = raw.get("nodes")
-            if (not isinstance(nodes, list) or not 2 <= len(nodes) <= MAX_NODES
-                    or not all(isinstance(node, int) and not isinstance(node, bool) and 0 < node < MAX_ID for node in nodes)):
+            if (
+                not isinstance(nodes, list)
+                or not 2 <= len(nodes) <= MAX_NODES
+                or not all(isinstance(node, int) and not isinstance(node, bool) and 0 < node < MAX_ID for node in nodes)
+            ):
                 element.unreliable = True
             else:
                 element.nodes = list(nodes)
@@ -430,9 +474,14 @@ def one_element(raw, meta):
             members = raw.get("members")
             kept = []
             for member in members if isinstance(members, list) and 1 <= len(members) <= MAX_MEMBERS else []:
-                if (not isinstance(member, dict) or member.get("type") not in ("node", "way", "relation")
-                        or isinstance(member.get("ref"), bool) or not isinstance(member.get("ref"), int)
-                        or not 0 < member["ref"] < MAX_ID or not clean_text(member.get("role", ""))):
+                if (
+                    not isinstance(member, dict)
+                    or member.get("type") not in ("node", "way", "relation")
+                    or isinstance(member.get("ref"), bool)
+                    or not isinstance(member.get("ref"), int)
+                    or not 0 < member["ref"] < MAX_ID
+                    or not clean_text(member.get("role", ""))
+                ):
                     kept = []
                     break
                 kept.append({"type": member["type"], "ref": member["ref"], "role": member.get("role", "")})
@@ -444,6 +493,7 @@ def one_element(raw, meta):
 
 
 # --- Names, places, dates ---------------------------------------------------------------------------------------------
+
 
 @lru_cache(maxsize=65536)
 def plain_name(text):
@@ -499,7 +549,9 @@ DATE_KEYS = (DATE, "check_date", "survey:date")
 def osm_day(tags):
     """The most recent day OpenStreetMap says somebody checked this place: the latest of check_date:currency:XBT,
     check_date:payment:*, check_date and survey:date, or None."""
-    days = [parse_day(value) for key, value in tags.items() if key in DATE_KEYS or key.startswith("check_date:payment:")]
+    days = [
+        parse_day(value) for key, value in tags.items() if key in DATE_KEYS or key.startswith("check_date:payment:")
+    ]
     return max((day for day in days if day), default=None)
 
 
@@ -520,7 +572,9 @@ def says(tags, key):
 
 def accepts(element):
     """OpenStreetMap says this place takes bitcoin."""
-    return says(element.tags, ACCEPTS) == "yes" or any(says(element.tags, key) == "yes" for key in (LIGHTNING, ONCHAIN, LEGACY))
+    return says(element.tags, ACCEPTS) == "yes" or any(
+        says(element.tags, key) == "yes" for key in (LIGHTNING, ONCHAIN, LEGACY)
+    )
 
 
 def refuses(element):
@@ -529,10 +583,15 @@ def refuses(element):
     tags = element.tags
     if says(tags, ACCEPTS) == "no":
         return True
-    return says(tags, ACCEPTS) == "" and not accepts(element) and any(says(tags, key) == "no" for key in (LIGHTNING, ONCHAIN, LEGACY))
+    return (
+        says(tags, ACCEPTS) == ""
+        and not accepts(element)
+        and any(says(tags, key) == "no" for key in (LIGHTNING, ONCHAIN, LEGACY))
+    )
 
 
 # --- Matching a shop and an element -----------------------------------------------------------------------------------
+
 
 @dataclass
 class Matches:
@@ -638,10 +697,18 @@ def notes_of(shop):
     fields = notes.get("fields")
     decisions = notes.get("decisions")
     proposal = notes.get("proposal")
-    return {"rejected": list(rejected) if isinstance(rejected, list) else [],
-            "fields": {name: dict(entry) for name, entry in (fields.items() if isinstance(fields, dict) else []) if isinstance(entry, dict)},
-            "decisions": [dict(item) for item in decisions if isinstance(item, dict)] if isinstance(decisions, list) else [],
-            "proposal": dict(proposal) if isinstance(proposal, dict) else {}}
+    return {
+        "rejected": list(rejected) if isinstance(rejected, list) else [],
+        "fields": {
+            name: dict(entry)
+            for name, entry in (fields.items() if isinstance(fields, dict) else [])
+            if isinstance(entry, dict)
+        },
+        "decisions": [dict(item) for item in decisions if isinstance(item, dict)]
+        if isinstance(decisions, list)
+        else [],
+        "proposal": dict(proposal) if isinstance(proposal, dict) else {},
+    }
 
 
 DECISIONS_KEPT = 50
@@ -656,8 +723,11 @@ def decided(notes, what, by, now=None, **more):
 
 def offers_of(shop):
     """The values OpenStreetMap offered and nobody accepted or declined yet: {field: value}."""
-    return {name: entry["value"] for name, entry in notes_of(shop)["fields"].items()
-            if entry.get("state") == OFFERED and name in CONTACT_FIELDS and isinstance(entry.get("value"), str)}
+    return {
+        name: entry["value"]
+        for name, entry in notes_of(shop)["fields"].items()
+        if entry.get("state") == OFFERED and name in CONTACT_FIELDS and isinstance(entry.get("value"), str)
+    }
 
 
 def fillable(shop, element, config):
@@ -684,8 +754,11 @@ def fillable(shop, element, config):
     kept = {}
     for name, value in found.items():
         entry = memory.get(name)
-        if entry and (entry.get("state") in (FILLED, ACCEPTED) or entry.get("value") == (list(value) if name == "position" else value)
-                      and entry.get("state") in (OFFERED, DECLINED)):
+        if entry and (
+            entry.get("state") in (FILLED, ACCEPTED)
+            or entry.get("value") == (list(value) if name == "position" else value)
+            and entry.get("state") in (OFFERED, DECLINED)
+        ):
             continue
         kept[name] = value
     return kept
@@ -714,7 +787,9 @@ def fill(shop, element, config):
     if "position" in found:
         lat, lon = found["position"]
         remember(notes, "position", found["position"], FILLED)
-        if Shop.objects.filter(pk=shop.pk, latitude=None, longitude=None).update(latitude=lat, longitude=lon, osm_notes=notes):
+        if Shop.objects.filter(pk=shop.pk, latitude=None, longitude=None).update(
+            latitude=lat, longitude=lon, osm_notes=notes
+        ):
             written["position"] = [lat, lon]
         else:
             notes["fields"].pop("position", None)
@@ -766,9 +841,15 @@ def propose_link(shop, element, alike=None, metres=None):
     notes = notes_of(shop)
     if element.ref in notes["rejected"]:
         return False
-    notes["proposal"] = {"ref": element.ref, "name": (element.names or [""])[0][:120],
-                         "similarity": None if alike is None else round(alike, 2), "metres": None if metres is None else round(metres)}
-    done = bool(Shop.objects.filter(pk=shop.pk, osm_ref="", osm_proposed="").update(osm_proposed=element.ref, osm_notes=notes))
+    notes["proposal"] = {
+        "ref": element.ref,
+        "name": (element.names or [""])[0][:120],
+        "similarity": None if alike is None else round(alike, 2),
+        "metres": None if metres is None else round(metres),
+    }
+    done = bool(
+        Shop.objects.filter(pk=shop.pk, osm_ref="", osm_proposed="").update(osm_proposed=element.ref, osm_notes=notes)
+    )
     if done:
         shop.osm_proposed, shop.osm_notes = element.ref, notes
     return done
@@ -781,11 +862,21 @@ def confirm_link(shop, by="", now=None):
         return False
     notes = notes_of(shop)
     proposal = notes.pop("proposal")
-    decided(notes, "confirmed link", by, now, ref=shop.osm_proposed, **{key: value for key, value in proposal.items() if key != "ref"})
+    decided(
+        notes,
+        "confirmed link",
+        by,
+        now,
+        ref=shop.osm_proposed,
+        **{key: value for key, value in proposal.items() if key != "ref"},
+    )
     try:
         with transaction.atomic():
-            done = bool(Shop.objects.filter(pk=shop.pk, osm_ref="", osm_proposed=shop.osm_proposed).update(
-                osm_ref=shop.osm_proposed, osm_proposed="", osm_seen=None, osm_notes=notes))
+            done = bool(
+                Shop.objects.filter(pk=shop.pk, osm_ref="", osm_proposed=shop.osm_proposed).update(
+                    osm_ref=shop.osm_proposed, osm_proposed="", osm_seen=None, osm_notes=notes
+                )
+            )
     except IntegrityError:
         return False
     if done:
@@ -802,13 +893,16 @@ def reject_link(shop, by=""):
         notes["rejected"].append(shop.osm_proposed)
     notes.pop("proposal", None)
     decided(notes, "refused link", by, ref=shop.osm_proposed)
-    done = bool(Shop.objects.filter(pk=shop.pk, osm_proposed=shop.osm_proposed).update(osm_proposed="", osm_notes=notes))
+    done = bool(
+        Shop.objects.filter(pk=shop.pk, osm_proposed=shop.osm_proposed).update(osm_proposed="", osm_notes=notes)
+    )
     if done:
         shop.osm_proposed, shop.osm_notes = "", notes
     return done
 
 
 # --- What OpenStreetMap should say ------------------------------------------------------------------------------------
+
 
 def standing(shop, today):
     """What this site knows about the shop, for OpenStreetMap: ("yes", the day its Lightning address last worked or None), ("no",
@@ -825,8 +919,10 @@ def standing(shop, today):
 def methods(shop):
     """The payment tags a shop of ours says yes to: Lightning with a register, on-chain when its owner says so (and
     on-chain at the register, an experimental feature, is on: off, the site says nothing of on-chain)."""
-    return [*([LIGHTNING] if shop.has_register else []),
-            *([ONCHAIN] if shop.onchain and features.enabled(features.ONCHAIN) else [])]
+    return [
+        *([LIGHTNING] if shop.has_register else []),
+        *([ONCHAIN] if shop.onchain and features.enabled(features.ONCHAIN) else []),
+    ]
 
 
 def operator_values(text):
@@ -931,13 +1027,18 @@ def wanted_tags(shop, config, today):
     # Only what the owner shows (shops/details.py): a phone or a website kept hidden on the site is not written on a public
     # map either. The town is not a detail the owner hides.
     shown = details.shown(shop)
-    for tag, value in (("website", shown.get("website", "")), ("phone", shown.get("phone", "")), ("addr:city", shop.city)):
+    for tag, value in (
+        ("website", shown.get("website", "")),
+        ("phone", shown.get("phone", "")),
+        ("addr:city", shop.city),
+    ):
         if value.strip():
             found[tag] = value.strip()
     return found
 
 
 # --- One reading ------------------------------------------------------------------------------------------------------
+
 
 def other_places(shops, elements, by_ref, taken, config, report):
     """The other places of the shops with several branches (ShopPlace). A place linked by the association
@@ -956,8 +1057,9 @@ def other_places(shops, elements, by_ref, taken, config, report):
             if not by_ref[place.osm_ref].unreliable:
                 pairs.append((shop, place, by_ref[place.osm_ref]))
         else:
-            report["place_missing"].append({"shop": str(shop.pk), "name": shop.name[:120], "ref": place.osm_ref,
-                                            "place": str(place)[:120]})
+            report["place_missing"].append(
+                {"shop": str(shop.pk), "name": shop.name[:120], "ref": place.osm_ref, "place": str(place)[:120]}
+            )
     options = {}
     for shop, place in open_places:
         if not shop.name.strip():
@@ -985,9 +1087,16 @@ def other_places(shops, elements, by_ref, taken, config, report):
         if len(found) == 1 and len(wanted[found[0][2].ref]) == 1:
             shop, place, element, alike, metres = found[0]
             taken.add(element.ref)
-            report["place_links"].append(view(shop, element, place=str(place)[:120],
-                                              osm_name=element.names[0][:120] if element.names else "",
-                                              similarity=round(alike, 2), metres=round(metres)))
+            report["place_links"].append(
+                view(
+                    shop,
+                    element,
+                    place=str(place)[:120],
+                    osm_name=element.names[0][:120] if element.names else "",
+                    similarity=round(alike, 2),
+                    metres=round(metres),
+                )
+            )
     report["place_links"].sort(key=lambda item: (item["name"].lower(), item["ref"]))
     return pairs
 
@@ -1006,12 +1115,33 @@ def synchronize(config, elements, skipped=0, now=None, apply=True, previous=None
     today = certified.local_day(now)
     shops = list(real(Shop.objects.all()).order_by("name", "pk"))
     by_ref = {element.ref: element for element in elements}
-    report = {"version": 2, "created": now.isoformat(), "area": list(config.bbox), "elements": len(elements), "skipped": skipped,
-              "unreliable_elements": sum(1 for element in elements if element.unreliable), "link_proposals": [], "suggested": [],
-              "waiting_links": 0, "filled": [], "offers": [], "missing": [], "unreliable": [], "ambiguous": [], "unsure": [],
-              "candidates": [], "new_candidates": [], "osm_says_no": [], "newer_on_osm": [], "proposals": [], "not_on_osm": 0,
-              # The other places of the shops with several branches (ShopPlace)
-              "place_links": [], "place_missing": [], "place_proposals": []}
+    report = {
+        "version": 2,
+        "created": now.isoformat(),
+        "area": list(config.bbox),
+        "elements": len(elements),
+        "skipped": skipped,
+        "unreliable_elements": sum(1 for element in elements if element.unreliable),
+        "link_proposals": [],
+        "suggested": [],
+        "waiting_links": 0,
+        "filled": [],
+        "offers": [],
+        "missing": [],
+        "unreliable": [],
+        "ambiguous": [],
+        "unsure": [],
+        "candidates": [],
+        "new_candidates": [],
+        "osm_says_no": [],
+        "newer_on_osm": [],
+        "proposals": [],
+        "not_on_osm": 0,
+        # The other places of the shops with several branches (ShopPlace)
+        "place_links": [],
+        "place_missing": [],
+        "place_proposals": [],
+    }
 
     pairs = {}
     free = []
@@ -1040,20 +1170,39 @@ def synchronize(config, elements, skipped=0, now=None, apply=True, previous=None
     for shop, element, alike, metres in matches.safe:
         if element.ref in notes_of(shop)["rejected"]:
             continue
-        item = view(shop, element, osm_name=element.names[0][:120] if element.names else "", similarity=round(alike, 2),
-                    metres=round(metres))
+        item = view(
+            shop,
+            element,
+            osm_name=element.names[0][:120] if element.names else "",
+            similarity=round(alike, 2),
+            metres=round(metres),
+        )
         if apply and config.auto_link and propose_link(shop, element, alike, metres):
             report["link_proposals"].append(item)
         elif not (apply and config.auto_link):
             report["suggested"].append(item)
     for options in matches.ambiguous[:LISTED]:
-        report["ambiguous"].append({"shop": str(options[0][0].pk), "name": options[0][0].name[:120],
-                                    "options": [{"ref": element.ref, "name": (element.names or [""])[0][:120],
-                                                 "metres": round(metres)} for _shop, element, _alike, metres in options[:5]]})
+        report["ambiguous"].append(
+            {
+                "shop": str(options[0][0].pk),
+                "name": options[0][0].name[:120],
+                "options": [
+                    {"ref": element.ref, "name": (element.names or [""])[0][:120], "metres": round(metres)}
+                    for _shop, element, _alike, metres in options[:5]
+                ],
+            }
+        )
     for shop, element, alike, metres in matches.unsure[:LISTED]:
-        report["unsure"].append(view(shop, element, osm_name=(element.names or [""])[0][:120], similarity=round(alike, 2),
-                                     metres=None if metres is None else round(metres),
-                                     why="no_position" if metres is None else "far"))
+        report["unsure"].append(
+            view(
+                shop,
+                element,
+                osm_name=(element.names or [""])[0][:120],
+                similarity=round(alike, 2),
+                metres=None if metres is None else round(metres),
+                why="no_position" if metres is None else "far",
+            )
+        )
 
     seen = []
     for shop, element in pairs.values():
@@ -1075,11 +1224,20 @@ def synchronize(config, elements, skipped=0, now=None, apply=True, previous=None
         found = changes_for(shop, element, config, today)
         stand = standing(shop, today)
         if found:
-            report["proposals"].append(view(shop, element, changes=[
-                {"tag": tag, "old": old, "new": new, "kind": kind} for tag, old, new, kind in found]))
+            report["proposals"].append(
+                view(
+                    shop,
+                    element,
+                    changes=[{"tag": tag, "old": old, "new": new, "kind": kind} for tag, old, new, kind in found],
+                )
+            )
         if stand is not None:
             ours, theirs = stand[1], osm_day(element.tags)
-            item = {"state": stand[0], "ours": ours.isoformat() if ours else "", "theirs": theirs.isoformat() if theirs else ""}
+            item = {
+                "state": stand[0],
+                "ours": ours.isoformat() if ours else "",
+                "theirs": theirs.isoformat() if theirs else "",
+            }
             if stand[0] == "yes" and refuses(element):
                 report["osm_says_no"].append(view(shop, element, **item))
             # Checked there after our address last worked (or it never did) and still saying yes: it takes bitcoin without
@@ -1091,22 +1249,45 @@ def synchronize(config, elements, skipped=0, now=None, apply=True, previous=None
     for shop, place, element in place_pairs:
         found = changes_for(shop, element, config, today)
         if found:
-            report["place_proposals"].append(view(shop, element, place=str(place)[:120], changes=[
-                {"tag": tag, "old": old, "new": new, "kind": kind} for tag, old, new, kind in found]))
+            report["place_proposals"].append(
+                view(
+                    shop,
+                    element,
+                    place=str(place)[:120],
+                    changes=[{"tag": tag, "old": old, "new": new, "kind": kind} for tag, old, new, kind in found],
+                )
+            )
     if apply and seen:
         Shop.objects.filter(pk__in=seen).update(osm_seen=now)
-    report["not_on_osm"] = sum(1 for shop in shops if shop.pk not in pairs and (standing(shop, today) or ("",))[0] == "yes")
+    report["not_on_osm"] = sum(
+        1 for shop in shops if shop.pk not in pairs and (standing(shop, today) or ("",))[0] == "yes"
+    )
 
-    mine = {element.ref for _shop, element in pairs.values()} | taken | {item["ref"] for item in report["link_proposals"] + report["suggested"]}
+    mine = (
+        {element.ref for _shop, element in pairs.values()}
+        | taken
+        | {item["ref"] for item in report["link_proposals"] + report["suggested"]}
+    )
     doubtful = {option["ref"] for item in report["ambiguous"] for option in item["options"]}
     # An informative list: nothing is proposed for a place that is not one of our shops, nor for one closed on OpenStreetMap
-    candidates = sorted((element for element in elements if says(element.tags, ACCEPTS) == "yes"
-                         and element.ref not in mine and element.ref not in doubtful),
-                        key=lambda element: ((element.names or [""])[0].lower(), element.ref))
+    candidates = sorted(
+        (
+            element
+            for element in elements
+            if says(element.tags, ACCEPTS) == "yes" and element.ref not in mine and element.ref not in doubtful
+        ),
+        key=lambda element: ((element.names or [""])[0].lower(), element.ref),
+    )
     old = {item["ref"] for item in (previous or {}).get("candidates", [])}
     for element in candidates[:CANDIDATES_KEPT]:
-        report["candidates"].append({"ref": element.ref, "name": (element.names or [""])[0][:120], "city": element.tags.get("addr:city", "")[:60],
-                                     "date": element.tags.get(DATE, "")[:10]})
+        report["candidates"].append(
+            {
+                "ref": element.ref,
+                "name": (element.names or [""])[0][:120],
+                "city": element.tags.get("addr:city", "")[:60],
+                "date": element.tags.get(DATE, "")[:10],
+            }
+        )
         if previous is not None and element.ref not in old:
             report["new_candidates"].append(element.ref)
     report["candidates_total"] = len(candidates)
@@ -1114,6 +1295,7 @@ def synchronize(config, elements, skipped=0, now=None, apply=True, previous=None
 
 
 # --- Keeping the report -----------------------------------------------------------------------------------------------
+
 
 def last_run(ok=True):
     runs = OsmRun.objects.all()
@@ -1188,14 +1370,21 @@ def carry(report, previous):
 def counts(report):
     """The numbers a summary says: how many of each, from a report."""
     proposals = report.get("proposals", [])
-    return {"proposals": sum(len(item["changes"]) for item in proposals), "shops": len(proposals),
-            "link_proposals": len(report.get("link_proposals", [])), "filled": len(report.get("filled", [])),
-            "offers": len(report.get("offers", [])),
-            "candidates": len(report.get("new_candidates", [])), "total_candidates": report.get("candidates_total", 0),
-            "says_no": len(report.get("osm_says_no", [])), "newer": len(report.get("newer_on_osm", [])),
-            "ambiguous": len(report.get("ambiguous", [])) + len(report.get("unsure", [])),
-            "missing": len(report.get("missing", [])), "suggested": len(report.get("suggested", [])),
-            "unreliable": len(report.get("unreliable", []))}
+    return {
+        "proposals": sum(len(item["changes"]) for item in proposals),
+        "shops": len(proposals),
+        "link_proposals": len(report.get("link_proposals", [])),
+        "filled": len(report.get("filled", [])),
+        "offers": len(report.get("offers", [])),
+        "candidates": len(report.get("new_candidates", [])),
+        "total_candidates": report.get("candidates_total", 0),
+        "says_no": len(report.get("osm_says_no", [])),
+        "newer": len(report.get("newer_on_osm", [])),
+        "ambiguous": len(report.get("ambiguous", [])) + len(report.get("unsure", [])),
+        "missing": len(report.get("missing", [])),
+        "suggested": len(report.get("suggested", [])),
+        "unreliable": len(report.get("unreliable", [])),
+    }
 
 
 def identities(report):
@@ -1204,10 +1393,20 @@ def identities(report):
     by shop and element."""
     found = {}
     for name in ("link_proposals", "suggested", "filled", "offers", "missing", "unreliable", "osm_says_no", "unsure"):
-        found[name] = {(item["shop"], item["ref"], json.dumps(item.get("values", ""), sort_keys=True)) for item in report.get(name, [])}
-    found["proposals"] = {(item["shop"], change["tag"], change["new"]) for item in report.get("proposals", []) for change in item["changes"]}
+        found[name] = {
+            (item["shop"], item["ref"], json.dumps(item.get("values", ""), sort_keys=True))
+            for item in report.get(name, [])
+        }
+    found["proposals"] = {
+        (item["shop"], change["tag"], change["new"])
+        for item in report.get("proposals", [])
+        for change in item["changes"]
+    }
     found["newer_on_osm"] = {(item["shop"], item["ref"], item["theirs"]) for item in report.get("newer_on_osm", [])}
-    found["ambiguous"] = {(item["shop"], tuple(sorted(option["ref"] for option in item["options"]))) for item in report.get("ambiguous", [])}
+    found["ambiguous"] = {
+        (item["shop"], tuple(sorted(option["ref"] for option in item["options"])))
+        for item in report.get("ambiguous", [])
+    }
     return found
 
 
@@ -1220,14 +1419,26 @@ def fresh(report, previous):
     old = identities(previous)
     mine = {**report}
     for name in ("link_proposals", "suggested", "filled", "offers", "missing", "unreliable", "osm_says_no", "unsure"):
-        mine[name] = [item for item in report.get(name, [])
-                      if (item["shop"], item["ref"], json.dumps(item.get("values", ""), sort_keys=True)) not in old[name]]
-    mine["newer_on_osm"] = [item for item in report.get("newer_on_osm", []) if (item["shop"], item["ref"], item["theirs"]) not in old["newer_on_osm"]]
-    mine["ambiguous"] = [item for item in report.get("ambiguous", [])
-                         if (item["shop"], tuple(sorted(option["ref"] for option in item["options"]))) not in old["ambiguous"]]
+        mine[name] = [
+            item
+            for item in report.get(name, [])
+            if (item["shop"], item["ref"], json.dumps(item.get("values", ""), sort_keys=True)) not in old[name]
+        ]
+    mine["newer_on_osm"] = [
+        item
+        for item in report.get("newer_on_osm", [])
+        if (item["shop"], item["ref"], item["theirs"]) not in old["newer_on_osm"]
+    ]
+    mine["ambiguous"] = [
+        item
+        for item in report.get("ambiguous", [])
+        if (item["shop"], tuple(sorted(option["ref"] for option in item["options"]))) not in old["ambiguous"]
+    ]
     proposals = []
     for item in report.get("proposals", []):
-        changes = [change for change in item["changes"] if (item["shop"], change["tag"], change["new"]) not in old["proposals"]]
+        changes = [
+            change for change in item["changes"] if (item["shop"], change["tag"], change["new"]) not in old["proposals"]
+        ]
         if changes:
             proposals.append({**item, "changes": changes})
     mine["proposals"] = proposals
@@ -1238,8 +1449,22 @@ def worth_telling(report, previous=None):
     """Something new for a person to look at since the last summary: the monthly message goes out only then. The same
     proposals month after month are not news: they wait on /admin/today/."""
     found = counts(fresh(report, previous))
-    return any(found[key] for key in ("proposals", "link_proposals", "filled", "offers", "candidates", "says_no", "newer",
-                                      "ambiguous", "missing", "suggested", "unreliable"))
+    return any(
+        found[key]
+        for key in (
+            "proposals",
+            "link_proposals",
+            "filled",
+            "offers",
+            "candidates",
+            "says_no",
+            "newer",
+            "ambiguous",
+            "missing",
+            "suggested",
+            "unreliable",
+        )
+    )
 
 
 # Telegram refuses a message of more than 4096 characters; a little less leaves room for what it adds
@@ -1270,61 +1495,124 @@ def summary(report, previous=None, link_to=""):
     total = counts(report)
     news = fresh(report, previous)
     found = counts(news)
-    subject = _("OpenStreetMap: %(count)d changes proposed") % {"count": total["proposals"]} if total["proposals"] else _(
-        "OpenStreetMap: the monthly reading")
+    subject = (
+        _("OpenStreetMap: %(count)d changes proposed") % {"count": total["proposals"]}
+        if total["proposals"]
+        else _("OpenStreetMap: the monthly reading")
+    )
     lines = [subject]
     # Sending them is `manage.py osm_upload`, an experimental feature (config/features.py): off, the message promises none
-    lines.append((ngettext("%(count)d change proposed for OpenStreetMap, in %(shops)d shops: nothing is sent until a person runs the upload.",
-                           "%(count)d changes proposed for OpenStreetMap, in %(shops)d shops: nothing is sent until a person runs the upload.",
-                           total["proposals"]) if features.enabled(features.OSM_UPLOAD) else
-                  ngettext("%(count)d change proposed for OpenStreetMap, in %(shops)d shops: the site sends nothing, a person can make it by hand on openstreetmap.org.",
-                           "%(count)d changes proposed for OpenStreetMap, in %(shops)d shops: the site sends nothing, a person can make them by hand on openstreetmap.org.",
-                           total["proposals"])) % {"count": total["proposals"], "shops": total["shops"]}
-                 if total["proposals"] else _("No change to propose to OpenStreetMap."))
+    lines.append(
+        (
+            ngettext(
+                "%(count)d change proposed for OpenStreetMap, in %(shops)d shops: nothing is sent until a person runs the upload.",
+                "%(count)d changes proposed for OpenStreetMap, in %(shops)d shops: nothing is sent until a person runs the upload.",
+                total["proposals"],
+            )
+            if features.enabled(features.OSM_UPLOAD)
+            else ngettext(
+                "%(count)d change proposed for OpenStreetMap, in %(shops)d shops: the site sends nothing, a person can make it by hand on openstreetmap.org.",
+                "%(count)d changes proposed for OpenStreetMap, in %(shops)d shops: the site sends nothing, a person can make them by hand on openstreetmap.org.",
+                total["proposals"],
+            )
+        )
+        % {"count": total["proposals"], "shops": total["shops"]}
+        if total["proposals"]
+        else _("No change to propose to OpenStreetMap.")
+    )
     if found["link_proposals"]:
-        lines.append(ngettext("%(count)d shop has a link to its OpenStreetMap entry waiting for you to confirm it in the administration:",
-                              "%(count)d shops have a link to their OpenStreetMap entries waiting for you to confirm them in the administration:",
-                              found["link_proposals"]) % {"count": found["link_proposals"]})
+        lines.append(
+            ngettext(
+                "%(count)d shop has a link to its OpenStreetMap entry waiting for you to confirm it in the administration:",
+                "%(count)d shops have a link to their OpenStreetMap entries waiting for you to confirm them in the administration:",
+                found["link_proposals"],
+            )
+            % {"count": found["link_proposals"]}
+        )
         lines += [f"· {alert_text(item['name'])} ({item['ref']})" for item in news["link_proposals"][:8]]
     if found["filled"]:
-        lines.append(ngettext("%(count)d shop got empty details from OpenStreetMap (address, town, position), listed in the report.",
-                              "%(count)d shops got empty details from OpenStreetMap (address, town, position), listed in the report.",
-                              found["filled"]) % {"count": found["filled"]})
+        lines.append(
+            ngettext(
+                "%(count)d shop got empty details from OpenStreetMap (address, town, position), listed in the report.",
+                "%(count)d shops got empty details from OpenStreetMap (address, town, position), listed in the report.",
+                found["filled"],
+            )
+            % {"count": found["filled"]}
+        )
         lines += [f"· {alert_text(item['name'])}: {', '.join(item['values'])}" for item in news["filled"][:8]]
     if found["offers"]:
-        lines.append(ngettext("%(count)d shop has a website or a phone offered by OpenStreetMap, to accept in the administration:",
-                              "%(count)d shops have a website or a phone offered by OpenStreetMap, to accept in the administration:",
-                              found["offers"]) % {"count": found["offers"]})
+        lines.append(
+            ngettext(
+                "%(count)d shop has a website or a phone offered by OpenStreetMap, to accept in the administration:",
+                "%(count)d shops have a website or a phone offered by OpenStreetMap, to accept in the administration:",
+                found["offers"],
+            )
+            % {"count": found["offers"]}
+        )
         lines += [f"· {alert_text(item['name'])}: {', '.join(item['values'])}" for item in news["offers"][:8]]
     if found["candidates"]:
-        lines.append(ngettext("%(count)d new place on OpenStreetMap takes bitcoin and is not among our shops (only to know):",
-                              "%(count)d new places on OpenStreetMap take bitcoin and are not among our shops (only to know):",
-                              found["candidates"]) % {"count": found["candidates"]})
+        lines.append(
+            ngettext(
+                "%(count)d new place on OpenStreetMap takes bitcoin and is not among our shops (only to know):",
+                "%(count)d new places on OpenStreetMap take bitcoin and are not among our shops (only to know):",
+                found["candidates"],
+            )
+            % {"count": found["candidates"]}
+        )
         new = set(news.get("new_candidates", []))
-        lines += [f"· {alert_text(item['name'] or item['ref'])} ({item['ref']})" for item in report["candidates"] if item["ref"] in new][:8]
+        lines += [
+            f"· {alert_text(item['name'] or item['ref'])} ({item['ref']})"
+            for item in report["candidates"]
+            if item["ref"] in new
+        ][:8]
     if found["says_no"]:
-        lines.append(ngettext("%(count)d of our shops is marked as no longer taking bitcoin on OpenStreetMap:",
-                              "%(count)d of our shops are marked as no longer taking bitcoin on OpenStreetMap:",
-                              found["says_no"]) % {"count": found["says_no"]})
+        lines.append(
+            ngettext(
+                "%(count)d of our shops is marked as no longer taking bitcoin on OpenStreetMap:",
+                "%(count)d of our shops are marked as no longer taking bitcoin on OpenStreetMap:",
+                found["says_no"],
+            )
+            % {"count": found["says_no"]}
+        )
         lines += [f"· {alert_text(item['name'])}" for item in news["osm_says_no"][:8]]
     if found["newer"]:
-        lines.append(ngettext("%(count)d shop was checked on OpenStreetMap after our last check or closing date:",
-                              "%(count)d shops were checked on OpenStreetMap after our last check or closing date:",
-                              found["newer"]) % {"count": found["newer"]})
+        lines.append(
+            ngettext(
+                "%(count)d shop was checked on OpenStreetMap after our last check or closing date:",
+                "%(count)d shops were checked on OpenStreetMap after our last check or closing date:",
+                found["newer"],
+            )
+            % {"count": found["newer"]}
+        )
         lines += [f"· {alert_text(item['name'])}" for item in news["newer_on_osm"][:8]]
     if found["ambiguous"] or found["suggested"]:
         count = found["ambiguous"] + found["suggested"]
-        lines.append(ngettext("%(count)d shop may be the same place as an OpenStreetMap element, but it is not certain: not linked.",
-                              "%(count)d shops may be the same place as an OpenStreetMap element, but it is not certain: not linked.",
-                              count) % {"count": count})
+        lines.append(
+            ngettext(
+                "%(count)d shop may be the same place as an OpenStreetMap element, but it is not certain: not linked.",
+                "%(count)d shops may be the same place as an OpenStreetMap element, but it is not certain: not linked.",
+                count,
+            )
+            % {"count": count}
+        )
     if found["missing"]:
-        lines.append(ngettext("%(count)d linked shop was not found on OpenStreetMap: deleted there, or no longer tagged for bitcoin.",
-                              "%(count)d linked shops were not found on OpenStreetMap: deleted there, or no longer tagged for bitcoin.",
-                              found["missing"]) % {"count": found["missing"]})
+        lines.append(
+            ngettext(
+                "%(count)d linked shop was not found on OpenStreetMap: deleted there, or no longer tagged for bitcoin.",
+                "%(count)d linked shops were not found on OpenStreetMap: deleted there, or no longer tagged for bitcoin.",
+                found["missing"],
+            )
+            % {"count": found["missing"]}
+        )
     if found["unreliable"]:
-        lines.append(ngettext("%(count)d linked shop has an entry on OpenStreetMap that could not be read whole: nothing is proposed for it.",
-                              "%(count)d linked shops have an entry on OpenStreetMap that could not be read whole: nothing is proposed for them.",
-                              found["unreliable"]) % {"count": found["unreliable"]})
+        lines.append(
+            ngettext(
+                "%(count)d linked shop has an entry on OpenStreetMap that could not be read whole: nothing is proposed for it.",
+                "%(count)d linked shops have an entry on OpenStreetMap that could not be read whole: nothing is proposed for them.",
+                found["unreliable"],
+            )
+            % {"count": found["unreliable"]}
+        )
     if link_to:
         lines.append(_("The full report and the proposals: {link}").format(link=link_to))
     return subject, fit(lines)
@@ -1333,59 +1621,98 @@ def summary(report, previous=None, link_to=""):
 def report_lines(report):
     """A report as lines of plain text, for /admin/ (escaped there): what each list holds, a line for each."""
     found = counts(report)
-    lines = [f"elements: {report.get('elements', 0)} ({report.get('skipped', 0)} left out, {report.get('unreliable_elements', 0)} "
-             f"not read whole); candidates: {found['total_candidates']}; links waiting for confirmation: {report.get('waiting_links', 0)}"]
-    for title, key in (("Links proposed now, to confirm in /admin/", "link_proposals"), ("Suggested, not proposed (auto_link is off)", "suggested"),
-                       ("Fields written (the values, to undo them)", "filled"), ("Contacts offered, to accept in /admin/", "offers"),
-                       ("Linked, not found on OpenStreetMap", "missing"), ("Linked, but the entry could not be read whole", "unreliable"),
-                       ("Marked as no longer taking bitcoin there", "osm_says_no"),
-                       ("Checked there after our last check or closing day", "newer_on_osm")):
+    lines = [
+        f"elements: {report.get('elements', 0)} ({report.get('skipped', 0)} left out, {report.get('unreliable_elements', 0)} "
+        f"not read whole); candidates: {found['total_candidates']}; links waiting for confirmation: {report.get('waiting_links', 0)}"
+    ]
+    for title, key in (
+        ("Links proposed now, to confirm in /admin/", "link_proposals"),
+        ("Suggested, not proposed (auto_link is off)", "suggested"),
+        ("Fields written (the values, to undo them)", "filled"),
+        ("Contacts offered, to accept in /admin/", "offers"),
+        ("Linked, not found on OpenStreetMap", "missing"),
+        ("Linked, but the entry could not be read whole", "unreliable"),
+        ("Marked as no longer taking bitcoin there", "osm_says_no"),
+        ("Checked there after our last check or closing day", "newer_on_osm"),
+    ):
         if report.get(key):
             lines += ["", f"{title}:"]
             for item in report[key]:
                 if "values" in item:
                     extra = ", ".join(f"{name}={value}" for name, value in item["values"].items())
                 else:
-                    extra = " ".join(f"{name}={item[name]}" for name in ("similarity", "metres", "ours", "theirs") if item.get(name) not in (None, ""))
+                    extra = " ".join(
+                        f"{name}={item[name]}"
+                        for name in ("similarity", "metres", "ours", "theirs")
+                        if item.get(name) not in (None, "")
+                    )
                 lines.append(f"  {item['name']}  {item['ref']}  {extra}".rstrip())
     if report.get("ambiguous"):
         lines += ["", "Doubtful (more than one fits), never linked:"]
         for item in report["ambiguous"]:
-            lines.append(f"  {item['name']}: " + ", ".join(f"{option['ref']} ({option['name']}, {option['metres']} m)" for option in item["options"]))
+            lines.append(
+                f"  {item['name']}: "
+                + ", ".join(f"{option['ref']} ({option['name']}, {option['metres']} m)" for option in item["options"])
+            )
     if report.get("unsure"):
         lines += ["", "Possible, but far or without a position, never linked:"]
         for item in report["unsure"]:
             lines.append(f"  {item['name']}  {item['ref']} ({item['osm_name']})  {item['why']}")
     if report.get("place_links"):
-        lines += ["", "Other places of a shop that look like an element (write it on the place, in the shop's page of /admin/):"]
-        lines += [f"  {item['name']}, {item['place']}  {item['ref']} ({item['osm_name']})  similarity={item['similarity']} "
-                  f"metres={item['metres']}" for item in report["place_links"]]
+        lines += [
+            "",
+            "Other places of a shop that look like an element (write it on the place, in the shop's page of /admin/):",
+        ]
+        lines += [
+            f"  {item['name']}, {item['place']}  {item['ref']} ({item['osm_name']})  similarity={item['similarity']} "
+            f"metres={item['metres']}"
+            for item in report["place_links"]
+        ]
     if report.get("place_missing"):
         lines += ["", "Other places linked, not found on OpenStreetMap:"]
         lines += [f"  {item['name']}, {item['place']}  {item['ref']}" for item in report["place_missing"]]
     if report.get("place_proposals"):
-        lines += ["", "Changes proposed for the other places of a shop (for a person to make by hand; osm_upload does not send them):"]
+        lines += [
+            "",
+            "Changes proposed for the other places of a shop (for a person to make by hand; osm_upload does not send them):",
+        ]
         for item in report["place_proposals"]:
             lines.append(f"  {item['name']}, {item['place']}  {item['ref']}")
             for change in item["changes"]:
-                lines.append(f"    {change['tag']}: {change['old'] if change['old'] is not None else '(missing)'} -> "
-                             f"{change['new'] if change['new'] is not None else '(remove)'}" + ("   [needs judgement]" if change["kind"] == REVIEW else ""))
+                lines.append(
+                    f"    {change['tag']}: {change['old'] if change['old'] is not None else '(missing)'} -> "
+                    f"{change['new'] if change['new'] is not None else '(remove)'}"
+                    + ("   [needs judgement]" if change["kind"] == REVIEW else "")
+                )
     if report.get("proposals"):
-        lines += ["", "Changes proposed for OpenStreetMap (osm_upload sends them, by hand):"
-                  if features.enabled(features.OSM_UPLOAD) else
-                  "Changes proposed for OpenStreetMap (the site sends nothing: for a person to make by hand on openstreetmap.org):"]
+        lines += [
+            "",
+            "Changes proposed for OpenStreetMap (osm_upload sends them, by hand):"
+            if features.enabled(features.OSM_UPLOAD)
+            else "Changes proposed for OpenStreetMap (the site sends nothing: for a person to make by hand on openstreetmap.org):",
+        ]
         for item in report["proposals"]:
             lines.append(f"  {item['name']}  {item['ref']}")
             for change in item["changes"]:
-                lines.append(f"    {change['tag']}: {change['old'] if change['old'] is not None else '(missing)'} -> "
-                             f"{change['new'] if change['new'] is not None else '(remove)'}" + ("   [needs judgement]" if change["kind"] == REVIEW else ""))
+                lines.append(
+                    f"    {change['tag']}: {change['old'] if change['old'] is not None else '(missing)'} -> "
+                    f"{change['new'] if change['new'] is not None else '(remove)'}"
+                    + ("   [needs judgement]" if change["kind"] == REVIEW else "")
+                )
     if report.get("candidates"):
-        lines += ["", "Places on OpenStreetMap that take bitcoin and are not among our shops (to know, nothing is proposed for them):"]
-        lines += [f"  {item['name'] or '(no name)'}  {item['ref']}  {item['city']}  {item['date']}" for item in report["candidates"]]
+        lines += [
+            "",
+            "Places on OpenStreetMap that take bitcoin and are not among our shops (to know, nothing is proposed for them):",
+        ]
+        lines += [
+            f"  {item['name'] or '(no name)'}  {item['ref']}  {item['city']}  {item['date']}"
+            for item in report["candidates"]
+        ]
     return lines
 
 
 # --- The merchant's page ----------------------------------------------------------------------------------------------
+
 
 def element_url(ref):
     return f"https://www.openstreetmap.org/{ref}" if REF.match(ref or "") else ""
@@ -1421,12 +1748,26 @@ def page(shop, now=None):
     today = certified.local_day(now)
     run = last_run()
     wanted = wanted_tags(shop, config, today)
-    state = {"wanted": wanted, "ref": shop.osm_ref, "url": element_url(shop.osm_ref), "editor": editor_url(shop, shop.osm_ref),
-             "run": run, "read": run.created if run else None, "changes": None, "not_found": False, "up_to_date": False,
-             "review": False, "says_no": False, "unreliable": False, "stale": False,
-             "can_ask": bool(wanted) or bool(shop.osm_ref and standing(shop, today))}
+    state = {
+        "wanted": wanted,
+        "ref": shop.osm_ref,
+        "url": element_url(shop.osm_ref),
+        "editor": editor_url(shop, shop.osm_ref),
+        "run": run,
+        "read": run.created if run else None,
+        "changes": None,
+        "not_found": False,
+        "up_to_date": False,
+        "review": False,
+        "says_no": False,
+        "unreliable": False,
+        "stale": False,
+        "can_ask": bool(wanted) or bool(shop.osm_ref and standing(shop, today)),
+    }
     if shop.osm_ref and run is not None:
-        mine = next((item for item in waiting(run) if item["shop"] == str(shop.pk) and item["ref"] == shop.osm_ref), None)
+        mine = next(
+            (item for item in waiting(run) if item["shop"] == str(shop.pk) and item["ref"] == shop.osm_ref), None
+        )
         every = (mine or {}).get("changes", [])
         found = [change for change in every if change["kind"] != REVIEW]
         here = str(shop.pk)
@@ -1436,9 +1777,17 @@ def page(shop, now=None):
         state["says_no"] = any(item["shop"] == here for item in run.report.get("osm_says_no", []))
         state["unreliable"] = any(item["shop"] == here for item in run.report.get("unreliable", []))
         state["stale"] = now - run.created > timedelta(days=LATE_DAYS)
-        state["up_to_date"] = (not found and not state["review"] and not state["not_found"] and not state["says_no"]
-                               and not state["unreliable"] and not state["stale"] and shop.osm_seen is not None
-                               and shop.osm_seen >= run.created and bool(standing(shop, today)))
+        state["up_to_date"] = (
+            not found
+            and not state["review"]
+            and not state["not_found"]
+            and not state["says_no"]
+            and not state["unreliable"]
+            and not state["stale"]
+            and shop.osm_seen is not None
+            and shop.osm_seen >= run.created
+            and bool(standing(shop, today))
+        )
     # The lines to write: what differs there, or, for a shop not read yet or not there, every line a new entry would carry
     if state["changes"]:
         lines = [f"{change['tag']}={change['new']}" for change in state["changes"] if change["new"] is not None]

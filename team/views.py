@@ -7,6 +7,7 @@ with the volunteers' area on (TEAM_AREA), an open site too, where these addresse
 (team/area.py). /team/check/, Caddy's question, only on a site under construction. The signature is checked by the
 same code as the merchants' sign-in (shops/lnurl_auth.py): compressed keys only, 32 random bytes of challenge, the first
 signature wins, a challenge is used once."""
+
 import io
 import logging
 from functools import wraps
@@ -55,6 +56,7 @@ SCRIPT = (Path(__file__).resolve().parent / "static" / "team" / "join.js").read_
 def gated(view):
     """`view` where wallets sign in, on the site's own entrance; a 404 everywhere else, before anything is read or
     counted: with the feature off the address does not exist."""
+
     @wraps(view)
     def wrapper(request, *args, **kwargs):
         if not access.signs_here(request):
@@ -63,6 +65,7 @@ def gated(view):
         response.headers.setdefault("Cache-Control", "private, no-store")
         response.headers.setdefault("X-Robots-Tag", "noindex, nofollow")
         return response
+
     return wrapper
 
 
@@ -98,24 +101,39 @@ def qr_svg(text):
     """The QR code as an <svg> element with its namespace: a page can put it in as it is, or show it as an image
     (a data: address), which without the namespace draws nothing."""
     drawn = io.BytesIO()
-    segno.make(text, error="l").save(drawn, kind="svg", xmldecl=False, svgns=True, nl=False, scale=6, border=2, light="#fff")
+    segno.make(text, error="l").save(
+        drawn, kind="svg", xmldecl=False, svgns=True, nl=False, scale=6, border=2, light="#fff"
+    )
     return drawn.getvalue().decode()
 
 
 def bind(response, request, challenge):
-    response.set_signed_cookie(K1_COOKIE, challenge.k1, salt=K1_SALT, httponly=True, samesite="Lax", path=K1_PATH,
-                               secure=True, max_age=int(CHALLENGE_LIFETIME.total_seconds()))
+    response.set_signed_cookie(
+        K1_COOKIE,
+        challenge.k1,
+        salt=K1_SALT,
+        httponly=True,
+        samesite="Lax",
+        path=K1_PATH,
+        secure=True,
+        max_age=int(CHALLENGE_LIFETIME.total_seconds()),
+    )
 
 
 # What the team hears, in the community's language
-JOINED = gettext_lazy("{name} joined the team ({role}): from now on their wallet opens the site under construction. "
-                      "The team's keys:")
-NEW_PASS = gettext_lazy("{name} ({role}) opened the site under construction in a new browser. If it was not them, "
-                        "revoke the key or end its passes:")
+JOINED = gettext_lazy(
+    "{name} joined the team ({role}): from now on their wallet opens the site under construction. The team's keys:"
+)
+NEW_PASS = gettext_lazy(
+    "{name} ({role}) opened the site under construction in a new browser. If it was not them, "
+    "revoke the key or end its passes:"
+)
 # On an open site (the volunteers' area, TEAM_AREA) the pass opens no site under construction
 JOINED_OPEN = gettext_lazy("{name} joined the team ({role}). The team's keys:")
-NEW_PASS_OPEN = gettext_lazy("{name} ({role}) signed in with their wallet in a new browser. If it was not them, revoke "
-                             "the key or end its passes:")
+NEW_PASS_OPEN = gettext_lazy(
+    "{name} ({role}) signed in with their wallet in a new browser. If it was not them, revoke "
+    "the key or end its passes:"
+)
 
 
 def said(under_construction, open_site):
@@ -126,6 +144,7 @@ def said(under_construction, open_site):
 class Answer(JsonResponse):
     """A JSON answer that can do one more thing once the server has sent it (`then`): whatever that is, the visitor is
     not kept waiting for it and cannot be failed by it."""
+
     then = None
 
     def close(self):
@@ -253,15 +272,19 @@ def join_with(challenge, key):
         return None, _("This wallet already has a team key here, or had one: ask whoever invited you.")
     if staff_key(key):
         # Linked to a staff account's sign-in to /admin/ (config/admin_wallet.py): one key, one role. Nothing is used up
-        return None, _("This wallet cannot join the team here: it already has another use on this site. Use another "
-                       "wallet, or another account in your wallet.")
+        return None, _(
+            "This wallet cannot join the team here: it already has another use on this site. Use another "
+            "wallet, or another account in your wallet."
+        )
     invalid = _("This invite is not valid any more.")
     try:
         with transaction.atomic():
             if not claim(challenge, key):
                 return None, invalid
             now = timezone.now()
-            if not TeamInvite.objects.filter(pk=challenge.invite_id, used__isnull=True, expires__gt=now).update(used=now):
+            if not TeamInvite.objects.filter(pk=challenge.invite_id, used__isnull=True, expires__gt=now).update(
+                used=now
+            ):
                 transaction.set_rollback(True)
                 return None, invalid
             invite = TeamInvite.objects.get(pk=challenge.invite_id)
@@ -354,17 +377,25 @@ def join(request, token):
         signed = signed_here(request, token)
         if signed is None:
             return invite_page(request, status=404, state="invalid")
-        return invite_page(request, state="signed", poll=reverse("team_own_poll"), script=reverse("team_script"),
-                           done=done_address())
+        return invite_page(
+            request, state="signed", poll=reverse("team_own_poll"), script=reverse("team_script"), done=done_address()
+        )
     challenge = own_challenge(request, invite)
     if challenge is None:
         response = invite_page(request, status=429, state="busy")
         response["Retry-After"] = str(ratelimit.seconds_left(WINDOW))
         return response
     lnurl = lnurl_of(challenge, "register")
-    response = invite_page(request, state="waiting", invite=invite, lnurl=lnurl,
-                           qr=segno.make(lnurl, error="l").svg_data_uri(scale=6, border=2, light="#fff"),
-                           poll=reverse("team_own_poll"), script=reverse("team_script"), done=done_address())
+    response = invite_page(
+        request,
+        state="waiting",
+        invite=invite,
+        lnurl=lnurl,
+        qr=segno.make(lnurl, error="l").svg_data_uri(scale=6, border=2, light="#fff"),
+        poll=reverse("team_own_poll"),
+        script=reverse("team_script"),
+        done=done_address(),
+    )
     bind(response, request, challenge)
     return response
 

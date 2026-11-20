@@ -11,6 +11,7 @@ person look before a likely copy goes on the map; `asks` signals hold the approv
 (approval.approve(confirmed=True)), and the history of the shop records which signals were there. A false alarm costs
 more than it seems: people who tick a box every day stop reading it. So only what is likely a copy asks: the same name
 in the same area, a name alike next door, the same contact. The rest is a quiet note."""
+
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
@@ -45,24 +46,82 @@ PHONE_DIGITS = 7
 # The other shops named for one waiting shop: the list stays readable
 MOST_OTHERS = 3
 # Hosts that hold the pages of many businesses: the address is compared with its path, never the host alone
-SHARED_HOSTS = ("facebook.com", "fb.com", "fb.me", "instagram.com", "linktr.ee", "linktree.com", "tiktok.com",
-                "twitter.com", "x.com", "youtube.com", "youtu.be", "t.me", "telegram.me", "wa.me", "whatsapp.com",
-                "g.page", "g.co", "maps.apple.com", "booking.com", "ubereats.com", "glovoapp.com", "paginegialle.it",
-                "linkedin.com", "pinterest.com", "threads.net", "bsky.app", "github.com", "gitlab.com", "beacons.ai",
-                "bio.link", "carrd.co", "about.me", "taplink.cc")
+SHARED_HOSTS = (
+    "facebook.com",
+    "fb.com",
+    "fb.me",
+    "instagram.com",
+    "linktr.ee",
+    "linktree.com",
+    "tiktok.com",
+    "twitter.com",
+    "x.com",
+    "youtube.com",
+    "youtu.be",
+    "t.me",
+    "telegram.me",
+    "wa.me",
+    "whatsapp.com",
+    "g.page",
+    "g.co",
+    "maps.apple.com",
+    "booking.com",
+    "ubereats.com",
+    "glovoapp.com",
+    "paginegialle.it",
+    "linkedin.com",
+    "pinterest.com",
+    "threads.net",
+    "bsky.app",
+    "github.com",
+    "gitlab.com",
+    "beacons.ai",
+    "bio.link",
+    "carrd.co",
+    "about.me",
+    "taplink.cc",
+)
 # The same, for every country of a brand: google.it, maps.google.co.uk, tripadvisor.de, thefork.fr…
 SHARED_BRANDS = ("google", "tripadvisor", "thefork", "deliveroo", "justeat", "yelp")
 # Short links: host and path, the path as written (its letters are the link)
 SHORTENERS = ("bit.ly", "tinyurl.com", "amzn.to", "t.co", "is.gd", "rb.gy", "cutt.ly", "goo.gl")
 # Builders that put each site on a subdomain of their own: the subdomain is the site; on the bare host, the path
-SITE_HOSTS = ("wordpress.com", "blogspot.com", "myshopify.com", "jimdofree.com", "jimdosite.com", "altervista.org",
-              "weebly.com", "squarespace.com", "business.site", "wixsite.com", "canva.site", "github.io", "netlify.app",
-              "vercel.app", "pages.dev")
+SITE_HOSTS = (
+    "wordpress.com",
+    "blogspot.com",
+    "myshopify.com",
+    "jimdofree.com",
+    "jimdosite.com",
+    "altervista.org",
+    "weebly.com",
+    "squarespace.com",
+    "business.site",
+    "wixsite.com",
+    "canva.site",
+    "github.io",
+    "netlify.app",
+    "vercel.app",
+    "pages.dev",
+)
 SITE_BRANDS = ("webnode",)
 # What the shop's owner changes on the panel that a signal reads: an edit of anything else computes nothing
 WATCHED = ("name", "website", "phone", "email", "city", "latitude", "longitude")
-FIELDS = ("id", "owner_id", "name", "city", "latitude", "longitude", "website", "phone", "email", "lightning_address",
-          "approved_on", "closed_on", "created", "claim_hash")
+FIELDS = (
+    "id",
+    "owner_id",
+    "name",
+    "city",
+    "latitude",
+    "longitude",
+    "website",
+    "phone",
+    "email",
+    "lightning_address",
+    "approved_on",
+    "closed_on",
+    "created",
+    "claim_hash",
+)
 
 NAMESAKE = "namesake"
 NAMESAKE_NOTE = "namesake_note"
@@ -90,6 +149,7 @@ class Signal:
 @dataclass
 class Card:
     """What the comparison reads of a shop, worked out once per shop and per page."""
+
     pk: object
     owner_id: object
     name: str
@@ -122,7 +182,7 @@ def idna(host):
 def brand(labels, brands):
     """Where a brand is among the labels of a host, followed only by a country's suffix (it, de, co.uk…), or None."""
     for index, label in enumerate(labels[:-1]):
-        if label in brands and all(len(rest) <= 3 for rest in labels[index + 1:]):
+        if label in brands and all(len(rest) <= 3 for rest in labels[index + 1 :]):
             return index
     return None
 
@@ -221,13 +281,24 @@ def letters(text):
 def card(shop):
     plain = plain_name(shop.name or "")
     has_position = shop.latitude is not None and shop.longitude is not None
-    return Card(pk=shop.pk, owner_id=shop.owner_id, name=shop.name or "", plain=plain, words=frozenset(plain.split()),
-                letters=letters(plain),
-                city=(shop.city or "").strip().casefold(),
-                position=(shop.latitude, shop.longitude) if has_position else None, website=website_key(shop.website),
-                phone=phone_keys(shop.phone), email=(shop.email or "").strip().casefold(),
-                lightning=(shop.lightning_address or "").strip().lower(), closed_on=shop.closed_on, claimable=bool(shop.claim_hash),
-                approved_on=shop.approved_on, created=shop.created)
+    return Card(
+        pk=shop.pk,
+        owner_id=shop.owner_id,
+        name=shop.name or "",
+        plain=plain,
+        words=frozenset(plain.split()),
+        letters=letters(plain),
+        city=(shop.city or "").strip().casefold(),
+        position=(shop.latitude, shop.longitude) if has_position else None,
+        website=website_key(shop.website),
+        phone=phone_keys(shop.phone),
+        email=(shop.email or "").strip().casefold(),
+        lightning=(shop.lightning_address or "").strip().lower(),
+        closed_on=shop.closed_on,
+        claimable=bool(shop.claim_hash),
+        approved_on=shop.approved_on,
+        created=shop.created,
+    )
 
 
 def others():
@@ -241,8 +312,10 @@ def owners(shops):
     if not ids:
         return {}
     emails = set(Profile.objects.filter(user_id__in=ids).exclude(email="").values_list("user_id", flat=True))
-    return {pk: (joined, pk in emails)
-            for pk, joined in get_user_model().objects.filter(pk__in=ids).values_list("pk", "date_joined")}
+    return {
+        pk: (joined, pk in emails)
+        for pk, joined in get_user_model().objects.filter(pk__in=ids).values_list("pk", "date_joined")
+    }
 
 
 def names(left, right):
@@ -305,10 +378,22 @@ def signals_for(shop, everything, accounts, name=str, most=MOST_OTHERS):
         # The same name counts the town too: the owner places the pin, and a copy would place it 2.1 km away
         area = area or (alike == EQUAL and same_city)
         # The same name in the same area asks; a name only alike asks next door, or with a contact in common
-        asks = bool(kinds) or (alike == EQUAL and area) or (alike == ALIKE and metres is not None and metres < ALIKE_METRES)
+        asks = (
+            bool(kinds)
+            or (alike == EQUAL and area)
+            or (alike == ALIKE and metres is not None and metres < ALIKE_METRES)
+        )
         if asks:
-            strong.append((metres if metres is not None else float("inf"), other.name.casefold(), other,
-                           alike if area else None, metres, kinds))
+            strong.append(
+                (
+                    metres if metres is not None else float("inf"),
+                    other.name.casefold(),
+                    other,
+                    alike if area else None,
+                    metres,
+                    kinds,
+                )
+            )
         else:
             notes.append((0 if area else 1, other.name.casefold(), other, area, metres))
     found = []
@@ -318,18 +403,28 @@ def signals_for(shop, everything, accounts, name=str, most=MOST_OTHERS):
         joined, has_email = accounts.get(shop.owner_id, (None, True))
         alone = not any(other.owner_id == shop.owner_id for other in everything if other.pk != shop.pk)
         if joined and shop.created and shop.created - joined < NEW_ACCOUNT and not has_email and alone:
-            found.append(Signal(NEW_OWNER, _("The owner's account was opened just before the shop, with no recovery email "
-                                              "and no other shop."), False))
+            found.append(
+                Signal(
+                    NEW_OWNER,
+                    _("The owner's account was opened just before the shop, with no recovery email and no other shop."),
+                    False,
+                )
+            )
         return found
     for _area, _name, other, area, metres in sorted(notes, key=lambda row: row[:2])[:MOST_OTHERS]:
         values = {"other": name(other.name)}
         if area and metres is not None:
             text = _("A shop of another owner %(km)s km away has a name like this one: «%(other)s».") % {
-                **values, "km": f"{metres / 1000:.1f}"}
+                **values,
+                "km": f"{metres / 1000:.1f}",
+            }
         elif area:
             text = _("A shop of another owner in the same town has a name like this one: «%(other)s».") % values
         else:
-            text = _("A shop of another owner elsewhere has a name like this one: «%(other)s» (a chain, perhaps).") % values
+            text = (
+                _("A shop of another owner elsewhere has a name like this one: «%(other)s» (a chain, perhaps).")
+                % values
+            )
         found.append(Signal(NAMESAKE_NOTE, text, False, other.pk, other.name, True))
     return found
 
@@ -341,15 +436,28 @@ def advice(other, name):
         # A merchant cannot take it alone: a moved shop waits for its claim link (shops/moving.py), an imported one for
         # the staff to give it an owner
         if other.claimable:
-            return _("«%(other)s» is on the site without an owner and waits for its claim link: if it is the same business, "
-                     "send that link to this merchant instead of approving a second shop.") % values
-        return _("«%(other)s» is on the site without an owner: if it is the same business, give that shop to this owner "
-                 "in the administration instead of approving a second one.") % values
+            return (
+                _(
+                    "«%(other)s» is on the site without an owner and waits for its claim link: if it is the same business, "
+                    "send that link to this merchant instead of approving a second shop."
+                )
+                % values
+            )
+        return (
+            _(
+                "«%(other)s» is on the site without an owner: if it is the same business, give that shop to this owner "
+                "in the administration instead of approving a second one."
+            )
+            % values
+        )
     if other.closed_on:
         values["date"] = date_format(other.closed_on, "SHORT_DATE_FORMAT")
         # As Shop.historic_note reads the date: up to and including that day the shop still "closes"
         if other.closed_on >= timezone.localdate():
-            return _("«%(other)s» closes on %(date)s: this new shop may be its successor, or a move. Ask its owner.") % values
+            return (
+                _("«%(other)s» closes on %(date)s: this new shop may be its successor, or a move. Ask its owner.")
+                % values
+            )
         return _("«%(other)s» closed on %(date)s: check whether this new shop is its reopening.") % values
     return _("Ask the owner of «%(other)s» whether this new shop is theirs, or genuine.") % values
 
@@ -359,24 +467,41 @@ def about(shop, other, alike, metres, kinds, name):
     values = {"other": name(other.name)}
     found = []
     if alike == EQUAL:
-        found.append((NAMESAKE, _("The same name as «%(other)s», a shop of another owner in the same area.") % values, True))
+        found.append(
+            (NAMESAKE, _("The same name as «%(other)s», a shop of another owner in the same area.") % values, True)
+        )
     elif alike:
-        found.append((NAMESAKE, _("A name very like «%(other)s», a shop of another owner in the same area.") % values,
-                      bool(kinds) or (metres is not None and metres < ALIKE_METRES)))
+        found.append(
+            (
+                NAMESAKE,
+                _("A name very like «%(other)s», a shop of another owner in the same area.") % values,
+                bool(kinds) or (metres is not None and metres < ALIKE_METRES),
+            )
+        )
     if alike and metres is not None and metres < NEAR_METRES:
         found.append((NEAR, _("The two are only %(metres)d m apart.") % {"metres": round(metres)}, False))
     if kinds:
-        found.append((SAME_CONTACT, _("The same contacts as «%(other)s», a shop of another owner: %(kinds)s.")
-                      % {**values, "kinds": ", ".join(kinds)}, True))
+        found.append(
+            (
+                SAME_CONTACT,
+                _("The same contacts as «%(other)s», a shop of another owner: %(kinds)s.")
+                % {**values, "kinds": ", ".join(kinds)},
+                True,
+            )
+        )
     # Never the addresses themselves: whether they differ, and whether at another provider
     if shop.lightning and other.lightning and shop.lightning != other.lightning:
-        text = (_("«%(other)s» is paid at another Lightning address, at another provider.")
-                if provider(shop.lightning) != provider(other.lightning)
-                else _("«%(other)s» is paid at another Lightning address.")) % values
+        text = (
+            _("«%(other)s» is paid at another Lightning address, at another provider.")
+            if provider(shop.lightning) != provider(other.lightning)
+            else _("«%(other)s» is paid at another Lightning address.")
+        ) % values
         found.append((OTHER_LIGHTNING, text, False))
     tip = advice(other, name)
-    return [Signal(code, text, asks, other.pk, other.name, index == 0, tip if index == len(found) - 1 else "")
-            for index, (code, text, asks) in enumerate(found)]
+    return [
+        Signal(code, text, asks, other.pk, other.name, index == 0, tip if index == len(found) - 1 else "")
+        for index, (code, text, asks) in enumerate(found)
+    ]
 
 
 def signals(shop, name=str, waiting_only=True):

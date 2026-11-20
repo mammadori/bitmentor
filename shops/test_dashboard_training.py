@@ -1,6 +1,7 @@
 """The day's list and the merchant's training (shops/dashboard.py, `training_items`; shops/training.py, `stuck`): the
 owners whose real register waits for the pass, or who stopped half-way through the basic modules, for more than
 `nudge_days` days, one item each, to call them. Also in the morning summary and in the volunteers' area."""
+
 from datetime import datetime, timedelta
 from io import StringIO
 from unittest.mock import patch
@@ -28,8 +29,11 @@ def at(days):
 
 
 def codes(found):
-    return [(item.code, item.shop.name if item.shop else None) for item in found["items"]
-            if item.code.startswith("training_")]
+    return [
+        (item.code, item.shop.name if item.shop else None)
+        for item in found["items"]
+        if item.code.startswith("training_")
+    ]
 
 
 def title(name):
@@ -152,8 +156,9 @@ class Nudges(TestCase):
         with configured({**self.block, "gate_imported": "unlock"}):
             self.assertEqual(len(codes(self.found(30))), 1)
             for fields in ({"suspended": True}, {"closed_on": DAY.date()}, {"external_id": "bitmentor-demo:1"}):
-                Shop.objects.filter(pk=self.shop.pk).update(**{"suspended": False, "closed_on": None, "external_id": "",
-                                                               **fields})
+                Shop.objects.filter(pk=self.shop.pk).update(
+                    **{"suspended": False, "closed_on": None, "external_id": "", **fields}
+                )
                 self.assertEqual(codes(self.found(30)), [], fields)
 
     def test_one_item_for_an_owner_with_two_shops(self):
@@ -166,8 +171,9 @@ class Nudges(TestCase):
     def test_two_owners_two_items_the_oldest_first(self):
         other = User.objects.create(username="other")
         register("Alpha", owner=other, created=DAY + timedelta(days=1))
-        self.assertEqual(codes(self.found(30)), [("training_register_waits", "Bar"),
-                                                 ("training_register_waits", "Alpha")])
+        self.assertEqual(
+            codes(self.found(30)), [("training_register_waits", "Bar"), ("training_register_waits", "Alpha")]
+        )
 
     def test_few_queries_for_many_owners(self):
         from django.db import connection
@@ -191,7 +197,10 @@ class Nudges(TestCase):
         from .test_hooks import Hooked
 
         asked = []
-        rule = lambda user: asked.append(user.pk) and None  # no grace for anybody
+
+        def rule(user):
+            return asked.append(user.pk) and None  # no grace for anybody
+
         register("Bar2", owner=self.owner, created=DAY)
         with Hooked(training_grace_until=rule):
             with at(30), CaptureQueriesContext(connection) as few:
@@ -257,8 +266,12 @@ class Nudges(TestCase):
         Shop.objects.filter(pk=self.shop.pk).update(approved_on=DAY)
         self.assertEqual(codes(self.found(30)), [("training_register_waits", "Bar")])
 
-    @override_settings(TELEGRAM_BOT_TOKEN="t", TELEGRAM_MODERATION_CHAT="-100", SITE_HOST="shops.example.org",
-                       PUBLIC_URL="https://shops.example.org")
+    @override_settings(
+        TELEGRAM_BOT_TOKEN="t",
+        TELEGRAM_MODERATION_CHAT="-100",
+        SITE_HOST="shops.example.org",
+        PUBLIC_URL="https://shops.example.org",
+    )
     def test_in_the_morning_summary(self):
         out = StringIO()
         with at(30), patch("shops.notifications.requests.post") as post:
@@ -297,8 +310,14 @@ class InTheArea(AreaBase):
         with configured(EXAMPLE):
             ModuleResult.objects.create(user=self.owner, module="wallet", passed=timezone.now() - timedelta(days=9))
             for statement in training.find_module(training.parse(), "wallet").statements:
-                training.record(self.owner, self.shop, statement.key, statement.version, "text",
-                                now=timezone.now() - timedelta(days=9))
+                training.record(
+                    self.owner,
+                    self.shop,
+                    statement.key,
+                    statement.version,
+                    "text",
+                    now=timezone.now() - timedelta(days=9),
+                )
             _key, browser = self.moderator()
             page = browser.get("/team/today/").content.decode()
             step = training.shown(training.find_module(training.parse(), "paid").title, "en")

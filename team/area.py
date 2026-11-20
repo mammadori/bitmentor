@@ -22,6 +22,7 @@ Where it is reached: on a site under construction Caddy lets a browser with a va
 the site, any method (Caddyfile, `team-pass-on`), so the area's pages and POSTs reach Django; without a pass /team/ is
 the under-construction page, and the team signs in with the page's gesture as before. On an open site everything
 reaches Django, which decides. On the onion entrance and in maintenance the area does not exist."""
+
 import posixpath
 import re
 from datetime import timedelta
@@ -81,8 +82,10 @@ SOLVED_BY = "[team key {pk}] {name}"
 # /.well-known/lnurlp/ is cut the same way. A courtesy for what the site itself writes and the obvious forms a person
 # types, not a guarantee: a merchant can write an address in free text in a way no pattern catches
 ADDRESS = re.compile(r"[^\s@<>()\[\]{};,\"'«»]+@[^\s@<>()\[\]{};,\"'«»]+")
-ADDRESS_URL = re.compile(r"(?i)\b((?:https?|lnurlp)://[^\s/@<>()\[\]{};,\"'«»]+/\.well-known/lnurlp/)"
-                         r"([^\s/?#<>()\[\]{};,\"'«»]+)")
+ADDRESS_URL = re.compile(
+    r"(?i)\b((?:https?|lnurlp)://[^\s/@<>()\[\]{};,\"'«»]+/\.well-known/lnurlp/)"
+    r"([^\s/?#<>()\[\]{};,\"'«»]+)"
+)
 
 
 def shortened(text):
@@ -101,15 +104,54 @@ def shortened(text):
 # the diagnosis has
 DIAGNOSIS_HIDDEN = frozenset({"owner_is_staff", "owner_recovery_email", "owner_no_recovery_email"})
 DIAGNOSIS_BY_CHOICE = frozenset({"staff_code_waiting", "staff_off", "staff_ok", "staff_unopened"})
-DIAGNOSIS_SHOWN = frozenset({
-    "account_changed", "account_changed_other", "address_broken", "address_works", "certificate_done", "certificate_ready", "certificate_revoked",
-    "certificate_waiting", "check_failed", "closed_hidden", "closed_ignored", "closed_long", "closed_now", "closed_planned",
-    "closed_soon", "customer_path_off", "customer_path_ok", "customer_wallets_empty", "first_day_done", "first_day_todo",
-    "lightning_no_answer", "lightning_no_confirmation", "lightning_ok", "lightning_slow", "moved_no_owner",
-    "moved_no_wallet", "moved_unclaimed", "practice_offer", "register_ready", "register_unavailable",
-    "shop_awaiting_approval", "shop_closing", "shop_historic", "shop_no_owner", "shop_no_position", "shop_suspended",
-    "shop_unlisted", "shop_visible", "shop_waiting_wallet", "staff_no_register", "time_up", "training_done",
-    "training_locked", "training_missing"})
+DIAGNOSIS_SHOWN = frozenset(
+    {
+        "account_changed",
+        "account_changed_other",
+        "address_broken",
+        "address_works",
+        "certificate_done",
+        "certificate_ready",
+        "certificate_revoked",
+        "certificate_waiting",
+        "check_failed",
+        "closed_hidden",
+        "closed_ignored",
+        "closed_long",
+        "closed_now",
+        "closed_planned",
+        "closed_soon",
+        "customer_path_off",
+        "customer_path_ok",
+        "customer_wallets_empty",
+        "first_day_done",
+        "first_day_todo",
+        "lightning_no_answer",
+        "lightning_no_confirmation",
+        "lightning_ok",
+        "lightning_slow",
+        "moved_no_owner",
+        "moved_no_wallet",
+        "moved_unclaimed",
+        "practice_offer",
+        "register_ready",
+        "register_unavailable",
+        "shop_awaiting_approval",
+        "shop_closing",
+        "shop_historic",
+        "shop_no_owner",
+        "shop_no_position",
+        "shop_suspended",
+        "shop_unlisted",
+        "shop_visible",
+        "shop_waiting_wallet",
+        "staff_no_register",
+        "time_up",
+        "training_done",
+        "training_locked",
+        "training_missing",
+    }
+)
 # A line of the copy (shops/helpdesk.py, `summary_lines`): "<sign> [<code>] <sentence>", its detail under it
 FINDING = re.compile(r"\S+ \[([a-z0-9_]+)\] ")
 DETAIL = "    "
@@ -163,8 +205,9 @@ def diagnosis_for_area(summary, staff_names=None):
         if found:
             keep = found[1] in shown
             if not keep and not told and found[1] in DIAGNOSIS_BY_CHOICE:
-                kept.append("· " + _("Something about the registers of the staff: whoever has the administration "
-                                     "sees it."))
+                kept.append(
+                    "· " + _("Something about the registers of the staff: whoever has the administration sees it.")
+                )
                 told = True
         elif not line.startswith(DETAIL):
             keep = False
@@ -185,10 +228,14 @@ def area_view(view):
 
     The CSRF check runs after the gate, not before it as the middleware would: a POST without a token from whoever the
     area is not for gets the 404 of an address that does not exist, not a 403 that tells it does."""
+
     @csrf_protect
     def inside(request, key, *args, **kwargs):
-        if over(request, "area-change" if request.method == "POST" else "area-page",
-                CHANGES if request.method == "POST" else PAGES):
+        if over(
+            request,
+            "area-change" if request.method == "POST" else "area-page",
+            CHANGES if request.method == "POST" else PAGES,
+        ):
             response = render(request, "team/area_busy.html", {"page_title": title()}, status=429)
             response["Retry-After"] = str(window_left())
             return response
@@ -201,6 +248,7 @@ def area_view(view):
         if key is None:
             raise Http404
         return private(inside(request, key, *args, **kwargs))
+
     return wrapper
 
 
@@ -217,6 +265,7 @@ def private(response):
 
 def where_the_area_is(view):
     """The sign-in page exists only where the area does: a 404 elsewhere, to every method, before anything else."""
+
     @csrf_exempt
     @wraps(view)
     def wrapper(request, *args, **kwargs):
@@ -224,6 +273,7 @@ def where_the_area_is(view):
             raise Http404
         # It takes no POST (require_GET): there is no form to protect, and the middleware's 403 would come first
         return private(view(request, *args, **kwargs))
+
     return wrapper
 
 
@@ -243,9 +293,18 @@ def sign_in(request):
         response["Retry-After"] = str(window_left())
         return response
     lnurl = lnurl_of(challenge, "login")
-    response = render(request, "team/area_sign_in.html", {
-        **context, "lnurl": lnurl, "qr": segno.make(lnurl, error="l").svg_data_uri(scale=6, border=2, light="#fff"),
-        "poll": reverse("team_own_poll"), "script": reverse("team_script"), "done": reverse("team_area")})
+    response = render(
+        request,
+        "team/area_sign_in.html",
+        {
+            **context,
+            "lnurl": lnurl,
+            "qr": segno.make(lnurl, error="l").svg_data_uri(scale=6, border=2, light="#fff"),
+            "poll": reverse("team_own_poll"),
+            "script": reverse("team_script"),
+            "done": reverse("team_area"),
+        },
+    )
     bind(response, request, challenge)
     return response
 
@@ -262,8 +321,17 @@ def area_items():
 
     data = summary()
     flag_copies(data["items"])
-    rows = [(item, [link for link in item.links if (not link.get("perm") or link["perm"] in RIGHTS)
-                    and not into_admin(link["url"])]) for item in data["items"]]
+    rows = [
+        (
+            item,
+            [
+                link
+                for link in item.links
+                if (not link.get("perm") or link["perm"] in RIGHTS) and not into_admin(link["url"])
+            ],
+        )
+        for item in data["items"]
+    ]
     return data, rows
 
 
@@ -291,12 +359,22 @@ def today(request, key):
     if "shops.view_shop" not in RIGHTS:
         raise Http404
     data, rows = area_items()
-    context = {"page_title": title(), "key": key, "rows": rows, "counts": data["counts"], "shops": data["shops"],
-               "closed": data["closed"], "section": "today"}
+    context = {
+        "page_title": title(),
+        "key": key,
+        "rows": rows,
+        "counts": data["counts"],
+        "shops": data["shops"],
+        "closed": data["closed"],
+        "section": "today",
+    }
     # The line /admin/today/ has about the register of the changes to the owners' accounts, with the area's own page
     if "shops.view_accountchange" in RIGHTS:
-        context["account_changes"] = (AccountChange.objects.filter(created__gte=timezone.now() - guard.RECENT)
-                                      .exclude(via=AccountChange.Via.OWNER).count())
+        context["account_changes"] = (
+            AccountChange.objects.filter(created__gte=timezone.now() - guard.RECENT)
+            .exclude(via=AccountChange.Via.OWNER)
+            .count()
+        )
     return render(request, "team/area_today.html", context)
 
 
@@ -319,17 +397,33 @@ def help_requests(request, key):
         raise Http404
     now = timezone.now()
     open_rows = HelpRequest.objects.filter(resolved__isnull=True).select_related("shop").order_by("created", "pk")
-    solved = (HelpRequest.objects.filter(resolved__gte=now - SOLVED_SHOWN).select_related("shop")
-              .order_by("-resolved", "-pk"))
-    shown = [{"row": row, "when": when(row.created), "note": shortened(row.note),
-              "summary": diagnosis_for_area(row.summary), "contact": contact(row),
-              "solved_when": when(row.resolved) if row.resolved else "",
-              "solved_by": solved_by(row) if row.resolved else ""}
-             for row in [*open_rows, *solved]]
-    return render(request, "team/area_help.html", {
-        "page_title": title(), "key": key, "open": [entry for entry in shown if not entry["row"].resolved],
-        "solved": [entry for entry in shown if entry["row"].resolved], "can_change": "shops.change_helprequest" in RIGHTS,
-        "section": "help"})
+    solved = (
+        HelpRequest.objects.filter(resolved__gte=now - SOLVED_SHOWN).select_related("shop").order_by("-resolved", "-pk")
+    )
+    shown = [
+        {
+            "row": row,
+            "when": when(row.created),
+            "note": shortened(row.note),
+            "summary": diagnosis_for_area(row.summary),
+            "contact": contact(row),
+            "solved_when": when(row.resolved) if row.resolved else "",
+            "solved_by": solved_by(row) if row.resolved else "",
+        }
+        for row in [*open_rows, *solved]
+    ]
+    return render(
+        request,
+        "team/area_help.html",
+        {
+            "page_title": title(),
+            "key": key,
+            "open": [entry for entry in shown if not entry["row"].resolved],
+            "solved": [entry for entry in shown if entry["row"].resolved],
+            "can_change": "shops.change_helprequest" in RIGHTS,
+            "section": "help",
+        },
+    )
 
 
 def target_of(row):
@@ -346,7 +440,8 @@ def solve(request, key, number):
     row = get_object_or_404(HelpRequest.objects.select_related("shop"), pk=number)
     with transaction.atomic():
         changed = HelpRequest.objects.filter(pk=row.pk, resolved__isnull=True).update(
-            resolved=timezone.now(), resolved_by=SOLVED_BY.format(pk=key.pk, name=key.name)[:150])
+            resolved=timezone.now(), resolved_by=SOLVED_BY.format(pk=key.pk, name=key.name)[:150]
+        )
         if changed:
             TeamAction.write(key, TeamAction.Action.SOLVED, target_of(row))
     return redirect(f"{reverse('team_help')}#request-{row.pk}")
@@ -389,6 +484,7 @@ def end(request, key):
 
 # The new shops (TeamKey.approves) ----------------------------------------------------------------------------------
 
+
 def waiting_items():
     """The shops that wait, as /admin/today/ lists them (shops/dashboard.py, `approval_items`, and the admin's
     `flag_copies`): the same ones, in the same order, those that look like a copy of another shop first."""
@@ -404,9 +500,16 @@ def judged(shop):
     """What a person needs to judge a new shop: what its page would show the public (shops/details.py), its town and
     description, when it was written. Not the owner's account, not the Lightning address."""
     shown = details.shown(shop)
-    return {"shop": shop, "contacts": [(details.LABELS[name], value) for name, value in shown.items()
-                                        if name in ("address", "website", "phone", "email")],
-            "description": shortened(shop.description), "when": when(shop.created)}
+    return {
+        "shop": shop,
+        "contacts": [
+            (details.LABELS[name], value)
+            for name, value in shown.items()
+            if name in ("address", "website", "phone", "email")
+        ],
+        "description": shortened(shop.description),
+        "when": when(shop.created),
+    }
 
 
 @area_view
@@ -416,7 +519,9 @@ def new_shops(request, key):
     if not key.approves:
         raise Http404
     rows = [{"item": item, **judged(item.shop)} for item in waiting_items()]
-    return render(request, "team/area_shops.html", {"page_title": title(), "key": key, "rows": rows, "section": "shops"})
+    return render(
+        request, "team/area_shops.html", {"page_title": title(), "key": key, "rows": rows, "section": "shops"}
+    )
 
 
 @area_view
@@ -434,14 +539,16 @@ def approve(request, key, shop):  # BEYOND_THE_GROUP["approve"]
         if not TeamKey.active().select_for_update().filter(pk=key.pk, approves=True).exists():
             raise Http404
         # Only a shop that is asked about: one an administrator set aside stays for an administrator
-        outcome = approval.approve_or_hold(approval.waiting().filter(pk=found.pk), None,
-                                           by=SOLVED_BY.format(pk=key.pk, name=key.name))
+        outcome = approval.approve_or_hold(
+            approval.waiting().filter(pk=found.pk), None, by=SOLVED_BY.format(pk=key.pk, name=key.name)
+        )
         if outcome.approved:
             TeamAction.write(key, TeamAction.Action.APPROVED, f"shop {found.pk}: {found.name}")
     return redirect(f"{reverse('team_shops')}#shop-{found.pk}")
 
 
 # OpenStreetMap requests ------------------------------------------------------------------------------------------
+
 
 @area_view
 @require_GET
@@ -451,16 +558,35 @@ def osm_requests(request, key):  # BEYOND_THE_GROUP: the group has no right on t
     with their own account: the site writes nothing there. The ones closed in the last days below, to read."""
     now = timezone.now()
     open_rows = OsmRequest.objects.filter(state=OsmRequest.State.OPEN).select_related("shop").order_by("created", "pk")
-    closed = (OsmRequest.objects.exclude(state=OsmRequest.State.OPEN).filter(done__gte=now - OSM_SHOWN)
-              .select_related("shop").order_by("-done", "-pk"))
-    shown = [{"row": row, "when": when(row.created), "lines": shortened(row.summary),
-              "entry": osm.element_url(row.shop.osm_ref) if row.shop.osm_ref else "", "editor": osm.editor_url(row.shop, row.shop.osm_ref or ""),
-              "done_when": when(row.done) if row.done else "", "done_by": solved_by_name(row.done_by)}
-             for row in [*open_rows, *closed]]
-    return render(request, "team/area_osm.html", {
-        "page_title": title(), "key": key, "section": "osm",
-        "open": [entry for entry in shown if entry["row"].state == OsmRequest.State.OPEN],
-        "closed": [entry for entry in shown if entry["row"].state != OsmRequest.State.OPEN]})
+    closed = (
+        OsmRequest.objects.exclude(state=OsmRequest.State.OPEN)
+        .filter(done__gte=now - OSM_SHOWN)
+        .select_related("shop")
+        .order_by("-done", "-pk")
+    )
+    shown = [
+        {
+            "row": row,
+            "when": when(row.created),
+            "lines": shortened(row.summary),
+            "entry": osm.element_url(row.shop.osm_ref) if row.shop.osm_ref else "",
+            "editor": osm.editor_url(row.shop, row.shop.osm_ref or ""),
+            "done_when": when(row.done) if row.done else "",
+            "done_by": solved_by_name(row.done_by),
+        }
+        for row in [*open_rows, *closed]
+    ]
+    return render(
+        request,
+        "team/area_osm.html",
+        {
+            "page_title": title(),
+            "key": key,
+            "section": "osm",
+            "open": [entry for entry in shown if entry["row"].state == OsmRequest.State.OPEN],
+            "closed": [entry for entry in shown if entry["row"].state != OsmRequest.State.OPEN],
+        },
+    )
 
 
 def solved_by_name(text):
@@ -475,13 +601,15 @@ def osm_done(request, key, number):  # BEYOND_THE_GROUP["osm_done"]
     row = get_object_or_404(OsmRequest.objects.select_related("shop"), pk=number)
     with transaction.atomic():
         changed = OsmRequest.objects.filter(pk=row.pk, state=OsmRequest.State.OPEN).update(
-            state=OsmRequest.State.DONE, done=timezone.now(), done_by=SOLVED_BY.format(pk=key.pk, name=key.name)[:150])
+            state=OsmRequest.State.DONE, done=timezone.now(), done_by=SOLVED_BY.format(pk=key.pk, name=key.name)[:150]
+        )
         if changed:
             TeamAction.write(key, TeamAction.Action.OSM_DONE, f"OpenStreetMap request {row.pk}: {row.shop.name}")
     return redirect(f"{reverse('team_osm')}#osm-{row.pk}")
 
 
 # The register of the changes to the owners' accounts, to read ----------------------------------------------------
+
 
 @area_view
 @require_GET
@@ -491,11 +619,25 @@ def account_changes(request, key):
     point of the register. Nothing else of an account: the register keeps the names of what changed, never the values."""
     if "shops.view_accountchange" not in RIGHTS:
         raise Http404
-    page = Paginator(AccountChange.objects.order_by("-created", "-pk"), CHANGES_PER_PAGE).get_page(request.GET.get("page"))
-    rows = [{"row": row, "when": when(row.created), "what": ", ".join(guard.words(row.changed.split(","))),
-             "via": guard.VIA.get(row.via, row.via), "shops": shortened(row.shops),
-             "told": ", ".join(str(guard.CHANNELS[code]) for code in row.told.split(",") if code in guard.CHANNELS),
-             "not_told": ", ".join(str(guard.CHANNELS[code]) for code in row.not_told.split(",") if code in guard.CHANNELS)}
-            for row in page]
-    return render(request, "team/area_changes.html", {"page_title": title(), "key": key, "rows": rows, "page": page,
-                                                      "section": "changes"})
+    page = Paginator(AccountChange.objects.order_by("-created", "-pk"), CHANGES_PER_PAGE).get_page(
+        request.GET.get("page")
+    )
+    rows = [
+        {
+            "row": row,
+            "when": when(row.created),
+            "what": ", ".join(guard.words(row.changed.split(","))),
+            "via": guard.VIA.get(row.via, row.via),
+            "shops": shortened(row.shops),
+            "told": ", ".join(str(guard.CHANNELS[code]) for code in row.told.split(",") if code in guard.CHANNELS),
+            "not_told": ", ".join(
+                str(guard.CHANNELS[code]) for code in row.not_told.split(",") if code in guard.CHANNELS
+            ),
+        }
+        for row in page
+    ]
+    return render(
+        request,
+        "team/area_changes.html",
+        {"page_title": title(), "key": key, "rows": rows, "page": page, "section": "changes"},
+    )

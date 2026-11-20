@@ -1,5 +1,6 @@
 """The Lightning address of the new shop form, tried while the merchant writes it: what gets pasted is tidied, the
 live check says what is wrong and what to do, and the check on submit stays the real one."""
+
 import json
 import socket
 import time
@@ -23,8 +24,12 @@ from .lnaddress import confirms, fetch, missing, one_slip, probe, refusal, sugge
 from .models import RequestCount, Shop
 from .tests import public_names, steady_limits, stream
 
-METADATA = {"tag": "payRequest", "callback": "https://pay.example.org/cb", "minSendable": 2000,
-            "metadata": "[[\"text/plain\", \"internal note from the provider\"]]"}
+METADATA = {
+    "tag": "payRequest",
+    "callback": "https://pay.example.org/cb",
+    "minSendable": 2000,
+    "metadata": '[["text/plain", "internal note from the provider"]]',
+}
 INVOICE = {"pr": "lnbc1", "verify": "https://pay.example.org/verify/a", "reason": "provider-only detail"}
 SETTLED = {"status": "OK", "settled": False}
 
@@ -56,24 +61,47 @@ class Fresh(TestCase):
 
 class Tidy(TestCase):
     def test_what_gets_pasted_becomes_the_address(self):
-        for pasted in ("mario@example.org", "Mario@Example.org", "lightning:mario@example.org", "LIGHTNING:Mario@example.org",
-                       "lightning://mario@example.org", " mario@example.org ", "mario@example.org.", "mario@example.org,",
-                       '"mario@example.org"', "'mario@example.org'", "«mario@example.org»", "“mario@example.org”.",
-                       "<mario@example.org>", "(mario@example.org)", "`mario@example.org`", '"lightning:mario@example.org".',
-                       "mario @ example . org", "mario @example.org", "mario​@example.org﻿", "\tmario@example.org\n",
-                       "https://example.org/.well-known/lnurlp/mario", "https://Example.org/.well-known/lnurlp/Mario/",
-                       "https://example.org/.well-known/lnurlp/mario?amount=1000", "lnurlp://example.org/.well-known/lnurlp/mario",
-                       "lightning:https://example.org/.well-known/lnurlp/mario"):
+        for pasted in (
+            "mario@example.org",
+            "Mario@Example.org",
+            "lightning:mario@example.org",
+            "LIGHTNING:Mario@example.org",
+            "lightning://mario@example.org",
+            " mario@example.org ",
+            "mario@example.org.",
+            "mario@example.org,",
+            '"mario@example.org"',
+            "'mario@example.org'",
+            "«mario@example.org»",
+            "“mario@example.org”.",
+            "<mario@example.org>",
+            "(mario@example.org)",
+            "`mario@example.org`",
+            '"lightning:mario@example.org".',
+            "mario @ example . org",
+            "mario @example.org",
+            "mario​@example.org﻿",
+            "\tmario@example.org\n",
+            "https://example.org/.well-known/lnurlp/mario",
+            "https://Example.org/.well-known/lnurlp/Mario/",
+            "https://example.org/.well-known/lnurlp/mario?amount=1000",
+            "lnurlp://example.org/.well-known/lnurlp/mario",
+            "lightning:https://example.org/.well-known/lnurlp/mario",
+        ):
             with self.subTest(pasted):
                 self.assertEqual(tidy_lightning_address(pasted), "mario@example.org")
 
     def test_what_is_not_an_address_stays_what_it_is(self):
         """The rules of the form refuse it, with the reason: tidying does not make up an address."""
         self.assertEqual(tidy_lightning_address("₿mario@example.org."), "₿mario@example.org")
-        self.assertEqual(tidy_lightning_address("https://example.org:8443/.well-known/lnurlp/mario"),
-                         "https://example.org:8443/.well-known/lnurlp/mario")
-        self.assertEqual(tidy_lightning_address("http://example.org/.well-known/lnurlp/mario"),
-                         "http://example.org/.well-known/lnurlp/mario")
+        self.assertEqual(
+            tidy_lightning_address("https://example.org:8443/.well-known/lnurlp/mario"),
+            "https://example.org:8443/.well-known/lnurlp/mario",
+        )
+        self.assertEqual(
+            tidy_lightning_address("http://example.org/.well-known/lnurlp/mario"),
+            "http://example.org/.well-known/lnurlp/mario",
+        )
         self.assertEqual(tidy_lightning_address("https://example.org/pay/mario"), "https://example.org/pay/mario")
         self.assertEqual(tidy_lightning_address("..."), "")
 
@@ -81,9 +109,12 @@ class Tidy(TestCase):
         """static/shop_form.js keeps its own copy of the rules: the same characters and the same prefixes."""
         script = (settings.BASE_DIR / "static/shop_form.js").read_text()
         from .forms import LNURLP_URL, PASTED_AROUND
+
         self.assertIn(json.dumps(PASTED_AROUND, ensure_ascii=False), script)
         self.assertIn("/^lightning:(\\/\\/)?/i", script)
-        self.assertIn(LNURLP_URL.pattern.replace("(?P<host>", "(").replace("(?P<name>", "(").replace("/", "\\/"), script)
+        self.assertIn(
+            LNURLP_URL.pattern.replace("(?P<host>", "(").replace("(?P<name>", "(").replace("/", "\\/"), script
+        )
 
 
 @override_settings(NETWORK="signet")
@@ -101,11 +132,14 @@ class TheForm(TestCase):
 
     def test_each_mistake_has_its_reason(self):
         for address, code, words in (
-                ("₿mario@example.org", "bolt12", "BOLT12"), ("lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzr", "bolt12", "BOLT12"),
-                ("lnbc10u1pjq8wq3pp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq", "invoice", "one payment"),
-                ("lntbs1u1pjq8wq3pp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq", "invoice", "one payment"),
-                ("mario", "shape", "name@provider.com"), ("mario@example", "shape", "name@provider.com"),
-                ("mario@printer.local", "private", "cannot be reached")):
+            ("₿mario@example.org", "bolt12", "BOLT12"),
+            ("lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzr", "bolt12", "BOLT12"),
+            ("lnbc10u1pjq8wq3pp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq", "invoice", "one payment"),
+            ("lntbs1u1pjq8wq3pp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq", "invoice", "one payment"),
+            ("mario", "shape", "name@provider.com"),
+            ("mario@example", "shape", "name@provider.com"),
+            ("mario@printer.local", "private", "cannot be reached"),
+        ):
             with self.subTest(address):
                 errors = self.form(address).errors.as_data()["lightning_address"]
                 self.assertEqual(errors[0].code, code)
@@ -125,8 +159,11 @@ class Probe(Fresh):
                 self.assertEqual(probe("mario@exmple.org"), lnaddress.UNKNOWN_DOMAIN)
             with patch("shops.lnaddress.missing", return_value=False):
                 self.assertEqual(probe("mario@example.org"), lnaddress.NO_ANSWER)
-        with public(), patch("shops.lnaddress.requests.Session.get", side_effect=requests.ReadTimeout), \
-                patch("shops.lnaddress.missing") as asked:
+        with (
+            public(),
+            patch("shops.lnaddress.requests.Session.get", side_effect=requests.ReadTimeout),
+            patch("shops.lnaddress.missing") as asked,
+        ):
             self.assertEqual(probe("mario@example.org"), lnaddress.NO_ANSWER)
         asked.assert_not_called()
 
@@ -141,14 +178,19 @@ class Probe(Fresh):
     def test_the_lookup_of_the_fetch_says_whether_the_name_exists(self):
         """The fetch asks the name first: its answer decides, without a second lookup."""
         for errno, state in ((socket.EAI_NONAME, lnaddress.UNKNOWN_DOMAIN), (socket.EAI_AGAIN, lnaddress.NO_ANSWER)):
-            with self.subTest(errno), patch("socket.getaddrinfo", side_effect=socket.gaierror(errno, "x")) as asked, \
-                    patch("shops.lnaddress.requests.Session.get") as fetched:
+            with (
+                self.subTest(errno),
+                patch("socket.getaddrinfo", side_effect=socket.gaierror(errno, "x")) as asked,
+                patch("shops.lnaddress.requests.Session.get") as fetched,
+            ):
                 self.assertEqual(probe("mario@exmple.org"), state)
             self.assertEqual(asked.call_count, 1)
             fetched.assert_not_called()
         # Every address must be public, or nothing is fetched
-        inside = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443)),
-                  (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.5", 443))]
+        inside = [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443)),
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.5", 443)),
+        ]
         with patch("socket.getaddrinfo", return_value=inside), patch("shops.lnaddress.requests.Session.get") as fetched:
             self.assertEqual(probe("mario@example.org"), lnaddress.NO_ANSWER)
         fetched.assert_not_called()
@@ -168,7 +210,10 @@ class Probe(Fresh):
                 raise ValueError(url)
             return METADATA
 
-        with patch("shops.lnaddress.time.monotonic", side_effect=[0, 1, 20]), patch("shops.lnaddress.fetch", side_effect=fake):
+        with (
+            patch("shops.lnaddress.time.monotonic", side_effect=[0, 1, 20]),
+            patch("shops.lnaddress.fetch", side_effect=fake),
+        ):
             self.assertEqual(probe("mario@example.org", seconds=12), lnaddress.NO_ANSWER)
         self.assertEqual(limits, [11, -8])
 
@@ -185,10 +230,11 @@ class Probe(Fresh):
 
 class Why(Fresh):
     """A refusal says what exactly is wrong, with the standard's name for whoever helps the merchant."""
+
     ELSEWHERE = {"tag": "payRequest", "callback": "https://invoices.example.net/cb"}
 
     def found(self, *replies, **patched):
-        with public(), (patch("shops.lnaddress.requests.Session.get", **patched) if patched else answers(*replies)):
+        with public(), patch("shops.lnaddress.requests.Session.get", **patched) if patched else answers(*replies):
             return probe("mario@example.org")
 
     def error(self, status):
@@ -202,19 +248,39 @@ class Why(Fresh):
         cases = (
             (unreachable, lnaddress.NO_ANSWER, lnaddress.UNREACHABLE, "does not answer right now"),
             (self.found(side_effect=requests.ReadTimeout), lnaddress.NO_ANSWER, lnaddress.UNREACHABLE, "right now"),
-            (self.found(side_effect=self.error(404)), lnaddress.NO_ANSWER, lnaddress.NO_SUCH_ADDRESS,
-             "knows no such address: check what you wrote before the @"),
+            (
+                self.found(side_effect=self.error(404)),
+                lnaddress.NO_ANSWER,
+                lnaddress.NO_SUCH_ADDRESS,
+                "knows no such address: check what you wrote before the @",
+            ),
             (self.found({"tag": "withdrawRequest"}), lnaddress.NO_ANSWER, lnaddress.NOT_LNURL, "LUD-16"),
             (self.found(["a", "list"]), lnaddress.NO_ANSWER, lnaddress.NOT_LNURL, "LUD-16"),
-            (self.found(self.ELSEWHERE), lnaddress.NO_ANSWER, lnaddress.INVOICES_ELSEWHERE,
-             "has its invoices made by another site"),
+            (
+                self.found(self.ELSEWHERE),
+                lnaddress.NO_ANSWER,
+                lnaddress.INVOICES_ELSEWHERE,
+                "has its invoices made by another site",
+            ),
             (self.found(METADATA, {"status": "ERROR"}), lnaddress.NO_ANSWER, lnaddress.NO_INVOICE, "gives no invoice"),
-            (self.found(METADATA, {"pr": "lnbc1"}), lnaddress.NO_CONFIRMATION, lnaddress.NO_VERIFY,
-             "does not support LUD-21 (verify)"),
-            (self.found(METADATA, {"pr": "lnbc1", "verify": "https://elsewhere.example.net/v"}),
-             lnaddress.NO_CONFIRMATION, lnaddress.VERIFY_ELSEWHERE, "is on another site"),
-            (self.found(METADATA, INVOICE, {"status": "OK", "settled": True}), lnaddress.NO_CONFIRMATION,
-             lnaddress.VERIFY_UNREADABLE, "does not answer as the register needs"),
+            (
+                self.found(METADATA, {"pr": "lnbc1"}),
+                lnaddress.NO_CONFIRMATION,
+                lnaddress.NO_VERIFY,
+                "does not support LUD-21 (verify)",
+            ),
+            (
+                self.found(METADATA, {"pr": "lnbc1", "verify": "https://elsewhere.example.net/v"}),
+                lnaddress.NO_CONFIRMATION,
+                lnaddress.VERIFY_ELSEWHERE,
+                "is on another site",
+            ),
+            (
+                self.found(METADATA, INVOICE, {"status": "OK", "settled": True}),
+                lnaddress.NO_CONFIRMATION,
+                lnaddress.VERIFY_UNREADABLE,
+                "does not answer as the register needs",
+            ),
         )
         for found, state, why, words in cases:
             with self.subTest(why):
@@ -243,8 +309,10 @@ class Why(Fresh):
         self.assertNotIn("example.net", text)
 
     def test_a_bare_state_keeps_the_general_sentence(self):
-        for state, words in ((lnaddress.NO_ANSWER, "does not answer: check it and try again"),
-                             (lnaddress.NO_CONFIRMATION, "it does not tell the register when a payment arrives")):
+        for state, words in (
+            (lnaddress.NO_ANSWER, "does not answer: check it and try again"),
+            (lnaddress.NO_CONFIRMATION, "it does not tell the register when a payment arrives"),
+        ):
             self.assertIn(words, lnaddress.explanation(state, "mario@example.org"))
 
     def test_an_email_is_still_an_email(self):
@@ -261,6 +329,7 @@ class Why(Fresh):
 
     def test_on_submit_and_in_the_diagnosis(self):
         from .diagnosis import refusal_reason
+
         with public(), answers(METADATA, {"pr": "lnbc1"}):
             text = refusal("mario@example.org")
         self.assertIn("LUD-21", text)
@@ -279,12 +348,22 @@ class Why(Fresh):
 
 class Suggestion(Fresh):
     def test_one_slip(self):
-        for typed, known in (("exmple.org", "example.org"), ("examplle.org", "example.org"), ("exapmle.org", "example.org"),
-                             ("example.or", "example.org"), ("example.orf", "example.org"), ("example.con", "example.com")):
+        for typed, known in (
+            ("exmple.org", "example.org"),
+            ("examplle.org", "example.org"),
+            ("exapmle.org", "example.org"),
+            ("example.or", "example.org"),
+            ("example.orf", "example.org"),
+            ("example.con", "example.com"),
+        ):
             with self.subTest(typed):
                 self.assertTrue(one_slip(typed, known))
-        for typed, known in (("example.org", "example.org"), ("exmpl.org", "example.org"), ("other.org", "example.org"),
-                             ("xeample.orh", "example.org")):
+        for typed, known in (
+            ("example.org", "example.org"),
+            ("exmpl.org", "example.org"),
+            ("other.org", "example.org"),
+            ("xeample.orh", "example.org"),
+        ):
             with self.subTest(typed):
                 self.assertFalse(one_slip(typed, known))
 
@@ -321,12 +400,19 @@ class Suggestion(Fresh):
     def test_on_submit_too(self):
         shop("A", "anna@pay.example.org")
         shop("B", "bruno@pay.example.org")
-        with public(), patch("shops.lnaddress.requests.Session.get", side_effect=requests.ConnectionError), \
-                patch("shops.lnaddress.missing", return_value=True):
-            self.assertEqual(refusal("mario@pay.exmple.org", user=1),
-                             "I cannot find pay.exmple.org: check what you wrote after the @. Did you mean mario@pay.example.org?")
+        with (
+            public(),
+            patch("shops.lnaddress.requests.Session.get", side_effect=requests.ConnectionError),
+            patch("shops.lnaddress.missing", return_value=True),
+        ):
+            self.assertEqual(
+                refusal("mario@pay.exmple.org", user=1),
+                "I cannot find pay.exmple.org: check what you wrote after the @. Did you mean mario@pay.example.org?",
+            )
             # Without a person (the diagnosis, in its own thread) the shops are not read
-            self.assertEqual(refusal("mario@pay.exmple.org"), "I cannot find pay.exmple.org: check what you wrote after the @.")
+            self.assertEqual(
+                refusal("mario@pay.exmple.org"), "I cannot find pay.exmple.org: check what you wrote after the @."
+            )
 
 
 class LiveCheck(Fresh):
@@ -356,8 +442,11 @@ class LiveCheck(Fresh):
             self.assertEqual(guarded.post(self.url, {"address": "mario@example.org"}).status_code, 403)
             tried.assert_not_called()
             guarded.get("/en/shops/new/")
-            response = guarded.post(self.url, {"address": "mario@example.org"},
-                                    headers={"X-CSRFToken": guarded.cookies[settings.CSRF_COOKIE_NAME].value})
+            response = guarded.post(
+                self.url,
+                {"address": "mario@example.org"},
+                headers={"X-CSRFToken": guarded.cookies[settings.CSRF_COOKIE_NAME].value},
+            )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["X-Robots-Tag"], "noindex, nofollow")
         self.assertEqual(response["Cache-Control"], "no-store")
@@ -365,14 +454,24 @@ class LiveCheck(Fresh):
     def test_a_working_address(self):
         with public(), answers(METADATA, INVOICE, SETTLED) as get:
             response, answer = self.ask(" lightning:Mario@Example.org. ")
-        self.assertEqual(answer, {"address": "mario@example.org", "provider": "example.org", "state": "ok", "suggestion": None,
-                                  "message": "It works: the register will know when a payment arrives. Provider: example.org."})
+        self.assertEqual(
+            answer,
+            {
+                "address": "mario@example.org",
+                "provider": "example.org",
+                "state": "ok",
+                "suggestion": None,
+                "message": "It works: the register will know when a payment arrives. Provider: example.org.",
+            },
+        )
         self.assertEqual(get.call_args_list[0].args[0], "https://example.org/.well-known/lnurlp/mario")
 
     def test_in_the_language_of_the_page(self):
         with public(), answers(METADATA, INVOICE, SETTLED):
             answer = self.client.post(self.url.replace("/en/", "/it/"), {"address": "mario@example.org"}).json()
-        self.assertEqual(answer["message"], "Funziona: la cassa saprà quando arriva un pagamento. Fornitore: example.org.")
+        self.assertEqual(
+            answer["message"], "Funziona: la cassa saprà quando arriva un pagamento. Fornitore: example.org."
+        )
 
     def test_nothing_of_what_the_provider_says_reaches_the_page(self):
         with public(), answers(METADATA, INVOICE, {"settled": False, "preimage": "secret-preimage"}):
@@ -385,7 +484,12 @@ class LiveCheck(Fresh):
         cases = (
             ("mario", "shape", "should look like name@provider.com", None),
             ("₿mario@example.org", "bolt12", f"write to {community()['email']}", None),
-            ("lnbc10u1pjq8wq3pp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq", "invoice", "looks like an email", None),
+            (
+                "lnbc10u1pjq8wq3pp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq",
+                "invoice",
+                "looks like an email",
+                None,
+            ),
             ("mario@printer.local", "private", "cannot be reached from the internet", None),
         )
         for address, state, words, _replies in cases:
@@ -409,8 +513,11 @@ class LiveCheck(Fresh):
     def test_a_provider_that_does_not_exist_and_the_one_meant(self):
         shop("A", "anna@pay.example.org")
         shop("B", "bruno@pay.example.org")
-        with public(), patch("shops.lnaddress.requests.Session.get", side_effect=requests.ConnectionError), \
-                patch("shops.lnaddress.missing", return_value=True):
+        with (
+            public(),
+            patch("shops.lnaddress.requests.Session.get", side_effect=requests.ConnectionError),
+            patch("shops.lnaddress.missing", return_value=True),
+        ):
             answer = self.ask("mario@pay.exmple.org")[1]
         self.assertEqual(answer["state"], "unknown_domain")
         self.assertEqual(answer["message"], "I cannot find pay.exmple.org: check what you wrote after the @.")
@@ -425,9 +532,11 @@ class LiveCheck(Fresh):
 
     def test_the_names_are_asked_within_the_same_time(self):
         """A DNS that does not answer holds the check, not the page: past its time the page hears "does not answer"."""
-        with patch("shops.views.LIGHTNING_CHECK_SECONDS", 0.1), \
-                patch("shops.forms.public_host", side_effect=lambda host: time.sleep(0.5) or True), \
-                patch("shops.lnaddress.probe") as tried:
+        with (
+            patch("shops.views.LIGHTNING_CHECK_SECONDS", 0.1),
+            patch("shops.forms.public_host", side_effect=lambda host: time.sleep(0.5) or True),
+            patch("shops.lnaddress.probe") as tried,
+        ):
             started = time.monotonic()
             answer = self.ask("mario@example.org")[1]
             self.assertLess(time.monotonic() - started, 0.45)
@@ -455,8 +564,11 @@ class LiveCheck(Fresh):
 
     def test_a_limit_for_the_wider_network_too(self):
         self.enterContext(steady_limits())
-        with patch("shops.lnaddress.probe", return_value=lnaddress.NO_ANSWER), public(), \
-                patch("shops.views.LIGHTNING_CHECKS_PER_NETWORK", 2):
+        with (
+            patch("shops.lnaddress.probe", return_value=lnaddress.NO_ANSWER),
+            public(),
+            patch("shops.views.LIGHTNING_CHECKS_PER_NETWORK", 2),
+        ):
             states = []
             for n in range(3):
                 client = Client(REMOTE_ADDR=f"2001:db8:1:{n}::1")
@@ -466,8 +578,12 @@ class LiveCheck(Fresh):
 
     def test_limits_per_person_and_per_address(self):
         self.enterContext(steady_limits())
-        with patch("shops.lnaddress.probe", return_value=lnaddress.NO_ANSWER) as tried, public(), \
-                patch("shops.views.LIGHTNING_CHECKS_PER_USER", 3), patch("shops.views.LIGHTNING_CHECKS_PER_IP", 4):
+        with (
+            patch("shops.lnaddress.probe", return_value=lnaddress.NO_ANSWER) as tried,
+            public(),
+            patch("shops.views.LIGHTNING_CHECKS_PER_USER", 3),
+            patch("shops.views.LIGHTNING_CHECKS_PER_IP", 4),
+        ):
             states = [self.ask(f"m{n}@example.org")[1]["state"] for n in range(4)]
             self.assertEqual(states, ["no_answer"] * 3 + ["busy"])
             response, answer = self.ask("m9@example.org")
@@ -490,8 +606,11 @@ class LiveCheck(Fresh):
         self.assertEqual(get.call_count, 2)
 
     def test_a_problem_is_remembered_only_briefly(self):
-        with patch("shops.lnaddress.probe", return_value=lnaddress.NO_ANSWER), public(), \
-                patch("shops.lnaddress.cache") as kept:
+        with (
+            patch("shops.lnaddress.probe", return_value=lnaddress.NO_ANSWER),
+            public(),
+            patch("shops.lnaddress.cache") as kept,
+        ):
             kept.get.side_effect = lambda key, default=None: default
             self.ask("mario@example.org")
         self.assertEqual(kept.set.call_args.args[2], lnaddress.REMEMBER_PROBLEM)
@@ -524,7 +643,9 @@ class TheSubmitStaysTheRealCheck(Fresh):
         other = Client()
         other.force_login(get_user_model().objects.create(username="other"))
         with public(), answers(METADATA, INVOICE, SETTLED):
-            self.assertEqual(other.post("/en/shops/new/lightning-address/", {"address": "mario@example.org"}).json()["state"], "ok")
+            self.assertEqual(
+                other.post("/en/shops/new/lightning-address/", {"address": "mario@example.org"}).json()["state"], "ok"
+            )
         response, probed = self.submit("mario@example.org", METADATA, {"pr": "lnbc1"})
         self.assertEqual(probed, 2)
         self.assertContains(response, "does not tell the register")
@@ -532,7 +653,9 @@ class TheSubmitStaysTheRealCheck(Fresh):
 
     def test_another_address_is_probed_on_submit(self):
         self.assertEqual(self.live("mario@example.org", METADATA, INVOICE, SETTLED), "ok")
-        response, probed = self.submit("mario@example.com", {**METADATA, "callback": "https://pay.example.com/cb"}, {"pr": "lnbc1"})
+        response, probed = self.submit(
+            "mario@example.com", {**METADATA, "callback": "https://pay.example.com/cb"}, {"pr": "lnbc1"}
+        )
         self.assertEqual(probed, 2)
         self.assertContains(response, "does not tell the register")
         self.assertFalse(Shop.objects.exists())
@@ -564,8 +687,11 @@ class ThePage(TestCase):
 
     def test_the_live_region_and_the_help(self):
         page = self.client.get("/en/shops/new/")
-        self.assertContains(page, '<p id="lightning-check" class="field-check" role="status" aria-live="polite" hidden '
-                                  'data-url="/en/shops/new/lightning-address/" data-checking="Trying the address..."')
+        self.assertContains(
+            page,
+            '<p id="lightning-check" class="field-check" role="status" aria-live="polite" hidden '
+            'data-url="/en/shops/new/lightning-address/" data-checking="Trying the address..."',
+        )
         self.assertContains(page, '<details class="field-help"><summary>Where do I find it?</summary>')
         self.assertContains(page, "look under Receive")
         self.assertNotContains(page, "The wallets that work with the register")
@@ -573,10 +699,14 @@ class ThePage(TestCase):
 
     def test_the_wallet_page_of_the_community(self):
         with self.configured({"wallet": "learn/wallet/"}):
-            self.assertContains(self.client.get("/en/shops/new/"),
-                                '<p><a href="/en/learn/wallet/">The wallets that work with the register</a></p>')
-            self.assertContains(self.client.get("/it/shops/new/"),
-                                '<p><a href="/it/learn/wallet/">I wallet che funzionano con la cassa</a></p>')
+            self.assertContains(
+                self.client.get("/en/shops/new/"),
+                '<p><a href="/en/learn/wallet/">The wallets that work with the register</a></p>',
+            )
+            self.assertContains(
+                self.client.get("/it/shops/new/"),
+                '<p><a href="/it/learn/wallet/">I wallet che funzionano con la cassa</a></p>',
+            )
             self.assertEqual(skipped_form_links(None), [])
         with self.configured({"wallet": "https://wallets.example.org/"}):
             self.assertContains(self.client.get("/en/shops/new/"), 'href="https://wallets.example.org/"')
@@ -603,27 +733,51 @@ class VerifyAnswer(TestCase):
     """LUD-21: the invoice the probe makes is never paid, so `settled` must be there, a boolean, and false."""
 
     def test_what_real_providers_send(self):
-        for answer in ({"status": "OK", "settled": False, "preimage": None, "pr": "lnbc1"},
-                       {"status": "OK", "settled": False, "pr": "LNBC1"}, {"status": "ok", "settled": False},
-                       {"settled": False}, {"settled": False, "preimage": None}):
+        for answer in (
+            {"status": "OK", "settled": False, "preimage": None, "pr": "lnbc1"},
+            {"status": "OK", "settled": False, "pr": "LNBC1"},
+            {"status": "ok", "settled": False},
+            {"settled": False},
+            {"settled": False, "preimage": None},
+        ):
             with self.subTest(answer):
                 self.assertTrue(confirms(answer, "lnbc1"))
 
     def test_what_the_register_could_not_trust(self):
-        for answer in ({"settled": True}, {"status": "OK", "settled": True, "pr": "lnbc1"},
-                       {"settled": "false"}, {"settled": 0}, {"settled": None}, {"status": "OK"},
-                       {"status": "ERROR", "settled": False, "reason": "not found"}, {"status": None, "settled": False},
-                       {"settled": False, "pr": "lnbc2"}, {"settled": False, "pr": 1}, [], "settled", None):
+        for answer in (
+            {"settled": True},
+            {"status": "OK", "settled": True, "pr": "lnbc1"},
+            {"settled": "false"},
+            {"settled": 0},
+            {"settled": None},
+            {"status": "OK"},
+            {"status": "ERROR", "settled": False, "reason": "not found"},
+            {"status": None, "settled": False},
+            {"settled": False, "pr": "lnbc2"},
+            {"settled": False, "pr": 1},
+            [],
+            "settled",
+            None,
+        ):
             with self.subTest(answer):
                 self.assertFalse(confirms(answer, "lnbc1"))
 
     def test_through_the_probe(self):
         metadata = {"tag": "payRequest", "callback": "https://pay.example.org/cb"}
         invoice = {"pr": "lnbc1", "verify": "https://pay.example.org/verify/a"}
-        for verify, refused in (({"status": "OK", "settled": True}, True), ({"status": "ERROR", "settled": False}, True),
-                                ({"status": "OK", "settled": False, "pr": "lnbc1"}, False)):
-            with self.subTest(verify), public_names(), \
-                    patch("shops.lnaddress.requests.Session.get", side_effect=[stream(metadata), stream(invoice), stream(verify)]):
+        for verify, refused in (
+            ({"status": "OK", "settled": True}, True),
+            ({"status": "ERROR", "settled": False}, True),
+            ({"status": "OK", "settled": False, "pr": "lnbc1"}, False),
+        ):
+            with (
+                self.subTest(verify),
+                public_names(),
+                patch(
+                    "shops.lnaddress.requests.Session.get",
+                    side_effect=[stream(metadata), stream(invoice), stream(verify)],
+                ),
+            ):
                 problem = refusal("mario@example.org")
             if refused:
                 self.assertIn("does not tell the register", problem)

@@ -10,6 +10,7 @@ logs the path of every answer from 400 up). Caddy's logs cut them with the same 
 
 The cut does not ask for the path to be a real one: capitals, doubled slashes, a prefix before /team/ (a language's,
 `/en/team/join/…`) and percent-encoded letters are cut too, since a mistyped or mangled link carries the same token."""
+
 import logging
 import re
 from urllib.parse import unquote

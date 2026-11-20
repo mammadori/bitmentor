@@ -24,6 +24,7 @@ already configured here with the same external id, is never touched: running the
 
 A moved shop gets a new id here: the id opens the register, and a register link handed out on the other site must not
 open this one. A shop that had a register there waits off the map until its owner connects a wallet."""
+
 import json
 import math
 import secrets
@@ -61,8 +62,21 @@ MAX_SHOPS = 20000
 MAX_TEXT = 5000
 
 DETAILS = tuple(ShopDetailsForm.Meta.fields)
-TEXT = ("external_id", "name", "description", "address", "city", "website", "email", "phone", "legal_name", "vat_number",
-        "nostr_pubkey", "nip05_name", "telegram_chat")
+TEXT = (
+    "external_id",
+    "name",
+    "description",
+    "address",
+    "city",
+    "website",
+    "email",
+    "phone",
+    "legal_name",
+    "vat_number",
+    "nostr_pubkey",
+    "nip05_name",
+    "telegram_chat",
+)
 NUMBERS = ("latitude", "longitude")
 FLAGS = ("listed", "lightning", "suspended", "register")
 # What the owner shows of the details (shops/details.py), one true or false for each
@@ -82,14 +96,17 @@ class FileRefused(Exception):
 
 # --- Export ---------------------------------------------------------------------------------------------------------
 
+
 def owner_entry(user):
     """How to find the owner on another site, or None. Staff accounts sign in only with a password, which never
     travels: their shops move without an owner, and whoever runs the site assigns them from /admin/."""
     if user is None or user.is_staff or user.is_superuser or not user.is_active:
         return None
     # A wallet signs in: the one the account was born from, unless connected elsewhere since, or one connected to it
-    wallet = bool((LINKING_KEY.fullmatch(user.username) and not WalletKey.objects.filter(key=user.username).exists())
-                  or user.wallet_keys.exists())
+    wallet = bool(
+        (LINKING_KEY.fullmatch(user.username) and not WalletKey.objects.filter(key=user.username).exists())
+        or user.wallet_keys.exists()
+    )
     profile = Profile.objects.filter(user=user).first()
     email = profile.email if profile else ""
     if not wallet and not email:
@@ -122,13 +139,22 @@ def waiting_for(shop, today=None):
 
 def shop_entry(shop):
     register = has_register(shop)
-    entry = {"id": str(shop.pk), **{name: getattr(shop, name) for name in TEXT}, "latitude": shop.latitude,
-             "longitude": shop.longitude, "discount": shop.discount, "listed": shop.listed,
-             # For a shop with a register the flag follows its Lightning address, which does not move
-             "lightning": shop.lightning and not register, "suspended": shop.suspended or shop.needs_approval,
-             # A shop still waiting for the approval here arrives suspended there: the other site's staff decides
-             "register": register, **{name: getattr(shop, name) for name in SHOWN},
-             "closed_on": shop.closed_on.isoformat() if shop.closed_on else None, "owner": owner_entry(shop.owner)}
+    entry = {
+        "id": str(shop.pk),
+        **{name: getattr(shop, name) for name in TEXT},
+        "latitude": shop.latitude,
+        "longitude": shop.longitude,
+        "discount": shop.discount,
+        "listed": shop.listed,
+        # For a shop with a register the flag follows its Lightning address, which does not move
+        "lightning": shop.lightning and not register,
+        "suspended": shop.suspended or shop.needs_approval,
+        # A shop still waiting for the approval here arrives suspended there: the other site's staff decides
+        "register": register,
+        **{name: getattr(shop, name) for name in SHOWN},
+        "closed_on": shop.closed_on.isoformat() if shop.closed_on else None,
+        "owner": owner_entry(shop.owner),
+    }
     return entry
 
 
@@ -140,14 +166,21 @@ def exported_shops():
 
 def export():
     shops = list(exported_shops())
-    document = {"format": FORMAT, "version": VERSION, "exported": timezone.now().isoformat(timespec="seconds"),
-                "network": settings.NETWORK, "site": settings.PUBLIC_URL, "shops": [shop_entry(shop) for shop in shops]}
+    document = {
+        "format": FORMAT,
+        "version": VERSION,
+        "exported": timezone.now().isoformat(timespec="seconds"),
+        "network": settings.NETWORK,
+        "site": settings.PUBLIC_URL,
+        "shops": [shop_entry(shop) for shop in shops],
+    }
     # What the person running the export should know: owners that will not be found on the other site
     lost = [shop for shop in shops if shop.owner_id and owner_entry(shop.owner) is None]
     return document, lost
 
 
 # --- Reading the file -----------------------------------------------------------------------------------------------
+
 
 def no_duplicate_keys(pairs):
     keys = [key for key, _value in pairs]
@@ -216,7 +249,9 @@ def upgrade(row):
     owned = row["owner"] is not None
     row["legal_name"] = row["vat_number"] = ""
     for name in details.CHOICES:
-        row[details.flag(name)] = name in details.DEFAULT_SHOWN or (owned and name in ("phone", "email") and bool(row[name]))
+        row[details.flag(name)] = name in details.DEFAULT_SHOWN or (
+            owned and name in ("phone", "email") and bool(row[name])
+        )
 
 
 def read(data):
@@ -234,8 +269,10 @@ def read(data):
         raise FileRefused(f"this is not a file written by export_shops (format {FORMAT!r})")
     version = document.get("version")
     if not isinstance(version, int) or isinstance(version, bool) or version not in READABLE:
-        raise FileRefused(f"the file is version {version!r}, this site reads versions {', '.join(map(str, READABLE))}: "
-                          "update the older site first")
+        raise FileRefused(
+            f"the file is version {version!r}, this site reads versions {', '.join(map(str, READABLE))}: "
+            "update the older site first"
+        )
     if set(document) != TOP_KEYS:
         raise FileRefused(f"unexpected or missing keys at the top of the file: {sorted(set(document) ^ TOP_KEYS)}")
     for name in ("exported", "network", "site"):
@@ -257,6 +294,7 @@ def read(data):
 
 
 # --- Import ---------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class Outcome:
@@ -301,8 +339,9 @@ def checked_shop(row, target, outcome):
     form = ShopDetailsForm(form_data(row), instance=target)
     if not form.is_valid() and "nip05_name" in form.errors:
         # A Nostr name taken or reserved here is not a reason to leave the shop behind: it arrives without one
-        outcome.notes.append(_("Its Nostr name %(name)s cannot be used here: it arrives without one.")
-                             % {"name": row["nip05_name"]})
+        outcome.notes.append(
+            _("Its Nostr name %(name)s cannot be used here: it arrives without one.") % {"name": row["nip05_name"]}
+        )
         row["nip05_name"] = ""
         form = ShopDetailsForm(form_data(row), instance=target)
     if not form.is_valid():
@@ -328,7 +367,9 @@ def checked_shop(row, target, outcome):
     try:
         shop.full_clean()
     except ValidationError as error:
-        raise RowRefused("; ".join(f"{field}: {' '.join(messages)}" for field, messages in error.message_dict.items())) from None
+        raise RowRefused(
+            "; ".join(f"{field}: {' '.join(messages)}" for field, messages in error.message_dict.items())
+        ) from None
     for name in NUMBERS:
         value = getattr(shop, name)
         if value is not None and not math.isfinite(value):
@@ -379,8 +420,12 @@ def place_owner(shop, entry, outcome, made):
         outcome.notes.append(_("Its owner's email already has an account here: the shop waits for a one-time link."))
     else:
         outcome.sign_in = "wallet"
-        outcome.notes.append(_("Its owner signs in with a wallet only, which has another key on another site: the "
-                               "shop waits for a one-time link."))
+        outcome.notes.append(
+            _(
+                "Its owner signs in with a wallet only, which has another key on another site: the "
+                "shop waits for a one-time link."
+            )
+        )
     issue_code(shop, outcome)
 
 
@@ -403,8 +448,9 @@ def import_row(row, now, made, new_codes=False):
     if row["external_id"]:
         same = Shop.objects.filter(external_id=row["external_id"]).order_by("pk")
         if len(same) > 1:
-            outcome.notes.append(_("%(count)s shops here have the external id %(id)s.")
-                                 % {"count": len(same), "id": row["external_id"]})
+            outcome.notes.append(
+                _("%(count)s shops here have the external id %(id)s.") % {"count": len(same), "id": row["external_id"]}
+            )
         if any(configured(shop) for shop in same):
             outcome.status = CONFLICT
             outcome.reasons.append(_("A shop with the same external id is already set up here: left as it is."))
@@ -459,6 +505,7 @@ def import_document(document, apply=False, new_codes=False):
 
 # --- What the owners are told ---------------------------------------------------------------------------------------
 
+
 def claim_url(code, language):
     """The one-time link for a code, in the language of the owner's message. The code goes in the query, as for the
     sign-in links: access logs write the path, and the code must not stay there. Never from the Host header."""
@@ -480,22 +527,41 @@ def owner_message(outcome, site, language):
         else:
             how = _("with your email %(email)s (we send you a link)") % {"email": outcome.email}
         if outcome.shop is not None and outcome.shop.owner_id:
-            parts = [_("Your shop %(name)s has moved to %(site)s. Sign in there %(how)s: your page and its details are "
-                       "already there.") % {"name": outcome.name, "site": site, "how": how}]
+            parts = [
+                _(
+                    "Your shop %(name)s has moved to %(site)s. Sign in there %(how)s: your page and its details are "
+                    "already there."
+                )
+                % {"name": outcome.name, "site": site, "how": how}
+            ]
         else:
             link = claim_link(outcome, language) or _("[the link is made with --apply]")
-            parts = [_("Your shop %(name)s has moved to %(site)s. Sign in there %(how)s, then open this link to take it "
-                       "back: %(link)s. It works once, for whoever opens it first: do not pass it on.")
-                     % {"name": outcome.name, "site": site, "how": how, "link": link}]
+            parts = [
+                _(
+                    "Your shop %(name)s has moved to %(site)s. Sign in there %(how)s, then open this link to take it "
+                    "back: %(link)s. It works once, for whoever opens it first: do not pass it on."
+                )
+                % {"name": outcome.name, "site": site, "how": how, "link": link}
+            ]
         if outcome.shop.moved_register:
             # The on-chain key only while on-chain at the register, an experimental feature, is on
-            parts.append(_("To take payments again, connect your wallet from your shops' page: your Lightning address, "
-                           "your on-chain key, or both, as before. Until then the shop is not on the map.")
-                         if features.enabled(features.ONCHAIN) else
-                         _("To take payments again, connect your wallet from your shops' page, with your Lightning "
-                           "address, as before. Until then the shop is not on the map."))
-            parts.append(_("Then print the new sign: the old one leads to the old site. If someone else takes payments "
-                           "with you, send them the new register link."))
+            parts.append(
+                _(
+                    "To take payments again, connect your wallet from your shops' page: your Lightning address, "
+                    "your on-chain key, or both, as before. Until then the shop is not on the map."
+                )
+                if features.enabled(features.ONCHAIN)
+                else _(
+                    "To take payments again, connect your wallet from your shops' page, with your Lightning "
+                    "address, as before. Until then the shop is not on the map."
+                )
+            )
+            parts.append(
+                _(
+                    "Then print the new sign: the old one leads to the old site. If someone else takes payments "
+                    "with you, send them the new register link."
+                )
+            )
         else:
             parts.append(_("Nothing else to do."))
         return " ".join(parts)

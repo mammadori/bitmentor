@@ -1,5 +1,6 @@
 """The printed sign waits for the approval (shops/views.py, shop_sign): its QR code opens the shop's page, which shows how
 to pay only once the shop is approved. The register and the other printables never wait."""
+
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -21,8 +22,14 @@ class SignWaits(TestCase):
     def setUp(self):
         self.owner = get_user_model().objects.create(username="owner")
         self.client.force_login(self.owner)
-        self.shop = Shop.objects.create(name="Bar", owner=self.owner, latitude=41.9, longitude=12.5,
-                                        lightning_address="mario@wallet.example", approved_on=None)
+        self.shop = Shop.objects.create(
+            name="Bar",
+            owner=self.owner,
+            latitude=41.9,
+            longitude=12.5,
+            lightning_address="mario@wallet.example",
+            approved_on=None,
+        )
         self.sign = f"/en/shops/sign/{self.shop.id}/"
 
     def test_a_waiting_shop_gets_a_page_that_says_why_not_the_sign(self):
@@ -79,8 +86,10 @@ class SignWaits(TestCase):
 
     def test_with_the_approval_off_a_new_shop_never_waits(self):
         with approval_off(), patch("shops.views.refusal", return_value=None):
-            self.client.post("/en/shops/new/", {"name": "Fresh", "latitude": "41.9", "longitude": "12.5",
-                                                "lightning_address": "fresh@wallet.example"})
+            self.client.post(
+                "/en/shops/new/",
+                {"name": "Fresh", "latitude": "41.9", "longitude": "12.5", "lightning_address": "fresh@wallet.example"},
+            )
             fresh = Shop.objects.get(name="Fresh")
             self.assertFalse(fresh.needs_approval)
             self.assertTemplateUsed(self.client.get(f"/en/shops/sign/{fresh.id}/"), "shops/sign.html")
@@ -97,8 +106,9 @@ class SignWaits(TestCase):
     def test_a_suspended_or_closed_shop_as_today(self):
         for change in ({"suspended": True}, {"closed_on": timezone.localdate() - timedelta(days=3)}):
             with self.subTest(change):
-                Shop.objects.filter(pk=self.shop.pk).update(**{"approved_on": timezone.now(), "suspended": False,
-                                                               "closed_on": None, **change})
+                Shop.objects.filter(pk=self.shop.pk).update(
+                    **{"approved_on": timezone.now(), "suspended": False, "closed_on": None, **change}
+                )
                 self.assertTemplateUsed(self.client.get(self.sign), "shops/sign.html")
                 self.assertIn(f'href="{self.sign}"', self.client.get("/en/shops/").content.decode())
 

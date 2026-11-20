@@ -19,13 +19,30 @@ from .models import Meetup, Reading, TrustedAuthor
 class MeetupForm(forms.ModelForm):
     """The day and the hour are written in the time zone of the meetup, not in the site's: a meetup in another zone is
     entered as its people will read the clock. The start (UTC) is worked out from them."""
+
     day = forms.DateField(label=_("Day"), widget=AdminDateWidget)
-    hour = forms.TimeField(label=_("Hour"), widget=AdminTimeWidget, required=False,
-                           help_text=_("Local time at the meetup. Leave it empty if only the day is known."))
+    hour = forms.TimeField(
+        label=_("Hour"),
+        widget=AdminTimeWidget,
+        required=False,
+        help_text=_("Local time at the meetup. Leave it empty if only the day is known."),
+    )
 
     class Meta:
         model = Meetup
-        fields = ["all_day", "tzid", "city", "place", "title", "url", "in_series", "status", "moved_to", "visible", "staff_edited"]
+        fields = [
+            "all_day",
+            "tzid",
+            "city",
+            "place",
+            "title",
+            "url",
+            "in_series",
+            "status",
+            "moved_to",
+            "visible",
+            "staff_edited",
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -62,6 +79,7 @@ class MeetupAdmin(HidesSecrets, admin.ModelAdmin):
     """The staff writes the meetups and corrects the ones the reader of Nostr found. One that came from Nostr is not
     deleted (the next reading would bring it back): it is taken off the site with “shown on the site”. A correction
     of it stays: the reader does not overwrite it."""
+
     form = MeetupForm
     list_display = ("when", "city", "place", "title", "status", "origin", "visible")
     list_display_links = ("when", "city")
@@ -85,17 +103,23 @@ class MeetupAdmin(HidesSecrets, admin.ModelAdmin):
         """“Corrected by hand” is for what came from Nostr: a meetup the staff wrote has nothing to protect."""
         if obj and obj.from_nostr:
             return super().get_fieldsets(request, obj)
-        return [(name, {**options, "fields": [field for field in options["fields"] if field != "staff_edited"]})
-                for name, options in super().get_fieldsets(request, obj)]
+        return [
+            (name, {**options, "fields": [field for field in options["fields"] if field != "staff_edited"]})
+            for name, options in super().get_fieldsets(request, obj)
+        ]
 
     @admin.display(description=_("when"), ordering="starts_at")
     def when(self, meetup):
         start = meetup.local_start
-        return formats.date_format(start, "SHORT_DATE_FORMAT") + ("" if meetup.all_day else " " + formats.time_format(start, "H:i"))
+        return formats.date_format(start, "SHORT_DATE_FORMAT") + (
+            "" if meetup.all_day else " " + formats.time_format(start, "H:i")
+        )
 
     @admin.display(description=_("source"), ordering="source")
     def origin(self, meetup):
-        return meetup.get_source_display() + (f" ({_('corrected')})" if meetup.from_nostr and meetup.staff_edited else "")
+        return meetup.get_source_display() + (
+            f" ({_('corrected')})" if meetup.from_nostr and meetup.staff_edited else ""
+        )
 
     @admin.display(description=_("source"))
     def origin_text(self, meetup):
@@ -105,10 +129,17 @@ class MeetupAdmin(HidesSecrets, admin.ModelAdmin):
             return _("Read from Nostr: author %(author)s, event %(event)s, published %(when)s.") % {
                 "author": to_npub(meetup.nostr_author)[:20] + "…" if meetup.nostr_author else "-",
                 "event": meetup.nostr_event_id[:12] + "…",
-                "when": formats.date_format(datetime.fromtimestamp(meetup.nostr_created_at, dt_timezone.utc), "SHORT_DATE_FORMAT")
-                if meetup.nostr_created_at else "-"}
+                "when": formats.date_format(
+                    datetime.fromtimestamp(meetup.nostr_created_at, dt_timezone.utc), "SHORT_DATE_FORMAT"
+                )
+                if meetup.nostr_created_at
+                else "-",
+            }
         who = meetup.entered_by.get_username() if meetup.entered_by else "-"
-        return _("Written by %(who)s on %(date)s.") % {"who": who, "date": formats.date_format(meetup.created, "SHORT_DATE_FORMAT")}
+        return _("Written by %(who)s on %(date)s.") % {
+            "who": who,
+            "date": formats.date_format(meetup.created, "SHORT_DATE_FORMAT"),
+        }
 
     def has_delete_permission(self, request, obj=None):
         return super().has_delete_permission(request, obj) and not (obj and obj.from_nostr)
@@ -166,6 +197,7 @@ class TrustedAuthorForm(forms.ModelForm):
 class TrustedAuthorAdmin(HidesSecrets, admin.ModelAdmin):
     """The Nostr keys whose calendar events the reader trusts, each with a note on who certified it. An event from any
     other key is not read. The keys written in community.yml (`meetups.trusted`) count too, and are not here."""
+
     form = TrustedAuthorForm
     list_display = ("short_npub", "note", "active", "created", "added_by")
     list_filter = ("active",)
@@ -193,8 +225,11 @@ class TrustedAuthorAdmin(HidesSecrets, admin.ModelAdmin):
     def changelist_view(self, request, extra_context=None):
         listed = conf.trusted()
         if listed:
-            self.message_user(request, _("%(count)d more authors are written in community.yml and count as well.") % {
-                "count": len(listed)}, messages.INFO)
+            self.message_user(
+                request,
+                _("%(count)d more authors are written in community.yml and count as well.") % {"count": len(listed)},
+                messages.INFO,
+            )
         return super().changelist_view(request, extra_context)
 
 
@@ -202,7 +237,17 @@ class TrustedAuthorAdmin(HidesSecrets, admin.ModelAdmin):
 class ReadingAdmin(HidesSecrets, admin.ModelAdmin):
     """Every run of the reader, as it was: nothing here is written by hand. If the last one is old, or no relay answered,
     look at `journalctl -u bitmentor-meetups@<project>`."""
-    list_display = ("when", "relays_answered", "relays_asked", "events_seen", "created", "updated", "cancelled", "rejected")
+
+    list_display = (
+        "when",
+        "relays_answered",
+        "relays_asked",
+        "events_seen",
+        "created",
+        "updated",
+        "cancelled",
+        "rejected",
+    )
     readonly_fields = [field.name for field in Reading._meta.fields]
     ordering = ("-when",)
 

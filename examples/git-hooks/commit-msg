@@ -23,6 +23,7 @@ credentials stay where they already are. BLOCK_HEIGHT_URLS are addresses (separa
 each answering with the number alone. Without either, the two public explorers below are asked. A message that
 already has the line is left alone. When nothing answers the commit is made without the line, and a note says so:
 a commit never waits long. Commits made without hooks (`git commit-tree`, `--no-verify`) do not get the line."""
+
 import os
 import re
 import subprocess
@@ -83,7 +84,7 @@ def with_height(message, found):
     while start > 1 and TRAILER.match(kept[start - 1]):
         start -= 1
     trailers = kept[start:] if 0 < start < len(kept) and not kept[start - 1].strip() else []
-    body = kept[:len(kept) - len(trailers)]
+    body = kept[: len(kept) - len(trailers)]
     while body and not body[-1].strip():
         body.pop()
     lines = [*body, "", f"Block height: {found}"]

@@ -8,6 +8,7 @@ another one: no scores.
 
 States: DONE, TODO, OPTIONAL (not done, and fine as it is: it never holds the path back), WAITING (the site has not
 looked yet), OFF (not up to the merchant)."""
+
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 from django.utils import timezone
@@ -58,10 +59,15 @@ def certificate_step(shop):
         return {"key": "certificate", "state": DONE, "since": shop.certified_month}
     if shop.certified_revoked:
         return {"key": "certificate", "state": OFF}
-    return {"key": "certificate", "state": TODO, "rule_text": certified.RULE,
-            "needs_lightning": not (shop.lightning_status == LightningStatus.OK
-                                    and shop.lightning_checked_address == shop.lightning_address),
-            "needs_pass": not training.has_pass(shop)}
+    return {
+        "key": "certificate",
+        "state": TODO,
+        "rule_text": certified.RULE,
+        "needs_lightning": not (
+            shop.lightning_status == LightningStatus.OK and shop.lightning_checked_address == shop.lightning_address
+        ),
+        "needs_pass": not training.has_pass(shop),
+    }
 
 
 def card(shop, now):
@@ -75,8 +81,14 @@ def card(shop, now):
         return {"on_map": False, "why": "unlisted"}
     if shop.latitude is None or shop.longitude is None:
         return {"on_map": False, "why": "position"}
-    found = {"on_map": True, "certified": certified.enabled() and bool(shop.certified_month), "marks": certified.marks(shop, now)}
-    found["template"] = marks_template() if found["certified"] or found["marks"] or getattr(shop, "trained", False) else None
+    found = {
+        "on_map": True,
+        "certified": certified.enabled() and bool(shop.certified_month),
+        "marks": certified.marks(shop, now),
+    }
+    found["template"] = (
+        marks_template() if found["certified"] or found["marks"] or getattr(shop, "trained", False) else None
+    )
     return found
 
 
@@ -98,6 +110,11 @@ def summary(shop, day=None, watch=None, now=None):
     for number, step in enumerate(steps, 1):
         step["number"] = number
         step["next"] = step is following
-    return {"steps": steps, "done": done, "total": len(counted), "complete": done == len(counted),
-            "next": following["key"] if following else None,
-            "card": card(shop, now)}
+    return {
+        "steps": steps,
+        "done": done,
+        "total": len(counted),
+        "complete": done == len(counted),
+        "next": following["key"] if following else None,
+        "card": card(shop, now),
+    }

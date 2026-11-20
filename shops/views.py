@@ -138,33 +138,27 @@ def not_indexed(view):
     """A page that must not end up in search engines, in any mode: the register, the sign, the ones of people who have
     an account. The header is what takes it out of the results: that is why robots.txt lets the register and the sign be
     opened, as they are found in a link or a QR."""
+
     @wraps(view)
     def wrapper(request, *args, **kwargs):
         response = view(request, *args, **kwargs)
         response["X-Robots-Tag"] = "noindex, nofollow"
         return response
+
     return wrapper
 
 
 def no_store(view):
     """A page that carries a sign-in or someone's email: the sign-in page with its challenge, the email links. No cache
     keeps it, the browser's included. Pages of someone signed in get it from config.middleware.PrivateForAccounts."""
+
     @wraps(view)
     def wrapper(request, *args, **kwargs):
         response = view(request, *args, **kwargs)
         response.headers.setdefault("Cache-Control", "private, no-store")
         return response
+
     return wrapper
-
-
-
-
-
-
-
-
-
-
 
 
 def account_label(user, email=""):
@@ -191,8 +185,9 @@ def claimed_name(request, target):
     if path != reverse("claim_shop"):
         return ""
     code = parse_qs(query).get("code", [""])[0]
-    if not CLAIM_CODE.fullmatch(code) or ratelimit.over_limit(f"claimname:{ratelimit.client_ip(request)}",
-                                                                CLAIMS_PER_IP, CLAIM_WINDOW):
+    if not CLAIM_CODE.fullmatch(code) or ratelimit.over_limit(
+        f"claimname:{ratelimit.client_ip(request)}", CLAIMS_PER_IP, CLAIM_WINDOW
+    ):
         return ""
     shop = Shop.objects.filter(owner=None, claim_hash=claim_digest(code)).only("name").first()
     return shop.name if shop else ""
@@ -209,7 +204,9 @@ def index(request):
     if request.user.is_authenticated:
         # Signed in with a connected wallet whose holder has not said yet «it is my account»: the panel first, where
         # that is asked, and not straight on to a page that would put a shop in somebody else's account
-        unconfirmed = request.user.wallet_keys.filter(key=request.session.get("wallet_key") or "-", acknowledged=None).first()
+        unconfirmed = request.user.wallet_keys.filter(
+            key=request.session.get("wallet_key") or "-", acknowledged=None
+        ).first()
         if target and request.method == "GET" and not unconfirmed:
             return redirect(target)
         profile, _created = Profile.objects.get_or_create(user=request.user)
@@ -218,8 +215,11 @@ def index(request):
             save_recovery_email(request, profile, form.cleaned_data["email"].lower())
             return redirect("shops")
         # The staff registers turned on of every shop in one query: their number and their names for the panel
-        staff_on = Prefetch("staff_registers", StaffRegister.objects.filter(retired__isnull=True).only(
-            "id", "shop_id", "name", "created", "retired"), to_attr="staff_on")
+        staff_on = Prefetch(
+            "staff_registers",
+            StaffRegister.objects.filter(retired__isnull=True).only("id", "shop_id", "name", "created", "retired"),
+            to_attr="staff_on",
+        )
         shops = list(request.user.shops.order_by("-created").prefetch_related("closures", staff_on))
         training.mark_trained(shops)
         # The answer to "Try again now" goes next to its shop, the other messages on top
@@ -235,7 +235,9 @@ def index(request):
             shop.address_change = address_change.panel(shop)
             shop.lightning_notes = [note for note in notices if note.extra_tags == f"lightning lightning-{shop.id}"]
             # The path to a complete, verified shop: only what the site already knows, no other server asked
-            shop.journey = journey.summary(shop, shop.first_day, shop.lightning_watch) if journey.applies(shop) else None
+            shop.journey = (
+                journey.summary(shop, shop.first_day, shop.lightning_watch) if journey.applies(shop) else None
+            )
             shop.marks = shop.journey["card"].get("marks", []) if shop.journey else []
             shop.staff_count = len(shop.staff_on)
             # Their names, newest first as in their list: the panel shows the first STAFF_NAMES_SHOWN
@@ -270,34 +272,52 @@ def index(request):
         # On top, the stage each shop is at (shops/stages.py); the rest of the panel closed below. Off: the panel as before
         on_stages = stages.enabled() and bool(shops)
         if on_stages:
-            stages.panel(shops, training_state=card["state"] if card else None,
-                         onchain=features.enabled(features.ONCHAIN), nostr=bool(nostr_relays()["relays"]))
-        return render(request, "shops/panel.html", {"shops": shops, "form": form, "saved": "saved" in request.GET,
-                                                     "stages": on_stages,
-                                                     # The shop just saved waits for the approval: its sign too
-                                                     "saved_waits": bool(shops) and shops[0].sign_waits,
-                                                     "signed_in": account_label(request.user, profile.email),
-                                                     "training": card,
-                                                     "first_day_count": FIRST_DAY_COUNT, "community_email": community()["email"],
-                                                     "account_notice": guard.notice(request.user),
-                                                     # A wallet that signed in for the first time and has nothing: its owner
-                                                     # may have a shop under an email, and is told how to get to it
-                                                     "wallet_alone": not shops and not profile.email and born_from_wallet(request.user),
-                                                     # Signed in with a connected wallet nobody confirmed yet from the
-                                                     # wallet's side: its holder is asked whether this is their account
-                                                     "wallet_to_confirm": unconfirmed,
-                                                     "wallets": request.user.wallet_keys.count(),
-                                                     "notices": [note for note in notices if not note.extra_tags.startswith("lightning")]})
+            stages.panel(
+                shops,
+                training_state=card["state"] if card else None,
+                onchain=features.enabled(features.ONCHAIN),
+                nostr=bool(nostr_relays()["relays"]),
+            )
+        return render(
+            request,
+            "shops/panel.html",
+            {
+                "shops": shops,
+                "form": form,
+                "saved": "saved" in request.GET,
+                "stages": on_stages,
+                # The shop just saved waits for the approval: its sign too
+                "saved_waits": bool(shops) and shops[0].sign_waits,
+                "signed_in": account_label(request.user, profile.email),
+                "training": card,
+                "first_day_count": FIRST_DAY_COUNT,
+                "community_email": community()["email"],
+                "account_notice": guard.notice(request.user),
+                # A wallet that signed in for the first time and has nothing: its owner
+                # may have a shop under an email, and is told how to get to it
+                "wallet_alone": not shops and not profile.email and born_from_wallet(request.user),
+                # Signed in with a connected wallet nobody confirmed yet from the
+                # wallet's side: its holder is asked whether this is their account
+                "wallet_to_confirm": unconfirmed,
+                "wallets": request.user.wallet_keys.count(),
+                "notices": [note for note in notices if not note.extra_tags.startswith("lightning")],
+            },
+        )
     LoginChallenge.objects.filter(created__lt=timezone.now() - CHALLENGE_LIFETIME).delete()
     # This browser's challenge, if still alive, is reused: a visit to the panel does not write a new one in the database each time
     alive = request.get_signed_cookie("k1", default="", salt="login", max_age=CHALLENGE_LIFETIME.total_seconds())
-    challenge = (LoginChallenge.objects.filter(k1=alive, linking_key="", link_user=None,
-                                               created__gte=timezone.now() - CHALLENGE_LIFETIME / 2).first()
-                 if alive else None)
+    challenge = (
+        LoginChallenge.objects.filter(
+            k1=alive, linking_key="", link_user=None, created__gte=timezone.now() - CHALLENGE_LIFETIME / 2
+        ).first()
+        if alive
+        else None
+    )
     # A new one only within the limits of the address and of its /48: without the cookie every visit writes a row. Over
     # them the page has no wallet code for a while, and the email still signs in
-    if challenge is None and not ratelimit.over_address_limits(request, "challenge", CHALLENGES_PER_IP, CHALLENGES_PER_NETWORK,
-                                                                CHALLENGE_WINDOW):
+    if challenge is None and not ratelimit.over_address_limits(
+        request, "challenge", CHALLENGES_PER_IP, CHALLENGES_PER_NETWORK, CHALLENGE_WINDOW
+    ):
         challenge = LoginChallenge.new()
     lnurl = qr = ""
     if challenge:
@@ -305,15 +325,30 @@ def index(request):
         callback = f"{settings.PUBLIC_URL}{reverse('lnurl_auth')}"
         lnurl = encode_lnurl(f"{callback}?tag=login&action=login&k1={challenge.k1}")
         qr = segno.make(lnurl, error="l").svg_data_uri(scale=6, border=2)
-    response = render(request, "shops/login.html", {
-        "lnurl": lnurl, "qr": qr, "returning": bool(target), "claiming": claimed_name(request, target) if target else "",
-        # Staff signed in to the admin lands here from a shop's page (config/guard.py): the page says why
-        "staff_apart": getattr(request, "staff_user", None) is not None,
-        "recovery_url": f"{reverse('recovery')}?{urlencode({'next': target})}" if target else reverse("recovery")},
-        status=200 if challenge else 429)
+    response = render(
+        request,
+        "shops/login.html",
+        {
+            "lnurl": lnurl,
+            "qr": qr,
+            "returning": bool(target),
+            "claiming": claimed_name(request, target) if target else "",
+            # Staff signed in to the admin lands here from a shop's page (config/guard.py): the page says why
+            "staff_apart": getattr(request, "staff_user", None) is not None,
+            "recovery_url": f"{reverse('recovery')}?{urlencode({'next': target})}" if target else reverse("recovery"),
+        },
+        status=200 if challenge else 429,
+    )
     if challenge:
-        response.set_signed_cookie("k1", challenge.k1, salt="login", httponly=True, samesite="Lax",
-                                   secure=request.is_secure(), max_age=CHALLENGE_LIFETIME.seconds)
+        response.set_signed_cookie(
+            "k1",
+            challenge.k1,
+            salt="login",
+            httponly=True,
+            samesite="Lax",
+            secure=request.is_secure(),
+            max_age=CHALLENGE_LIFETIME.seconds,
+        )
     else:
         response["Retry-After"] = str(ratelimit.seconds_left(CHALLENGE_WINDOW))
     return response
@@ -336,7 +371,9 @@ def lnurl_auth(request):
     key = request.GET.get("key", "").lower()
     challenge = live_challenges().filter(k1=k1).first() if K1.fullmatch(k1) else None
     if not challenge or not verify(challenge.k1, request.GET.get("sig", ""), key):
-        logger.info("lnurl-auth: refused, %s", "the signature is not of this challenge" if challenge else "no such challenge")
+        logger.info(
+            "lnurl-auth: refused, %s", "the signature is not of this challenge" if challenge else "no such challenge"
+        )
         return JsonResponse({"status": "ERROR", "reason": "Invalid login"})
     if staff_key(key):
         # A wallet linked to a staff account's sign-in to /admin/ (config/admin_wallet.py) is nobody's on this side
@@ -348,8 +385,11 @@ def lnurl_auth(request):
     if not LoginChallenge.objects.filter(pk=k1, linking_key=key).exists():
         logger.info("lnurl-auth: refused, the challenge was signed by another key")
         return JsonResponse({"status": "ERROR", "reason": "Invalid login"})
-    logger.info("lnurl-auth: ok (%s%s)", "connect" if challenge.link_user_id else "sign in",
-                ", asked again" if challenge.linking_key else "")
+    logger.info(
+        "lnurl-auth: ok (%s%s)",
+        "connect" if challenge.link_user_id else "sign in",
+        ", asked again" if challenge.linking_key else "",
+    )
     return JsonResponse({"status": "OK"})
 
 
@@ -379,8 +419,11 @@ def holds_nothing(user):
         return False
     if any(queryset.model not in allowed and queryset.exists() for queryset in collector.fast_deletes):
         return False
-    return not any(len(objects) if isinstance(objects, (list, set)) else objects.exists()
-                   for found in collector.field_updates.values() for objects in found)
+    return not any(
+        len(objects) if isinstance(objects, (list, set)) else objects.exists()
+        for found in collector.field_updates.values()
+        for objects in found
+    )
 
 
 def end_sessions(user, keep=""):
@@ -410,9 +453,12 @@ def login_status(request):
         # Every signed key is a new account: without a cap, whoever generates keys in bursts fills the database
         if limits.refuse("accounts"):
             return JsonResponse({"logged_in": False, "error": limits.message()}, status=503)
-        if ratelimit.over_limit(f"account:{ratelimit.client_ip(request)}", limits.rate("accounts_per_address_hour"), 3600):
-            return JsonResponse({"logged_in": False, "error": _("Too many new accounts from here: try again later.")},
-                                status=429)
+        if ratelimit.over_limit(
+            f"account:{ratelimit.client_ip(request)}", limits.rate("accounts_per_address_hour"), 3600
+        ):
+            return JsonResponse(
+                {"logged_in": False, "error": _("Too many new accounts from here: try again later.")}, status=429
+            )
         user, created = get_user_model().objects.get_or_create(username=challenge.linking_key)
         if created and staff_key(challenge.linking_key):
             # Linked to a staff account in the same moment: the account just made goes
@@ -432,8 +478,9 @@ def login_status(request):
 def other_ways_in(user, without=None):
     """Whether the account can still be signed in to without one of its connected wallets."""
     profile = Profile.objects.filter(user=user).first()
-    return bool(own_wallet_signs_in(user) or (profile and profile.email)
-                or user.wallet_keys.exclude(pk=without).exists())
+    return bool(
+        own_wallet_signs_in(user) or (profile and profile.email) or user.wallet_keys.exclude(pk=without).exists()
+    )
 
 
 def short_key(key):
@@ -460,8 +507,11 @@ def wallet_changed(user):
 def signed_challenge(request):
     """The challenge of this browser to connect a wallet, once a wallet signed it and until the owner decides."""
     k1 = request.get_signed_cookie("k1", "", salt="link")
-    return (live_challenges().filter(k1=k1, link_user=request.user, used=None).exclude(linking_key="").first()
-            if K1.fullmatch(k1) else None)
+    return (
+        live_challenges().filter(k1=k1, link_user=request.user, used=None).exclude(linking_key="").first()
+        if K1.fullmatch(k1)
+        else None
+    )
 
 
 def connect_key(request, key):
@@ -475,8 +525,13 @@ def connect_key(request, key):
     # the same answer as any other key that cannot come here
     if staff_key(key) or owner and (WalletKey.objects.filter(key=key).exists() or not holds_nothing(owner)):
         # An account of its own with something in it, or a wallet connected elsewhere: never moved from here
-        messages.error(request, _("This wallet already has an account of its own with a shop or an email, or is connected "
-                                  "to another account: it cannot be connected here."))
+        messages.error(
+            request,
+            _(
+                "This wallet already has an account of its own with a shop or an email, or is connected "
+                "to another account: it cannot be connected here."
+            ),
+        )
         return
     try:
         with transaction.atomic():
@@ -505,9 +560,14 @@ def connect_key(request, key):
         end_sessions(owner)
     messages.success(request, _("Wallet connected: from now on it signs in to this account."))
     logger.info("wallet connected to account %s", user.pk)
-    tell_about_wallet(user, _("A wallet was connected to your account"),
-                      [_("From now on the wallet %(key)s signs in to your account, like your email.") % {"key": short_key(key)},
-                       _("If it was not you, sign in and disconnect it:")])
+    tell_about_wallet(
+        user,
+        _("A wallet was connected to your account"),
+        [
+            _("From now on the wallet %(key)s signs in to your account, like your email.") % {"key": short_key(key)},
+            _("If it was not you, sign in and disconnect it:"),
+        ],
+    )
 
 
 @not_indexed
@@ -520,12 +580,19 @@ def link_wallet(request):
     LoginChallenge.objects.filter(created__lt=timezone.now() - CHALLENGE_LIFETIME).delete()
     if request.method == "POST":
         number = request.POST.get("remove") or request.POST.get("acknowledge") or ""
-        found = (request.user.wallet_keys.filter(pk=int(number)).first()
-                 if number.isascii() and number.isdecimal() and len(number) < 19 else None)
+        found = (
+            request.user.wallet_keys.filter(pk=int(number)).first()
+            if number.isascii() and number.isdecimal() and len(number) < 19
+            else None
+        )
         signed = signed_challenge(request)
         if "confirm" in request.POST or "cancel" in request.POST:
             # Used once, whichever button and however many times it is pressed
-            if signed and LoginChallenge.objects.filter(pk=signed.pk, used=None).update(used=timezone.now()) and "confirm" in request.POST:
+            if (
+                signed
+                and LoginChallenge.objects.filter(pk=signed.pk, used=None).update(used=timezone.now())
+                and "confirm" in request.POST
+            ):
                 connect_key(request, signed.linking_key)
         elif found and "acknowledge" in request.POST:
             # Only the browser that signed in with that wallet answers for it: the account's owner cannot say «it is
@@ -546,9 +613,14 @@ def link_wallet(request):
             if removed:
                 # Whoever signed in with that wallet is out, everywhere; this browser stays, unless it is the one leaving
                 end_sessions(request.user, keep="" if leaving else request.session.session_key)
-                tell_about_wallet(request.user, _("A wallet was disconnected from your account"),
-                                  [_("The wallet %(key)s no longer signs in to your account.") % {"key": short_key(key)},
-                                   _("If it was not you, sign in and check the wallets of your account:")])
+                tell_about_wallet(
+                    request.user,
+                    _("A wallet was disconnected from your account"),
+                    [
+                        _("The wallet %(key)s no longer signs in to your account.") % {"key": short_key(key)},
+                        _("If it was not you, sign in and check the wallets of your account:"),
+                    ],
+                )
             if leaving:
                 # Whoever says «not mine» is out of the account also when their wallet could not be taken away
                 logout(request)
@@ -560,27 +632,58 @@ def link_wallet(request):
         return redirect("link_wallet")
     signed = signed_challenge(request)
     alive = request.get_signed_cookie("k1", default="", salt="link", max_age=CHALLENGE_LIFETIME.total_seconds())
-    challenge = None if signed else (
-        LoginChallenge.objects.filter(k1=alive, linking_key="", link_user=request.user,
-                                      created__gte=timezone.now() - CHALLENGE_LIFETIME / 2).first() if alive else None)
+    challenge = (
+        None
+        if signed
+        else (
+            LoginChallenge.objects.filter(
+                k1=alive, linking_key="", link_user=request.user, created__gte=timezone.now() - CHALLENGE_LIFETIME / 2
+            ).first()
+            if alive
+            else None
+        )
+    )
     full = request.user.wallet_keys.count() >= MAX_WALLETS
-    if challenge is None and not signed and not full and not ratelimit.over_address_limits(
-            request, "challenge", CHALLENGES_PER_IP, CHALLENGES_PER_NETWORK, CHALLENGE_WINDOW):
+    if (
+        challenge is None
+        and not signed
+        and not full
+        and not ratelimit.over_address_limits(
+            request, "challenge", CHALLENGES_PER_IP, CHALLENGES_PER_NETWORK, CHALLENGE_WINDOW
+        )
+    ):
         challenge = LoginChallenge.new(link_user=request.user)
     lnurl = qr = ""
     if challenge:
         # `action=link`, as LUD-04 has it: the wallet may say «connect» instead of «sign in»
         lnurl = encode_lnurl(f"{settings.PUBLIC_URL}{reverse('lnurl_auth')}?tag=login&action=link&k1={challenge.k1}")
         qr = segno.make(lnurl, error="l").svg_data_uri(scale=6, border=2)
-    response = render(request, "shops/wallet_connect.html", {
-        "lnurl": lnurl, "qr": qr, "full": full, "limit": MAX_WALLETS,
-        "signed": short_key(signed.linking_key) if signed else "",
-        "wallets": [{"pk": row.pk, "name": short_key(row.key), "added": row.added}
-                    for row in request.user.wallet_keys.order_by("added")],
-        "own": short_key(request.user.get_username()) if own_wallet_signs_in(request.user) else ""})
+    response = render(
+        request,
+        "shops/wallet_connect.html",
+        {
+            "lnurl": lnurl,
+            "qr": qr,
+            "full": full,
+            "limit": MAX_WALLETS,
+            "signed": short_key(signed.linking_key) if signed else "",
+            "wallets": [
+                {"pk": row.pk, "name": short_key(row.key), "added": row.added}
+                for row in request.user.wallet_keys.order_by("added")
+            ],
+            "own": short_key(request.user.get_username()) if own_wallet_signs_in(request.user) else "",
+        },
+    )
     if challenge:
-        response.set_signed_cookie("k1", challenge.k1, salt="link", httponly=True, samesite="Lax",
-                                   secure=request.is_secure(), max_age=CHALLENGE_LIFETIME.seconds)
+        response.set_signed_cookie(
+            "k1",
+            challenge.k1,
+            salt="link",
+            httponly=True,
+            samesite="Lax",
+            secure=request.is_secure(),
+            max_age=CHALLENGE_LIFETIME.seconds,
+        )
     return response
 
 
@@ -595,8 +698,16 @@ def shop_map(request):
     """The list under the map is the same for everybody and costs the most: it comes from a short cache
     (shops/public_cache.py). The page around it is rendered for each request, since it says who is signed in."""
     listing = public_cache.cached("map-list", map_listing)
-    return render(request, "shops/map.html", {"shop_list": mark_safe(listing["html"]), "places": listing["places"],
-                                               "paid_texts": listing["texts"], "shops": listing["shops"]})
+    return render(
+        request,
+        "shops/map.html",
+        {
+            "shop_list": mark_safe(listing["html"]),
+            "places": listing["places"],
+            "paid_texts": listing["texts"],
+            "shops": listing["shops"],
+        },
+    )
 
 
 # What a community's map template may read of each shop in `shops` (for example a count, or the names and towns of the
@@ -618,9 +729,16 @@ def map_listing():
     # First the places to pay, those that close later on included, the historic ones at the end in the order of their
     # closing days: the counter counts only the first
     closed = closed_for_good()
-    shops = list(public_shops().prefetch_related("closures", "places")
-                 .order_by(Case(When(closed, then=Value(1)), default=Value(0)), Case(When(closed, then="closed_on")),
-                           "-discount", "name"))
+    shops = list(
+        public_shops()
+        .prefetch_related("closures", "places")
+        .order_by(
+            Case(When(closed, then=Value(1)), default=Value(0)),
+            Case(When(closed, then="closed_on")),
+            "-discount",
+            "name",
+        )
+    )
     now = timezone.now()
     training.mark_trained(shops, now)
     for shop in shops:
@@ -628,7 +746,9 @@ def map_listing():
         # A shop closed for a while stays a place to pay and on the map: it only says so (shops/vacation.py)
         shop.break_note = vacation.note(shop)
         # The towns of a shop with several places, each once, the shop's own first
-        shop.towns = ", ".join(dict.fromkeys(town for town in (shop.city, *(place.city for place in shop.places.all())) if town))
+        shop.towns = ", ".join(
+            dict.fromkeys(town for town in (shop.city, *(place.city for place in shop.places.all())) if town)
+        )
     texts = certified.texts()
     if not certified.enabled():
         # No badge, so nothing to say about it; the icons' sentences stay
@@ -636,10 +756,13 @@ def map_listing():
     if vacation.enabled():
         texts["break"] = vacation.texts()
     texts["trained"] = str(training.TRAINED)
-    return {"html": render_to_string("shops/map_list.html", {"shops": shops}), "texts": texts,
-            "places": sum(1 for shop in shops if not shop.closed),
-            # Plain values, not the models: they go in the cache and every visitor gets them
-            "shops": [map_shop(shop) for shop in shops]}
+    return {
+        "html": render_to_string("shops/map_list.html", {"shops": shops}),
+        "texts": texts,
+        "places": sum(1 for shop in shops if not shop.closed),
+        # Plain values, not the models: they go in the cache and every visitor gets them
+        "shops": [map_shop(shop) for shop in shops],
+    }
 
 
 def shops_json(request):
@@ -655,8 +778,15 @@ def shops_json(request):
 def other_places(shop):
     """The other places of a shop as /shops.json and the map give them. `shop.places` is prefetched by the callers."""
     with_address = details.chosen(shop, "address")
-    return [{**({"address": place.address} if with_address else {}), "city": place.city,
-             "latitude": place.latitude, "longitude": place.longitude} for place in shop.places.all()]
+    return [
+        {
+            **({"address": place.address} if with_address else {}),
+            "city": place.city,
+            "latitude": place.latitude,
+            "longitude": place.longitude,
+        }
+        for place in shop.places.all()
+    ]
 
 
 def shops_json_body():
@@ -670,27 +800,40 @@ def shops_json_body():
     # A shop that closes later on has its date and is a place to pay like the others until that day, that day included.
     # external_id is the shop's number in the imported list: it does not change from one installation to another, while the id
     # is new at every import. It is empty for whoever signed up alone.
-    return JsonResponse({"shops": [
-        {"id": str(shop.id), "external_id": shop.external_id, "name": shop.name, "description": shop.description,
-         "city": shop.city,
-         # The address and the website only when the owner shows them (shops/details.py): a hidden one is not there at all
-         **details.api(shop),
-         "discount": 0 if shop.closed else shop.discount, "lightning": shop.lightning,
-         # What the owner says, no more: the site knows no on-chain address and no on-chain payment. Absent while
-         # on-chain at the register, an experimental feature, is off
-         **({"onchain": shop.onchain} if onchain else {}), "latitude": shop.latitude,
-         "longitude": shop.longitude,
-         # The other places of a shop with several branches (ShopPlace), only when it has some: the fields above are
-         # the first place. An address only when the owner shows the shop's
-         **({"places": other_places(shop)} if shop.places.all() else {}),
-         "url": reverse("shop_detail", args=[shop.id]), "closed_on": shop.closed_on,
-         # Only the flag and the bands (shops/certified.py): never the dates, counts or amounts behind them
-         **({"certified": shop.certified} if certificates else {}),
-         "trained": shop.trained,
-         "paid": None if shop.closed else certified.bands(shop, now),
-         # Closed for a while (holidays, works…): the reason from a list, the day it opens again, never a free text
-         **({"break": vacation.api(shop)} if breaks else {})}
-        for shop in shops]}).content
+    return JsonResponse(
+        {
+            "shops": [
+                {
+                    "id": str(shop.id),
+                    "external_id": shop.external_id,
+                    "name": shop.name,
+                    "description": shop.description,
+                    "city": shop.city,
+                    # The address and the website only when the owner shows them (shops/details.py): a hidden one is not there at all
+                    **details.api(shop),
+                    "discount": 0 if shop.closed else shop.discount,
+                    "lightning": shop.lightning,
+                    # What the owner says, no more: the site knows no on-chain address and no on-chain payment. Absent while
+                    # on-chain at the register, an experimental feature, is off
+                    **({"onchain": shop.onchain} if onchain else {}),
+                    "latitude": shop.latitude,
+                    "longitude": shop.longitude,
+                    # The other places of a shop with several branches (ShopPlace), only when it has some: the fields above are
+                    # the first place. An address only when the owner shows the shop's
+                    **({"places": other_places(shop)} if shop.places.all() else {}),
+                    "url": reverse("shop_detail", args=[shop.id]),
+                    "closed_on": shop.closed_on,
+                    # Only the flag and the bands (shops/certified.py): never the dates, counts or amounts behind them
+                    **({"certified": shop.certified} if certificates else {}),
+                    "trained": shop.trained,
+                    "paid": None if shop.closed else certified.bands(shop, now),
+                    # Closed for a while (holidays, works…): the reason from a list, the day it opens again, never a free text
+                    **({"break": vacation.api(shop)} if breaks else {}),
+                }
+                for shop in shops
+            ]
+        }
+    ).content
 
 
 def shop_detail(request, shop):
@@ -711,18 +854,36 @@ def shop_detail(request, shop):
     # The other places of a shop with several branches, with the address only if the owner shows the shop's; none for a
     # shop off the map
     with_address = details.chosen(shop, "address")
-    places = [] if reduced else [
-        {"line": ", ".join(part for part in ((place.address if with_address else ""), place.city) if part),
-         "position": f"{place.latitude:.6f},{place.longitude:.6f}"} for place in shop.places.all()]
-    response = render(request, "shops/shop.html", {
-        "shop": shop, "reduced": reduced, "facts": details.rows(shop, shown), "places": places,
-        "place_points": ";".join(place["position"] for place in places),
-        "payment": None if reduced or shop.closed or waits_for_wallet(shop) else till_methods(shop),
-        "waiting": waits_for_wallet(shop), "break_note": "" if reduced else vacation.note(shop),
-        "main_language": settings.LANGUAGE_CODE, "language": language,
-        "stories": [] if reduced else extras["stories"],
-        "certified_rule": certified.MEANING if shop.certified and not reduced else "",
-        "nearby": [{"shop": other, "distance": distance_text(other.metres)} for other in nearby_shops(shop)]})
+    places = (
+        []
+        if reduced
+        else [
+            {
+                "line": ", ".join(part for part in ((place.address if with_address else ""), place.city) if part),
+                "position": f"{place.latitude:.6f},{place.longitude:.6f}",
+            }
+            for place in shop.places.all()
+        ]
+    )
+    response = render(
+        request,
+        "shops/shop.html",
+        {
+            "shop": shop,
+            "reduced": reduced,
+            "facts": details.rows(shop, shown),
+            "places": places,
+            "place_points": ";".join(place["position"] for place in places),
+            "payment": None if reduced or shop.closed or waits_for_wallet(shop) else till_methods(shop),
+            "waiting": waits_for_wallet(shop),
+            "break_note": "" if reduced else vacation.note(shop),
+            "main_language": settings.LANGUAGE_CODE,
+            "language": language,
+            "stories": [] if reduced else extras["stories"],
+            "certified_rule": certified.MEANING if shop.certified and not reduced else "",
+            "nearby": [{"shop": other, "distance": distance_text(other.metres)} for other in nearby_shops(shop)],
+        },
+    )
     if shop.suspended or shop.needs_approval or not shop.listed or waits_for_wallet(shop):
         response["X-Robots-Tag"] = "noindex, nofollow"
     return response
@@ -754,9 +915,16 @@ def shop_by_external(request, external):
     Only the shops on maps and lists: the numbers are consecutive, and by trying them one would find the others too, with the id
     that opens their register."""
     # PostgreSQL refuses a text with a NUL in it: no shop has one
-    shop = None if "\x00" in external else (
-        Shop.objects.filter(external_id=external, suspended=False, approved_on__isnull=False, listed=True).exclude(waiting_for_wallet())
-        .order_by("pk").first())
+    shop = (
+        None
+        if "\x00" in external
+        else (
+            Shop.objects.filter(external_id=external, suspended=False, approved_on__isnull=False, listed=True)
+            .exclude(waiting_for_wallet())
+            .order_by("pk")
+            .first()
+        )
+    )
     if shop is None:
         raise Http404
     return redirect("shop_detail", shop=shop.id)
@@ -768,8 +936,11 @@ FIRST_DAY_COUNT = gettext_lazy("The first day: {done} of {total} done")
 def first_day_summary(shop):
     """The first day of a shop for the panel, with its one-line title."""
     day = first_day.summary(shop)
-    day["title"] = (_("The first day: all done") if day["complete"]
-                    else str(FIRST_DAY_COUNT).format(done=day["done"], total=day["total"]))
+    day["title"] = (
+        _("The first day: all done")
+        if day["complete"]
+        else str(FIRST_DAY_COUNT).format(done=day["done"], total=day["total"])
+    )
     return day
 
 
@@ -814,8 +985,9 @@ def lightning_retry(request, shop):
     shop = get_object_or_404(lightning_watch.watched().filter(owner=request.user), pk=shop)
     back = redirect(f"{reverse('shops')}#lightning-{shop.id}")
     tag = f"lightning lightning-{shop.id}"
-    if (ratelimit.over_limit(f"lightning-retry:{shop.id}", RETRIES_PER_SHOP, RETRY_WINDOW)
-            or ratelimit.over_limit(f"lightning-retry-user:{request.user.pk}", RETRIES_PER_USER, RETRY_WINDOW)):
+    if ratelimit.over_limit(f"lightning-retry:{shop.id}", RETRIES_PER_SHOP, RETRY_WINDOW) or ratelimit.over_limit(
+        f"lightning-retry-user:{request.user.pk}", RETRIES_PER_USER, RETRY_WINDOW
+    ):
         messages.error(request, _("You already tried a few times: wait ten minutes and try again."), extra_tags=tag)
         return back
     if not lightning_watch.PANEL_PROBES.acquire(blocking=False):
@@ -828,8 +1000,9 @@ def lightning_retry(request, shop):
     if change:
         lightning_watch.tell_association([(checked, change)])
     if result == lightning_watch.UNSURE:
-        messages.error(request, _("Your wallet's provider is slow or busy right now: try again in a few minutes."),
-                       extra_tags=tag)
+        messages.error(
+            request, _("Your wallet's provider is slow or busy right now: try again in a few minutes."), extra_tags=tag
+        )
     elif not recorded:
         messages.error(request, _("Your shop changed while it was being checked: look at it again."), extra_tags=tag)
     elif result is None:
@@ -847,8 +1020,11 @@ def till_card(request, shop):
     shop = get_object_or_404(request.user.shops.filter(HAS_REGISTER), pk=shop)
     with_qr = request.GET.get("qr") == "1"
     context = {
-        "shop": shop, "with_qr": with_qr, "paying_to": guard.paying_to(shop),
-        "guide": f"{settings.PUBLIC_URL}{guide()}" if guide() else ""}
+        "shop": shop,
+        "with_qr": with_qr,
+        "paying_to": guard.paying_to(shop),
+        "guide": f"{settings.PUBLIC_URL}{guide()}" if guide() else "",
+    }
     if with_qr:
         context["register_url"] = f"{settings.PUBLIC_URL}{reverse('register', args=[shop.id])}"
         context["register_qr"] = segno.make(context["register_url"], error="m").svg_data_uri(scale=5, border=2)
@@ -872,7 +1048,9 @@ def shop_sign(request, shop):
         # says why and when, instead of the sign
         return render(request, "shops/sign_waiting.html", {"shop": shop})
     url = f"{settings.PUBLIC_URL}{reverse('shop_detail', args=[shop.id])}"
-    return render(request, "shops/sign.html", {"shop": shop, "qr": segno.make(url, error="m").svg_data_uri(scale=10, border=1)})
+    return render(
+        request, "shops/sign.html", {"shop": shop, "qr": segno.make(url, error="m").svg_data_uri(scale=10, border=1)}
+    )
 
 
 def register_manifest(request, shop, start=None):
@@ -880,12 +1058,19 @@ def register_manifest(request, shop, start=None):
     data = community()
     logo = data["logo"]
     sizes = "any" if logo.endswith(".svg") else "300x300"  # a vector logo has no size
-    return JsonResponse({
-        "name": shop.name, "short_name": shop.name[:12], "display": "standalone", "lang": get_language(),
-        "start_url": start or reverse("register", args=[shop.id]), "theme_color": data.get("theme_color", "#333333"),
-        "background_color": "#ffffff",
-        "icons": [{"src": f"/theme/{logo}", "sizes": sizes, "type": mimetypes.guess_type(logo)[0] or "image/png"}]},
-        content_type="application/manifest+json")
+    return JsonResponse(
+        {
+            "name": shop.name,
+            "short_name": shop.name[:12],
+            "display": "standalone",
+            "lang": get_language(),
+            "start_url": start or reverse("register", args=[shop.id]),
+            "theme_color": data.get("theme_color", "#333333"),
+            "background_color": "#ffffff",
+            "icons": [{"src": f"/theme/{logo}", "sizes": sizes, "type": mimetypes.guess_type(logo)[0] or "image/png"}],
+        },
+        content_type="application/manifest+json",
+    )
 
 
 @require_POST
@@ -905,24 +1090,42 @@ def new_shop(request):
     form = NewShopForm(request.POST or None, initial=proposed, owner=request.user)
     if request.method == "POST" and form.is_valid() and too_many_shops(request, "shop"):
         form.add_error(None, _("Too many shops in a short time: wait a few minutes."))
-    elif request.method == "POST" and form.is_valid() and (
-            limits.refuse("shops") or (not form.cleaned_data["lightning_address"] and limits.refuse("shops_waiting_wallet"))):
+    elif (
+        request.method == "POST"
+        and form.is_valid()
+        and (
+            limits.refuse("shops")
+            or (not form.cleaned_data["lightning_address"] and limits.refuse("shops_waiting_wallet"))
+        )
+    ):
         form.add_error(None, limits.message())
     elif request.method == "POST" and form.is_valid():
         draft = form.save(commit=False)
         # The probe asks a server chosen by whoever writes: before the lock, never holding a transaction while it waits
-        problem = None if draft.awaiting_wallet else refusal(draft.lightning_address, request.user.pk,
-                                                             seconds=LIGHTNING_SUBMIT_SECONDS)
+        problem = (
+            None
+            if draft.awaiting_wallet
+            else refusal(draft.lightning_address, request.user.pk, seconds=LIGHTNING_SUBMIT_SECONDS)
+        )
         # The lock lines up double submissions: the second finds the first one's shop
         with transaction.atomic():
             Profile.objects.select_for_update().get_or_create(user=request.user)
             recent = timezone.now() - DOUBLE_SUBMIT
-            twin = request.user.shops.filter(name=form.cleaned_data["name"], created__gte=recent).order_by("-created").first()
+            twin = (
+                request.user.shops.filter(name=form.cleaned_data["name"], created__gte=recent)
+                .order_by("-created")
+                .first()
+            )
             if twin and needs_wallet(twin):
                 # The first submit saved the shop without a wallet: an address sent again is never lost in silence
                 if form.cleaned_data["lightning_address"]:
-                    messages.info(request, _("Your shop was already saved a moment ago, without a wallet. Paste the "
-                                             "address here: we try it and make the register."))
+                    messages.info(
+                        request,
+                        _(
+                            "Your shop was already saved a moment ago, without a wallet. Paste the "
+                            "address here: we try it and make the register."
+                        ),
+                    )
                 return redirect("wallet_steps", shop=twin.id)
             if twin:
                 return shop_saved()
@@ -944,8 +1147,16 @@ def new_shop(request):
                 warn_about_vat(request, form)
                 return shop_saved()
         form.add_error("lightning_address", problem)
-    return render(request, "shops/shop_form.html", {"form": form, "guide": guide(), "prefilled": proposed,
-                                                     "wallet_page": shop_form_links(get_language())["wallet"]})
+    return render(
+        request,
+        "shops/shop_form.html",
+        {
+            "form": form,
+            "guide": guide(),
+            "prefilled": proposed,
+            "wallet_page": shop_form_links(get_language())["wallet"],
+        },
+    )
 
 
 @not_indexed
@@ -963,11 +1174,23 @@ def wallet_steps(request, shop):
     if done is not None:
         return shop_saved() if done is True else done
     links = shop_form_links(get_language())
-    wallets = [{**wallet, "platform_names": ", ".join(str(PLATFORM_NAMES[name]) for name in wallet["platforms"])}
-               for wallet in links["wallets"]]
-    return render(request, "shops/wallet_steps.html", {
-        "form": form, "shop": shop, "saved": "saved" in request.GET, "guide": guide(), "wallets": wallets,
-        "wallet_page": links["wallet"], "community_email": community()["email"]})
+    wallets = [
+        {**wallet, "platform_names": ", ".join(str(PLATFORM_NAMES[name]) for name in wallet["platforms"])}
+        for wallet in links["wallets"]
+    ]
+    return render(
+        request,
+        "shops/wallet_steps.html",
+        {
+            "form": form,
+            "shop": shop,
+            "saved": "saved" in request.GET,
+            "guide": guide(),
+            "wallets": wallets,
+            "wallet_page": links["wallet"],
+            "community_email": community()["email"],
+        },
+    )
 
 
 def connect_wallet(request, shop, form):
@@ -985,11 +1208,14 @@ def connect_wallet(request, shop, form):
         return None
     # Written only if the shop is still as it was: something changed meanwhile (the association suspended it, a second
     # submit connected it) and nothing is written, never a register for a shop that may not have one
-    saved = Shop.objects.filter(pk=shop.pk, owner=request.user, lightning_address="",
-                                suspended=False).update(lightning_address=address, lightning=True, awaiting_wallet=False)
+    saved = Shop.objects.filter(pk=shop.pk, owner=request.user, lightning_address="", suspended=False).update(
+        lightning_address=address, lightning=True, awaiting_wallet=False
+    )
     if saved:
         return True
-    messages.error(request, _("Your shop changed while the wallet was being connected: reload the page and look at it again."))
+    messages.error(
+        request, _("Your shop changed while the wallet was being connected: reload the page and look at it again.")
+    )
     return redirect("shops")
 
 
@@ -998,12 +1224,22 @@ def too_many_shops(request, kind):
     and per /48, and says whether one of them went over. The guide connecting a wallet counts apart from the new shops: an
     evening of new shops behind one connection does not use up the wallets connected later, and the other way round. Each submit sends requests to a server chosen by whoever writes:
     a new IPv6 /64, or a new account, must not give a fresh count."""
-    return (ratelimit.over_limit(f"{kind}-user:{request.user.pk}", SHOPS_PER_USER, SHOP_WINDOW)
-            or ratelimit.over_address_limits(request, kind, limits.rate("shops_per_address_hour"), SHOPS_PER_NETWORK, SHOP_WINDOW))
+    return ratelimit.over_limit(
+        f"{kind}-user:{request.user.pk}", SHOPS_PER_USER, SHOP_WINDOW
+    ) or ratelimit.over_address_limits(
+        request, kind, limits.rate("shops_per_address_hour"), SHOPS_PER_NETWORK, SHOP_WINDOW
+    )
+
 
 # The platforms of a wallet in the guide (config.community.WALLET_PLATFORMS), as a merchant calls them
-PLATFORM_NAMES = {"android": "Android", "ios": "iPhone", "windows": "Windows", "macos": "Mac", "linux": "Linux",
-                  "web": gettext_lazy("in the browser")}
+PLATFORM_NAMES = {
+    "android": "Android",
+    "ios": "iPhone",
+    "windows": "Windows",
+    "macos": "Mac",
+    "linux": "Linux",
+    "web": gettext_lazy("in the browser"),
+}
 
 
 @not_indexed
@@ -1014,12 +1250,21 @@ def lightning_check(request):
     message and at most a suggested address: nothing of what the provider answered."""
     if not request.user.is_authenticated:
         return JsonResponse({"state": "login"}, status=403)
-    busy = JsonResponse({"state": BUSY, "message": _(
-        "Too many checks in a short time. You can go on: the address is checked again when you create the shop.")},
-        status=429, headers={"Cache-Control": "no-store"})
-    if (ratelimit.over_limit(f"lncheck:{request.user.pk}", LIGHTNING_CHECKS_PER_USER, LIGHTNING_CHECK_WINDOW)
-            or ratelimit.over_address_limits(request, "lncheck-ip", LIGHTNING_CHECKS_PER_IP, LIGHTNING_CHECKS_PER_NETWORK,
-                                             LIGHTNING_CHECK_WINDOW)):
+    busy = JsonResponse(
+        {
+            "state": BUSY,
+            "message": _(
+                "Too many checks in a short time. You can go on: the address is checked again when you create the shop."
+            ),
+        },
+        status=429,
+        headers={"Cache-Control": "no-store"},
+    )
+    if ratelimit.over_limit(
+        f"lncheck:{request.user.pk}", LIGHTNING_CHECKS_PER_USER, LIGHTNING_CHECK_WINDOW
+    ) or ratelimit.over_address_limits(
+        request, "lncheck-ip", LIGHTNING_CHECKS_PER_IP, LIGHTNING_CHECKS_PER_NETWORK, LIGHTNING_CHECK_WINDOW
+    ):
         return busy
     address = tidy_lightning_address(request.POST.get("address", "")[:MAX_ADDRESS_TYPED])
     answer = {"address": address, "provider": address.rpartition("@")[2] if "@" in address else ""}
@@ -1031,16 +1276,24 @@ def lightning_check(request):
     elif isinstance(found, Exception):
         raise found
     else:
-        answer.update(state=found, message=explanation(found, address),
-                      suggestion=suggestion(address) if found in (UNKNOWN_DOMAIN, NO_ANSWER) else None)
+        answer.update(
+            state=found,
+            message=explanation(found, address),
+            suggestion=suggestion(address) if found in (UNKNOWN_DOMAIN, NO_ANSWER) else None,
+        )
     return JsonResponse(answer, headers={"Cache-Control": "no-store"})
 
 
 def announce(request, shop):
     """A shop that waits for the approval: its owner reads why it is not on the map yet, the moderators hear of it."""
     if shop.needs_approval:
-        messages.info(request, _("The community looks at every new shop before it goes on the map: until then the "
-                                 "register works, and the shop is not on the map and the lists."))
+        messages.info(
+            request,
+            _(
+                "The community looks at every new shop before it goes on the map: until then the "
+                "register works, and the shop is not on the map and the lists."
+            ),
+        )
         approval.tell_moderators(shop)
 
 
@@ -1056,7 +1309,11 @@ def needs_wallet(shop):
 
 
 def guide():
-    return reverse("page", args=[GUIDE_PAGE]) if page_path(get_language(), GUIDE_PAGE).exists() and not private_page(get_language(), GUIDE_PAGE) else ""
+    return (
+        reverse("page", args=[GUIDE_PAGE])
+        if page_path(get_language(), GUIDE_PAGE).exists() and not private_page(get_language(), GUIDE_PAGE)
+        else ""
+    )
 
 
 @not_indexed
@@ -1066,12 +1323,23 @@ def edit_shop(request, shop):
     # The shop as it was: an approved shop that an edit makes look like a copy of another is told to the moderators
     before = copy.copy(shop)
     form = ShopDetailsForm(request.POST or None, instance=shop)
-    if request.method == "POST" and ratelimit.over_limit(f"edit-shop-user:{request.user.pk}", EDITS_PER_USER, OWNER_WINDOW):
+    if request.method == "POST" and ratelimit.over_limit(
+        f"edit-shop-user:{request.user.pk}", EDITS_PER_USER, OWNER_WINDOW
+    ):
         # Nothing saved; what was typed stays in the form
         form.add_error(None, _("You saved many times in a short while: wait a few minutes and try again."))
-        return render(request, "shops/shop_edit.html", {"form": form, "shop": shop, "needs_wallet": needs_wallet(shop), "can_change_address": address_change.changeable(shop),
-                                                         "waits_for_wallet": needs_wallet(shop) and waits_for_wallet(shop)},
-                      status=429)
+        return render(
+            request,
+            "shops/shop_edit.html",
+            {
+                "form": form,
+                "shop": shop,
+                "needs_wallet": needs_wallet(shop),
+                "can_change_address": address_change.changeable(shop),
+                "waits_for_wallet": needs_wallet(shop) and waits_for_wallet(shop),
+            },
+            status=429,
+        )
     if request.method == "POST" and form.is_valid():
         # Only the form's columns: a wallet connected meanwhile, or any field written by someone else, stays as it is
         form.save(commit=False).save(update_fields=ShopDetailsForm.Meta.fields)
@@ -1079,9 +1347,17 @@ def edit_shop(request, shop):
         messages.success(request, _("Saved."))
         warn_about_vat(request, form)
         return redirect("shops")
-    return render(request, "shops/shop_edit.html", {"form": form, "shop": shop,
-                                                     "needs_wallet": needs_wallet(shop), "can_change_address": address_change.changeable(shop),
-                                                     "waits_for_wallet": needs_wallet(shop) and waits_for_wallet(shop)})
+    return render(
+        request,
+        "shops/shop_edit.html",
+        {
+            "form": form,
+            "shop": shop,
+            "needs_wallet": needs_wallet(shop),
+            "can_change_address": address_change.changeable(shop),
+            "waits_for_wallet": needs_wallet(shop) and waits_for_wallet(shop),
+        },
+    )
 
 
 @not_indexed
@@ -1118,16 +1394,27 @@ def shop_places(request, shop):
                 messages.success(request, _("Place saved."))
                 return redirect("shop_places", shop=shop.id)
         elif shop.places.count() >= ShopPlace.MAX:
-            form.add_error(None, _("This shop has %(count)s other places, the most it can have.") % {"count": ShopPlace.MAX})
+            form.add_error(
+                None, _("This shop has %(count)s other places, the most it can have.") % {"count": ShopPlace.MAX}
+            )
         elif form.is_valid():
             place = form.save(commit=False)
             place.shop = shop
             place.save()
             messages.success(request, _("Place added: it is a point of your shop on the map."))
             return redirect("shop_places", shop=shop.id)
-    return render(request, "shops/shop_places.html", {"form": form, "shop": shop, "places": list(shop.places.all()),
-                                                       "full": shop.places.count() >= ShopPlace.MAX, "editing": editing},
-                  status=400 if form.is_bound and form.errors else 200)
+    return render(
+        request,
+        "shops/shop_places.html",
+        {
+            "form": form,
+            "shop": shop,
+            "places": list(shop.places.all()),
+            "full": shop.places.count() >= ShopPlace.MAX,
+            "editing": editing,
+        },
+        status=400 if form.is_bound and form.errors else 200,
+    )
 
 
 def warn_about_vat(request, form):
@@ -1151,13 +1438,30 @@ def shop_display(request, shop):
         form.save(commit=False).save(update_fields=ShopDisplayForm.Meta.fields)
         messages.success(request, _("Saved. This is what your customers see now."))
         return redirect("shop_display", shop=shop.id)
-    rows = [{"name": name, "label": details.LABELS[name], "value": getattr(shop, name), "field": form[details.flag(name)],
-             "page_only": name in details.PAGE_ONLY} for name in details.CHOICES]
+    rows = [
+        {
+            "name": name,
+            "label": details.LABELS[name],
+            "value": getattr(shop, name),
+            "field": form[details.flag(name)],
+            "page_only": name in details.PAGE_ONLY,
+        }
+        for name in details.CHOICES
+    ]
     for row in rows:
         row["doubt"] = details.vat_doubt(row["value"]) if row["name"] == "vat_number" else ""
-    return render(request, "shops/shop_display.html", {
-        "shop": shop, "form": form, "rows": rows, "facts": details.rows(shop, details.shown(shop), preview=True),
-        "missing": sum(not row["value"] for row in rows), "notices": list(messages.get_messages(request))})
+    return render(
+        request,
+        "shops/shop_display.html",
+        {
+            "shop": shop,
+            "form": form,
+            "rows": rows,
+            "facts": details.rows(shop, details.shown(shop), preview=True),
+            "missing": sum(not row["value"] for row in rows),
+            "notices": list(messages.get_messages(request)),
+        },
+    )
 
 
 CLAIMS_PER_IP = 20
@@ -1184,9 +1488,12 @@ def claim_shop(request):
             # One Lightning address, one owner (shops/certified.py): checked under the lock, on the address as it is now
             locked = Shop.objects.select_for_update().filter(pk=shop.pk, owner=None, claim_hash=digest).first()
             if locked is not None and certified.address_taken(locked.lightning_address, request.user, locked):
-                return render(request, "shops/claim.html", {"shop": shop, "code": code, "taken": ShopForm.TAKEN},
-                              status=409)
-            taken = Shop.objects.filter(pk=shop.pk, owner=None, claim_hash=digest).update(owner=request.user, claim_hash="")
+                return render(
+                    request, "shops/claim.html", {"shop": shop, "code": code, "taken": ShopForm.TAKEN}, status=409
+                )
+            taken = Shop.objects.filter(pk=shop.pk, owner=None, claim_hash=digest).update(
+                owner=request.user, claim_hash=""
+            )
             if taken and events.shop_claimed.has_listeners(Shop):
                 # The UPDATE changed more than the owner (Shop.save, the private part): the receivers get the row as the
                 # database has it now, read in this transaction
@@ -1242,22 +1549,32 @@ def register(request, shop, staff=None):
     if training.locked(shop):
         quick = 0 if staff else training.quick_start(shop, request.user)
         if not quick:
-            return render(request, "shops/register_locked.html", {"shop": shop, "owner": owner, "staff": staff}, status=403)
+            return render(
+                request, "shops/register_locked.html", {"shop": shop, "owner": owner, "staff": staff}, status=403
+            )
     if staff:
         # The key goes in the query and in a header, never in a path: the logs drop queries (shops/staff.py)
-        urls = {"manifest": f"{reverse('staff_manifest', args=[staff.id])}?k={staff.key}",
-                "worker": "" if staff.retired else reverse("staff_worker", args=[staff.id])}
+        urls = {
+            "manifest": f"{reverse('staff_manifest', args=[staff.id])}?k={staff.key}",
+            "worker": "" if staff.retired else reverse("staff_worker", args=[staff.id]),
+        }
         # Turned off, the register takes no new sale: it only shows how a sale already on its screen ends
         data = {**data, "retired": bool(staff.retired), "texts": {**data["texts"], **staff_texts()}}
         if data.get("chain_on"):
             # The shop's count of on-chain addresses (shops/chain_count.py): asked with the register's key
             data["chain_claim"] = {"url": reverse("staff_chain", args=[staff.id]), "key": staff.key}
     else:
-        urls = {"manifest": reverse("register_manifest", args=[shop.id]), "worker": reverse("register_worker", args=[shop.id])}
+        urls = {
+            "manifest": reverse("register_manifest", args=[shop.id]),
+            "worker": reverse("register_worker", args=[shop.id]),
+        }
         if owner and data.get("chain_on"):
             # The shop's count of on-chain addresses (shops/chain_count.py): only the signed-in owner asks it
-            data = {**data, "chain_claim": {"url": reverse("register_chain", args=[shop.id]), "csrf": get_token(request)},
-                    "explorer_save": reverse("register_explorer", args=[shop.id])}
+            data = {
+                **data,
+                "chain_claim": {"url": reverse("register_chain", args=[shop.id]), "csrf": get_token(request)},
+                "explorer_save": reverse("register_explorer", args=[shop.id]),
+            }
         if owner:
             # The staff registers the owner turned off for good: the owner's phone forgets the Nostr keys it made for
             # them, and no longer takes their copies (static/register.js, docs/features/nostr-copies.md)
@@ -1265,19 +1582,38 @@ def register(request, shop, staff=None):
 
             # The newest first: a phone that missed some learns those it most likely still holds; the oldest past the
             # bound were sent on earlier visits
-            data = {**data, "gone_tills": [str(pk) for pk in shop.staff_registers.filter(
-                retired__lte=timezone.now() - RETIRED_GRACE).order_by("-retired", "id").values_list(
-                "id", flat=True)[:GONE_TILLS]]}
+            data = {
+                **data,
+                "gone_tills": [
+                    str(pk)
+                    for pk in shop.staff_registers.filter(retired__lte=timezone.now() - RETIRED_GRACE)
+                    .order_by("-retired", "id")
+                    .values_list("id", flat=True)[:GONE_TILLS]
+                ],
+            }
     if quick:
-        data = {**data, "quick_start": {"cents": quick, "currency": data["currency"]},
-                "texts": {**data["texts"], **quick_texts()}}
+        data = {
+            **data,
+            "quick_start": {"cents": quick, "currency": data["currency"]},
+            "texts": {**data["texts"], **quick_texts()},
+        }
     # The practice register (shops/practice.py): the same screens, nothing real
     urls["practice"] = practice_url(shop, staff)
-    response = render(request, "shops/register.html", {
-        "shop": shop, "currency": community().get("currency", "EUR"), "owner": owner, "register": data, "staff": staff,
-        "urls": urls, "ledger": f"{shop.id}{f':{staff.id}' if staff else ''}",
-        # Whoever stands at the till sees where the money goes, on every screen of the register
-        "paying_to": guard.paying_to(shop, whole=bool(staff) or request.user == shop.owner)})
+    response = render(
+        request,
+        "shops/register.html",
+        {
+            "shop": shop,
+            "currency": community().get("currency", "EUR"),
+            "owner": owner,
+            "register": data,
+            "staff": staff,
+            "urls": urls,
+            "ledger": f"{shop.id}{f':{staff.id}' if staff else ''}",
+            # Whoever stands at the till sees where the money goes, on every screen of the register
+            "paying_to": guard.paying_to(shop, whole=bool(staff) or request.user == shop.owner),
+        },
+    )
     # Only the register talks to the shop's Lightning provider and to the rate sources: the other pages stay closed
     response.headers["Content-Security-Policy"] = csp_with_connect(connect_origins(data))
     # What the register's copy on the phone keeps as the register page (static/register.js, keepCopy): only this answer
@@ -1299,7 +1635,9 @@ def quick_texts():
     """The words of the quick start: the first sales of the owner's register before the training (shops/training.py)."""
     return {
         "quick_left": _("Quick start: {left} of {limit} left before the training."),
-        "quick_over": _("This sale is {amount} and only {left} of the quick start is left. Type less, or finish the training to take any amount."),
+        "quick_over": _(
+            "This sale is {amount} and only {left} of the quick start is left. Type less, or finish the training to take any amount."
+        ),
         "quick_done": _("Quick start used up. Finish the training to keep taking payments."),
         "quick_currency": _("The quick start counts in {currency}: set that currency in the settings."),
     }
@@ -1314,10 +1652,14 @@ def staff_texts():
         "limits": _("The shop's Lightning wallet does not accept this amount: too high or too low."),
         "elsewhere": _("The shop's Lightning wallet answers from another address: the register cannot use it."),
         "bad_invoice": _("The shop's Lightning wallet sent a wrong invoice: do not use it."),
-        "old_invoice": _("The shop's Lightning wallet sent an invoice that is old or already used for another sale: do "
-                         "not use it. Try again in a moment."),
-        "no_check": _("Careful: this register cannot see when this payment arrives. Hand over the goods only after "
-                      "the owner sees the payment in their wallet, then confirm here."),
+        "old_invoice": _(
+            "The shop's Lightning wallet sent an invoice that is old or already used for another sale: do "
+            "not use it. Try again in a moment."
+        ),
+        "no_check": _(
+            "Careful: this register cannot see when this payment arrives. Hand over the goods only after "
+            "the owner sees the payment in their wallet, then confirm here."
+        ),
         "seen": _("The owner sees the payment in the wallet"),
         "confirmed": _("Marked as paid: the owner will check it"),
         "unchecked": _("Not checked: tell the owner"),
@@ -1336,8 +1678,7 @@ def register_worker(request, shop, keep=True, staff=False):
     shop = get_object_or_404(Shop.objects.filter(HAS_REGISTER), pk=shop)
     # The owner's quick start keeps the register (and its copy on the phone) as a shop with the pass does
     open_till = not training.locked(shop) or (not staff and training.quick_start(shop, request.user) > 0)
-    name = ("register-sw.js" if keep and register_data(shop) and open_till
-            else "register-sw-gone.js")
+    name = "register-sw.js" if keep and register_data(shop) and open_till else "register-sw-gone.js"
     script = (settings.BASE_DIR / "static" / name).read_text()
     return HttpResponse(script, content_type="text/javascript", headers={"Cache-Control": "no-cache"})
 
@@ -1362,7 +1703,9 @@ def site_link(name, token):
 
 
 def link_email(subject, intro, link):
-    return f"{community()['name']}: {subject}", "\n\n".join([intro, link, _("If you did not ask for it, ignore this email.")])
+    return f"{community()['name']}: {subject}", "\n\n".join(
+        [intro, link, _("If you did not ask for it, ignore this email.")]
+    )
 
 
 def send_link(subject, intro, link, email):
@@ -1409,17 +1752,31 @@ def recovery(request):
             ratelimit.give_back(f"mail:{email}", RECOVERY_LIFETIME)
         else:
             token = signing.dumps({"email": email, "state": login_state(email), "next": target}, salt="recovery")
-            send_link_later(_("Your link to sign in"), _("Open this link to sign in. It lasts 15 minutes and works once."),
-                            site_link("recovery_login", token), email, failed=lambda: mailbudget.sender_give_back(request))
+            send_link_later(
+                _("Your link to sign in"),
+                _("Open this link to sign in. It lasts 15 minutes and works once."),
+                site_link("recovery_login", token),
+                email,
+                failed=lambda: mailbudget.sender_give_back(request),
+            )
             sent = True
     # The address as written, with or without an account: whoever got it wrong notices, and nobody finds out who is signed up
-    response = render(request, "shops/recovery.html", {"form": form, "sent": sent, "busy": busy,
-                                                         "recent": recent, "next": target, "email": email,
-                                                         "claiming": claimed_name(request, target)
-                                                         if target and request.method == "GET" else "",
-                                                         "budget": mailbudget.message() if budget else "",
-                                                         "daily": mailbudget.sender_message() if daily else ""},
-                      status=429 if busy or recent or daily else 503 if budget else 200)
+    response = render(
+        request,
+        "shops/recovery.html",
+        {
+            "form": form,
+            "sent": sent,
+            "busy": busy,
+            "recent": recent,
+            "next": target,
+            "email": email,
+            "claiming": claimed_name(request, target) if target and request.method == "GET" else "",
+            "budget": mailbudget.message() if budget else "",
+            "daily": mailbudget.sender_message() if daily else "",
+        },
+        status=429 if busy or recent or daily else 503 if budget else 200,
+    )
     if busy or recent or daily:
         response["Retry-After"] = str(ratelimit.seconds_left(mailbudget.SENDER_WINDOW if daily else RECOVERY_LIFETIME))
     return response
@@ -1439,11 +1796,19 @@ def recovery_login(request):
     if data["state"] != login_state(data["email"]):
         # A link opened twice, or an older one after a sign-in. Only who holds the signed link reads this, and it says
         # nothing more about the account than the link itself; the form below asks for a new one
-        return render(request, "shops/recovery.html", {"form": RecoveryForm(), "used": True, "next": local_path(data.get("next", ""))},
-                      status=410)
+        return render(
+            request,
+            "shops/recovery.html",
+            {"form": RecoveryForm(), "used": True, "next": local_path(data.get("next", ""))},
+            status=410,
+        )
     if request.method != "POST":
         # Whoever opens the link sees which account they are entering: a link forwarded by someone else would lead into theirs
-        return render(request, "shops/link_confirm.html", {"token": token, "action": reverse("recovery_login"), "account": data["email"]})
+        return render(
+            request,
+            "shops/link_confirm.html",
+            {"token": token, "action": reverse("recovery_login"), "account": data["email"]},
+        )
     email = data["email"]
     profile = profile_for(email)
     if not profile and limits.refuse("accounts"):
@@ -1483,9 +1848,11 @@ def save_recovery_email(request, profile, email):
     # Accounts are free: besides the account, the address and its network count, with the same counters as the
     # recovery form (both send mail from here), and so does the address written, which the recovery limits too
     times = mailbudget.factor(request)
-    if (ratelimit.over_limit(f"mail:{request.user.pk}", 3, RECOVERY_LIFETIME)
-            or ratelimit.over_address_limits(request, "mail", 10 * times, 30 * times, RECOVERY_LIFETIME)
-            or ratelimit.over_limit(f"mail:{email}", 3, RECOVERY_LIFETIME)):
+    if (
+        ratelimit.over_limit(f"mail:{request.user.pk}", 3, RECOVERY_LIFETIME)
+        or ratelimit.over_address_limits(request, "mail", 10 * times, 30 * times, RECOVERY_LIFETIME)
+        or ratelimit.over_limit(f"mail:{email}", 3, RECOVERY_LIFETIME)
+    ):
         messages.error(request, _("Too many emails in a short time: wait a few minutes and try again."))
         return
     if not mailbudget.visitor_allowed(email, times):
@@ -1496,11 +1863,19 @@ def save_recovery_email(request, profile, email):
         messages.error(request, mailbudget.sender_message())
         return
     token = signing.dumps({"user": request.user.pk, "email": email, "current": profile.email}, salt="confirm-email")
-    send_link_later(_("Confirm your email"),
-                    _("Open this link in the browser where you are signed in to the account that asked for it, to "
-                      "confirm this email for that account. It lasts 15 minutes."),
-                    site_link("confirm_email", token), email, failed=lambda: mailbudget.sender_give_back(request))
-    messages.success(request, _("We sent a confirmation link to {email}: the address changes when you click it.").format(email=email))
+    send_link_later(
+        _("Confirm your email"),
+        _(
+            "Open this link in the browser where you are signed in to the account that asked for it, to "
+            "confirm this email for that account. It lasts 15 minutes."
+        ),
+        site_link("confirm_email", token),
+        email,
+        failed=lambda: mailbudget.sender_give_back(request),
+    )
+    messages.success(
+        request, _("We sent a confirmation link to {email}: the address changes when you click it.").format(email=email)
+    )
 
 
 @not_indexed
@@ -1519,8 +1894,11 @@ def confirm_email(request):
     if request.user.pk != profile.user_id:
         return render(request, "shops/link_confirm.html", {"elsewhere": True}, status=403)
     if request.method != "POST":
-        return render(request, "shops/link_confirm.html", {"token": token, "action": reverse("confirm_email"), "account": data["email"],
-                                                            "confirming": True})
+        return render(
+            request,
+            "shops/link_confirm.html",
+            {"token": token, "action": reverse("confirm_email"), "account": data["email"], "confirming": True},
+        )
     owner = profile_for(data["email"])
     if not owner or owner.pk == profile.pk:
         profile.email = data["email"]
@@ -1547,14 +1925,25 @@ def database_problems():
 def health(request):
     """For external monitoring. The result is remembered for a short time: the page is public."""
     problems = cache.get_or_set("health", database_problems, HEALTH_MEMORY)
-    return JsonResponse({"ok": not problems, "problems": problems,
-                         "version": {"software": settings.BITMENTOR_VERSION, "site": settings.SITE_VERSION},
-                         "mode": settings.SITE_MODE, "mode_since": settings.SITE_MODE_SINCE},
-                        status=503 if problems else 200)
+    return JsonResponse(
+        {
+            "ok": not problems,
+            "problems": problems,
+            "version": {"software": settings.BITMENTOR_VERSION, "site": settings.SITE_VERSION},
+            "mode": settings.SITE_MODE,
+            "mode_since": settings.SITE_MODE_SINCE,
+        },
+        status=503 if problems else 200,
+    )
 
 
 def nostr_names(request):
-    names = dict(public_shops().exclude(nip05_name__in=("", "_")).exclude(nostr_pubkey="").values_list("nip05_name", "nostr_pubkey"))
+    names = dict(
+        public_shops()
+        .exclude(nip05_name__in=("", "_"))
+        .exclude(nostr_pubkey="")
+        .values_list("nip05_name", "nostr_pubkey")
+    )
     if settings.NOSTR_SECRET_KEY:
         names["_"] = public_key(settings.NOSTR_SECRET_KEY)
     response = JsonResponse({"names": names})

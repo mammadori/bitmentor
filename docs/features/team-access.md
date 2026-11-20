@@ -82,6 +82,11 @@ Exactly what an address in `DEV_ALLOWED_IPS` gives on a site under construction,
   the top that says so;
 - the larger email allowance of the allowed addresses (`emails_staff_factor`, [Limits](../configuration.md#limits)).
 
+A pass opens the site's own host and nothing beside it: a service on a host of its own (a Blossom host of
+`BLOSSOM_HOSTS`, a relay on `relay.<SITE_HOST>`) never receives the cookie, which has no `Domain`, and never asks
+for it. While the site is under construction those hosts open to the addresses in `DEV_ALLOWED_IPS` only, so a team
+member who came in with a pass from another address sees the site and not them.
+
 It signs in to no shop and to no account, and the role changes nothing here: the role `moderator` opens
 [the volunteers' area](#the-volunteers-area), when it is on.
 

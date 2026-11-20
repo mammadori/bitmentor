@@ -1,4 +1,5 @@
 """Checks before opening real payments: exits with an error if something is not ready."""
+
 import ipaddress
 import re
 import smtplib
@@ -21,6 +22,8 @@ from shops.notifications import chats, moderators_emails
 
 YEAR = 31536000
 MIN_SECRET = 50
+
+
 def settings_problems():
     problems = []
     if settings.NETWORK != "mainnet":
@@ -90,9 +93,11 @@ def ipv6_problems():
         return []  # behind another proxy the AAAA record is the proxy's, and the visitor's address comes from it
     addresses = site_ipv6(settings.SITE_HOST)
     if addresses and own_ipv6() is False:
-        return [f"{settings.SITE_HOST} has an IPv6 address ({', '.join(sorted(addresses))}) but the Docker network does not: "
-                "every IPv6 visitor would come from the same address. Turn on compose.ipv6.yml, with ip6tables "
-                "in the Docker daemon, and check by hand with ACCESS_LOG=on (README, \"IPv6\"), or remove the AAAA record"]
+        return [
+            f"{settings.SITE_HOST} has an IPv6 address ({', '.join(sorted(addresses))}) but the Docker network does not: "
+            "every IPv6 visitor would come from the same address. Turn on compose.ipv6.yml, with ip6tables "
+            'in the Docker daemon, and check by hand with ACCESS_LOG=on (README, "IPv6"), or remove the AAAA record'
+        ]
     return []
 
 
@@ -138,8 +143,12 @@ def team_notes():
 
     if not access.on():
         if settings.TEAM_AREA:
-            return [("the volunteers' area is on (TEAM_AREA=on) but team access is off: it does nothing until TEAM_ACCESS=on "
-                    "(docs/features/team-access.md)")]
+            return [
+                (
+                    "the volunteers' area is on (TEAM_AREA=on) but team access is off: it does nothing until TEAM_ACCESS=on "
+                    "(docs/features/team-access.md)"
+                )
+            ]
         return []
     try:
         counts = f"{TeamKey.active().count()} team keys, {TeamInvite.open().count()} open invites (/admin/team/)"
@@ -155,16 +164,20 @@ def team_notes():
     if access.area_on():
         try:
             keys = TeamKey.active().filter(role=TeamKey.Role.MODERATOR)
-            moderators = (f"{keys.count()} moderator keys can open it, {keys.filter(approves=True).count()} of them may "
-                          "approve new shops")
+            moderators = (
+                f"{keys.count()} moderator keys can open it, {keys.filter(approves=True).count()} of them may "
+                "approve new shops"
+            )
         except DatabaseError as error:
             moderators = f"its keys cannot be read ({type(error).__name__})"
         closed = "" if access.area_active() else f"; with SITE_MODE {settings.SITE_MODE} it is closed"
         notes.append(f"the volunteers' area is on (TEAM_AREA=on): {moderators} (/team/){closed}")
     if not settings.ADMIN_ALLOWED_IPS.strip():
-        notes.append("team access: ADMIN_ALLOWED_IPS is empty, so a browser with a team pass reaches the sign-in page of "
-                     "/admin/ like an allowed address does (the password is still asked). If the team is not the staff, "
-                     "set ADMIN_ALLOWED_IPS (docs/features/team-access.md)")
+        notes.append(
+            "team access: ADMIN_ALLOWED_IPS is empty, so a browser with a team pass reaches the sign-in page of "
+            "/admin/ like an allowed address does (the password is still asked). If the team is not the staff, "
+            "set ADMIN_ALLOWED_IPS (docs/features/team-access.md)"
+        )
     return notes
 
 
@@ -193,10 +206,17 @@ def moderators_notes():
     if channel == "telegram":
         return [], []
     if channel == "mail":
-        return [], [("the moderators' messages go by email (`moderators_emails`, else `email` in community.yml): there "
-                     "is no Telegram moderators' chat (TELEGRAM_BOT_TOKEN, TELEGRAM_MODERATION_CHAT)")]
-    lost = ["the morning summary", "the new shops waiting for an approval",
-            "the notices about the staff accounts' second factor"]
+        return [], [
+            (
+                "the moderators' messages go by email (`moderators_emails`, else `email` in community.yml): there "
+                "is no Telegram moderators' chat (TELEGRAM_BOT_TOKEN, TELEGRAM_MODERATION_CHAT)"
+            )
+        ]
+    lost = [
+        "the morning summary",
+        "the new shops waiting for an approval",
+        "the notices about the staff accounts' second factor",
+    ]
     if access.on():
         lost.append("the team access notices of new keys and passes")
     missing = []
@@ -204,12 +224,19 @@ def moderators_notes():
         missing.append("TELEGRAM_BOT_TOKEN is empty")
     if not chats(settings.TELEGRAM_MODERATION_CHAT):
         missing.append("TELEGRAM_MODERATION_CHAT is empty")
-    missing.append("EMAIL_HOST is empty" if not mail.leaves() else
-                   "community.yml has no `moderators_emails` and no `email` to write to")
-    return [(f"the moderators cannot be reached ({'; '.join(missing)}): {', '.join(lost)} will reach nobody. "
-             "Fine for a site you look after alone: read /admin/today/ yourself. Otherwise set TELEGRAM_BOT_TOKEN and "
-             "TELEGRAM_MODERATION_CHAT, or EMAIL_HOST with `moderators_emails` or `email` in community.yml, and "
-             "try it with manage.py notify_test --moderators (docs/operations.md)")], []
+    missing.append(
+        "EMAIL_HOST is empty"
+        if not mail.leaves()
+        else "community.yml has no `moderators_emails` and no `email` to write to"
+    )
+    return [
+        (
+            f"the moderators cannot be reached ({'; '.join(missing)}): {', '.join(lost)} will reach nobody. "
+            "Fine for a site you look after alone: read /admin/today/ yourself. Otherwise set TELEGRAM_BOT_TOKEN and "
+            "TELEGRAM_MODERATION_CHAT, or EMAIL_HOST with `moderators_emails` or `email` in community.yml, and "
+            "try it with manage.py notify_test --moderators (docs/operations.md)"
+        )
+    ], []
 
 
 def admin_notes():
@@ -224,29 +251,40 @@ def admin_notes():
         return []
     notes = []
     if not settings.ADMIN_ALLOWED_IPS.strip() and not second_factor.required():
-        notes.append("/admin/ is open to every address (ADMIN_ALLOWED_IPS is empty) and ADMIN_SECOND_FACTOR is optional: "
-                     "right for trying the site with the team. For a community with real shops, a stricter level "
-                     "(required, or passkey) or ADMIN_ALLOWED_IPS defends the staff accounts beyond their password "
-                     "(docs/configuration.md)")
+        notes.append(
+            "/admin/ is open to every address (ADMIN_ALLOWED_IPS is empty) and ADMIN_SECOND_FACTOR is optional: "
+            "right for trying the site with the team. For a community with real shops, a stricter level "
+            "(required, or passkey) or ADMIN_ALLOWED_IPS defends the staff accounts beyond their password "
+            "(docs/configuration.md)"
+        )
     if settings.ADMIN_WALLET_SIGN_IN and second_factor.required():
-        notes.append(f"ADMIN_WALLET_SIGN_IN is on and ADMIN_SECOND_FACTOR is {second_factor.mode()}: at this level no "
-                     "wallet signs in to /admin/, and the linked ones stay unused. Set ADMIN_WALLET_SIGN_IN=off "
-                     "(docs/configuration.md)")
+        notes.append(
+            f"ADMIN_WALLET_SIGN_IN is on and ADMIN_SECOND_FACTOR is {second_factor.mode()}: at this level no "
+            "wallet signs in to /admin/, and the linked ones stay unused. Set ADMIN_WALLET_SIGN_IN=off "
+            "(docs/configuration.md)"
+        )
     elif settings.ADMIN_WALLET_SIGN_IN:
-        notes.append("ADMIN_WALLET_SIGN_IN is on: a linked wallet alone opens /admin/ for a staff account without a "
-                     "second factor, one step as the password alone. Right for trying the site with a few friends; a "
-                     "community with real shops moves to ADMIN_SECOND_FACTOR=required or passkey, where wallets no "
-                     "longer sign in (manage.py admin_wallet list, docs/configuration.md)")
+        notes.append(
+            "ADMIN_WALLET_SIGN_IN is on: a linked wallet alone opens /admin/ for a staff account without a "
+            "second factor, one step as the password alone. Right for trying the site with a few friends; a "
+            "community with real shops moves to ADMIN_SECOND_FACTOR=required or passkey, where wallets no "
+            "longer sign in (manage.py admin_wallet list, docs/configuration.md)"
+        )
     staff = list(get_user_model().objects.filter(is_active=True, is_staff=True))
     # In `passkey` mode a TOTP does not count: it only lets an account without a passkey add one
     factors = [second_factor.accepted_factors(user) for user in staff]
     without = sum(1 for found in factors if found.totp is None and not found.passkeys)
     if without:
-        what = ("they are sent to set one up at their next sign-in" if second_factor.required() else
-                "each may add one in /admin/second-factor/, if they wish")
+        what = (
+            "they are sent to set one up at their next sign-in"
+            if second_factor.required()
+            else "each may add one in /admin/second-factor/, if they wish"
+        )
         kind = "passkey" if second_factor.mode() == "passkey" else "second factor"
-        notes.append(f"{without} of {len(staff)} staff accounts have no {kind}: {what} "
-                     "(manage.py admin_totp list, manage.py admin_passkey list)")
+        notes.append(
+            f"{without} of {len(staff)} staff accounts have no {kind}: {what} "
+            "(manage.py admin_totp list, manage.py admin_passkey list)"
+        )
     return notes
 
 
@@ -256,8 +294,12 @@ def settings_watch_notes():
     from website import settings_watch
 
     if not settings_watch.enabled():
-        return [("the settings watch is off (`settings_watch: {enabled: false}` in community.yml): nobody hears of a "
-                 "security setting changed between two starts")]
+        return [
+            (
+                "the settings watch is off (`settings_watch: {enabled: false}` in community.yml): nobody hears of a "
+                "security setting changed between two starts"
+            )
+        ]
     told = settings_watch.last_told() if settings_watch.tables_ready() else None
     when = f"the last change was told on {timezone.localtime(told):%Y-%m-%d %H:%M}" if told else "no change told yet"
     return [f"the settings watch is on: the moderators hear of a security setting changed between two starts ({when})"]
@@ -274,7 +316,11 @@ def privacy_notes():
         path = page_path(language, "privacy")
         if path.exists() and PLACEHOLDER.search(path.read_text()):
             found.append(language)
-    return [f"the privacy page still has placeholders to fill in ({', '.join(found)}): see docs/privacy.md"] if found else []
+    return (
+        [f"the privacy page still has placeholders to fill in ({', '.join(found)}): see docs/privacy.md"]
+        if found
+        else []
+    )
 
 
 def training_notes():
@@ -293,9 +339,13 @@ def training_notes():
     waiting = shops.count()
     if not waiting:
         return []
-    return [("the training locks the register without the basic pass (training.gate: unlock) and has no `since` day: "
-             f"{waiting} shops with a register wait for their owner's pass at once on mainnet. Write a `training.since` "
-             "ahead in community.yml and tell the merchants first")]
+    return [
+        (
+            "the training locks the register without the basic pass (training.gate: unlock) and has no `since` day: "
+            f"{waiting} shops with a register wait for their owner's pass at once on mainnet. Write a `training.since` "
+            "ahead in community.yml and tell the merchants first"
+        )
+    ]
 
 
 def limit_notes():
@@ -311,17 +361,24 @@ def closure_notes():
     (nobody could end it), one with a day keeps them quiet until that day, and at most MAX_CREDIT days from its first."""
     today = vacation.day_of()
     running = Closure.objects.filter(first_day__lte=today, shop__in=Shop.objects.filter(still_trading(today))).filter(
-        Q(reopens_on__isnull=True) | Q(reopens_on__gt=today))
+        Q(reopens_on__isnull=True) | Q(reopens_on__gt=today)
+    )
     undated = running.filter(reopens_on__isnull=True).count()
     dated = list(running.filter(reopens_on__isnull=False))
     notes = []
     if undated:
-        notes.append(f"{undated} closures running with no day to reopen: with the closures off they keep no alarm quiet "
-                     "any more, those shops raise all the alarms (/admin/ lets you remove or end them)")
+        notes.append(
+            f"{undated} closures running with no day to reopen: with the closures off they keep no alarm quiet "
+            "any more, those shops raise all the alarms (/admin/ lets you remove or end them)"
+        )
     if dated:
-        until = max(min(closure.reopens_on, closure.first_day + timedelta(days=vacation.MAX_CREDIT)) for closure in dated)
-        notes.append(f"{len(dated)} closures running with a day to reopen: they keep the alarms quiet until that day, "
-                     f"at most {vacation.MAX_CREDIT} days from the start (the last one until {until})")
+        until = max(
+            min(closure.reopens_on, closure.first_day + timedelta(days=vacation.MAX_CREDIT)) for closure in dated
+        )
+        notes.append(
+            f"{len(dated)} closures running with a day to reopen: they keep the alarms quiet until that day, "
+            f"at most {vacation.MAX_CREDIT} days from the start (the last one until {until})"
+        )
     return notes
 
 
@@ -334,7 +391,9 @@ class Command(BaseCommand):
             notes = lightning_notes()
         except DatabaseError as error:
             # A database not migrated yet: the other checks still count
-            notes = [f"the state of the Lightning addresses cannot be read ({type(error).__name__}): is migrate missing?"]
+            notes = [
+                f"the state of the Lightning addresses cannot be read ({type(error).__name__}): is migrate missing?"
+            ]
         try:
             notes += limit_notes()
         except DatabaseError as error:
@@ -342,11 +401,15 @@ class Command(BaseCommand):
         try:
             notes += training_notes()
         except DatabaseError as error:
-            notes.append(f"the registers waiting for the training cannot be read ({type(error).__name__}): is migrate missing?")
+            notes.append(
+                f"the registers waiting for the training cannot be read ({type(error).__name__}): is migrate missing?"
+            )
         try:
             notes += admin_notes()
         except DatabaseError as error:
-            notes.append(f"the staff accounts' second factors cannot be read ({type(error).__name__}): is migrate missing?")
+            notes.append(
+                f"the staff accounts' second factors cannot be read ({type(error).__name__}): is migrate missing?"
+            )
         try:
             notes += settings_watch_notes()
         except DatabaseError as error:

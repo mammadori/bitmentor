@@ -31,6 +31,7 @@ The numbers, in `community.yml`:
       game_days: 30
       game_sales: 20
 """
+
 from django.utils import timezone
 from django.utils.formats import number_format
 from django.utils.translation import gettext_lazy as _
@@ -41,7 +42,15 @@ from config.community import community
 from . import address_change
 
 WALLET, TRIAL, TAKINGS, PASS, MAP, ROUTINE, REST, GAME = (
-    "wallet", "trial", "takings", "pass", "map", "routine", "rest", "game")
+    "wallet",
+    "trial",
+    "takings",
+    "pass",
+    "map",
+    "routine",
+    "rest",
+    "game",
+)
 ORDER = (WALLET, TRIAL, TAKINGS, PASS, MAP, ROUTINE, REST, GAME)
 TITLES = {
     WALLET: _("The shop and the wallet"),
@@ -106,8 +115,13 @@ def on_the_map(shop):
     """Whether the shop shows on the map now, as the public lists read it (directory.public_shops): approved, whatever
     `features.approval` says now, listed, not suspended, with a position. The caller has already set aside a historic
     shop and one without its wallet."""
-    return (not shop.needs_approval and shop.listed and not shop.suspended
-            and shop.latitude is not None and shop.longitude is not None)
+    return (
+        not shop.needs_approval
+        and shop.listed
+        and not shop.suspended
+        and shop.latitude is not None
+        and shop.longitude is not None
+    )
 
 
 def days_since(moment, now):
@@ -128,8 +142,11 @@ def current(shop, *, now, numbers, training_on, has_pass):
         # A historic shop is long past its stages, with or without a register
         return None
     if not shop.has_register:
-        return stage(WALLET, waits=bool(getattr(shop, "waits_for_wallet", False))) if getattr(shop, "needs_wallet", False) \
+        return (
+            stage(WALLET, waits=bool(getattr(shop, "waits_for_wallet", False)))
+            if getattr(shop, "needs_wallet", False)
             else None
+        )
     if watch and watch.get("broken"):
         return stage(WALLET, broken=True)
     if training_on and getattr(shop, "till_locked", False):
@@ -146,11 +163,15 @@ def current(shop, *, now, numbers, training_on, has_pass):
     if days >= numbers["routine_days"]:
         found = stage(ROUTINE, days=days)
     else:
-        found = stage(TAKINGS, days=days, quick=getattr(shop, "till_quick", 0) or 0, propose_pass=training_on and not has_pass)
+        found = stage(
+            TAKINGS, days=days, quick=getattr(shop, "till_quick", 0) or 0, propose_pass=training_on and not has_pass
+        )
     # On a phone with enough sales in the register's ledger (static/stages.js), a later stage opens before its days
-    found["promote"] = [stage(key, sales=numbers[f"{key}_sales"])
-                        for key in (ROUTINE, GAME) if ORDER.index(key) > ORDER.index(found["key"])
-                        and (key != GAME or training_on)]
+    found["promote"] = [
+        stage(key, sales=numbers[f"{key}_sales"])
+        for key in (ROUTINE, GAME)
+        if ORDER.index(key) > ORDER.index(found["key"]) and (key != GAME or training_on)
+    ]
     return found
 
 

@@ -1,5 +1,6 @@
 """The private part opened by hand by the association to a certified shop, and one Lightning address for one owner
 (shops/certified.py, shops/admin.py, shops/forms.py, shops/dashboard.py)."""
+
 from datetime import date, datetime
 from datetime import timezone as dt_timezone
 from unittest.mock import patch
@@ -24,8 +25,9 @@ def make_user(name):
 class Approval(TestCase):
     def setUp(self):
         self.owner = make_user("owner")
-        self.shop = Shop.objects.create(name="Bar", owner=self.owner, certified_month=date(2026, 9, 1),
-                                        lightning_address="bar@wallet.example")
+        self.shop = Shop.objects.create(
+            name="Bar", owner=self.owner, certified_month=date(2026, 9, 1), lightning_address="bar@wallet.example"
+        )
         admin_session(self.client)
 
     def act(self, action, shop=None):
@@ -41,7 +43,9 @@ class Approval(TestCase):
         self.assertIsNotNone(shop.private_approved)
         self.assertEqual(shop.private_approved_by, "boss")
         self.assertTrue(certified.sees_private_part(self.owner))
-        self.assertTrue(LogEntry.objects.filter(object_id=str(shop.pk), change_message="Private part approved").exists())
+        self.assertTrue(
+            LogEntry.objects.filter(object_id=str(shop.pk), change_message="Private part approved").exists()
+        )
         page = self.client.get(f"{URL}{shop.pk}/change/").content.decode()
         self.assertIn("Private part approved by", page)
         self.assertNotIn('name="private_approved"', page)
@@ -57,15 +61,26 @@ class Approval(TestCase):
         page = self.client.get(f"{URL}{self.shop.pk}/change/")
         data = {**page.context["adminform"].form.initial, "owner": heir.pk, "_save": "1"}
         data = {key: ("" if value is None else value) for key, value in data.items()}
-        data.update({"closures-TOTAL_FORMS": "0", "closures-INITIAL_FORMS": "0", "places-TOTAL_FORMS": "0", "places-INITIAL_FORMS": "0"})
+        data.update(
+            {
+                "closures-TOTAL_FORMS": "0",
+                "closures-INITIAL_FORMS": "0",
+                "places-TOTAL_FORMS": "0",
+                "places-INITIAL_FORMS": "0",
+            }
+        )
         response = self.client.post(f"{URL}{self.shop.pk}/change/", data)
-        self.assertEqual(response.status_code, 302, getattr(response, "context", None) and
-                         response.context["adminform"].form.errors)
+        self.assertEqual(
+            response.status_code, 302, getattr(response, "context", None) and response.context["adminform"].form.errors
+        )
         shop = Shop.objects.get(pk=self.shop.pk)
         self.assertEqual((shop.owner, shop.private_approved, shop.private_approved_by), (heir, None, ""))
         self.assertFalse(certified.sees_private_part(heir))
-        self.assertTrue(LogEntry.objects.filter(object_id=str(shop.pk),
-                                                change_message__startswith="Private part revoked: the shop changed").exists())
+        self.assertTrue(
+            LogEntry.objects.filter(
+                object_id=str(shop.pk), change_message__startswith="Private part revoked: the shop changed"
+            ).exists()
+        )
 
     def test_any_other_road_to_another_owner_too(self):
         self.act("approve_private_part")
@@ -84,8 +99,9 @@ class Approval(TestCase):
     def test_an_address_shared_with_another_owner_closes_it(self):
         self.act("approve_private_part")
         self.assertTrue(certified.sees_private_part(self.owner))
-        other = Shop.objects.create(name="Pub", owner=make_user("other"), closed_on=date(2025, 1, 1),
-                                    lightning_address=" BAR@wallet.example")
+        other = Shop.objects.create(
+            name="Pub", owner=make_user("other"), closed_on=date(2025, 1, 1), lightning_address=" BAR@wallet.example"
+        )
         self.assertFalse(certified.sees_private_part(self.owner))
         found = [(item.code, item.shop) for item in dashboard.summary()["items"] if item.code == "lightning_shared"]
         # The historic shop takes no payments: only the trading one is listed, and the share is seen all the same
@@ -162,8 +178,13 @@ class SharedAddressAndCertificate(TestCase):
 
     def shop(self, name, owner, address="bar@wallet.example"):
         Trainee.objects.get_or_create(user=owner, defaults={"base_earned": NOW})
-        return Shop.objects.create(name=name, owner=owner, lightning_address=address, lightning_status=LightningStatus.OK,
-                                   lightning_checked_address=address)
+        return Shop.objects.create(
+            name=name,
+            owner=owner,
+            lightning_address=address,
+            lightning_status=LightningStatus.OK,
+            lightning_checked_address=address,
+        )
 
     def test_same_owner_is_certified(self):
         owner = make_user("owner")

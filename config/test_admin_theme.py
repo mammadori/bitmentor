@@ -1,4 +1,5 @@
 """The admin wears the cyberpunk theme: its pages load admin-theme.css, which exists and has no external resource."""
+
 import re
 
 from django.contrib.auth import get_user_model

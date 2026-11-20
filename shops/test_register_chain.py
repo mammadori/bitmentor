@@ -5,6 +5,7 @@ of a staff register (static/register-pairing.js).
 The derivation is checked against the published test vectors of BIP32 and BIP84: an address derived wrong is money
 sent where nobody can spend it. The scripts run in node (NODE=/path/to/node, or node on the PATH); without node only
 what can be read in the source is checked."""
+
 import json
 import os
 import shutil
@@ -14,6 +15,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.test import SimpleTestCase
+
 from .test_scripts import assert_talks_to_nobody
 
 STATIC = settings.BASE_DIR / "static"
@@ -21,24 +23,27 @@ SCRIPTS = [STATIC / name for name in ("register-derive.js", "register-chain.js",
 EXPLORER = Path(__file__).parent / "testdata" / "explorer.json"
 
 # BIP32, test vector 2: the master key and its child 0; test vector 1: m/0H and its child 1 (non hardened)
-BIP32_MASTER = ("xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8"
-                "UB7WEGuduB")
-BIP32_MASTER_0 = ("xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFx"
-                  "HmwMkQTPH")
-BIP32_0H = ("xpub68Gmy5EdvgibQVfPdqkBBCHxA5htiqg55crXYuXoQRKfDBFA1WEjWgP6LHhwBZeNK1VTsfTFUHCdrfp1bgwQ9xv5ski8PX9rL2dZX"
-            "vgGDnw")
-BIP32_0H_1 = ("xpub6ASuArnXKPbfEwhqN6e3mwBcDTgzisQN1wXN9BJcM47sSikHjJf3UFHKkNAWbWMiGj7Wf5uMash7SyYq527Hqck2AxYysAA7xmA"
-              "LppuCkwQ")
+BIP32_MASTER = (
+    "xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB"
+)
+BIP32_MASTER_0 = (
+    "xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH"
+)
+BIP32_0H = (
+    "xpub68Gmy5EdvgibQVfPdqkBBCHxA5htiqg55crXYuXoQRKfDBFA1WEjWgP6LHhwBZeNK1VTsfTFUHCdrfp1bgwQ9xv5ski8PX9rL2dZXvgGDnw"
+)
+BIP32_0H_1 = (
+    "xpub6ASuArnXKPbfEwhqN6e3mwBcDTgzisQN1wXN9BJcM47sSikHjJf3UFHKkNAWbWMiGj7Wf5uMash7SyYq527Hqck2AxYysAA7xmALppuCkwQ"
+)
 # BIP84: the account key of «abandon abandon … about» and its addresses m/84'/0'/0'/0/0, /0/1 and /1/0
-BIP84_ACCOUNT = ("zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz"
-                 "2AGutZYs")
+BIP84_ACCOUNT = (
+    "zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs"
+)
 BIP84_RECEIVE = ["bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu", "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g"]
 BIP84_CHANGE = "bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el"
 # The same account key written for signet (vpub) and as a tpub: what a merchant of the test network pastes
-VPUB = ("vpub5YvMuJNjRSYon44z9QmCfdf8SqJRVNvz6m55Qy5iVjZQxDfUgtiQjnc7CC1fAbED2tAGCZRERUfvtn2DstZGU6HMns6dXXH2wujSc"
-        "2wfi2x")
-TPUB = ("tpubDCxX2sYFS5bDkSe5GKKYHjBW7tgyN1R3UchpLJvdbf54ohxeGRtd8MbDUe1cguVHe4vnK68DsuD5MXjxi9EXx16rb9EnNsaF5KT99C"
-        "inaJz")
+VPUB = "vpub5YvMuJNjRSYon44z9QmCfdf8SqJRVNvz6m55Qy5iVjZQxDfUgtiQjnc7CC1fAbED2tAGCZRERUfvtn2DstZGU6HMns6dXXH2wujSc2wfi2x"
+TPUB = "tpubDCxX2sYFS5bDkSe5GKKYHjBW7tgyN1R3UchpLJvdbf54ohxeGRtd8MbDUe1cguVHe4vnK68DsuD5MXjxi9EXx16rb9EnNsaF5KT99CinaJz"
 REGISTER = "0f0e0d0c-0b0a-4908-8706-050403020100"
 
 HARNESS = r"""
@@ -169,7 +174,10 @@ class Source(SimpleTestCase):
 
     def test_the_register_pages_load_them_before_the_register(self):
         page = (settings.BASE_DIR / "templates" / "shops" / "register.html").read_text()
-        self.assertLess(page.index("<script src=\"{% static 'register-pairing.js' %}\"></script>"), page.index("{% block scripts %}"))
+        self.assertLess(
+            page.index("<script src=\"{% static 'register-pairing.js' %}\"></script>"),
+            page.index("{% block scripts %}"),
+        )
         # On-chain is loaded at its first use, from the addresses the page gives (static/register.js, need)
         for name in ("derive", "chain"):
             self.assertIn(f"data-{name}=\"{{% static 'register-{name}.js' %}}\"", page)
@@ -179,7 +187,7 @@ class Settings(SimpleTestCase):
     def test_the_price_sources_are_in_the_owners_advanced_section(self):
         page = (settings.BASE_DIR / "templates" / "shops" / "register.html").read_text()
         advanced, sources = page.index('<details id="advanced"'), page.index('<fieldset id="sources"')
-        end = page.index("</details>\n    <p id=\"settings-say\"", advanced)
+        end = page.index('</details>\n    <p id="settings-say"', advanced)
         self.assertLess(page.index('{% if not staff and not practice %}<section id="settings"'), advanced)
         self.assertLess(advanced, sources)
         self.assertLess(sources, end)
@@ -193,34 +201,56 @@ class Running(SimpleTestCase):
         super().setUpClass()
         node = os.environ.get("NODE") or shutil.which("node")
         if not node:
-            raise __import__("unittest").SkipTest("node is missing: NODE=/path/to/node to run the register's on-chain scripts")
+            raise __import__("unittest").SkipTest(
+                "node is missing: NODE=/path/to/node to run the register's on-chain scripts"
+            )
         recorded = json.loads(EXPLORER.read_text())["addresses"]
         address, confirmed, change = BIP84_RECEIVE[0], BIP84_RECEIVE[1], BIP84_CHANGE
         cls.address = address
-        replacement = {"txid": "e" * 64, "status": {"confirmed": False}, "vin": [{"txid": "d" * 64, "vout": 1}, {"txid": "bad"}],
-                       "vout": [{"scriptpubkey_address": address, "value": 9000}]}
+        replacement = {
+            "txid": "e" * 64,
+            "status": {"confirmed": False},
+            "vin": [{"txid": "d" * 64, "vout": 1}, {"txid": "bad"}],
+            "vout": [{"scriptpubkey_address": address, "value": 9000}],
+        }
         data = {
-            "master": BIP32_MASTER, "zeroH": BIP32_0H, "account": BIP84_ACCOUNT, "register": REGISTER, "address": address,
+            "master": BIP32_MASTER,
+            "zeroH": BIP32_0H,
+            "account": BIP84_ACCOUNT,
+            "register": REGISTER,
+            "address": address,
             "network": "signet",
             "destinations": [
-                VPUB, "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx", "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+                VPUB,
+                "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx",
+                "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
                 "tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNU"
-                "WwGP3", "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsy", ""],
+                "WwGP3",
+                "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsy",
+                "",
+            ],
             "badKeys": [BIP32_MASTER[:-1] + "C", BIP32_MASTER[:50], "0OIl", TPUB],
             "payments": [
-                [recorded[address], address, 9000, [], False], [recorded[address], address, 9000, [], True],
-                [recorded[confirmed], confirmed, 9000, [], True], [recorded[change], change, 9000, [], False],
-                [[], address, 9000, [], False], [recorded[confirmed], confirmed, 9000, ["c" * 64], True],
-                [recorded[address], "bc1qother", 9000, [], False], [{"error": "no"}, address, 9000, [], False],
+                [recorded[address], address, 9000, [], False],
+                [recorded[address], address, 9000, [], True],
+                [recorded[confirmed], confirmed, 9000, [], True],
+                [recorded[change], change, 9000, [], False],
+                [[], address, 9000, [], False],
+                [recorded[confirmed], confirmed, 9000, ["c" * 64], True],
+                [recorded[address], "bc1qother", 9000, [], False],
+                [{"error": "no"}, address, 9000, [], False],
                 [recorded[change] * 2, change, 9000, [], False],
-                [[replacement], address, 9000, [], False], [[replacement], address, 9000, [], False, ["d" * 64 + ":1"]]],
+                [[replacement], address, 9000, [], False],
+                [[replacement], address, 9000, [], False, ["d" * 64 + ":1"]],
+            ],
         }
         with tempfile.TemporaryDirectory() as folder:
             harness, given = Path(folder) / "harness.js", Path(folder) / "input.json"
             harness.write_text(HARNESS)
             given.write_text(json.dumps(data))
-            result = subprocess.run([node, str(harness), *map(str, SCRIPTS), str(given)], capture_output=True, text=True,
-                                    timeout=120)
+            result = subprocess.run(
+                [node, str(harness), *map(str, SCRIPTS), str(given)], capture_output=True, text=True, timeout=120
+            )
         if result.returncode:
             raise AssertionError(result.stderr)
         cls.out = json.loads(result.stdout)
@@ -270,61 +300,98 @@ class Running(SimpleTestCase):
         self.assertEqual(self.out["known"], ["a" * 64])
         self.assertEqual(self.out["waits"], [True, False, True, True])
         self.assertEqual(self.out["url"], "https://mempool.space/signet/api/address/tb1qx/txs")
-        self.assertEqual(self.out["uri"], ["bitcoin:bc1qx?amount=1.23456789", "bitcoin:bc1qx?amount=1",
-                                           "bitcoin:bc1qx?amount=0.00000001"])
+        self.assertEqual(
+            self.out["uri"],
+            ["bitcoin:bc1qx?amount=1.23456789", "bitcoin:bc1qx?amount=1", "bitcoin:bc1qx?amount=0.00000001"],
+        )
 
     def test_only_a_payment_in_the_sales_time_and_of_its_amount_closes_it(self):
-        self.assertEqual(self.out["windows"], [
-            ["paid", 0, 0],
-            # A block from before the sale (beyond the two hours of a block's clock), or long after its end: not this sale's
-            ["outside", 9000, 0], ["outside", 9000, 0],
-            # In the mempool during the sale: seen, and the moment kept
-            ["seen", 0, 1],
-            # Seen in time, its block after the end: still this sale's
-            ["paid", 0, 1],
-            # Much more than asked: maybe a payment for something else; up to 10% more is taken
-            ["over", 0, 0], ["paid", 0, 0],
-            # A confirmed payment without a block time cannot be placed in time: not taken
-            ["outside", 9000, 0],
-            # First seen in the mempool long after the sale's end: not taken, nor remembered
-            ["outside", 9000, 0],
-        ])
+        self.assertEqual(
+            self.out["windows"],
+            [
+                ["paid", 0, 0],
+                # A block from before the sale (beyond the two hours of a block's clock), or long after its end: not this sale's
+                ["outside", 9000, 0],
+                ["outside", 9000, 0],
+                # In the mempool during the sale: seen, and the moment kept
+                ["seen", 0, 1],
+                # Seen in time, its block after the end: still this sale's
+                ["paid", 0, 1],
+                # Much more than asked: maybe a payment for something else; up to 10% more is taken
+                ["over", 0, 0],
+                ["paid", 0, 0],
+                # A confirmed payment without a block time cannot be placed in time: not taken
+                ["outside", 9000, 0],
+                # First seen in the mempool long after the sale's end: not taken, nor remembered
+                ["outside", 9000, 0],
+            ],
+        )
 
     def test_the_confidence_of_a_payment_in_the_mempool(self):
         # A sale that needs no confirmation: paid from the mempool unless the confidence is low
-        self.assertEqual(self.out["confidence"], [
-            ["paid", "sure", "fee_next"],          # 20 sat/vB, the next block's rate
-            ["paid", "likely", "fee_hour"],        # 7 sat/vB: between the hour and the half-hour rates
-            ["seen", "wait", "fee_low"],           # 3 sat/vB, below the hour's rate: may wait long or be replaced
-            ["paid", "likely", "rbf"],             # a good fee, but it signals replaceability
-            ["paid", "likely", "fee_unknown"],     # an explorer without fee rates
-            ["paid", "likely", "fee_unknown"],     # …and replaceable: a hint only, most wallets signal it
-            ["paid", "sure", "confirmed"],
-        ])
-        self.assertEqual(self.out["feeRates"], [{"next": 20, "halfHour": 10, "hour": 5}, None, None,
-                                                {"next": 10, "halfHour": 10, "hour": 5}])
+        self.assertEqual(
+            self.out["confidence"],
+            [
+                ["paid", "sure", "fee_next"],  # 20 sat/vB, the next block's rate
+                ["paid", "likely", "fee_hour"],  # 7 sat/vB: between the hour and the half-hour rates
+                ["seen", "wait", "fee_low"],  # 3 sat/vB, below the hour's rate: may wait long or be replaced
+                ["paid", "likely", "rbf"],  # a good fee, but it signals replaceability
+                ["paid", "likely", "fee_unknown"],  # an explorer without fee rates
+                ["paid", "likely", "fee_unknown"],  # …and replaceable: a hint only, most wallets signal it
+                ["paid", "sure", "confirmed"],
+            ],
+        )
+        self.assertEqual(
+            self.out["feeRates"],
+            [{"next": 20, "halfHour": 10, "hour": 5}, None, None, {"next": 10, "halfHour": 10, "hour": 5}],
+        )
 
     def test_the_reasons_come_from_the_transaction_itself(self):
         facts = self.out["facts"]
         # 25 sat/vB, above the next block's 20, no RBF: sure, and every fact listed for the register's bar
         # Without the ancestors (an explorer without /v1/cpfp): probable, never sure
-        self.assertEqual(facts[0], {"level": "likely", "reason": "parents_unknown", "reasons": [
-            {"code": "fee_next", "rate": 25, "target": 20}, {"code": "parents_unknown"}, {"code": "no_rbf"}]})
+        self.assertEqual(
+            facts[0],
+            {
+                "level": "likely",
+                "reason": "parents_unknown",
+                "reasons": [
+                    {"code": "fee_next", "rate": 25, "target": 20},
+                    {"code": "parents_unknown"},
+                    {"code": "no_rbf"},
+                ],
+            },
+        )
         self.assertEqual(facts[1]["level"], "sure")
-        self.assertEqual(facts[1]["reasons"], [{"code": "fee_next", "rate": 25, "target": 20}, {"code": "no_parent"},
-                                               {"code": "no_rbf"}])
+        self.assertEqual(
+            facts[1]["reasons"],
+            [{"code": "fee_next", "rate": 25, "target": 20}, {"code": "no_parent"}, {"code": "no_rbf"}],
+        )
         # An unconfirmed parent: at most probable, whatever the fee
         self.assertEqual((facts[2]["level"], facts[2]["reason"]), ("likely", "parent"))
         self.assertIn({"code": "parent", "count": 1}, facts[2]["reasons"])
         # A low fee lifted by its package (CPFP): the effective rate counts, 7 between the hour's and the half hour's
-        self.assertEqual((facts[3]["level"], facts[3]["reasons"][0]), ("likely", {"code": "fee_hour", "rate": 7, "target": 10}))
+        self.assertEqual(
+            (facts[3]["level"], facts[3]["reasons"][0]), ("likely", {"code": "fee_hour", "rate": 7, "target": 10})
+        )
         self.assertEqual((facts[4]["level"], facts[4]["reasons"][-1]), ("likely", {"code": "rbf"}))
         # Confirmed: with the confirmations when the block's height and the tip are known
-        self.assertEqual(facts[5], {"level": "sure", "reason": "confirmed", "reasons": [{"code": "confirmations", "count": 3}]})
+        self.assertEqual(
+            facts[5], {"level": "sure", "reason": "confirmed", "reasons": [{"code": "confirmations", "count": 3}]}
+        )
         self.assertEqual(facts[6]["reasons"], [{"code": "confirmed"}])
-        self.assertEqual(self.out["ancestry"], [{"count": 0, "rate": None}, {"count": 1, "rate": None}, None, 900000, None,
-                                                "https://m.example/api/v1/cpfp/" + "c" * 64,
-                                                "https://m.example/api/blocks/tip/height"])
+        self.assertEqual(
+            self.out["ancestry"],
+            [
+                {"count": 0, "rate": None},
+                {"count": 1, "rate": None},
+                None,
+                900000,
+                None,
+                "https://m.example/api/v1/cpfp/" + "c" * 64,
+                "https://m.example/api/blocks/tip/height",
+            ],
+        )
         self.assertEqual(self.out["feesUrl"], "https://mempool.space/api/v1/fees/recommended")
 
     def test_the_pairing_code_comes_back_whole(self):
@@ -350,14 +417,18 @@ class Running(SimpleTestCase):
         reasons = self.out["pairingReasons"]
         self.assertEqual(reasons[1], "version")
         self.assertEqual(reasons[-6], "version")
-        self.assertEqual([reason for i, reason in enumerate(reasons) if i not in (1, len(reasons) - 6)],
-                         ["format"] * (len(reasons) - 2))
+        self.assertEqual(
+            [reason for i, reason in enumerate(reasons) if i not in (1, len(reasons) - 6)],
+            ["format"] * (len(reasons) - 2),
+        )
         self.assertEqual(self.out["encodeBad"], "format")
 
     def test_the_shops_chain_in_the_pairing(self):
         staff = self.out["staffKey"]
-        self.assertEqual(self.out["shared"], [{"key": staff, "path": "0"}, {"key": staff, "path": "0/5"},
-                                              {"key": staff, "path": "1/2/3/4"}])
+        self.assertEqual(
+            self.out["shared"],
+            [{"key": staff, "path": "0"}, {"key": staff, "path": "0/5"}, {"key": staff, "path": "1/2/3/4"}],
+        )
         self.assertEqual(self.out["badPaths"], ["format"] * 10)
         self.assertEqual(self.out["steps"], [[0], [2147483647, 0], None, None])
 
@@ -409,13 +480,26 @@ class Bech32Strict(SimpleTestCase):
         node = os.environ.get("NODE") or shutil.which("node")
         if not node:
             self.skipTest("node is missing")
-        script = ("require(process.argv[1]);const d=globalThis.registerDerive;const v=JSON.parse(process.argv[2]);"
-                  "(async()=>console.log(JSON.stringify(await Promise.all(v.map(async([a,n])=>{const r=await d.checkAddress(a,n);"
-                  "return [r.ok,r.reason||null]})))))()")
-        result = subprocess.run([node, "-e", script, str(STATIC / "register-derive.js"),
-                                 json.dumps([[a, n] for a, n, _ok, _why in BECH32_VECTORS])],
-                                capture_output=True, text=True, timeout=60)
+        script = (
+            "require(process.argv[1]);const d=globalThis.registerDerive;const v=JSON.parse(process.argv[2]);"
+            "(async()=>console.log(JSON.stringify(await Promise.all(v.map(async([a,n])=>{const r=await d.checkAddress(a,n);"
+            "return [r.ok,r.reason||null]})))))()"
+        )
+        result = subprocess.run(
+            [
+                node,
+                "-e",
+                script,
+                str(STATIC / "register-derive.js"),
+                json.dumps([[a, n] for a, n, _ok, _why in BECH32_VECTORS]),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
-        for (address, network, ok, why), (got_ok, got_why) in zip(BECH32_VECTORS, json.loads(result.stdout), strict=True):
+        for (address, network, ok, why), (got_ok, got_why) in zip(
+            BECH32_VECTORS, json.loads(result.stdout), strict=True
+        ):
             with self.subTest(address=address, network=network):
                 self.assertEqual((got_ok, got_why), (ok, why))

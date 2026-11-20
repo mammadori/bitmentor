@@ -1,6 +1,7 @@
 from django.http import Http404, HttpResponse
 from django.shortcuts import render
-from django.utils.translation import get_language, gettext as _
+from django.utils.translation import get_language
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_safe
 
 from config import ratelimit
@@ -23,9 +24,18 @@ def page(request):
     if not conf.enabled():
         raise Http404
     static_copy = request.headers.get("X-Static-Copy") == "1"
-    return render(request, "meetups/page.html", {
-        "static_copy": static_copy, "page_title": _("Meetups"), "slug": "meetups",
-        "page_description": _("Where and when the community meets: the next meetups and the last ones, with their group.")})
+    return render(
+        request,
+        "meetups/page.html",
+        {
+            "static_copy": static_copy,
+            "page_title": _("Meetups"),
+            "slug": "meetups",
+            "page_description": _(
+                "Where and when the community meets: the next meetups and the last ones, with their group."
+            ),
+        },
+    )
 
 
 @require_safe
@@ -42,8 +52,9 @@ def feed(request):
         city = ical.known_city(request.GET["city"])
         if city is None:
             raise Http404
-    response = HttpResponse(ical.calendar() if city is None else ical.calendar(city=city),
-                            content_type="text/calendar; charset=utf-8")
+    response = HttpResponse(
+        ical.calendar() if city is None else ical.calendar(city=city), content_type="text/calendar; charset=utf-8"
+    )
     response["Cache-Control"] = f"public, max-age={ical.FEED_SECONDS}"
     response["Content-Disposition"] = 'inline; filename="meetups.ics"'
     response["X-Robots-Tag"] = "noindex"

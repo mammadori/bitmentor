@@ -22,6 +22,7 @@ not to be trusted, and what is forgotten cannot be given back.
 Another kind of request that keeps a person's words is one more line of RULES: its model, the field that holds the day it was
 closed (empty while it is open) and the fields to forget. A field is put back to its default (`null` and no default is an
 error, so that a rule cannot be written that breaks a row). Backups made before keep what they kept until they expire."""
+
 from datetime import timedelta
 from typing import NamedTuple
 
@@ -40,8 +41,8 @@ CLOCK_SKEW = timedelta(minutes=10)
 
 
 class Rule(NamedTuple):
-    model: str    # "app_label.ModelName"
-    closed: str   # the date field set when the request is closed: empty while it is open or waiting
+    model: str  # "app_label.ModelName"
+    closed: str  # the date field set when the request is closed: empty while it is open or waiting
     forget: tuple  # the fields put back to what a new row has
 
 
@@ -81,10 +82,14 @@ def clock_problem(now):
     if last is None:
         return ""
     if last > now + CLOCK_SKEW:
-        return f"the last reading the site wrote is {last:%Y-%m-%d %H:%M} UTC, later than now ({now:%Y-%m-%d %H:%M} UTC)"
+        return (
+            f"the last reading the site wrote is {last:%Y-%m-%d %H:%M} UTC, later than now ({now:%Y-%m-%d %H:%M} UTC)"
+        )
     if now - last > CLOCK_SLACK:
-        return (f"the last reading the site wrote is from {last:%Y-%m-%d %H:%M} UTC, more than two days before now "
-                f"({now:%Y-%m-%d %H:%M} UTC)")
+        return (
+            f"the last reading the site wrote is from {last:%Y-%m-%d %H:%M} UTC, more than two days before now "
+            f"({now:%Y-%m-%d %H:%M} UTC)"
+        )
     return ""
 
 
@@ -92,8 +97,12 @@ class Command(BaseCommand):
     help = "Forgets the merchant's words and the account in the requests closed more than --days ago (365), and keeps the rows"
 
     def add_arguments(self, parser):
-        parser.add_argument("--days", type=int, default=None,
-                            help="days since a request was closed (privacy.help_requests_days of community.yml, 365 if not written)")
+        parser.add_argument(
+            "--days",
+            type=int,
+            default=None,
+            help="days since a request was closed (privacy.help_requests_days of community.yml, 365 if not written)",
+        )
         parser.add_argument("--force", action="store_true", help=f"allow --days under {privacy.FLOOR}")
         parser.add_argument("--dry-run", action="store_true", help="say what would be forgotten, and forget nothing")
 
@@ -101,14 +110,18 @@ class Command(BaseCommand):
         if days is None:
             days = privacy.days("help_requests_days")
             if days is None:
-                self.stdout.write("privacy.help_requests_days of community.yml is 0 or false: the site does not forget by itself. "
-                                  "Nothing done (--days <number> forgets by hand).")
+                self.stdout.write(
+                    "privacy.help_requests_days of community.yml is 0 or false: the site does not forget by itself. "
+                    "Nothing done (--days <number> forgets by hand)."
+                )
                 return
         elif days < 0:
             raise CommandError("--days is a number of days, zero or more")
         elif days < privacy.FLOOR and not force:
-            raise CommandError(f"--days {days} is under {privacy.FLOOR}: a solved request is shown to the merchant for three days, "
-                               "and what is forgotten cannot be given back. Add --force if that is what you mean. Nothing changed.")
+            raise CommandError(
+                f"--days {days} is under {privacy.FLOOR}: a solved request is shown to the merchant for three days, "
+                "and what is forgotten cannot be given back. Add --force if that is what you mean. Nothing changed."
+            )
         now = timezone.now()
         try:
             before = now - timedelta(days=days)
@@ -116,14 +129,18 @@ class Command(BaseCommand):
             raise CommandError(f"--days {days} is too many days. Nothing changed.") from None
         problem = clock_problem(now)
         if problem:
-            raise CommandError(f"The clock may be wrong: {problem}. Nothing forgotten. Run check_lightning and "
-                               "look at the date of the machine; the timer tries again.")
+            raise CommandError(
+                f"The clock may be wrong: {problem}. Nothing forgotten. Run check_lightning and "
+                "look at the date of the machine; the timer tries again."
+            )
         for rule in RULES:
             model = apps.get_model(rule.model)
             over = model.objects.filter(**{f"{rule.closed}__lt": before}).filter(kept(model, rule.forget))
             label = model._meta.label
             if dry_run:
-                self.stdout.write(f"Dry run: {over.count()} {label} closed before {before:%Y-%m-%d} would be forgotten.")
+                self.stdout.write(
+                    f"Dry run: {over.count()} {label} closed before {before:%Y-%m-%d} would be forgotten."
+                )
                 continue
             count = over.update(**{name: neutral(model, name) for name in rule.forget})
             self.stdout.write(f"{count} {label} closed before {before:%Y-%m-%d} forgotten.")

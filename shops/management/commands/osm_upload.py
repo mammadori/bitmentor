@@ -22,6 +22,7 @@ would keep it) nor in the .env:
 
 The proposals that need a person's judgement (an operator someone else wrote, a "no" turned into a "yes") are listed but
 sent only with --with-review."""
+
 import os
 import re
 import sys
@@ -47,14 +48,23 @@ def ask(prompt):
 
 
 class Command(BaseCommand):
-    help = "Writes the proposed changes as an osmChange file and links; with OSM_TOKEN and your confirmation, uploads them"
+    help = (
+        "Writes the proposed changes as an osmChange file and links; with OSM_TOKEN and your confirmation, uploads them"
+    )
 
     def add_arguments(self, parser):
-        parser.add_argument("--osc", help="Where to write the osmChange file (a file that does not exist yet); '-' for the "
-                            "standard output (default: a new file with a name of its own in the temporary folder)")
+        parser.add_argument(
+            "--osc",
+            help="Where to write the osmChange file (a file that does not exist yet); '-' for the "
+            "standard output (default: a new file with a name of its own in the temporary folder)",
+        )
         parser.add_argument("--with-review", action="store_true", help="Also the changes that need your judgement")
-        parser.add_argument("--limit", type=int, default=osm_edit.MAX_ELEMENTS,
-                            help=f"At most this many elements in the changeset ({osm_edit.MAX_ELEMENTS})")
+        parser.add_argument(
+            "--limit",
+            type=int,
+            default=osm_edit.MAX_ELEMENTS,
+            help=f"At most this many elements in the changeset ({osm_edit.MAX_ELEMENTS})",
+        )
 
     def handle(self, *args, osc=None, with_review=False, limit=osm_edit.MAX_ELEMENTS, **options):
         if not features.enabled(features.OSM_UPLOAD):
@@ -63,7 +73,8 @@ class Command(BaseCommand):
                 "Writing to OpenStreetMap is an experimental feature, and it is off: nothing was read and nothing was sent. "
                 "To turn it on, write `osm_upload: true` in an `experimental` block of community.yml and restart the site "
                 "(docs/features/openstreetmap.md). Until then the report of the last reading (/admin/shops/osmrun/) lists "
-                "what OpenStreetMap should have, for a person to change by hand on openstreetmap.org.")
+                "what OpenStreetMap should have, for a person to change by hand on openstreetmap.org."
+            )
             return
         config = osm.settings(warn=lambda problem: self.stderr.write(f"community.yml: {problem}"))
         if config is None:
@@ -81,7 +92,11 @@ class Command(BaseCommand):
             out.write("Nothing to send: every linked shop's entry already says what this site knows.")
             return
         total = sum(len(edit.changes) for edit in edits)
-        out.write(f"{total} changes in {len(edits)} elements" + (f" ({later} more elements wait for the next run)" if later else "") + ":")
+        out.write(
+            f"{total} changes in {len(edits)} elements"
+            + (f" ({later} more elements wait for the next run)" if later else "")
+            + ":"
+        )
         for edit in edits:
             out.write(f"\n{edit.shop.name}  ({edit.element.ref})")
             for line in osm_edit.lines(edit):
@@ -95,8 +110,10 @@ class Command(BaseCommand):
                 self.stdout.write(document.decode())
             else:
                 path = self.write_file(osc, document)
-                out.write(f"\nNo OSM_TOKEN: nothing was sent. The osmChange file is {path}: look at it, load it in an editor "
-                          "(JOSM: File > Open) and upload it with your own account, or use the links above.")
+                out.write(
+                    f"\nNo OSM_TOKEN: nothing was sent. The osmChange file is {path}: look at it, load it in an editor "
+                    "(JOSM: File > Open) and upload it with your own account, or use the links above."
+                )
             return
         self.upload(config, edits, now, out)
 
@@ -106,7 +123,9 @@ class Command(BaseCommand):
         refused if it exists or is a link."""
         try:
             if path:
-                handle = os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600), "wb")
+                handle = os.fdopen(
+                    os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600), "wb"
+                )
             else:
                 descriptor, path = tempfile.mkstemp(prefix="osm-changes-", suffix=".osc")
                 handle = os.fdopen(descriptor, "wb")
@@ -121,14 +140,18 @@ class Command(BaseCommand):
     def upload(self, config, edits, now, out):
         if not interactive():
             raise CommandError("Uploading asks you a question: run it in a terminal (docker compose exec, without -T).")
-        answer = ask(f"\nSend these changes to OpenStreetMap with the account of OSM_TOKEN, in one changeset "
-                     f"({osm.changeset_comment(config)!r})? Type {CONFIRMATION!r} to send, anything else to stop: ")
+        answer = ask(
+            f"\nSend these changes to OpenStreetMap with the account of OSM_TOKEN, in one changeset "
+            f"({osm.changeset_comment(config)!r})? Type {CONFIRMATION!r} to send, anything else to stop: "
+        )
         if answer.strip() != CONFIRMATION:
             out.write("Nothing was sent.")
             return
         token = settings.OSM_TOKEN
         try:
-            created = osm_net.api(config, "PUT", "changeset/create", token, osm_edit.changeset_xml(config, settings.SITE_HOST))
+            created = osm_net.api(
+                config, "PUT", "changeset/create", token, osm_edit.changeset_xml(config, settings.SITE_HOST)
+            )
             changeset = created.decode("ascii", "replace").strip()
             if not CHANGESET.match(changeset):
                 raise osm.OsmError("the server did not give a changeset number")
@@ -137,8 +160,10 @@ class Command(BaseCommand):
         try:
             osm_net.api(config, "POST", f"changeset/{changeset}/upload", token, osm_edit.osm_change(edits, changeset))
         except osm.OsmError as error:
-            raise CommandError(f"The upload failed ({error}); changeset {changeset} was closed. If the server says the "
-                               "version is old, someone edited an element meanwhile: run the command again.") from None
+            raise CommandError(
+                f"The upload failed ({error}); changeset {changeset} was closed. If the server says the "
+                "version is old, someone edited an element meanwhile: run the command again."
+            ) from None
         finally:
             # Whatever happened, an error of the server or of ours, a stop with Ctrl-C: a changeset left open locks nothing,
             # but it stays open for an hour under the name of the account

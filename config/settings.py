@@ -13,8 +13,10 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "")
 if not SECRET_KEY:
     raise ImproperlyConfigured("SECRET_KEY is empty: generate one with `openssl rand -hex 32` and put it in the .env")
 if not (COMMUNITY_DIR / "community.yml").is_file():
-    raise ImproperlyConfigured(f"COMMUNITY_DIR {COMMUNITY_DIR} has no community.yml: copy examples/community and point "
-                               "COMMUNITY_DIR at the copy")
+    raise ImproperlyConfigured(
+        f"COMMUNITY_DIR {COMMUNITY_DIR} has no community.yml: copy examples/community and point "
+        "COMMUNITY_DIR at the copy"
+    )
 # The community's own Python modules, such as a mail backend, are importable from its python/ folder
 if (COMMUNITY_DIR / "python").is_dir():
     sys.path.append(str(COMMUNITY_DIR / "python"))
@@ -39,7 +41,9 @@ SITE_MODE_SINCE = os.environ.get("SITE_MODE_SINCE", "")
 if SITE_MODE not in SITE_MODES:
     raise ImproperlyConfigured(f"SITE_MODE is {SITE_MODE}: it must be one of {', '.join(SITE_MODES)}")
 if SITE_MODE == "production" and NETWORK != "mainnet":
-    raise ImproperlyConfigured(f"SITE_MODE production with NETWORK {NETWORK}: in production the register runs on mainnet")
+    raise ImproperlyConfigured(
+        f"SITE_MODE production with NETWORK {NETWORK}: in production the register runs on mainnet"
+    )
 # The addresses that see the site in development (Caddy reads the same variable) and, in every mode, the private part of
 # the pages: website/visibility.py
 DEV_ALLOWED_IPS = os.environ.get("DEV_ALLOWED_IPS", "")
@@ -64,11 +68,15 @@ ADMIN_ALLOWED_IPS = os.environ.get("ADMIN_ALLOWED_IPS", "")
 # and reaches nothing else; `passkey`, the same, and only passkeys sign in: the mode that resists phishing
 ADMIN_SECOND_FACTOR = os.environ.get("ADMIN_SECOND_FACTOR") or "optional"
 if ADMIN_SECOND_FACTOR not in ("optional", "required", "passkey"):
-    raise ImproperlyConfigured(f"ADMIN_SECOND_FACTOR is {ADMIN_SECOND_FACTOR!r}: it must be optional, required or passkey")
+    raise ImproperlyConfigured(
+        f"ADMIN_SECOND_FACTOR is {ADMIN_SECOND_FACTOR!r}: it must be optional, required or passkey"
+    )
 # How long a session of /admin/ opened with the second factor lasts, whatever the activity: then password and code again
 ADMIN_SESSION_HOURS = os.environ.get("ADMIN_SESSION_HOURS") or "24"
 if not (ADMIN_SESSION_HOURS.isascii() and ADMIN_SESSION_HOURS.isdigit() and int(ADMIN_SESSION_HOURS) >= 1):
-    raise ImproperlyConfigured(f"ADMIN_SESSION_HOURS is {ADMIN_SESSION_HOURS!r}: it must be a whole number of hours, 1 or more")
+    raise ImproperlyConfigured(
+        f"ADMIN_SESSION_HOURS is {ADMIN_SESSION_HOURS!r}: it must be a whole number of hours, 1 or more"
+    )
 ADMIN_SESSION_HOURS = int(ADMIN_SESSION_HOURS)
 # Sign-in to /admin/ with a Lightning wallet (config/admin_wallet.py), the hobby level: on, a staff account may link its
 # own wallet, and with ADMIN_SECOND_FACTOR=optional that wallet alone opens /admin/ for an account without a second
@@ -86,9 +94,11 @@ SITE_SCHEME = os.environ.get("SITE_SCHEME", "https")
 ONION_LOCATION = os.environ.get("ONION_LOCATION", "")
 # The hosts that are only the read-only Blossom server, at their root (website/blossom.py), separated by commas or
 # spaces: the first is the one the list gives, the others answer the same (a mirror name)
-BLOSSOM_HOSTS = tuple(dict.fromkeys(
-    name.strip().lower().rstrip(".")
-    for name in os.environ.get("BLOSSOM_HOSTS", "").replace(",", " ").split()))
+BLOSSOM_HOSTS = tuple(
+    dict.fromkeys(
+        name.strip().lower().rstrip(".") for name in os.environ.get("BLOSSOM_HOSTS", "").replace(",", " ").split()
+    )
+)
 ALLOWED_HOSTS = [SITE_HOST, "localhost", "127.0.0.1", "web", ".onion", *BLOSSOM_HOSTS]
 # Caddy's own settings (Caddyfile), read here only by the settings watch (website/settings_watch.py): the moderators
 # hear when they change. The defaults are the compose file's
@@ -150,47 +160,64 @@ AUTH_PASSWORD_VALIDATORS = [
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
 
-TEMPLATES = [{
-    "BACKEND": "django.template.backends.django.DjangoTemplates",
-    "DIRS": [COMMUNITY_DIR / "templates", BASE_DIR / "templates"],
-    "APP_DIRS": True,
-    "OPTIONS": {
-        # The meetup tags need no {% load %} in the community's pages, like the includes of the other parts
-        "builtins": ["meetups.templatetags.meetups"],
-        "context_processors": [
-            "django.template.context_processors.request",
-            "django.template.context_processors.i18n",
-            "django.contrib.auth.context_processors.auth",
-            "django.contrib.messages.context_processors.messages",
-            "config.community.context",
-            "website.visibility.context",
-            "config.version.context",
-        ],
-    },
-}]
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [COMMUNITY_DIR / "templates", BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            # The meetup tags need no {% load %} in the community's pages, like the includes of the other parts
+            "builtins": ["meetups.templatetags.meetups"],
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.template.context_processors.i18n",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                "config.community.context",
+                "website.visibility.context",
+                "config.version.context",
+            ],
+        },
+    }
+]
 
 if os.environ.get("POSTGRES_HOST"):
-    DATABASES = {"default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "HOST": os.environ["POSTGRES_HOST"],
-        "NAME": os.environ.get("POSTGRES_DB", "bitmentor"),
-        "USER": os.environ.get("POSTGRES_USER", "postgres"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
-    }}
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "HOST": os.environ["POSTGRES_HOST"],
+            "NAME": os.environ.get("POSTGRES_DB", "bitmentor"),
+            "USER": os.environ.get("POSTGRES_USER", "postgres"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+        }
+    }
 else:
     # In a test container /app is read-only: SQLITE_PATH moves it elsewhere
-    DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": os.environ.get("SQLITE_PATH", BASE_DIR / "db.sqlite3")}}
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.environ.get("SQLITE_PATH", BASE_DIR / "db.sqlite3"),
+        }
+    }
 
 # On file, shared by all the workers: the request limits and the pages kept for everybody must be the same in each
-CACHES = {"default": {"BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
-                      "LOCATION": Path(tempfile.gettempdir()) / "bitmentor-cache", "OPTIONS": {"MAX_ENTRIES": 10000}}}
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": Path(tempfile.gettempdir()) / "bitmentor-cache",
+        "OPTIONS": {"MAX_ENTRIES": 10000},
+    }
+}
 if sys.argv[1:2] == ["test"]:
     # One cache per test process: the file cache in /tmp is shared, and with --parallel (or two test runs at once)
     # a test reads the pages and the limits another process has just written
     CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
     # A fast hasher in the tests: the real PBKDF2 makes every sign-in cost a second on a small machine. The tests of the
     # hasher upgrade set their own list with override_settings
-    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher", "django.contrib.auth.hashers.PBKDF2PasswordHasher"]
+    PASSWORD_HASHERS = [
+        "django.contrib.auth.hashers.MD5PasswordHasher",
+        "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    ]
 # Seconds /shops.json and the list under the map are kept, the same for everybody (shops/public_cache.py). Off in the
 # tests, which change shops and switches between two requests; the tests of the cache turn it on
 PUBLIC_LIST_SECONDS = 0 if sys.argv[1:2] == ["test"] else 60
@@ -199,14 +226,29 @@ PUBLIC_LIST_SECONDS = 0 if sys.argv[1:2] == ["test"] else 60
 # not sent) and a community's own code, which needs no line of its own here. The libraries say only their errors:
 # their warnings are about things an operator cannot act on. Django keeps its own levels, as before: its «Not Found»
 # and «Forbidden» lines are written (django.request), with the paths that open something cut by the filter below
-QUIET_LOGGERS = ("py.warnings", "asyncio", "urllib3", "requests", "websockets", "psycopg", "MARKDOWN", "PIL", "whitenoise")
-LOGGING = {"version": 1, "disable_existing_loggers": False,
-           # A path that opens something (the token of a team invite) is never written whole: config/quiet.py
-           "filters": {"quiet_paths": {"()": "config.quiet.QuietPaths"}},
-           "handlers": {"console": {"class": "logging.StreamHandler", "level": "WARNING", "filters": ["quiet_paths"]}},
-           "root": {"handlers": ["console"], "level": "WARNING"},
-           "loggers": {**{name: {"level": "ERROR"} for name in QUIET_LOGGERS},
-                       **{app: {"level": "WARNING"} for app in ("config", "shops", "website", "meetups", "team")}}}
+QUIET_LOGGERS = (
+    "py.warnings",
+    "asyncio",
+    "urllib3",
+    "requests",
+    "websockets",
+    "psycopg",
+    "MARKDOWN",
+    "PIL",
+    "whitenoise",
+)
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    # A path that opens something (the token of a team invite) is never written whole: config/quiet.py
+    "filters": {"quiet_paths": {"()": "config.quiet.QuietPaths"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "level": "WARNING", "filters": ["quiet_paths"]}},
+    "root": {"handlers": ["console"], "level": "WARNING"},
+    "loggers": {
+        **{name: {"level": "ERROR"} for name in QUIET_LOGGERS},
+        **{app: {"level": "WARNING"} for app in ("config", "shops", "website", "meetups", "team")},
+    },
+}
 
 LANGUAGES = [(code, name) for code, name in community()["languages"].items()]
 LANGUAGE_CODE = LANGUAGES[0][0]
@@ -270,6 +312,7 @@ EMAIL_ENVELOPE_FROM = os.environ.get("EMAIL_ENVELOPE_FROM", "")
 # On a test network the console is how a test site works without a mail server (docs/configuration.md#the-network)
 # A community can send with a backend of its own (docs/configuration.md#a-mail-backend-of-the-community)
 EMAIL_REAL_BACKEND = os.environ.get("EMAIL_REAL_BACKEND") or (
-    f"django.core.mail.backends.{'smtp' if EMAIL_HOST or NETWORK == 'mainnet' else 'console'}.EmailBackend")
+    f"django.core.mail.backends.{'smtp' if EMAIL_HOST or NETWORK == 'mainnet' else 'console'}.EmailBackend"
+)
 # Every email goes through the one that counts them and keeps the provider's monthly quota (config/mailbudget.py)
 EMAIL_BACKEND = "config.mailbudget.CountingBackend"

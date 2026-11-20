@@ -3,6 +3,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Language: it\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Native-Reviewed: 0.2.1\n"
 
 msgid "Map"
 msgstr "Mappa"
@@ -7348,3 +7349,6 @@ msgstr "{name}: tolti: {removed}, ora vuoto"
 
 msgid "This session was opened with a wallet: sign in with the password to set a password."
 msgstr "Questa sessione è stata aperta con un wallet: accedi con la password per impostare una password."
+
+msgid "Not read by a native speaker yet."
+msgstr "Non ancora riletto da un madrelingua."

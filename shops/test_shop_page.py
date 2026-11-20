@@ -1,5 +1,6 @@
 """The page the QR code on the sign opens: how to pay at the till, the card for the cashier, the places to pay nearby
 and the community's own pages about the shop (`shop_page` in community.yml)."""
+
 import re
 from datetime import date
 from unittest.mock import patch
@@ -39,7 +40,9 @@ class Till(TestCase):
         self.assertContains(page, '<h2 id="shop-pay-title">How to pay here</h2>')
         self.assertContains(page, "<li>Ask to pay in bitcoin, with Lightning.</li>")
         self.assertContains(page, "<li>The till shows a QR code with the amount.</li>")
-        self.assertContains(page, "<li>Scan it with your wallet and confirm. With Lightning it takes a few seconds.</li>")
+        self.assertContains(
+            page, "<li>Scan it with your wallet and confirm. With Lightning it takes a few seconds.</li>"
+        )
         self.assertContains(page, 'class="button needs-js" id="show-counter"')
         self.assertContains(page, '<dialog id="counter-card" class="counter-card"')
         self.assertContains(page, "I would like to pay in bitcoin, with Lightning.")
@@ -50,7 +53,10 @@ class Till(TestCase):
         shop = Shop.objects.create(name="Bar")
         self.assertEqual(till_methods(shop), "onchain")
         page = self.client.get(f"/en/shops/s/{shop.id}/")
-        self.assertContains(page, "<li>Ask to pay in bitcoin. Here it is on-chain: your wallet has to send on-chain, not with Lightning.</li>")
+        self.assertContains(
+            page,
+            "<li>Ask to pay in bitcoin. Here it is on-chain: your wallet has to send on-chain, not with Lightning.</li>",
+        )
         self.assertContains(page, "<li>Scan it with your wallet, check the amount and confirm.</li>")
         self.assertContains(page, '<span class="counter-ask">I would like to pay in bitcoin.</span>')
         self.assertNotContains(page, "I would like to pay in bitcoin, with Lightning.")
@@ -66,14 +72,19 @@ class Till(TestCase):
 
     def test_with_a_register_the_shop_takes_lightning_whatever_the_flag(self):
         # The flag changed alone in /admin/: the register still takes Lightning
-        self.assertEqual(till_methods(Shop(name="C", lightning_address="c@ln.example.org", lightning=False)), "lightning")
+        self.assertEqual(
+            till_methods(Shop(name="C", lightning_address="c@ln.example.org", lightning=False)), "lightning"
+        )
 
     @on(features.ONCHAIN)
     def test_on_chain_too_is_only_what_the_owner_says(self):
-        shop = Shop.objects.create(name="Bar", lightning_address="bar@ln.example.org", lightning=True, onchain=True,
-                                   latitude=1, longitude=1)
+        shop = Shop.objects.create(
+            name="Bar", lightning_address="bar@ln.example.org", lightning=True, onchain=True, latitude=1, longitude=1
+        )
         self.assertEqual(till_methods(shop), "both")
-        self.assertContains(self.page(shop), "Ask to pay in bitcoin: Lightning or on-chain, whichever your wallet uses.")
+        self.assertContains(
+            self.page(shop), "Ask to pay in bitcoin: Lightning or on-chain, whichever your wallet uses."
+        )
         # The map has the flag and nothing more: no on-chain address, band or payment
         found = next(item for item in self.client.get("/shops.json").json()["shops"] if item["id"] == str(shop.id))
         self.assertIs(found["onchain"], True)
@@ -111,8 +122,10 @@ class Till(TestCase):
         self.assertIn("<li>Chiedi di pagare in bitcoin, con Lightning.</li>", html)
         # German writes a space before %: a non-breaking one, or the number stays alone at the end of a line
         with override("de"):
-            self.assertEqual(gettext("With the %(discount)s%% discount for paying in bitcoin, thank you.") % {"discount": 10},
-                             "Mit den 10\u00a0% Rabatt für die Zahlung mit Bitcoin, danke.")
+            self.assertEqual(
+                gettext("With the %(discount)s%% discount for paying in bitcoin, thank you.") % {"discount": 10},
+                "Mit den 10\u00a0% Rabatt für die Zahlung mit Bitcoin, danke.",
+            )
 
     def test_neither_a_historic_shop(self):
         shop = Shop.objects.create(name="Bar", lightning=True, discount=5, closed_on=date(2020, 1, 1))
@@ -127,8 +140,9 @@ class Till(TestCase):
             self.assertContains(page, present)
 
     def test_nor_a_suspended_one(self):
-        shop = Shop.objects.create(name="Bar", lightning=True, discount=5, phone="123456",
-                                   suspended=True, latitude=1, longitude=1)
+        shop = Shop.objects.create(
+            name="Bar", lightning=True, discount=5, phone="123456", suspended=True, latitude=1, longitude=1
+        )
         page = self.client.get(f"/en/shops/s/{shop.id}/")
         for absent in ("How to pay here", "show-counter", "counter-card", "I would like to pay", "123456"):
             self.assertNotContains(page, absent)
@@ -155,8 +169,9 @@ class Nearby(TestCase):
         self.here = Shop.objects.create(name="Here", latitude=45.0, longitude=11.0)
 
     def place(self, name, north=0, east=0, **fields):
-        return Shop.objects.create(name=name, latitude=45.0 + north / DEGREE,
-                                   longitude=11.0 + east / (DEGREE * 0.7071067811865476), **fields)
+        return Shop.objects.create(
+            name=name, latitude=45.0 + north / DEGREE, longitude=11.0 + east / (DEGREE * 0.7071067811865476), **fields
+        )
 
     def test_the_closest_four_first(self):
         for name, metres in (("C", 300), ("A", 100), ("E", 500), ("B", 200), ("D", 400), ("F", 900)):
@@ -199,8 +214,15 @@ class Nearby(TestCase):
         self.assertEqual(distance_text(345), "350 m")
         self.assertEqual(distance_text(994), "990 m")
         with override("en"):
-            for metres, text in ((995, "1.0 km"), (999, "1.0 km"), (1049, "1.0 km"), (1050, "1.1 km"), (1099, "1.1 km"),
-                                 (1149, "1.1 km"), (1199, "1.2 km")):
+            for metres, text in (
+                (995, "1.0 km"),
+                (999, "1.0 km"),
+                (1049, "1.0 km"),
+                (1050, "1.1 km"),
+                (1099, "1.1 km"),
+                (1149, "1.1 km"),
+                (1199, "1.2 km"),
+            ):
                 self.assertEqual(distance_text(metres), text, metres)
         with override("it"):
             self.assertEqual(distance_text(1199), "1,2 km")
@@ -212,7 +234,9 @@ class Nearby(TestCase):
         html = page.content.decode()
         self.assertContains(page, '<h2 id="shop-nearby-title">Nearby</h2>')
         self.assertLess(html.index("<strong>Near</strong>"), html.index("<strong>Far</strong>"))
-        self.assertContains(page, f'<a href="/en/shops/s/{near.id}/"><strong>Near</strong> <span>120 m, 2 min on foot</span></a>')
+        self.assertContains(
+            page, f'<a href="/en/shops/s/{near.id}/"><strong>Near</strong> <span>120 m, 2 min on foot</span></a>'
+        )
         self.assertContains(page, '<b class="discount">-7%</b>')
         self.assertContains(self.client.get(f"/it/shops/s/{near.id}/"), "<span>120 m, 2 min a piedi</span>")
         # A historic shop sends people to the places where they can still pay
@@ -271,7 +295,9 @@ class CommunityLinks(TestCase):
         the shop page leads to (shops/test_customer.py)"""
         hub = f"/en/shops/customer/{self.shop.id}/"
         with self.configured({"wallet": "learn/wallet/"}):
-            self.assertContains(self.client.get(hub), '<a href="/en/learn/wallet/">More about wallets, from our community</a>')
+            self.assertContains(
+                self.client.get(hub), '<a href="/en/learn/wallet/">More about wallets, from our community</a>'
+            )
             self.assertContains(self.client.get(hub.replace("/en/", "/it/")), 'href="/it/learn/wallet/"')
         with self.configured({"wallet": {"en": "wallet/", "it": "portafoglio/"}}):
             self.assertContains(self.client.get(hub.replace("/en/", "/it/")), 'href="/it/portafoglio/"')
@@ -282,8 +308,10 @@ class CommunityLinks(TestCase):
 
     def test_the_two_ways_in_for_whoever_has_no_wallet(self):
         page = self.page()
-        self.assertContains(page, f"<a href=\"/en/shops/customer/{self.shop.id}/1/\">I don't have a wallet</a>")
-        self.assertContains(page, f"<a href=\"/en/shops/customer/{self.shop.id}/help/\">I have a wallet, but I'm not sure how to pay</a>")
+        self.assertContains(page, f'<a href="/en/shops/customer/{self.shop.id}/1/">I don\'t have a wallet</a>')
+        self.assertContains(
+            page, f'<a href="/en/shops/customer/{self.shop.id}/help/">I have a wallet, but I\'m not sure how to pay</a>'
+        )
 
     def test_no_way_in_for_a_shop_where_one_cannot_pay(self):
         historic = Shop.objects.create(name="Old", closed_on=date(2020, 1, 1))
@@ -300,8 +328,20 @@ class CommunityLinks(TestCase):
             self.assertContains(self.page(), "Never paid with bitcoin?")
 
     def test_a_wrong_wallet_link_stays_out(self):
-        for wrong in ("/wallet/", "http://wallets.example.org/", "https://", "my wallet/", "a\\b", 42, {}, "",
-                      "www.example.org/wallet", "mailto:info@example.org", "javascript:alert(1)", "../wallet/"):
+        for wrong in (
+            "/wallet/",
+            "http://wallets.example.org/",
+            "https://",
+            "my wallet/",
+            "a\\b",
+            42,
+            {},
+            "",
+            "www.example.org/wallet",
+            "mailto:info@example.org",
+            "javascript:alert(1)",
+            "../wallet/",
+        ):
             with self.subTest(wrong), self.configured({"wallet": wrong}):
                 page = self.page()
                 self.assertEqual(page.status_code, 200)
@@ -309,14 +349,22 @@ class CommunityLinks(TestCase):
                 self.assertEqual(len(self.warnings()), 1, wrong)
 
     def test_the_stories_of_a_shop(self):
-        block = {"stories": {12: [{"path": "walk/#bakery", "text": {"en": "A stop on the walk", "it": "Una tappa della passeggiata"}},
-                                  {"path": "https://archive.example.org/1", "text": "<b>Old</b> photos"}],
-                             "13": {"path": "history/", "text": "Not this shop"}}}
+        block = {
+            "stories": {
+                12: [
+                    {"path": "walk/#bakery", "text": {"en": "A stop on the walk", "it": "Una tappa della passeggiata"}},
+                    {"path": "https://archive.example.org/1", "text": "<b>Old</b> photos"},
+                ],
+                "13": {"path": "history/", "text": "Not this shop"},
+            }
+        }
         with self.configured(block):
             page = self.page()
             self.assertContains(page, '<h2 id="shop-stories-title">In our story</h2>')
             self.assertContains(page, '<li><a href="/en/walk/#bakery">A stop on the walk</a></li>')
-            self.assertContains(page, '<li><a href="https://archive.example.org/1">&lt;b&gt;Old&lt;/b&gt; photos</a></li>')
+            self.assertContains(
+                page, '<li><a href="https://archive.example.org/1">&lt;b&gt;Old&lt;/b&gt; photos</a></li>'
+            )
             self.assertNotContains(page, "Not this shop")
             self.assertContains(self.page(language="it"), '<a href="/it/walk/#bakery">Una tappa della passeggiata</a>')
             self.assertEqual(self.warnings(), [])
@@ -336,21 +384,38 @@ class CommunityLinks(TestCase):
 
     def test_the_check_reads_every_language(self):
         main, other = settings.LANGUAGE_CODE, other_language()
-        block = {"wallet": {main: "wallet/", other: "/wallet/"},
-                 "stories": {12: [{"path": "walk/", "text": {main: "A stop on the walk", other: 2015}}]}}
+        block = {
+            "wallet": {main: "wallet/", other: "/wallet/"},
+            "stories": {12: [{"path": "walk/", "text": {main: "A stop on the walk", other: 2015}}]},
+        }
         with self.configured(block):
             self.assertContains(self.page(language=main), "A stop on the walk")
             self.assertContains(self.hub(main), f'href="/{main}/wallet/"')
             self.assertNotContains(self.page(language=other), "walk/")
             self.assertNotContains(self.hub(other), "/wallet/")
             problems = self.warnings()
-        self.assertEqual(problems, [f"`shop_page.wallet`: a page goes without the leading slash, an address with https://: '/wallet/' (in {other})",
-                                    f"`shop_page.stories` 12, link 1: `text` must be text, between quotes: 2015 (in {other})"])
+        self.assertEqual(
+            problems,
+            [
+                f"`shop_page.wallet`: a page goes without the leading slash, an address with https://: '/wallet/' (in {other})",
+                f"`shop_page.stories` 12, link 1: `text` must be text, between quotes: 2015 (in {other})",
+            ],
+        )
 
     def test_wrong_stories_stay_out_and_the_check_says_why(self):
-        block = {"wallet": "wallet/", "stories": {12: [
-            "walk/", {"path": "walk/"}, {"text": "No path"}, {"path": "/walk/", "text": "Leading slash"},
-            {"path": "walk/", "text": {}}, {"path": "walk/#good", "text": "Good"}]}}
+        block = {
+            "wallet": "wallet/",
+            "stories": {
+                12: [
+                    "walk/",
+                    {"path": "walk/"},
+                    {"text": "No path"},
+                    {"path": "/walk/", "text": "Leading slash"},
+                    {"path": "walk/", "text": {}},
+                    {"path": "walk/#good", "text": "Good"},
+                ]
+            },
+        }
         with self.configured(block):
             page = self.page()
             self.assertEqual(page.status_code, 200)
@@ -363,7 +428,9 @@ class CommunityLinks(TestCase):
         self.assertTrue(all(problem.startswith("`shop_page.stories` 12, link ") for problem in problems))
         with self.configured({"stories": {12: {"path": "walk/", "text": 2015}}}):
             self.assertNotContains(self.page(), "In our story")
-            self.assertEqual(self.warnings(), ["`shop_page.stories` 12, link 1: `text` must be text, between quotes: 2015"])
+            self.assertEqual(
+                self.warnings(), ["`shop_page.stories` 12, link 1: `text` must be text, between quotes: 2015"]
+            )
         for block in ("not a block", {"stories": ["walk/"]}):
             with self.subTest(block), self.configured(block):
                 self.assertEqual(self.page().status_code, 200)

@@ -16,7 +16,7 @@
 # there and that every one has its hash, that the site's database is read to the last block
 # by pg_restore and has tables, that the state archive lists, and that the .env is there. It prints no secret.
 # Environment: AGE (default age) and PG_RESTORE (default pg_restore; without it, docker with POSTGRES_IMAGE,
-# postgres:18.6 as in docker-compose.yml, with no network): pg_restore must be at least the version of the
+# postgres:18.7 as in docker-compose.yml, with no network): pg_restore must be at least the version of the
 # database that made the dump (18).
 # Exit code: 0 all good, 1 a problem (every line says which), 2 wrong use.
 set -euo pipefail
@@ -42,7 +42,7 @@ elif command -v pg_restore >/dev/null; then
 else
   # The dumps go through it: the image of docker-compose.yml (same digest), with no network
   pg_restore=(docker run --rm -i --network none --entrypoint pg_restore
-    "${POSTGRES_IMAGE:-postgres:18.6@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42}")
+    "${POSTGRES_IMAGE:-postgres:18.7@sha256:e754b839f447639b7004895f4d8a4bfcb4e9dbe3a1bc035f27f646562a16fd61}")
 fi
 if [ -n "$KEY" ] && [ -z "${AGE:-}" ] && [ ! -r "$KEY" ]; then echo "the key $KEY cannot be read" >&2; exit 2; fi
 

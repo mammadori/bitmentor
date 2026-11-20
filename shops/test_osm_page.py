@@ -2,6 +2,7 @@
 the page, what it says from the database alone, the request «The association does it for me» (the tick, the CSRF token, the
 limits, one open request per shop, the message to the moderators), the administration, the dashboard and the panel. Nothing
 here writes to OpenStreetMap or asks any server."""
+
 import threading
 import time
 from datetime import timedelta
@@ -27,8 +28,11 @@ from .tests import admin_session, reset_limits
 User = get_user_model()
 CALLED_OUT = AssertionError("The page must not ask another server")
 MODERATORS = "-100500"
-SETTINGS = {"bbox": [41.8, 12.4, 42.0, 12.7], "discount_tag": "currency:XBT:discount",
-            "operator": {"tag": "payment:bitcoin:operator", "value": "operator.example"}}
+SETTINGS = {
+    "bbox": [41.8, 12.4, 42.0, 12.7],
+    "discount_tag": "currency:XBT:discount",
+    "operator": {"tag": "payment:bitcoin:operator", "value": "operator.example"},
+}
 HOUR = 1_800_000_000
 
 
@@ -43,15 +47,21 @@ def community_with_osm(settings=SETTINGS):
 class Base(TestCase):
     def setUp(self):
         reset_limits()
-        for patcher in (community_with_osm(),
-                        patch("requests.sessions.Session.request", side_effect=CALLED_OUT)):
+        for patcher in (community_with_osm(), patch("requests.sessions.Session.request", side_effect=CALLED_OUT)):
             patcher.start()
             self.addCleanup(patcher.stop)
         self.owner = User.objects.create(username="merchant")
         Profile.objects.create(user=self.owner, email="mario.rossi@example.org")
         self.shop = Shop.objects.create(
-            owner=self.owner, name="Central Bar", city="Town", lightning_address="bar@ln.example.org",
-            latitude=41.9, longitude=12.5, discount=10, lightning_worked=timezone.now() - timedelta(days=3))
+            owner=self.owner,
+            name="Central Bar",
+            city="Town",
+            lightning_address="bar@ln.example.org",
+            latitude=41.9,
+            longitude=12.5,
+            discount=10,
+            lightning_worked=timezone.now() - timedelta(days=3),
+        )
         self.client.force_login(self.owner)
 
     def url(self, name, shop=None):
@@ -86,7 +96,9 @@ class Access(Base):
     def test_the_staff_is_a_visitor_here_whoever_owns_the_shop(self):
         self.client.logout()
         admin_session(self.client)
-        shop = Shop.objects.create(owner=User.objects.get(username="boss"), name="Staff shop", lightning_address="bar@ln.example.org")
+        shop = Shop.objects.create(
+            owner=User.objects.get(username="boss"), name="Staff shop", lightning_address="bar@ln.example.org"
+        )
         for verb, url in (("get", self.url("osm_home", shop)), ("post", self.url("osm_ask", shop))):
             response = getattr(self.client, verb)(url, {"association": "on"})
             self.assertEqual(response.status_code, 302, url)
@@ -121,8 +133,15 @@ class Page(Base):
         response = self.page()
         self.assertContains(response, "Your shop is not on OpenStreetMap, or we have not found it")
         text = response.content.decode()
-        for line in ("name=Central Bar", "currency:XBT=yes", "payment:lightning=yes", "currency:XBT:discount=10%",
-                     "payment:bitcoin:operator=operator.example", "addr:city=Town", "check_date:currency:XBT="):
+        for line in (
+            "name=Central Bar",
+            "currency:XBT=yes",
+            "payment:lightning=yes",
+            "currency:XBT:discount=10%",
+            "payment:bitcoin:operator=operator.example",
+            "addr:city=Town",
+            "check_date:currency:XBT=",
+        ):
             self.assertIn(line, text)
         self.assertContains(response, "https://www.openstreetmap.org/edit?editor=id#map=19/41.900000/12.500000")
         self.assertContains(response, "Do it yourself, step by step")
@@ -135,10 +154,27 @@ class Page(Base):
     def test_a_linked_shop_sees_what_differs(self):
         self.shop.osm_ref = "node/77"
         self.shop.save()
-        osm.save_run({"proposals": [{"shop": str(self.shop.pk), "name": "Central Bar", "ref": "node/77", "changes": [
-            {"tag": "payment:lightning", "old": None, "new": "yes", "kind": "add"},
-            {"tag": "currency:XBT:discount", "old": "5%", "new": "10%", "kind": "update"},
-            {"tag": "payment:bitcoin:operator", "old": "old.example", "new": "old.example;operator.example", "kind": "review"}]}]})
+        osm.save_run(
+            {
+                "proposals": [
+                    {
+                        "shop": str(self.shop.pk),
+                        "name": "Central Bar",
+                        "ref": "node/77",
+                        "changes": [
+                            {"tag": "payment:lightning", "old": None, "new": "yes", "kind": "add"},
+                            {"tag": "currency:XBT:discount", "old": "5%", "new": "10%", "kind": "update"},
+                            {
+                                "tag": "payment:bitcoin:operator",
+                                "old": "old.example",
+                                "new": "old.example;operator.example",
+                                "kind": "review",
+                            },
+                        ],
+                    }
+                ]
+            }
+        )
         response = self.page()
         self.assertContains(response, "Your shop is on OpenStreetMap")
         self.assertContains(response, "https://www.openstreetmap.org/node/77")
@@ -164,7 +200,9 @@ class Page(Base):
     def test_a_linked_shop_that_was_not_found(self):
         self.shop.osm_ref = "node/77"
         self.shop.save()
-        osm.save_run({"proposals": [], "missing": [{"shop": str(self.shop.pk), "name": "Central Bar", "ref": "node/77"}]})
+        osm.save_run(
+            {"proposals": [], "missing": [{"shop": str(self.shop.pk), "name": "Central Bar", "ref": "node/77"}]}
+        )
         response = self.page()
         self.assertContains(response, "The last check did not find it there")
         self.assertContains(response, "info@example.org")
@@ -213,12 +251,16 @@ class Ask(Base):
         self.assertEqual(OsmRequest.objects.count(), 0)
 
     def test_a_request_for_a_shop_not_there_is_to_add_it(self):
-        with override_settings(TELEGRAM_BOT_TOKEN="t", TELEGRAM_MODERATION_CHAT=MODERATORS), \
-                patch("shops.osm_request.telegram", return_value=True) as chat:
+        with (
+            override_settings(TELEGRAM_BOT_TOKEN="t", TELEGRAM_MODERATION_CHAT=MODERATORS),
+            patch("shops.osm_request.telegram", return_value=True) as chat,
+        ):
             response = self.tick()
         self.assertRedirects(response, self.url("osm_home"), fetch_redirect_response=False)
         row = OsmRequest.objects.get()
-        self.assertEqual((row.shop, row.asked_by, row.kind, row.state, row.delivery), (self.shop, self.owner, "add", "open", "sent"))
+        self.assertEqual(
+            (row.shop, row.asked_by, row.kind, row.state, row.delivery), (self.shop, self.owner, "add", "open", "sent")
+        )
         self.assertIn("name = Central Bar", row.summary)
         self.assertIn("currency:XBT = yes", row.summary)
         self.assertEqual(chat.call_args.args[0], MODERATORS)
@@ -253,7 +295,7 @@ class Ask(Base):
 
     def test_a_request_done_lets_the_next_one_in_up_to_the_daily_limit(self):
         with patch("shops.osm_request.telegram", return_value=True):
-            for number in range(osm_request.ASK_PER_DAY):
+            for _number in range(osm_request.ASK_PER_DAY):
                 self.assertEqual(self.tick().status_code, 302)
                 OsmRequest.objects.filter(state="open").update(state="done", done=timezone.now())
             response = self.tick(follow=True)
@@ -262,15 +304,21 @@ class Ask(Base):
 
     def test_the_hourly_limit_of_a_person(self):
         with in_one_hour(), patch("shops.osm_request.telegram", return_value=True):
-            for number in range(11):
+            for _number in range(11):
                 self.tick()
-                OsmRequest.objects.filter(state="open").update(state="done", done=timezone.now(), created=timezone.now() - timedelta(days=2))
+                OsmRequest.objects.filter(state="open").update(
+                    state="done", done=timezone.now(), created=timezone.now() - timedelta(days=2)
+                )
             response = self.tick(follow=True)
         self.assertContains(response, "Too many requests in a short time")
         self.assertEqual(OsmRequest.objects.count(), 10)
 
     def test_a_telegram_that_does_not_answer_never_loses_the_request(self):
-        for outcome, delivery in ((NotificationFailed("503"), "failed"), (False, "refused"), (RuntimeError("boom"), "failed")):
+        for outcome, delivery in (
+            (NotificationFailed("503"), "failed"),
+            (False, "refused"),
+            (RuntimeError("boom"), "failed"),
+        ):
             OsmRequest.objects.all().delete()
             reset_limits()
             effect = {"side_effect": outcome} if isinstance(outcome, Exception) else {"return_value": outcome}
@@ -281,8 +329,13 @@ class Ask(Base):
     def test_the_messages_to_the_moderators_have_a_ceiling_and_the_request_stays(self):
         with in_one_hour(), patch("shops.osm_request.telegram", return_value=True) as chat:
             for number in range(osm_request_ceiling() + 2):
-                shop = Shop.objects.create(owner=self.owner, name=f"Bar {number}", lightning_address="bar@ln.example.org",
-                                           latitude=41.9, longitude=12.5)
+                shop = Shop.objects.create(
+                    owner=self.owner,
+                    name=f"Bar {number}",
+                    lightning_address="bar@ln.example.org",
+                    latitude=41.9,
+                    longitude=12.5,
+                )
                 self.client.post(self.url("osm_ask", shop), {"association": "on"})
         self.assertEqual(chat.call_count, osm_request_ceiling())
         self.assertEqual(OsmRequest.objects.count(), osm_request_ceiling() + 2)
@@ -296,16 +349,27 @@ class Ask(Base):
 
     def test_what_a_merchant_could_write_goes_nowhere(self):
         with patch("shops.osm_request.telegram", return_value=True) as chat:
-            self.client.post(self.url("osm_ask"), {"association": "on", "note": "@everyone http://phish.example", "kind": "update",
-                                                   "summary": "evil", "state": "done"})
+            self.client.post(
+                self.url("osm_ask"),
+                {
+                    "association": "on",
+                    "note": "@everyone http://phish.example",
+                    "kind": "update",
+                    "summary": "evil",
+                    "state": "done",
+                },
+            )
         row = OsmRequest.objects.get()
         self.assertEqual((row.kind, row.state, row.summary.startswith("name = ")), ("add", "open", True))
         self.assertNotIn("phish", chat.call_args.args[1])
 
     def test_nothing_reaches_openstreetmap(self):
         # setUp() makes any request fail the test; this one says it out loud
-        with patch("shops.osm_net.request", side_effect=CALLED_OUT), patch("shops.osm_net.api", side_effect=CALLED_OUT), \
-                patch("shops.osm_request.telegram", return_value=True):
+        with (
+            patch("shops.osm_net.request", side_effect=CALLED_OUT),
+            patch("shops.osm_net.api", side_effect=CALLED_OUT),
+            patch("shops.osm_request.telegram", return_value=True),
+        ):
             self.page()
             self.tick()
         self.assertEqual(OsmRequest.objects.count(), 1)
@@ -320,6 +384,7 @@ class Ask(Base):
 
 def osm_request_ceiling():
     from .osm_views import MESSAGES_PER_IP
+
     return MESSAGES_PER_IP
 
 
@@ -344,10 +409,32 @@ class Administration(Base):
 
     def change(self, url, more):
         shop = Shop.objects.get(pk=self.shop.pk)
-        data = {"name": shop.name, "description": "", "address": "", "city": shop.city, "latitude": "41.9", "longitude": "12.5", "website": "",
-                "email": "", "phone": "", "discount": "10", "listed": "on", "nostr_pubkey": "", "nip05_name": "", "telegram_chat": "",
-                "owner": shop.owner_id, "external_id": "", "osm_ref": "", "closures-TOTAL_FORMS": "0", "closures-INITIAL_FORMS": "0", "places-TOTAL_FORMS": "0", "places-INITIAL_FORMS": "0",
-                "closures-MIN_NUM_FORMS": "0", "closures-MAX_NUM_FORMS": "1000", **more}
+        data = {
+            "name": shop.name,
+            "description": "",
+            "address": "",
+            "city": shop.city,
+            "latitude": "41.9",
+            "longitude": "12.5",
+            "website": "",
+            "email": "",
+            "phone": "",
+            "discount": "10",
+            "listed": "on",
+            "nostr_pubkey": "",
+            "nip05_name": "",
+            "telegram_chat": "",
+            "owner": shop.owner_id,
+            "external_id": "",
+            "osm_ref": "",
+            "closures-TOTAL_FORMS": "0",
+            "closures-INITIAL_FORMS": "0",
+            "places-TOTAL_FORMS": "0",
+            "places-INITIAL_FORMS": "0",
+            "closures-MIN_NUM_FORMS": "0",
+            "closures-MAX_NUM_FORMS": "1000",
+            **more,
+        }
         return self.staff.post(url, data)
 
     def test_two_shops_cannot_share_an_element(self):
@@ -366,20 +453,31 @@ class Administration(Base):
         self.assertNotContains(response, "Linked Bar")
 
     def test_the_readings_are_read_only_and_escape_what_openstreetmap_wrote(self):
-        run = osm.save_run({"elements": 3, "skipped": 0, "candidates_total": 1, "proposals": [], "candidates": [
-            {"ref": "node/9", "name": "<img src=x onerror=alert(1)>", "city": "", "date": ""}]})
+        run = osm.save_run(
+            {
+                "elements": 3,
+                "skipped": 0,
+                "candidates_total": 1,
+                "proposals": [],
+                "candidates": [{"ref": "node/9", "name": "<img src=x onerror=alert(1)>", "city": "", "date": ""}],
+            }
+        )
         listing = self.staff.get(reverse("admin:shops_osmrun_changelist"))
         self.assertEqual(listing.status_code, 200)
         page = self.staff.get(reverse("admin:shops_osmrun_change", args=[run.pk]))
         self.assertContains(page, "&lt;img src=x onerror=alert(1)&gt;")
         self.assertNotContains(page, "<img src=x")
         self.assertEqual(self.staff.get(reverse("admin:shops_osmrun_add")).status_code, 403)
-        self.assertEqual(self.staff.post(reverse("admin:shops_osmrun_delete", args=[run.pk]), {"post": "yes"}).status_code, 403)
+        self.assertEqual(
+            self.staff.post(reverse("admin:shops_osmrun_delete", args=[run.pk]), {"post": "yes"}).status_code, 403
+        )
         self.assertEqual(OsmRun.objects.count(), 1)
 
     def test_a_request_is_marked_done_with_who_did_it(self):
         row = OsmRequest.objects.create(shop=self.shop, kind="update", asked_by=self.owner)
-        response = self.staff.post(reverse("admin:shops_osmrequest_changelist"), {"action": "mark_done", "_selected_action": [row.pk]})
+        response = self.staff.post(
+            reverse("admin:shops_osmrequest_changelist"), {"action": "mark_done", "_selected_action": [row.pk]}
+        )
         self.assertEqual(response.status_code, 302)
         row.refresh_from_db()
         self.assertEqual((row.state, row.done_by, row.done is not None), ("done", "boss", True))
@@ -388,7 +486,12 @@ class Administration(Base):
     def test_a_request_that_could_not_be_done_says_why_to_the_merchant(self):
         row = OsmRequest.objects.create(shop=self.shop, kind="add", asked_by=self.owner)
         url = reverse("admin:shops_osmrequest_change", args=[row.pk])
-        self.assertEqual(self.staff.post(url, {"state": "declined", "answer": "We could not find the place on the map."}).status_code, 302)
+        self.assertEqual(
+            self.staff.post(
+                url, {"state": "declined", "answer": "We could not find the place on the map."}
+            ).status_code,
+            302,
+        )
         row.refresh_from_db()
         self.assertEqual((row.state, row.done_by), ("declined", "boss"))
         page = self.client.get(self.url("osm_home"))
@@ -402,11 +505,15 @@ class Administration(Base):
     def test_only_what_the_staff_may_change_is_in_the_form(self):
         row = OsmRequest.objects.create(shop=self.shop, kind="add", asked_by=self.owner)
         url = reverse("admin:shops_osmrequest_change", args=[row.pk])
-        self.staff.post(url, {"state": "done", "answer": "", "kind": "update", "shop": "", "summary": "evil", "delivery": "sent"})
+        self.staff.post(
+            url, {"state": "done", "answer": "", "kind": "update", "shop": "", "summary": "evil", "delivery": "sent"}
+        )
         row.refresh_from_db()
         self.assertEqual((row.kind, row.shop, row.summary == "evil", row.delivery), ("add", self.shop, False, ""))
         self.assertEqual(self.staff.get(reverse("admin:shops_osmrequest_add")).status_code, 403)
-        self.assertEqual(self.staff.post(reverse("admin:shops_osmrequest_delete", args=[row.pk]), {"post": "yes"}).status_code, 403)
+        self.assertEqual(
+            self.staff.post(reverse("admin:shops_osmrequest_delete", args=[row.pk]), {"post": "yes"}).status_code, 403
+        )
 
     def test_a_member_of_the_staff_without_the_right_does_not_change_requests(self):
         helper = User.objects.create(username="helper", is_staff=True)
@@ -416,6 +523,7 @@ class Administration(Base):
         client.force_login(helper)
         session = client.session
         from config.urls import ADMIN_SESSION
+
         session[ADMIN_SESSION] = True
         session.save()
         client.post(reverse("admin:shops_osmrequest_changelist"), {"action": "mark_done", "_selected_action": [row.pk]})
@@ -456,7 +564,18 @@ class Dashboard(Base):
         self.assertIn("a person of the association does it by hand", item.say)
 
     def test_with_the_upload_off_the_proposals_are_what_openstreetmap_should_say(self):
-        run = osm.save_run({"proposals": [{"shop": "x", "name": "A", "ref": "node/1", "changes": [{"tag": "a", "old": None, "new": "b", "kind": "add"}] * 3}]})
+        run = osm.save_run(
+            {
+                "proposals": [
+                    {
+                        "shop": "x",
+                        "name": "A",
+                        "ref": "node/1",
+                        "changes": [{"tag": "a", "old": None, "new": "b", "kind": "add"}] * 3,
+                    }
+                ]
+            }
+        )
         item = next(item for item in dashboard.summary()["items"] if item.code == "osm_proposals")
         self.assertEqual(item.what, "3 tags of our shops on OpenStreetMap are not what this site knows.")
         self.assertIn("A person can change them by hand on openstreetmap.org", item.do)
@@ -480,7 +599,18 @@ class Dashboard(Base):
 
     @on(features.OSM_UPLOAD)
     def test_proposals_waiting_are_a_line_that_says_nobody_sends_them_alone(self):
-        run = osm.save_run({"proposals": [{"shop": "x", "name": "A", "ref": "node/1", "changes": [{"tag": "a", "old": None, "new": "b", "kind": "add"}] * 3}]})
+        run = osm.save_run(
+            {
+                "proposals": [
+                    {
+                        "shop": "x",
+                        "name": "A",
+                        "ref": "node/1",
+                        "changes": [{"tag": "a", "old": None, "new": "b", "kind": "add"}] * 3,
+                    }
+                ]
+            }
+        )
         item = next(item for item in dashboard.summary()["items"] if item.code == "osm_proposals")
         self.assertIn("3 changes proposed for OpenStreetMap", item.what)
         self.assertIn("never sends them by itself", item.do)
@@ -531,7 +661,9 @@ class TwoAtOnce(TransactionTestCase):
 
     def test_two_taps_on_the_tick_make_one_request(self):
         owner = User.objects.create(username="merchant")
-        shop = Shop.objects.create(owner=owner, name="Bar", lightning_address="bar@ln.example.org", latitude=41.9, longitude=12.5)
+        shop = Shop.objects.create(
+            owner=owner, name="Bar", lightning_address="bar@ln.example.org", latitude=41.9, longitude=12.5
+        )
         real = OsmRequest.objects.create
 
         def slow_create(**fields):
@@ -577,8 +709,25 @@ class Honest(Base):
         self.assertEqual(osm.page(self.shop)["read"], run.created)
 
     def test_a_review_waiting_is_not_all_well(self):
-        self.linked({"proposals": [{"shop": str(self.shop.pk), "name": "Central Bar", "ref": "node/77", "changes": [
-            {"tag": "payment:bitcoin:operator", "old": "old.example", "new": "old.example;operator.example", "kind": "review"}]}]})
+        self.linked(
+            {
+                "proposals": [
+                    {
+                        "shop": str(self.shop.pk),
+                        "name": "Central Bar",
+                        "ref": "node/77",
+                        "changes": [
+                            {
+                                "tag": "payment:bitcoin:operator",
+                                "old": "old.example",
+                                "new": "old.example;operator.example",
+                                "kind": "review",
+                            }
+                        ],
+                    }
+                ]
+            }
+        )
         response = self.page()
         self.assertNotContains(response, "Nothing to do.")
         self.assertContains(response, "a person of the association has to look at it")
@@ -587,7 +736,20 @@ class Honest(Base):
         self.assertEqual((state["up_to_date"], state["review"], state["lines"]), (False, True, ""))
 
     def test_a_no_there_is_said_and_the_merchant_can_ask(self):
-        self.linked({"osm_says_no": [{"shop": str(self.shop.pk), "name": "Central Bar", "ref": "node/77", "state": "yes", "ours": "", "theirs": ""}]})
+        self.linked(
+            {
+                "osm_says_no": [
+                    {
+                        "shop": str(self.shop.pk),
+                        "name": "Central Bar",
+                        "ref": "node/77",
+                        "state": "yes",
+                        "ours": "",
+                        "theirs": "",
+                    }
+                ]
+            }
+        )
         response = self.page()
         self.assertNotContains(response, "Nothing to do.")
         self.assertContains(response, "OpenStreetMap says that your shop does not take bitcoin any more.")
@@ -617,7 +779,9 @@ class ConfirmLinks(Base):
         self.shop.refresh_from_db()
 
     def act(self, name):
-        return self.staff.post(reverse("admin:shops_shop_changelist"), {"action": name, "_selected_action": [self.shop.pk]})
+        return self.staff.post(
+            reverse("admin:shops_shop_changelist"), {"action": name, "_selected_action": [self.shop.pk]}
+        )
 
     def test_confirm(self):
         self.assertEqual(self.act("confirm_osm_link").status_code, 302)
@@ -627,7 +791,9 @@ class ConfirmLinks(Base):
     def test_refuse_is_remembered(self):
         self.act("reject_osm_link")
         self.shop.refresh_from_db()
-        self.assertEqual((self.shop.osm_ref, self.shop.osm_proposed, osm.notes_of(self.shop)["rejected"]), ("", "", ["node/77"]))
+        self.assertEqual(
+            (self.shop.osm_ref, self.shop.osm_proposed, osm.notes_of(self.shop)["rejected"]), ("", "", ["node/77"])
+        )
 
     def test_the_actions_need_the_right_to_change(self):
         helper = User.objects.create(username="helper", is_staff=True)
@@ -636,6 +802,7 @@ class ConfirmLinks(Base):
         client.force_login(helper)
         session = client.session
         from config.urls import ADMIN_SESSION
+
         session[ADMIN_SESSION] = True
         session.save()
         for name in ("confirm_osm_link", "reject_osm_link", "accept_osm_contacts", "decline_osm_contacts"):
@@ -653,10 +820,31 @@ class ConfirmLinks(Base):
     def test_a_link_written_by_hand_clears_the_proposal(self):
         url = reverse("admin:shops_shop_change", args=[self.shop.pk])
         shop = self.shop
-        data = {"name": shop.name, "description": "", "address": "", "city": shop.city, "latitude": "41.9", "longitude": "12.5", "website": "",
-                "email": "", "phone": "", "discount": "10", "listed": "on", "nostr_pubkey": "", "nip05_name": "", "telegram_chat": "",
-                "owner": shop.owner_id, "external_id": "", "osm_ref": "node/12", "closures-TOTAL_FORMS": "0", "closures-INITIAL_FORMS": "0", "places-TOTAL_FORMS": "0", "places-INITIAL_FORMS": "0",
-                "closures-MIN_NUM_FORMS": "0", "closures-MAX_NUM_FORMS": "1000"}
+        data = {
+            "name": shop.name,
+            "description": "",
+            "address": "",
+            "city": shop.city,
+            "latitude": "41.9",
+            "longitude": "12.5",
+            "website": "",
+            "email": "",
+            "phone": "",
+            "discount": "10",
+            "listed": "on",
+            "nostr_pubkey": "",
+            "nip05_name": "",
+            "telegram_chat": "",
+            "owner": shop.owner_id,
+            "external_id": "",
+            "osm_ref": "node/12",
+            "closures-TOTAL_FORMS": "0",
+            "closures-INITIAL_FORMS": "0",
+            "places-TOTAL_FORMS": "0",
+            "places-INITIAL_FORMS": "0",
+            "closures-MIN_NUM_FORMS": "0",
+            "closures-MAX_NUM_FORMS": "1000",
+        }
         self.assertEqual(self.staff.post(url, data).status_code, 302)
         shop.refresh_from_db()
         self.assertEqual((shop.osm_ref, shop.osm_proposed), ("node/12", ""))
@@ -664,15 +852,24 @@ class ConfirmLinks(Base):
     def test_the_contacts_are_accepted_or_declined_in_the_admin(self):
         Shop.objects.filter(pk=self.shop.pk).update(osm_ref="node/77", osm_proposed="")
         self.shop.refresh_from_db()
-        osm.fill(self.shop, osm.Element("node/77", {"website": "https://bar.example/", "phone": "+39 0461 123456"}), osm.settings_from(SETTINGS))
+        osm.fill(
+            self.shop,
+            osm.Element("node/77", {"website": "https://bar.example/", "phone": "+39 0461 123456"}),
+            osm.settings_from(SETTINGS),
+        )
         self.shop.refresh_from_db()
         self.assertEqual((self.shop.website, self.shop.phone), ("", ""))
         self.act("accept_osm_contacts")
         self.shop.refresh_from_db()
-        self.assertEqual((self.shop.website, self.shop.phone, osm.offers_of(self.shop)), ("https://bar.example/", "+39 0461 123456", {}))
+        self.assertEqual(
+            (self.shop.website, self.shop.phone, osm.offers_of(self.shop)),
+            ("https://bar.example/", "+39 0461 123456", {}),
+        )
 
     def test_the_dashboard_has_a_line_for_each_kind_of_waiting(self):
-        Shop.objects.create(name="Other", osm_ref="node/5", osm_notes={"fields": {"phone": {"value": "+39 1", "state": "offered"}}})
+        Shop.objects.create(
+            name="Other", osm_ref="node/5", osm_notes={"fields": {"phone": {"value": "+39 1", "state": "offered"}}}
+        )
         codes = [item.code for item in dashboard.summary()["items"]]
         self.assertIn("osm_links", codes)
         self.assertIn("osm_contacts", codes)

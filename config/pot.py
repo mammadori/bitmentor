@@ -4,6 +4,7 @@ The catalogs are written by hand, so the template is made from the Italian one, 
 `python -m config.pot` writes it again after a text is added, changed or removed.
 `python -m config.pot --since 0.1.9` lists the texts that changed since a version, for the notes of a release: a
 community with a catalog of its own, or with pages that quote a button, learns from them what to look at."""
+
 import re
 import subprocess
 import sys
@@ -15,11 +16,14 @@ TEMPLATE = LOCALE / "django.pot"
 HEAD = """\
 # The texts of bitmentor, to translate into a new language: see docs/languages.md.
 # A text left empty is shown in English. Set Language and Plural-Forms below to those of your language.
+# X-Native-Reviewed: `no` until a native speaker has read the catalog, then what was read (a version, a date); the
+# language switcher marks the languages nobody has read (docs/languages.md). Here it speaks for the English texts.
 msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\\n"
 "Language: \\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\\n"
+"X-Native-Reviewed: no\\n"
 """
 
 
@@ -57,8 +61,9 @@ def changes(before, after):
 def since(ref):
     """The lines for a release's notes: what changed in the texts since the version `ref` (a tag such as 0.1.9)."""
     try:
-        shown = subprocess.run(["git", "show", f"{ref}:locale/django.pot"], cwd=LOCALE.parent, capture_output=True,
-                               text=True, check=False)
+        shown = subprocess.run(
+            ["git", "show", f"{ref}:locale/django.pot"], cwd=LOCALE.parent, capture_output=True, text=True, check=False
+        )
     except OSError:  # no git on this machine (the site's image has none): the comparison is for a clone
         return ["git is not here: run this in a clone of the software, nothing to compare with"]
     if shown.returncode:
@@ -77,5 +82,7 @@ if __name__ == "__main__":
     elif len(sys.argv) == 1:
         TEMPLATE.write_text(template(SOURCE.read_text()))
     else:
-        sys.exit("python -m config.pot            writes locale/django.pot again\n"
-                 "python -m config.pot --since <tag>   the texts that changed since that version, for the release notes")
+        sys.exit(
+            "python -m config.pot            writes locale/django.pot again\n"
+            "python -m config.pot --since <tag>   the texts that changed since that version, for the release notes"
+        )

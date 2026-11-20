@@ -1,5 +1,6 @@
 """Risk signals when a new shop is approved (shops/approval_signals.py): a copy of a shop already on the site is evident on
 /admin/today/ and in the moderators' message, and is approved only by a person who ticks that they checked."""
+
 import datetime
 from unittest.mock import patch
 
@@ -33,7 +34,9 @@ OLD = timezone.now() - datetime.timedelta(days=400)
 
 
 def owner(name, new=True, email=""):
-    user = User.objects.create(username=name, date_joined=timezone.now() - datetime.timedelta(minutes=2) if new else OLD)
+    user = User.objects.create(
+        username=name, date_joined=timezone.now() - datetime.timedelta(minutes=2) if new else OLD
+    )
     if email:
         Profile.objects.update_or_create(user=user, defaults={"email": email})
     return user
@@ -60,11 +63,26 @@ class TheRealCase(Staff):
     old with no email and no other shop, a Lightning address at another provider."""
 
     def setUp(self):
-        self.real = shop("Caffè Roma", owner("real", new=False, email="real@mail.example"), city="Torino", latitude=45.07,
-                         longitude=7.68, website="https://www.cafferoma.example/", phone="+39 011 1234567",
-                         lightning_address="real@walleta.example")
-        self.fake = shop("Caffe Roma", owner("fake"), waiting=True, city="torino", latitude=45.0703, longitude=7.6803,
-                         website="http://cafferoma.example", lightning_address="fake@walletb.example")
+        self.real = shop(
+            "Caffè Roma",
+            owner("real", new=False, email="real@mail.example"),
+            city="Torino",
+            latitude=45.07,
+            longitude=7.68,
+            website="https://www.cafferoma.example/",
+            phone="+39 011 1234567",
+            lightning_address="real@walleta.example",
+        )
+        self.fake = shop(
+            "Caffe Roma",
+            owner("fake"),
+            waiting=True,
+            city="torino",
+            latitude=45.0703,
+            longitude=7.6803,
+            website="http://cafferoma.example",
+            lightning_address="fake@walletb.example",
+        )
         self.sign_in("view_shop", "change_shop")
 
     def test_all_five(self):
@@ -99,11 +117,15 @@ class TheRealCase(Staff):
         self.client.post(f"/admin/today/approve/{self.fake.pk}/", {"checked": "1"})
         self.fake.refresh_from_db()
         self.assertFalse(self.fake.needs_approval)
-        self.assertEqual(LogEntry.objects.get().change_message,
-                         "Shop approved; signals: namesake, near, same_contact, other_lightning, new_owner")
+        self.assertEqual(
+            LogEntry.objects.get().change_message,
+            "Shop approved; signals: namesake, near, same_contact, other_lightning, new_owner",
+        )
 
     def test_the_shop_page_in_the_admin_shows_them(self):
-        self.assertContains(self.client.get(f"/admin/shops/shop/{self.fake.pk}/change/"), "a shop of another owner in the same area")
+        self.assertContains(
+            self.client.get(f"/admin/shops/shop/{self.fake.pk}/change/"), "a shop of another owner in the same area"
+        )
 
     def test_the_message_to_the_moderators(self):
         with patch("shops.approval.threading.Thread") as thread, self.captureOnCommitCallbacks(execute=True):
@@ -131,8 +153,17 @@ class Quiet(Staff):
 
     def test_an_honest_new_owner_with_a_unique_shop(self):
         shop("Pizzeria Napoli", owner("other", new=False), city="Roma", latitude=41.9, longitude=12.5)
-        new = shop("Libreria Sole", owner("new"), waiting=True, city="Roma", latitude=41.9001, longitude=12.5001,
-                   website="https://sole.example", phone="06 1234567", lightning_address="me@wallet.example")
+        new = shop(
+            "Libreria Sole",
+            owner("new"),
+            waiting=True,
+            city="Roma",
+            latitude=41.9001,
+            longitude=12.5001,
+            website="https://sole.example",
+            phone="06 1234567",
+            lightning_address="me@wallet.example",
+        )
         self.assertEqual(signals(new), [])
         self.sign_in("view_shop", "change_shop")
         page = self.client.get("/admin/today/")
@@ -145,10 +176,25 @@ class Quiet(Staff):
         self.assertEqual(LogEntry.objects.get().change_message, "Shop approved")
 
     def test_a_chain_in_another_town_is_a_note(self):
-        shop("Burger Planet", owner("chain", new=False), city="Milano", latitude=45.46, longitude=9.19,
-             website="https://burgerplanet-milano.example", lightning_address="milano@a.example")
-        new = shop("Burger Planet", owner("branch"), waiting=True, city="Roma", latitude=41.9, longitude=12.5,
-                   website="https://burgerplanet-roma.example", lightning_address="roma@b.example")
+        shop(
+            "Burger Planet",
+            owner("chain", new=False),
+            city="Milano",
+            latitude=45.46,
+            longitude=9.19,
+            website="https://burgerplanet-milano.example",
+            lightning_address="milano@a.example",
+        )
+        new = shop(
+            "Burger Planet",
+            owner("branch"),
+            waiting=True,
+            city="Roma",
+            latitude=41.9,
+            longitude=12.5,
+            website="https://burgerplanet-roma.example",
+            lightning_address="roma@b.example",
+        )
         found = signals(new)
         self.assertEqual(codes(found), [NAMESAKE_NOTE])
         self.assertFalse(any(signal.asks for signal in found))
@@ -243,9 +289,11 @@ class Approve(Staff):
         self.assertEqual(approval.held(everything), [])
 
     def test_the_admin_action_skips_and_says_so(self):
-        response = self.client.post("/admin/shops/shop/", {"action": "approve_shops",
-                                                           "_selected_action": [str(self.flagged.pk), str(self.clean.pk)]},
-                                    follow=True)
+        response = self.client.post(
+            "/admin/shops/shop/",
+            {"action": "approve_shops", "_selected_action": [str(self.flagged.pk), str(self.clean.pk)]},
+            follow=True,
+        )
         self.flagged.refresh_from_db()
         self.clean.refresh_from_db()
         self.assertTrue(self.flagged.needs_approval)
@@ -278,16 +326,29 @@ class Approve(Staff):
 class FalsePositives(Staff):
     """In a big town, names alike kilometres apart are other shops: a note, never a box to tick."""
 
-    PAIRS = (("Pizzeria Roma", "Pizzeria Rosa"), ("Bar Mario", "Bar Maria"), ("Ristorante Da Gino", "Ristorante Da Pino"),
-             ("Panificio Rossi", "Panificio Russo"), ("Bar Sport", "Bar Sport 2"), ("Osteria", "Osteria del Ponte"),
-             ("Mario", "Bar Mario"))
+    PAIRS = (
+        ("Pizzeria Roma", "Pizzeria Rosa"),
+        ("Bar Mario", "Bar Maria"),
+        ("Ristorante Da Gino", "Ristorante Da Pino"),
+        ("Panificio Rossi", "Panificio Russo"),
+        ("Bar Sport", "Bar Sport 2"),
+        ("Osteria", "Osteria del Ponte"),
+        ("Mario", "Bar Mario"),
+    )
 
     def test_alike_names_far_apart_in_the_same_town_do_not_ask(self):
         for index, (first, second) in enumerate(self.PAIRS):
             with self.subTest(first=first, second=second):
                 existing = shop(first, owner(f"a{index}", new=False), city="Roma", latitude=41.90, longitude=12.50)
-                waiting = shop(second, owner(f"b{index}"), waiting=True, city="Roma", latitude=41.91, longitude=12.51,
-                               lightning_address="x@other.example")
+                waiting = shop(
+                    second,
+                    owner(f"b{index}"),
+                    waiting=True,
+                    city="Roma",
+                    latitude=41.91,
+                    longitude=12.51,
+                    lightning_address="x@other.example",
+                )
                 found = signals(waiting)
                 self.assertFalse(asks(found), [signal.text for signal in found])
                 self.assertEqual(codes(found), [NAMESAKE_NOTE])
@@ -302,8 +363,15 @@ class FalsePositives(Staff):
 
     def test_alike_with_a_contact_asks(self):
         shop("Osteria", owner("a", new=False), city="Roma", latitude=41.90, longitude=12.50, phone="06 1234567")
-        waiting = shop("Osteria del Ponte", owner("b", new=False), waiting=True, city="Roma", latitude=41.91, longitude=12.51,
-                       phone="+39 06 1234567")
+        waiting = shop(
+            "Osteria del Ponte",
+            owner("b", new=False),
+            waiting=True,
+            city="Roma",
+            latitude=41.91,
+            longitude=12.51,
+            phone="+39 06 1234567",
+        )
         self.assertEqual(codes(signals(waiting)), [NAMESAKE, SAME_CONTACT])
 
     def test_for_names_only_alike_the_distance_decides_not_the_town(self):
@@ -374,8 +442,11 @@ class FailSafe(Staff):
             response = self.client.post(f"/admin/today/approve/{self.flagged.pk}/", follow=True)
         self.assertContains(response, "the checks for copies of other shops could not be run")
         with self.broken(), self.assertLogs("shops.approval", "ERROR"):
-            response = self.client.post("/admin/shops/shop/", {"action": "approve_shops",
-                                                               "_selected_action": [str(self.flagged.pk)]}, follow=True)
+            response = self.client.post(
+                "/admin/shops/shop/",
+                {"action": "approve_shops", "_selected_action": [str(self.flagged.pk)]},
+                follow=True,
+            )
         self.assertContains(response, "because the checks for copies of other shops could not be run")
         self.assertNotContains(response, "look like a shop already on the site")
 
@@ -414,11 +485,15 @@ class EditAfterApproval(TestCase):
 
     def edit(self, **changes):
         url = f"/en/shops/edit/{self.mine.pk}/"
-        data = {name: value for name, value in self.client.get(url).context["form"].initial.items() if value is not None}
+        data = {
+            name: value for name, value in self.client.get(url).context["form"].initial.items() if value is not None
+        }
         data.update(changes)
-        with patch("shops.approval.threading.Thread") as thread, \
-                patch("shops.approval_signals.others", wraps=approval_signals.others) as computed, \
-                self.captureOnCommitCallbacks(execute=True):
+        with (
+            patch("shops.approval.threading.Thread") as thread,
+            patch("shops.approval_signals.others", wraps=approval_signals.others) as computed,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
         return thread, computed
@@ -469,7 +544,13 @@ class EditAfterApproval(TestCase):
 
     def test_an_edit_that_reorders_the_other_shops_tells_nothing(self):
         for index in range(4):
-            shop("Caffè Roma", owner(f"r{index}", new=False), city="Torino", latitude=45.07 + index / 1000, longitude=7.69)
+            shop(
+                "Caffè Roma",
+                owner(f"r{index}", new=False),
+                city="Torino",
+                latitude=45.07 + index / 1000,
+                longitude=7.69,
+            )
         Shop.objects.filter(pk=self.mine.pk).update(name="Caffè Roma")
         self.mine.refresh_from_db()
         # Moving the pin puts other namesakes among the first three: none is new
@@ -490,8 +571,12 @@ class SharedHosts(TestCase):
         return website_key(url)
 
     def test_google_in_every_country(self):
-        self.assertNotEqual(self.key("https://google.it/maps/place/bar-uno"), self.key("https://google.it/maps/place/bar-due"))
-        self.assertEqual(self.key("https://www.google.it/maps/place/Bar-Uno/"), self.key("google.it/maps/place/bar-uno"))
+        self.assertNotEqual(
+            self.key("https://google.it/maps/place/bar-uno"), self.key("https://google.it/maps/place/bar-due")
+        )
+        self.assertEqual(
+            self.key("https://www.google.it/maps/place/Bar-Uno/"), self.key("google.it/maps/place/bar-uno")
+        )
         self.assertEqual(self.key("https://maps.google.co.uk"), "")
         self.assertNotEqual(self.key("https://g.co/kgs/abc"), self.key("https://g.co/kgs/xyz"))
         self.assertNotEqual(self.key("https://maps.apple.com/?q=uno"), self.key("https://maps.apple.com/?q=due"))
@@ -504,16 +589,41 @@ class SharedHosts(TestCase):
                 self.assertEqual(self.key(f"https://{host}"), "")
 
     def test_directories_and_delivery(self):
-        for host in ("tripadvisor.co.uk", "tripadvisor.fr", "booking.com", "thefork.it", "ubereats.com", "deliveroo.de",
-                     "glovoapp.com", "justeat.ch", "paginegialle.it", "yelp.it"):
+        for host in (
+            "tripadvisor.co.uk",
+            "tripadvisor.fr",
+            "booking.com",
+            "thefork.it",
+            "ubereats.com",
+            "deliveroo.de",
+            "glovoapp.com",
+            "justeat.ch",
+            "paginegialle.it",
+            "yelp.it",
+        ):
             with self.subTest(host=host):
                 self.assertNotEqual(self.key(f"https://{host}/bar-uno"), self.key(f"https://{host}/bar-due"))
                 self.assertEqual(self.key(f"https://www.{host}/Bar-Uno"), self.key(f"https://{host}/bar-uno/"))
 
     def test_site_builders(self):
-        for host in ("wordpress.com", "blogspot.com", "myshopify.com", "webnode.it", "jimdofree.com", "jimdosite.com",
-                     "altervista.org", "weebly.com", "squarespace.com", "business.site", "wixsite.com", "canva.site",
-                     "github.io", "netlify.app", "vercel.app", "pages.dev"):
+        for host in (
+            "wordpress.com",
+            "blogspot.com",
+            "myshopify.com",
+            "webnode.it",
+            "jimdofree.com",
+            "jimdosite.com",
+            "altervista.org",
+            "weebly.com",
+            "squarespace.com",
+            "business.site",
+            "wixsite.com",
+            "canva.site",
+            "github.io",
+            "netlify.app",
+            "vercel.app",
+            "pages.dev",
+        ):
             with self.subTest(host=host):
                 self.assertEqual(self.key(f"https://bar.{host}"), self.key(f"https://bar.{host}/menu"))
                 self.assertEqual(self.key(f"https://bar.{host}"), f"bar.{host}")
@@ -523,8 +633,10 @@ class SharedHosts(TestCase):
 
     def test_two_shops_on_one_short_link_match(self):
         shop("Uno", owner("a", new=False), website="https://bit.ly/Ab1")
-        self.assertEqual(codes(signals(shop("Due", owner("b", new=False), waiting=True, website="https://bit.ly/Ab1"))),
-                         [SAME_CONTACT])
+        self.assertEqual(
+            codes(signals(shop("Due", owner("b", new=False), waiting=True, website="https://bit.ly/Ab1"))),
+            [SAME_CONTACT],
+        )
         self.assertEqual(signals(shop("Tre", owner("c", new=False), waiting=True, website="https://bit.ly/Zz9")), [])
 
 
@@ -540,7 +652,9 @@ class MoreAdvice(TestCase):
         self.assertIn("give that shop to this owner", next(signal.advice for signal in found if signal.advice))
 
     def test_a_shop_that_closes_later_may_have_a_successor(self):
-        shop("Bottega", owner("a", new=False), city="Pisa", closed_on=timezone.localdate() + datetime.timedelta(days=30))
+        shop(
+            "Bottega", owner("a", new=False), city="Pisa", closed_on=timezone.localdate() + datetime.timedelta(days=30)
+        )
         found = signals(shop("Bottega", owner("b", new=False), waiting=True, city="Pisa"))
         advice = next(signal.advice for signal in found if signal.advice)
         self.assertIn("successor", advice)

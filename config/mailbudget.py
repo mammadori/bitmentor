@@ -15,6 +15,7 @@ a day, and then nobody could sign in by email and the owners would get no securi
   send in a day (`emails_per_sender_day`), whoever they are for. Without it one address asking for sign-in links to
   made-up recipients would turn email sign-in off for everybody until midnight.
 A month and a day are those of the site's time zone."""
+
 import hashlib
 import logging
 from datetime import datetime, time, timedelta
@@ -46,6 +47,7 @@ def starts():
 
 def sent():
     from shops.models import EmailSent
+
     return EmailSent.objects
 
 
@@ -71,7 +73,7 @@ def crowded():
     cap = limits.get("emails_per_address_day")
     if not cap:
         return 0
-    return (sent().filter(sent__gte=starts()[1]).values("recipient").annotate(n=Count("pk")).filter(n__gt=cap).count())
+    return sent().filter(sent__gte=starts()[1]).values("recipient").annotate(n=Count("pk")).filter(n__gt=cap).count()
 
 
 def over(used, limit, share=1.0):
@@ -81,6 +83,7 @@ def over(used, limit, share=1.0):
 def blocked(share=1.0):
     """The name of the budget that is used up (to `share` of it), or ""."""
     from config import limits
+
     if over(month_count(), limits.get("emails_per_month"), share):
         return "emails_per_month"
     if over(day_count(), limits.get("emails_per_day"), share):
@@ -94,6 +97,7 @@ def factor(request):
     others. 0 in the settings counts as 1."""
     from config import limits
     from website.visibility import from_allowed_address
+
     if getattr(request, "staff_user", None) is not None or from_allowed_address(request):
         return max(1, limits.get("emails_staff_factor"))
     return 1
@@ -103,15 +107,23 @@ def visitor_allowed(address, factor=1):
     """False when a visitor cannot make the site send one more email now: the reserve for security notices is reached, or
     this address received enough today. Warns in the log; the caller tells the visitor to try later."""
     from config import limits
+
     try:
         # The staff is not stopped by the reserve: it still stops at the total, in the backend
         full = blocked(VISITOR_SHARE) if factor == 1 else ""
         if full:
-            logger.warning("email budget: %s reached %d%% (limits.%s in community.yml); sign-in and confirmation links are "
-                           "refused, the rest is kept for security notices", full, VISITOR_SHARE * 100, full)
+            logger.warning(
+                "email budget: %s reached %d%% (limits.%s in community.yml); sign-in and confirmation links are "
+                "refused, the rest is kept for security notices",
+                full,
+                VISITOR_SHARE * 100,
+                full,
+            )
             return False
         if over(address_count(address), limits.get("emails_per_address_day") * factor):
-            logger.warning("email budget: one address received limits.emails_per_address_day emails today; no more links for it")
+            logger.warning(
+                "email budget: one address received limits.emails_per_address_day emails today; no more links for it"
+            )
             return False
     except DatabaseError:
         logger.exception("email budget: the count cannot be read")
@@ -122,6 +134,7 @@ def from_onion(request):
     """Every visitor of the onion entrance arrives with the same address, the onion service's own (Caddy writes
     `X-Entrance: onion`): there one address is everybody."""
     from website.visibility import ENTRANCE
+
     return request.headers.get(ENTRANCE) == "onion"
 
 
@@ -133,20 +146,24 @@ def sender_over(request, factor=1):
     reason is not counted), and `sender_give_back` if the email then does not leave. The day is the one of the limits'
     clock (UTC), not the site's."""
     from config import limits, ratelimit
+
     cap = limits.rate("emails_per_sender_day") * factor
     if from_onion(request):
         over = ratelimit.over_limit("mail-day:onion", cap * 3, SENDER_WINDOW)
     else:
         over = ratelimit.over_address_limits(request, "mail-day", cap, cap * 3, SENDER_WINDOW)
     if over:
-        logger.warning("email budget: one network address asked for more than limits.emails_per_sender_day emails today; "
-                       "no more links from it")
+        logger.warning(
+            "email budget: one network address asked for more than limits.emails_per_sender_day emails today; "
+            "no more links from it"
+        )
     return over
 
 
 def sender_give_back(request):
     """An email `sender_over` counted did not leave (the mail server refused it): it does not use up the address's day."""
     from config import ratelimit
+
     if from_onion(request):
         ratelimit.give_back("mail-day:onion", SENDER_WINDOW)
     else:
@@ -155,8 +172,10 @@ def sender_give_back(request):
 
 def message():
     # An account made with an email has no wallet key: "sign in with your wallet" would open a new, empty account
-    return _("This site cannot send more emails for now. Please try again later. If you made your account with a "
-             "Lightning wallet, you can sign in with it.")
+    return _(
+        "This site cannot send more emails for now. Please try again later. If you made your account with a "
+        "Lightning wallet, you can sign in with it."
+    )
 
 
 def sender_message():
@@ -165,6 +184,7 @@ def sender_message():
 
 def record(addresses):
     from shops.models import EmailSent
+
     now = timezone.now()
     EmailSent.objects.bulk_create([EmailSent(sent=now, recipient=digest(address)) for address in addresses])
     from shops import privacy
@@ -198,8 +218,12 @@ class CountingBackend(BaseEmailBackend):
                 logger.exception("email budget: the count cannot be read, sending without it")
                 full = ""
             if full:
-                logger.warning("email budget: %s reached, nothing is sent (\"%s\" to %d recipients dropped)",
-                               full, message.subject, len(message.recipients()))
+                logger.warning(
+                    'email budget: %s reached, nothing is sent ("%s" to %d recipients dropped)',
+                    full,
+                    message.subject,
+                    len(message.recipients()),
+                )
                 continue
             if self.real.send_messages([message]):
                 done += 1

@@ -14,6 +14,7 @@ data from outside and is trusted for nothing until it passes this module. Every 
 An event is addressable (NIP-33): the key is (kind, author, `d`) and the newest version replaces the older. A meetup the
 staff corrected by hand is never overwritten, and a deletion cancels a meetup that has not happened yet (a deletion
 after the date is a clean-up of the relay, not a cancellation). Nothing here connects to a relay: meetups/relays.py does."""
+
 import html
 import math
 import re
@@ -54,10 +55,17 @@ ZONE_NAME = re.compile(r"[A-Za-z0-9_+\-]+(?:/[A-Za-z0-9_+\-]+){0,2}")
 CANCELLED_WORDS = re.compile(r"(?<!\w)(?:annullat[oae]|cancell?ed|abgesagt|cancelad[oa]|annul[ée]e?)(?!\w)", re.I)
 MARKUP = re.compile(r"<[^<>]*>")
 REASONS = {
-    "malformed": "not an event as NIP-01 writes it", "too_big": "too big", "future": "created in the future",
-    "untrusted": "author not on the list", "unsigned": "wrong id or signature", "no_d": "no usable `d` tag",
-    "bad_start": "start that is not a date", "absurd_date": "start before 2009 or years away", "too_old": "too long ago",
-    "outside": "not in the cities of the community", "limit": "over the limit of one reading",
+    "malformed": "not an event as NIP-01 writes it",
+    "too_big": "too big",
+    "future": "created in the future",
+    "untrusted": "author not on the list",
+    "unsigned": "wrong id or signature",
+    "no_d": "no usable `d` tag",
+    "bad_start": "start that is not a date",
+    "absurd_date": "start before 2009 or years away",
+    "too_old": "too long ago",
+    "outside": "not in the cities of the community",
+    "limit": "over the limit of one reading",
 }
 
 
@@ -77,7 +85,9 @@ def plain_text(value, limit):
         return ""
     text = MARKUP.sub(" ", html.unescape(value))
     text = re.sub(r"\s+([,.;:!?])", r"\1", text)  # a tag between a word and its comma left a blank before it
-    text = "".join(char for char in text if char.isspace() or unicodedata.category(char) not in ("Cc", "Cf", "Cs", "Co", "Cn"))
+    text = "".join(
+        char for char in text if char.isspace() or unicodedata.category(char) not in ("Cc", "Cf", "Cs", "Co", "Cn")
+    )
     return re.sub(r"\s+", " ", text).strip()[:limit].strip()
 
 
@@ -101,15 +111,28 @@ def shape(event, now):
     for key, pattern in (("id", HEX64), ("pubkey", HEX64), ("sig", HEX128)):
         if not isinstance(event.get(key), str) or not pattern.fullmatch(event[key]):
             raise Rejected("malformed")
-    created_at, kind, tags, content = event.get("created_at"), event.get("kind"), event.get("tags"), event.get("content")
-    if any(isinstance(value, bool) or not isinstance(value, int) for value in (created_at, kind)) or created_at <= 0 \
-            or not isinstance(content, str) or not isinstance(tags, list):
+    created_at, kind, tags, content = (
+        event.get("created_at"),
+        event.get("kind"),
+        event.get("tags"),
+        event.get("content"),
+    )
+    if (
+        any(isinstance(value, bool) or not isinstance(value, int) for value in (created_at, kind))
+        or created_at <= 0
+        or not isinstance(content, str)
+        or not isinstance(tags, list)
+    ):
         raise Rejected("malformed")
     if len(content) > MAX_CONTENT or len(tags) > MAX_TAGS:
         raise Rejected("too_big")
     size = len(content)
     for tag in tags:
-        if not isinstance(tag, list) or not 1 <= len(tag) <= MAX_TAG_ITEMS or any(not isinstance(item, str) for item in tag):
+        if (
+            not isinstance(tag, list)
+            or not 1 <= len(tag) <= MAX_TAG_ITEMS
+            or any(not isinstance(item, str) for item in tag)
+        ):
             raise Rejected("malformed")
         if any(len(item) > MAX_TAG_TEXT for item in tag):
             raise Rejected("too_big")
@@ -157,8 +180,11 @@ def position_of(tags):
         latitude, longitude = float(tag_values(tags, "lat")[0]), float(tag_values(tags, "lon")[0])
     except (IndexError, ValueError):
         return None
-    return (latitude, longitude) if math.isfinite(latitude) and math.isfinite(longitude) \
-        and abs(latitude) <= 90 and abs(longitude) <= 180 else None
+    return (
+        (latitude, longitude)
+        if math.isfinite(latitude) and math.isfinite(longitude) and abs(latitude) <= 90 and abs(longitude) <= 180
+        else None
+    )
 
 
 def kilometres(one, other):
@@ -226,13 +252,23 @@ def parse(event, now, places, links):
             raise Rejected("outside")
         city = found["name"]
         # "Place, Street 7, City": the city is the board's own column, so it is not said twice
-        place = re.sub(rf"[,;\s-]*(?<!\w){re.escape(city)}(?!\w)\s*$", "", location, flags=re.I).strip(" ,;-") or location
+        place = (
+            re.sub(rf"[,;\s-]*(?<!\w){re.escape(city)}(?!\w)\s*$", "", location, flags=re.I).strip(" ,;-") or location
+        )
     link = ""
     if links:
         link = next((safe for safe in map(conf.safe_link, tag_values(tags, "r")) if safe), "")
-    return {"address": f"{kind}:{event['pubkey']}:{d}", "starts_at": moment.astimezone(dt_timezone.utc), "all_day": all_day,
-            "tzid": zone.key, "city": city[:100], "place": place[:200], "title": title, "url": link,
-            "status": Meetup.Status.CANCELLED if CANCELLED_WORDS.search(title) else Meetup.Status.CONFIRMED}
+    return {
+        "address": f"{kind}:{event['pubkey']}:{d}",
+        "starts_at": moment.astimezone(dt_timezone.utc),
+        "all_day": all_day,
+        "tzid": zone.key,
+        "city": city[:100],
+        "place": place[:200],
+        "title": title,
+        "url": link,
+        "status": Meetup.Status.CANCELLED if CANCELLED_WORDS.search(title) else Meetup.Status.CONFIRMED,
+    }
 
 
 def deletion_targets(event):
@@ -304,10 +340,14 @@ def ingest(events, now=None):
             calendar.setdefault(address_key(event), []).append(event)
     chosen = []
     for groups in (calendar, deletions):
-        ordered = sorted(groups.values(), key=lambda versions: max(event["created_at"] for event in versions), reverse=True)
+        ordered = sorted(
+            groups.values(), key=lambda versions: max(event["created_at"] for event in versions), reverse=True
+        )
         if len(ordered) > MAX_EVENTS:
             report.rejected["limit"] += len(ordered) - MAX_EVENTS
-        chosen.append([found for found in (verified_newest(versions, report) for versions in ordered[:MAX_EVENTS]) if found])
+        chosen.append(
+            [found for found in (verified_newest(versions, report) for versions in ordered[:MAX_EVENTS]) if found]
+        )
     stored = Meetup.objects.filter(source=Meetup.Source.NOSTR).count()
     # limits.nostr_meetups (0: no limit); at the limit nothing new is kept and nothing is deleted
     room = max(0, limits.get("nostr_meetups") - stored) if limits.get("nostr_meetups") else MAX_NEW_PER_RUN
@@ -337,8 +377,9 @@ def store(event, fields, now, report, budget):
             return 0
         try:
             with transaction.atomic():
-                Meetup.objects.create(source=Meetup.Source.NOSTR, nostr_address=fields["address"],
-                                      nostr_author=event["pubkey"], **values)
+                Meetup.objects.create(
+                    source=Meetup.Source.NOSTR, nostr_address=fields["address"], nostr_author=event["pubkey"], **values
+                )
         except IntegrityError:  # another reading made it between the question and now
             return 0
         report.created += 1
@@ -362,6 +403,15 @@ def withdraw(event, now):
     if not addresses and not ids:
         return 0
     target = Q(nostr_address__in=addresses) | Q(nostr_event_id__in=ids)
-    return Meetup.objects.filter(target, source=Meetup.Source.NOSTR, nostr_author=event["pubkey"], staff_edited=False,
-                                 starts_at__gt=now, nostr_created_at__lte=event["created_at"]) \
-        .exclude(status=Meetup.Status.CANCELLED).update(status=Meetup.Status.CANCELLED, updated=now)
+    return (
+        Meetup.objects.filter(
+            target,
+            source=Meetup.Source.NOSTR,
+            nostr_author=event["pubkey"],
+            staff_edited=False,
+            starts_at__gt=now,
+            nostr_created_at__lte=event["created_at"],
+        )
+        .exclude(status=Meetup.Status.CANCELLED)
+        .update(status=Meetup.Status.CANCELLED, updated=now)
+    )

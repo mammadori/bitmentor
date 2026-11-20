@@ -1,17 +1,20 @@
 """Headers that Django does not set by itself."""
+
 from django.conf import settings
 
-CSP = "; ".join([
-    "default-src 'self'",
-    "script-src 'self' 'inline-speculation-rules'",
-    # Leaflet and the admin write inline styles: a style does not run code
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https://tile.openstreetmap.org",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'none'",
-])
+CSP = "; ".join(
+    [
+        "default-src 'self'",
+        "script-src 'self' 'inline-speculation-rules'",
+        # Leaflet and the admin write inline styles: a style does not run code
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: https://tile.openstreetmap.org",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+    ]
+)
 PERMISSIONS = "camera=(), microphone=(), payment=(), usb=(), geolocation=(self)"
 # Pages and data are read only from the site. Public files stay open to everyone: the theme's logo is the Nostr profile
 # picture, and a Nostr client shows it from another site.
@@ -31,8 +34,9 @@ class SecurityHeaders:
         response = self.get_response(request)
         response.headers.setdefault("Content-Security-Policy", CSP)
         response.headers.setdefault("Permissions-Policy", PERMISSIONS)
-        response.headers.setdefault("Cross-Origin-Resource-Policy",
-                                    "cross-origin" if request.path.startswith(PUBLIC_FILES) else "same-origin")
+        response.headers.setdefault(
+            "Cross-Origin-Resource-Policy", "cross-origin" if request.path.startswith(PUBLIC_FILES) else "same-origin"
+        )
         return response
 
 
@@ -71,7 +75,10 @@ class PrivateForAccounts:
 
     def __call__(self, request):
         response = self.get_response(request)
-        if (settings.SESSION_COOKIE_NAME in request.COOKIES and not response.has_header("Cache-Control")
-                and (getattr(request, "staff_user", None) is not None or request.user.is_authenticated)):
+        if (
+            settings.SESSION_COOKIE_NAME in request.COOKIES
+            and not response.has_header("Cache-Control")
+            and (getattr(request, "staff_user", None) is not None or request.user.is_authenticated)
+        ):
             response["Cache-Control"] = "private, no-store"
         return response

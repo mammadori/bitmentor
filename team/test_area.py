@@ -1,5 +1,6 @@
 """The volunteers' area (TEAM_AREA, team/area.py): who gets in, what it shows and does, and everything that must not
 open."""
+
 import re
 from datetime import timedelta
 from pathlib import Path
@@ -27,8 +28,13 @@ ROOT = Path(__file__).resolve().parent.parent
 User = get_user_model()
 # Every page of the area but the sign-in, with the method each takes
 PAGES = ("/team/today/", "/team/help/", "/team/me/", "/team/osm/", "/team/changes/")
-CHANGES = ("/team/help/{number}/solved/", "/team/help/{number}/waiting/", "/team/me/end/", "/team/osm/{number}/done/",
-           "/team/shops/{shop}/approve/")
+CHANGES = (
+    "/team/help/{number}/solved/",
+    "/team/help/{number}/waiting/",
+    "/team/me/end/",
+    "/team/osm/{number}/done/",
+    "/team/shops/{shop}/approve/",
+)
 ADDRESS = "merchant@wallet.example"
 RECOVERY = "owner.secret@mail.example"
 
@@ -50,12 +56,22 @@ class AreaBase(Base):
         super().setUp()
         self.owner = User.objects.create_user("owner")
         Profile.objects.create(user=self.owner, email=RECOVERY)
-        self.shop = register("Bar", owner=self.owner, lightning_address=ADDRESS, lightning_checked_address=ADDRESS,
-                             phone="+39 000 111", telegram_chat="@barchat")
+        self.shop = register(
+            "Bar",
+            owner=self.owner,
+            lightning_address=ADDRESS,
+            lightning_checked_address=ADDRESS,
+            phone="+39 000 111",
+            telegram_chat="@barchat",
+        )
         self.request = HelpRequest.objects.create(
-            shop=self.shop, symptom="pay", note=f"write to {RECOVERY} or pay {ADDRESS}", channel="email",
+            shop=self.shop,
+            symptom="pay",
+            note=f"write to {RECOVERY} or pay {ADDRESS}",
+            channel="email",
             summary=f"✗ [lightning_no_answer] Your Lightning wallet is not answering.\n    {ADDRESS}; 1.0 s\n"
-                    "✓ [owner_recovery_email] ok\n    signs in with: email link; recovery email o***@m***.example")
+            "✓ [owner_recovery_email] ok\n    signs in with: email link; recovery email o***@m***.example",
+        )
 
     def moderator(self, name="Mara", browser=None):
         """A moderator's key and a browser signed in with it."""
@@ -100,8 +116,10 @@ class Off(AreaBase):
             page = boss.get(reverse("admin:team_teamkey_change", args=[key.pk])).content.decode()
             self.assertNotIn("teamaction", page)
         self.assertIn("teamaction", boss.get("/admin/").content.decode())
-        self.assertIn(reverse("admin:team_teamaction_changelist"),
-                      boss.get(reverse("admin:team_teamkey_change", args=[key.pk])).content.decode())
+        self.assertIn(
+            reverse("admin:team_teamaction_changelist"),
+            boss.get(reverse("admin:team_teamkey_change", args=[key.pk])).content.decode(),
+        )
 
 
 class WhoGetsIn(AreaBase):
@@ -226,6 +244,7 @@ class SignInOnAnOpenSite(AreaBase):
         self.assertIsNotNone(key.last_pass)
         # The team hears of it, in words for an open site
         from django.core import mail
+
         self.assertIn("signed in with their wallet in a new browser", mail.outbox[-1].body)
 
     def test_a_wallet_that_is_no_team_key_gets_nothing(self):
@@ -251,6 +270,7 @@ class SignInOnAnOpenSite(AreaBase):
         reset = __import__("shops.tests", fromlist=["reset_limits"]).reset_limits
         reset()
         from .models import TeamChallenge
+
         before = TeamChallenge.objects.count()
         self.client.get("/team/")
         self.assertEqual(TeamChallenge.objects.count(), before)
@@ -271,7 +291,9 @@ class SignInOnAnOpenSite(AreaBase):
         self.assertEqual(page.status_code, 200)
         self.assertContains(page, 'data-done="/team/"')
         with override_settings(TEAM_AREA=False):
-            self.assertEqual(boss.post(reverse("admin:team_teaminvite_add"), {"name": "Eve", "role": "team"}).status_code, 403)
+            self.assertEqual(
+                boss.post(reverse("admin:team_teaminvite_add"), {"name": "Eve", "role": "team"}).status_code, 403
+            )
 
 
 class HelpRequests(AreaBase):
@@ -346,8 +368,12 @@ class HelpRequests(AreaBase):
         # With the token of the page it works
         page = strict.get("/team/help/").content.decode()
         token = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', page)[1]
-        self.assertEqual(strict.post(reverse("team_help_solved", args=[self.request.pk]),
-                                     {"csrfmiddlewaretoken": token}).status_code, 302)
+        self.assertEqual(
+            strict.post(
+                reverse("team_help_solved", args=[self.request.pk]), {"csrfmiddlewaretoken": token}
+            ).status_code,
+            302,
+        )
         self.assertEqual(TeamAction.objects.count(), 1)
 
     def test_limits(self):
@@ -379,12 +405,17 @@ class TheLog(AreaBase):
         change = reverse("admin:team_teamaction_change", args=[row.pk])
         self.assertEqual(boss.get(change).status_code, 200)
         self.assertEqual(boss.post(change, {"name": "Eve", "action": "solved"}).status_code, 403)
-        self.assertEqual(boss.post(reverse("admin:team_teamaction_delete", args=[row.pk]), {"post": "yes"}).status_code, 403)
-        self.assertEqual(boss.post(changelist, {"action": "delete_selected", "_selected_action": [row.pk]}).status_code, 200)
+        self.assertEqual(
+            boss.post(reverse("admin:team_teamaction_delete", args=[row.pk]), {"post": "yes"}).status_code, 403
+        )
+        self.assertEqual(
+            boss.post(changelist, {"action": "delete_selected", "_selected_action": [row.pk]}).status_code, 200
+        )
         self.assertTrue(TeamAction.objects.filter(pk=row.pk).exists())
         # The key's page links to its rows
-        self.assertContains(boss.get(reverse("admin:team_teamkey_change", args=[key.pk])),
-                            f"{changelist}?key__id__exact={key.pk}")
+        self.assertContains(
+            boss.get(reverse("admin:team_teamkey_change", args=[key.pk])), f"{changelist}?key__id__exact={key.pk}"
+        )
         key.delete()
         row.refresh_from_db()
         self.assertIsNone(row.key)
@@ -439,13 +470,37 @@ class TheDaysList(AreaBase):
         self.assertNotIn("shops.change_shop", area.RIGHTS)
 
     def test_links_into_the_admin_are_left_out(self):
-        for url in ("/admin/", "/admin", "/admin/shops/shop/1/change/", "https://example.org/admin/x", "//admin/",
-                    "/./admin/", "/ADMIN/", "/Admin/today/", "///admin//", "/en/../admin/", "/%61dmin/", "/admin?x=1",
-                    "HTTPS://example.org//Admin/", "/x\\..\\admin/", "https://example.org\\admin/",
-                    "https://example.org/x\\..\\admin/", "//example.org/admin/", "\\admin\\", "/%5cadmin/"):
+        for url in (
+            "/admin/",
+            "/admin",
+            "/admin/shops/shop/1/change/",
+            "https://example.org/admin/x",
+            "//admin/",
+            "/./admin/",
+            "/ADMIN/",
+            "/Admin/today/",
+            "///admin//",
+            "/en/../admin/",
+            "/%61dmin/",
+            "/admin?x=1",
+            "HTTPS://example.org//Admin/",
+            "/x\\..\\admin/",
+            "https://example.org\\admin/",
+            "https://example.org/x\\..\\admin/",
+            "//example.org/admin/",
+            "\\admin\\",
+            "/%5cadmin/",
+        ):
             self.assertTrue(area.into_admin(url), url)
-        for url in ("/en/shops/", "https://example.org/en/map/", "/administration-guide/", "/en/admin/", "/team/today/",
-                    "//example.org/en/shops/", "/x\\y/"):
+        for url in (
+            "/en/shops/",
+            "https://example.org/en/map/",
+            "/administration-guide/",
+            "/en/admin/",
+            "/team/today/",
+            "//example.org/en/shops/",
+            "/x\\y/",
+        ):
             self.assertFalse(area.into_admin(url), url)
 
     def test_the_page_speaks_the_visitors_language(self):
@@ -458,8 +513,11 @@ class TheDaysList(AreaBase):
     def test_addresses_are_shortened(self):
         self.assertEqual(area.shortened(f"pay {ADDRESS}; then"), "pay me…@wallet.example; then")
         # The URL forms of a Lightning address (LUD-16, LUD-17)
-        for form in ("https://wallet.example/.well-known/lnurlp/merchant", "lnurlp://wallet.example/.well-known/lnurlp/merchant",
-                     "HTTP://wallet.example/.well-known/lnurlp/merchant?amount=1"):
+        for form in (
+            "https://wallet.example/.well-known/lnurlp/merchant",
+            "lnurlp://wallet.example/.well-known/lnurlp/merchant",
+            "HTTP://wallet.example/.well-known/lnurlp/merchant?amount=1",
+        ):
             cut = area.shortened(f"see {form} now")
             self.assertNotIn("merchant", cut, form)
             self.assertIn("/.well-known/lnurlp/me…", cut, form)
@@ -472,13 +530,22 @@ class Preflight(AreaBase):
         self.member("Mara", role="moderator")
         self.member("Tom", role="team")
         notes = preflight.team_notes()
-        self.assertIn("the volunteers' area is on (TEAM_AREA=on): 1 moderator keys can open it, 0 of them may approve new shops (/team/)", notes)
+        self.assertIn(
+            "the volunteers' area is on (TEAM_AREA=on): 1 moderator keys can open it, 0 of them may approve new shops (/team/)",
+            notes,
+        )
         with override_settings(SITE_MODE="production"):
             self.assertIn("it only signs the volunteers in to their area (/team/)", " ".join(preflight.team_notes()))
         with override_settings(TEAM_ACCESS=False):
-            self.assertEqual(preflight.team_notes(), [
-                ("the volunteers' area is on (TEAM_AREA=on) but team access is off: it does nothing until TEAM_ACCESS=on "
-                "(docs/features/team-access.md)")])
+            self.assertEqual(
+                preflight.team_notes(),
+                [
+                    (
+                        "the volunteers' area is on (TEAM_AREA=on) but team access is off: it does nothing until TEAM_ACCESS=on "
+                        "(docs/features/team-access.md)"
+                    )
+                ],
+            )
         with override_settings(TEAM_AREA=False):
             self.assertNotIn("volunteers", " ".join(preflight.team_notes()))
 
@@ -569,31 +636,55 @@ class TheDiagnosisCopy(AreaBase):
             self.assertEqual(area.diagnosis_for_area("! [a_code_nobody_knows] New.\n    detail", choice), "")
 
     def test_the_owners_account_is_left_out(self):
-        summary = "\n".join([
-            "✗ [lightning_no_answer] Your Lightning wallet is not answering.", f"    {ADDRESS}; 1.0 s",
-            "! [owner_is_staff] This shop belongs to a staff account.",
-            "    signs in with: wallet key 02abcdef…; last login 2026-11-01 10:00 UTC; staff account",
-            "✓ [owner_recovery_email] You can sign in with a link.",
-            "    signs in with: wallet key 02abcdef…, 2 connected wallet(s); last login 2026-11-01 10:00 UTC; recovery email o***@m***.example",
-            "! [owner_no_recovery_email] There is no email to get back in.", "    signs in with: email link; never logged in",
-            "✗ [account_changed] The administration changed your account.",
-            "    1 change(s): 2026-11-02 09:00 UTC username via admin by bossname; told: email",
-            "! [account_changed_other] Something changed on another account.", "    1 change(s): by otherboss",
-            "! [a_code_nobody_knows] Something new.", "    secret detail",
-            "✓ [shop_visible] Your shop is on the map.", "    id=1",
-        ])
+        summary = "\n".join(
+            [
+                "✗ [lightning_no_answer] Your Lightning wallet is not answering.",
+                f"    {ADDRESS}; 1.0 s",
+                "! [owner_is_staff] This shop belongs to a staff account.",
+                "    signs in with: wallet key 02abcdef…; last login 2026-11-01 10:00 UTC; staff account",
+                "✓ [owner_recovery_email] You can sign in with a link.",
+                "    signs in with: wallet key 02abcdef…, 2 connected wallet(s); last login 2026-11-01 10:00 UTC; recovery email o***@m***.example",
+                "! [owner_no_recovery_email] There is no email to get back in.",
+                "    signs in with: email link; never logged in",
+                "✗ [account_changed] The administration changed your account.",
+                "    1 change(s): 2026-11-02 09:00 UTC username via admin by bossname; told: email",
+                "! [account_changed_other] Something changed on another account.",
+                "    1 change(s): by otherboss",
+                "! [a_code_nobody_knows] Something new.",
+                "    secret detail",
+                "✓ [shop_visible] Your shop is on the map.",
+                "    id=1",
+            ]
+        )
         HelpRequest.objects.filter(pk=self.request.pk).update(summary=summary)
         _key, browser = self.moderator()
         page = browser.get("/team/help/").content.decode()
-        for gone_text in ("02abcdef", "last login", "o***@", "staff account", "never logged in",
-                          "secret detail", "a_code_nobody_knows", ADDRESS):
+        for gone_text in (
+            "02abcdef",
+            "last login",
+            "o***@",
+            "staff account",
+            "never logged in",
+            "secret detail",
+            "a_code_nobody_knows",
+            ADDRESS,
+        ):
             self.assertNotIn(gone_text, page)
-        for kept in ("lightning_no_answer", "me…@wallet.example; 1.0 s", "shop_visible", "id=1",
-                     # The changes to the accounts are what the area's register page shows: kept, with who did them
-                     "account_changed", "bossname", "otherboss"):
+        for kept in (
+            "lightning_no_answer",
+            "me…@wallet.example; 1.0 s",
+            "shop_visible",
+            "id=1",
+            # The changes to the accounts are what the area's register page shows: kept, with who did them
+            "account_changed",
+            "bossname",
+            "otherboss",
+        ):
             self.assertIn(kept, page)
-        self.assertEqual(area.diagnosis_for_area("(the diagnosis could not be made: TimeoutError)"),
-                         "(the diagnosis could not be made: TimeoutError)")
+        self.assertEqual(
+            area.diagnosis_for_area("(the diagnosis could not be made: TimeoutError)"),
+            "(the diagnosis could not be made: TimeoutError)",
+        )
 
     def test_who_solved_it_from_the_admin_is_not_named(self):
         HelpRequest.objects.filter(pk=self.request.pk).update(resolved=timezone.now(), resolved_by="bossname")

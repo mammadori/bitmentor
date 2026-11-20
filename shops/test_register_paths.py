@@ -2,6 +2,7 @@
 test_register_flow.py do not walk: Cancel, the Lightning address pinned on the phone, the price sources, the sales left
 waiting, the merchant's own word, the day closing and the files of the history. Each test runs the whole register in
 node with its own steps (`script`, the body of an async function inside the harness)."""
+
 import json
 import subprocess
 import time
@@ -32,12 +33,18 @@ const submit = (id) => Promise.all((listeners[`${id}:submit`] || []).map((fn) =>
 
 class Paths(RegisterRun):
     def steps(self, script, storage=None, dataset=OWNER, **extra):
-        return self.run_register(dataset, {**SETTINGS, **(storage or {})}, script=SELL + script, **{"discount": 0, **extra})
+        return self.run_register(
+            dataset, {**SETTINGS, **(storage or {})}, script=SELL + script, **{"discount": 0, **extra}
+        )
 
     def lightning(self, script, verify=None, no_verify=False, storage=None, sats=10000, **extra):
         pr, payment_hash = invoice(sats)
-        return self.steps(script, storage, ln={"invoices": [pr], "verify": {0: {**(verify or UNPAID), "pr": pr}},
-                                             "noVerify": no_verify}, **extra)
+        return self.steps(
+            script,
+            storage,
+            ln={"invoices": [pr], "verify": {0: {**(verify or UNPAID), "pr": pr}}, "noVerify": no_verify},
+            **extra,
+        )
 
 
 class Cancel(Paths):
@@ -50,10 +57,13 @@ class Cancel(Paths):
         self.assertEqual(len(out["confirmed"]), 1)
 
     def test_cancel_not_confirmed_leaves_the_sale_waiting(self):
-        out = self.lightning("""
+        out = self.lightning(
+            """
           await sell("1000");
           await click("cancel");
-          return ledger();""", confirm=False)
+          return ledger();""",
+            confirm=False,
+        )
         self.assertEqual([sale["status"] for sale in out], ["pending"])
 
     def test_escape_on_a_payment_asks_and_then_cancels_as_the_button(self):
@@ -66,11 +76,14 @@ class Cancel(Paths):
         self.assertEqual(len(out["confirmed"]), 1)
 
     def test_escape_not_confirmed_leaves_the_sale_waiting(self):
-        out = self.lightning("""
+        out = self.lightning(
+            """
           await sell("1000");
           key("Escape");
           await wait(50);
-          return { ledger: ledger(), confirmed };""", confirm=False)
+          return { ledger: ledger(), confirmed };""",
+            confirm=False,
+        )
         self.assertEqual([sale["status"] for sale in out["ledger"]], ["pending"])
         self.assertEqual(len(out["confirmed"]), 1)
 
@@ -95,29 +108,42 @@ class Cancel(Paths):
     def test_cancel_of_an_on_chain_sale_seen_in_the_mempool_leaves_it_to_its_confirmation(self):
         from .test_register_chain import BIP84_ACCOUNT
 
-        storage = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "onchain": {"key": BIP84_ACCOUNT},
-                                                           "currency": "EUR", "sources": ["kraken", "coinbase"]})}
-        out = self.steps("""
+        storage = {
+            "register-settings:shop-1": json.dumps(
+                {
+                    "lightning": ADDRESS,
+                    "onchain": {"key": BIP84_ACCOUNT},
+                    "currency": "EUR",
+                    "sources": ["kraken", "coinbase"],
+                }
+            )
+        }
+        out = self.steps(
+            """
           const sale = await sell("1000", "onchain");
           await until(() => element("to").textContent, 5000);
           const address = ledger().at(-1).address;
           chainAnswer = (asked) => (asked === address ? [{ txid: "b".repeat(64), status: { confirmed: false },
             vout: [{ scriptpubkey_address: asked, value: ledger().at(-1).sats }] }] : []);
           await click("cancel");
-          return ledger();""", storage)
+          return ledger();""",
+            storage,
+        )
         self.assertEqual([sale["status"] for sale in out], ["seen"])
 
 
 class Pinned(Paths):
     def test_a_changed_lightning_address_blocks_until_the_owner_takes_it(self):
         storage = {"register-settings:shop-1": json.dumps({"lightning": "old@ln.example.org"})}
-        out = self.lightning("""
+        out = self.lightning(
+            """
           const blocked = element("blocked-text").textContent;
           const refused = await sell("1000");
           await click("pin-ok");
           const sale = await sell("1000");
           return { blocked, refused: refused || null, sale, saved: JSON.parse(kept.get("register-settings:shop-1")) };""",
-                             storage=storage)
+            storage=storage,
+        )
         self.assertIn("old@ln.example.org", out["blocked"])
         self.assertIn(ADDRESS, out["blocked"])
         self.assertIsNone(out["refused"])
@@ -127,16 +153,21 @@ class Pinned(Paths):
 
 class Prices(Paths):
     def test_two_sources_that_disagree_let_the_merchant_choose(self):
-        out = self.lightning("""
+        out = self.lightning(
+            """
           await sell("1000");
           const question = element("question").textContent;
           const choices = element("q:#rate .choices").children;
           await choices[1].on.click();
           await until(() => ledger().length, 1000);
           return { question, choices: choices.map((item) => item.textContent), sale: ledger()[0], error: element("error").textContent };""",
-                             rates={"kraken": {"result": {"X": {"c": ["100000"]}}},
-                                    "coinbase": {"data": {"currency": "EUR", "amount": "125000"}}},
-                             sources=["kraken", "coinbase"], sats=8000)
+            rates={
+                "kraken": {"result": {"X": {"c": ["100000"]}}},
+                "coinbase": {"data": {"currency": "EUR", "amount": "125000"}},
+            },
+            sources=["kraken", "coinbase"],
+            sats=8000,
+        )
         self.assertIn("The two sources do not agree", out["question"], out)
         self.assertIn("sale", out, out)
         self.assertEqual(len(out["choices"]), 2)
@@ -145,30 +176,47 @@ class Prices(Paths):
 
     def test_each_source_is_read_its_own_way(self):
         """Four sources that all disagree: each one's price, read with its own parser, is put before the merchant."""
-        out = self.lightning("""
+        out = self.lightning(
+            """
           await sell("1000");
           return { question: element("question").textContent, ledger: ledger() };""",
-                             rates={"bitstamp": {"last": "101000"}, "mempool.space/api/v1/prices": {"EUR": 111000},
-                                    "coingecko": {"bitcoin": {"eur": 121000}}, "blockchain.info": {"EUR": {"last": 131000}}},
-                             sources=["bitstamp", "mempool", "coingecko", "blockchain"])
+            rates={
+                "bitstamp": {"last": "101000"},
+                "mempool.space/api/v1/prices": {"EUR": 111000},
+                "coingecko": {"bitcoin": {"eur": 121000}},
+                "blockchain.info": {"EUR": {"last": 131000}},
+            },
+            sources=["bitstamp", "mempool", "coingecko", "blockchain"],
+        )
         self.assertIn("The sources do not agree", out["question"])
-        for name, price in (("Bitstamp", "101"), ("mempool.space", "111"), ("CoinGecko", "121"), ("blockchain.info", "131")):
+        for name, price in (
+            ("Bitstamp", "101"),
+            ("mempool.space", "111"),
+            ("CoinGecko", "121"),
+            ("blockchain.info", "131"),
+        ):
             self.assertRegex(out["question"], rf"{price}[,.]000\.00 \({name}\)")
         self.assertEqual(out["ledger"], [])
 
     def test_sources_that_agree_charge_at_once_with_their_middle(self):
-        out = self.lightning("""
+        out = self.lightning(
+            """
           return (await sell("1000")) || { question: element("question").textContent, error: element("error").textContent, asked };""",
-                             rates={"bitstamp": {"last": "100000"}, "coingecko": {"bitcoin": {"eur": 100500}}},
-                             sources=["bitstamp", "coingecko"], sats=9975)
+            rates={"bitstamp": {"last": "100000"}, "coingecko": {"bitcoin": {"eur": 100500}}},
+            sources=["bitstamp", "coingecko"],
+            sats=9975,
+        )
         self.assertEqual((out.get("how"), out.get("rate")), ("agreed", 100250), out)
         self.assertEqual([item["source"] for item in out["sources"]], ["bitstamp", "coingecko"])
 
     def test_a_single_source_is_only_offered(self):
-        out = self.lightning("""
+        out = self.lightning(
+            """
           await sell("1000");
           return { question: element("question").textContent, ledger: ledger() };""",
-                             rates={"coinbase": None}, sources=["kraken", "coinbase"])
+            rates={"coinbase": None},
+            sources=["kraken", "coinbase"],
+        )
         self.assertIn("Only one source answers", out["question"])
         self.assertEqual(out["ledger"], [])
 
@@ -177,10 +225,20 @@ class Prices(Paths):
         script = """
           await sell("1000");
           return { question: element("question").textContent, buttons: (element("q:#rate .choices").children || []).length };"""
-        for minutes, said, buttons in ((10, "The last good rate is", 1), (200, "the last good rate is too old", 0),
-                                       (None, "the register cannot calculate", 0)):
-            storage = {} if minutes is None else {"register-rate:EUR": json.dumps(
-                {"price": 90000, "at": time.time() * 1000 - minutes * 60000, "sources": []})}
+        for minutes, said, buttons in (
+            (10, "The last good rate is", 1),
+            (200, "the last good rate is too old", 0),
+            (None, "the register cannot calculate", 0),
+        ):
+            storage = (
+                {}
+                if minutes is None
+                else {
+                    "register-rate:EUR": json.dumps(
+                        {"price": 90000, "at": time.time() * 1000 - minutes * 60000, "sources": []}
+                    )
+                }
+            )
             with self.subTest(minutes):
                 out = self.lightning(script, storage=storage, rates=rates, sources=["kraken", "coinbase"])
                 self.assertIn(said, out["question"])
@@ -192,8 +250,16 @@ class Waiting(Paths):
         """The page closed during a sale: at the next opening each Lightning sale left waiting is looked at again."""
         now = time.time() * 1000
         pr, payment_hash = invoice(10000)
-        sale = {"cents": 1000, "currency": "EUR", "status": "pending", "sats": 10000, "pr": pr, "hash": payment_hash,
-                "method": "lightning", "till": "shop-1"}
+        sale = {
+            "cents": 1000,
+            "currency": "EUR",
+            "status": "pending",
+            "sats": 10000,
+            "pr": pr,
+            "hash": payment_hash,
+            "method": "lightning",
+            "till": "shop-1",
+        }
         verify = lambda at: f"https://ln.example.org/verify/{at}"  # noqa: E731
         sales = [
             {**sale, "id": "no verify, over", "at": now - 900000, "expires": now - 1000},
@@ -202,20 +268,36 @@ class Waiting(Paths):
             {**sale, "id": "unpaid, over", "at": now - 900000, "expires": now - 1000, "verify": verify(1)},
             {**sale, "id": "no answer, over", "at": now - 900000, "expires": now - 1000, "verify": verify(2)},
         ]
-        out = self.run_register(OWNER, {**SETTINGS, "register-ledger:shop-1": json.dumps(sales)}, discount=0,
-                                ln={"invoices": [pr] * 3, "verify": {0: {**PAID, "pr": pr}, 1: {**UNPAID, "pr": pr},
-                                                                     2: {"status": "ERROR", "reason": "down"}}},
-                                script="await wait(200); return ledger();")
-        self.assertEqual({entry["id"]: entry["status"] for entry in out}, {
-            "no verify, over": "unchecked", "no verify, still on": "pending", "paid": "paid", "unpaid, over": "expired",
-            "no answer, over": "unchecked"})
+        out = self.run_register(
+            OWNER,
+            {**SETTINGS, "register-ledger:shop-1": json.dumps(sales)},
+            discount=0,
+            ln={
+                "invoices": [pr] * 3,
+                "verify": {0: {**PAID, "pr": pr}, 1: {**UNPAID, "pr": pr}, 2: {"status": "ERROR", "reason": "down"}},
+            },
+            script="await wait(200); return ledger();",
+        )
+        self.assertEqual(
+            {entry["id"]: entry["status"] for entry in out},
+            {
+                "no verify, over": "unchecked",
+                "no verify, still on": "pending",
+                "paid": "paid",
+                "unpaid, over": "expired",
+                "no answer, over": "unchecked",
+            },
+        )
 
     def test_without_verify_the_merchant_says_it_is_paid(self):
-        out = self.lightning("""
+        out = self.lightning(
+            """
           await sell("1000");
           const shown = !element("seen").hidden;
           await click("seen");
-          return { shown, ledger: ledger(), result: element("result").textContent };""", no_verify=True)
+          return { shown, ledger: ledger(), result: element("result").textContent };""",
+            no_verify=True,
+        )
         self.assertTrue(out["shown"])
         self.assertEqual([sale["status"] for sale in out["ledger"]], ["confirmed"])
         self.assertTrue(out["result"])
@@ -279,8 +361,9 @@ process.stdout.write(JSON.stringify({ off, on, read: [registerPairing.decode(off
   registerPairing.decode(on, sources).discountRemovable],
   round: [registerPairing.decode(off, sources).discountRound, whole.discountRound, whole.discountRemovable] }));
 """ % (REGISTER, ADDRESS)
-        made = subprocess.run([self.node, "-e", script, str(STATIC / "register-pairing.js")], capture_output=True,
-                              text=True, timeout=60)
+        made = subprocess.run(
+            [self.node, "-e", script, str(STATIC / "register-pairing.js")], capture_output=True, text=True, timeout=60
+        )
         self.assertEqual(made.returncode, 0, made.stderr)
         codes = json.loads(made.stdout)
         self.assertEqual(codes["read"], [False, True])
@@ -288,9 +371,13 @@ process.stdout.write(JSON.stringify({ off, on, read: [registerPairing.decode(off
         ledger = f"shop-1:{REGISTER}"
         dataset = {"ledger": ledger, "shop": "shop-1", "staff": REGISTER, "tillName": "Anna"}
         for code, removable in ((codes["off"], False), (codes["on"], True)):
-            out = self.lightning(self.TAP, storage={f"register-pairing:{ledger}": json.dumps({"code": code, "at": 1})},
-                                 dataset=dataset, chain_claim={"url": "/c/", "key": "k" * 40},
-                                 sats=10000 if removable else 9000)
+            out = self.lightning(
+                self.TAP,
+                storage={f"register-pairing:{ledger}": json.dumps({"code": code, "at": 1})},
+                dataset=dataset,
+                chain_claim={"url": "/c/", "key": "k" * 40},
+                sats=10000 if removable else 9000,
+            )
             self.assertEqual(out["button"], removable)
             self.assertEqual(out["fixed"] is None, removable)
             self.assertEqual(out["sale"]["cents"], 1000 if removable else 900)
@@ -299,24 +386,43 @@ process.stdout.write(JSON.stringify({ off, on, read: [registerPairing.decode(off
 class History(Paths):
     def sold(self):
         now = time.time() * 1000
-        return {"register-ledger:shop-1": json.dumps([
-            {"id": "one", "at": now, "cents": 1250, "label": "12.50 EUR", "currency": "EUR", "status": "paid",
-             "sats": 12500, "method": "lightning", "till": "shop-1"}])}
+        return {
+            "register-ledger:shop-1": json.dumps(
+                [
+                    {
+                        "id": "one",
+                        "at": now,
+                        "cents": 1250,
+                        "label": "12.50 EUR",
+                        "currency": "EUR",
+                        "status": "paid",
+                        "sats": 12500,
+                        "method": "lightning",
+                        "till": "shop-1",
+                    }
+                ]
+            )
+        }
 
     def test_the_day_closing_is_kept_and_said(self):
-        out = self.steps("""
+        out = self.steps(
+            """
           const day = registerBook.businessDay(Date.now());
           element("day").value = day;
           await click("close-day");
           return { day, closings: JSON.parse(kept.get("register-closings:shop-1")), say: element("history-say").textContent };""",
-                       self.sold())
+            self.sold(),
+        )
         self.assertIn(out["day"], out["closings"])
         self.assertTrue(out["say"].startswith("Closed at"), out["say"])
 
     def test_the_csv_has_the_sales_of_the_month(self):
-        out = self.steps("""
+        out = self.steps(
+            """
           await submit("csv-form");
-          return await downloaded();""", self.sold())
+          return await downloaded();""",
+            self.sold(),
+        )
         self.assertEqual(len(out), 1)
         self.assertTrue(out[0]["name"].endswith("-all.csv"), out[0]["name"])
         self.assertIn("12.50", out[0]["text"])
@@ -326,7 +432,8 @@ class History(Paths):
         self.assertEqual(lines[0].count(","), lines[1].count(","))
 
     def test_the_copy_is_refused_with_a_short_or_mismatched_passphrase_and_comes_back_only_with_its_own(self):
-        out = self.steps("""
+        out = self.steps(
+            """
           const said = [];
           for (const [pass, again] of [["short", "short"], ["a passphrase ok", "another one"], ["a passphrase ok", "a passphrase ok"]]) {
             element("export-pass").value = pass;
@@ -343,25 +450,39 @@ class History(Paths):
             await submit("import-form");
             tries.push(element("history-say").textContent);
           }
-          return { said, files, tries, ledger: ledger() };""", self.sold())
+          return { said, files, tries, ledger: ledger() };""",
+            self.sold(),
+        )
         self.assertIn("at least", out["said"][0])
         self.assertEqual(out["said"][1], "The two passphrases are different.")
         self.assertTrue(out["said"][2].startswith("Copy downloaded."), out["said"][2])
         self.assertEqual(len(out["files"]), 1)
         self.assertTrue(out["files"][0]["name"].endswith(".json"))
         self.assertNotIn("12.50", out["files"][0]["text"])
-        self.assertEqual(out["tries"], ["Wrong passphrase, or a damaged file.", "This file is not a copy of a register.",
-                                        "This file is not a copy of a register."])
+        self.assertEqual(
+            out["tries"],
+            [
+                "Wrong passphrase, or a damaged file.",
+                "This file is not a copy of a register.",
+                "This file is not a copy of a register.",
+            ],
+        )
         self.assertEqual([sale["id"] for sale in out["ledger"]], ["one"])
 
 
 class Rate(Paths):
     def test_a_third_source_settles_two_that_disagree_and_every_answer_keeps_its_moment(self):
-        out = self.lightning("""
+        out = self.lightning(
+            """
           return { sale: await sell("1000"), asked: asked.filter((url) => !url.includes("ln.example.org")) };""",
-                             rates={"kraken": {"result": {"X": {"c": ["100000"]}}},
-                                    "coinbase": {"data": {"currency": "EUR", "amount": "125000"}}, "bitstamp": {"last": "100100"}},
-                             sources=["kraken", "coinbase", "bitstamp"], sats=9995)
+            rates={
+                "kraken": {"result": {"X": {"c": ["100000"]}}},
+                "coinbase": {"data": {"currency": "EUR", "amount": "125000"}},
+                "bitstamp": {"last": "100100"},
+            },
+            sources=["kraken", "coinbase", "bitstamp"],
+            sats=9995,
+        )
         sale = out["sale"]
         self.assertEqual((sale["how"], sale["rate"]), ("agreed", 100050))
         self.assertEqual([item["source"] for item in sale["sources"]], ["kraken", "bitstamp"])
@@ -387,20 +508,37 @@ class OneLookAtATime(Paths):
 
     def test_a_long_history_is_kept_whole(self):
         now = time.time() * 1000
-        old = [{"id": f"s{n}", "at": now - 86400000 - n, "cents": 100, "currency": "EUR", "status": "paid", "sats": 1000,
-                "method": "lightning", "till": "shop-1"} for n in range(3000)]
-        out = self.lightning("""
+        old = [
+            {
+                "id": f"s{n}",
+                "at": now - 86400000 - n,
+                "cents": 100,
+                "currency": "EUR",
+                "status": "paid",
+                "sats": 1000,
+                "method": "lightning",
+                "till": "shop-1",
+            }
+            for n in range(3000)
+        ]
+        out = self.lightning(
+            """
           await sell("1000");
           await click("cancel");
-          return ledger().length;""", storage={"register-ledger:shop-1": json.dumps(old)})
+          return ledger().length;""",
+            storage={"register-ledger:shop-1": json.dumps(old)},
+        )
         self.assertEqual(out, 3001)
 
 
 class Retired(Paths):
     def test_a_register_turned_off_takes_no_sale(self):
-        out = self.lightning("""
+        out = self.lightning(
+            """
           await sell("1000");
-          return { ledger: ledger(), asked };""", retired=True)
+          return { ledger: ledger(), asked };""",
+            retired=True,
+        )
         self.assertEqual(out["ledger"], [])
         self.assertFalse([url for url in out["asked"] if "ln.example.org" in url])
 
@@ -414,7 +552,9 @@ class KeepTheData(Paths):
           return { first, before, after: persistAsked, hidden: element("keep-first").hidden,
             warned: kept.get("register-warned:shop-1") };"""
         out = self.steps(script, persisted=False)
-        self.assertEqual((out["first"], out["before"], out["after"], out["hidden"], out["warned"]), (True, 0, 1, True, "true"))
+        self.assertEqual(
+            (out["first"], out["before"], out["after"], out["hidden"], out["warned"]), (True, 0, 1, True, "true")
+        )
         self.assertFalse(self.steps(script, {"register-warned:shop-1": "true"})["first"])
 
     def test_every_reminder_choice_of_the_page_is_kept(self):
@@ -433,28 +573,45 @@ class StaffPairing(Paths):
     while the shop's Lightning address is the one in the code."""
 
     def code(self, register, lightning=ADDRESS):
-        script = ('const fs = require("fs"); eval(fs.readFileSync(process.argv[1], "utf8"));'
-                  f'process.stdout.write(registerPairing.encode({{ register: {json.dumps(register)}, '
-                  f'lightning: {json.dumps(lightning)}, confirmAbove: 0, discount: 0, currency: "EUR", '
-                  'sources: ["kraken", "coinbase"], shop: { name: "Bar", town: "Example" } }, ["kraken", "coinbase", "bitstamp"]));')
-        return subprocess.run([self.node, "-e", script, str(STATIC / "register-pairing.js")], capture_output=True,
-                              text=True, timeout=60, check=True).stdout
+        script = (
+            'const fs = require("fs"); eval(fs.readFileSync(process.argv[1], "utf8"));'
+            f"process.stdout.write(registerPairing.encode({{ register: {json.dumps(register)}, "
+            f'lightning: {json.dumps(lightning)}, confirmAbove: 0, discount: 0, currency: "EUR", '
+            'sources: ["kraken", "coinbase"], shop: { name: "Bar", town: "Example" } }, ["kraken", "coinbase", "bitstamp"]));'
+        )
+        return subprocess.run(
+            [self.node, "-e", script, str(STATIC / "register-pairing.js")],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=True,
+        ).stdout
 
     def open(self, pending):
         dataset = {"ledger": f"shop-1:{REGISTER}", "shop": "shop-1", "staff": REGISTER, "tillName": "Anna"}
-        return self.run_register(dataset, {"register-pairing-pending": json.dumps(pending)}, discount=0, script="""
+        return self.run_register(
+            dataset,
+            {"register-pairing-pending": json.dumps(pending)},
+            discount=0,
+            script="""
           await wait(50);
           return { blocked: element("blocked-text").textContent, paired: Boolean(kept.get(`register-pairing:${given.dataset.ledger}`)),
-            pending: kept.get("register-pairing-pending") ?? null };""")
+            pending: kept.get("register-pairing-pending") ?? null };""",
+        )
 
     def test_only_its_register_only_fresh(self):
         now = time.time() * 1000
         mine = self.code(REGISTER)
         taken = self.open({"register": REGISTER, "at": now, "code": mine})
         self.assertEqual((taken["paired"], taken["blocked"]), (True, ""))
-        for name, pending in (("another register", {"register": "other", "at": now, "code": mine}),
-                              ("too old", {"register": REGISTER, "at": now - 16 * 60000, "code": mine}),
-                              ("the code of another", {"register": REGISTER, "at": now, "code": self.code("0000aaaa-0000-4000-8000-000000000009")})):
+        for name, pending in (
+            ("another register", {"register": "other", "at": now, "code": mine}),
+            ("too old", {"register": REGISTER, "at": now - 16 * 60000, "code": mine}),
+            (
+                "the code of another",
+                {"register": REGISTER, "at": now, "code": self.code("0000aaaa-0000-4000-8000-000000000009")},
+            ),
+        ):
             with self.subTest(name):
                 out = self.open(pending)
                 self.assertFalse(out["paired"])
@@ -463,6 +620,8 @@ class StaffPairing(Paths):
                 self.assertIn(out["pending"], (None, "null"))
 
     def test_a_changed_lightning_address_stops_the_paired_register(self):
-        out = self.open({"register": REGISTER, "at": time.time() * 1000, "code": self.code(REGISTER, "old@ln.example.org")})
+        out = self.open(
+            {"register": REGISTER, "at": time.time() * 1000, "code": self.code(REGISTER, "old@ln.example.org")}
+        )
         self.assertTrue(out["paired"])
         self.assertIn("changed after this register was paired", out["blocked"])

@@ -1,6 +1,7 @@
 """Sign-in to /admin/ with a Lightning wallet (config/admin_wallet.py, ADMIN_WALLET_SIGN_IN): off, the levels, linking,
 the sign-in and its binding to the browser, every refusal, one key one role, the sessions, the commands, the notices,
 the setting, the translations and the script."""
+
 import json
 import os
 import re
@@ -62,10 +63,12 @@ WALLET_LOGIN = "/admin/login/wallet/"
 STATUS = "/admin/login/wallet/status/"
 LINK_STATUS = "/admin/second-factor/wallet/status/"
 CALLBACK = "/lnurl-auth/staff/"
-ON = override_settings(SITE_HOST=HOST, PUBLIC_URL=f"https://{HOST}", ADMIN_SECOND_FACTOR="optional",
-                       ADMIN_WALLET_SIGN_IN=True)
-OFF = override_settings(SITE_HOST=HOST, PUBLIC_URL=f"https://{HOST}", ADMIN_SECOND_FACTOR="optional",
-                        ADMIN_WALLET_SIGN_IN=False)
+ON = override_settings(
+    SITE_HOST=HOST, PUBLIC_URL=f"https://{HOST}", ADMIN_SECOND_FACTOR="optional", ADMIN_WALLET_SIGN_IN=True
+)
+OFF = override_settings(
+    SITE_HOST=HOST, PUBLIC_URL=f"https://{HOST}", ADMIN_SECOND_FACTOR="optional", ADMIN_WALLET_SIGN_IN=False
+)
 REFUSED_LINK = "This wallet cannot be linked here: it already has another use on this site."
 CSRF = re.compile(r'name="csrfmiddlewaretoken" value="[^"]*"')
 
@@ -96,8 +99,9 @@ def signed(k1, key):
 def make_known(client, user):
     """The `admin_device` cookie a right password leaves in the browser (config/urls.py, remember_device)."""
     user = User.objects.get(pk=user.pk)
-    client.cookies[KNOWN_DEVICE_COOKIE] = signing.dumps({"user": user.pk, "auth": user.get_session_auth_hash()},
-                                                        salt=KNOWN_DEVICE_SALT)
+    client.cookies[KNOWN_DEVICE_COOKIE] = signing.dumps(
+        {"user": user.pk, "auth": user.get_session_auth_hash()}, salt=KNOWN_DEVICE_SALT
+    )
 
 
 def phone():
@@ -178,6 +182,7 @@ def without_csrf(response):
 # Off, and the levels where a wallet does not sign in
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 @OFF
 class Off(Base):
     def test_nothing_of_it_exists(self):
@@ -210,8 +215,10 @@ class Off(Base):
                 self.assertEqual(without_csrf(self.client.get(LOGIN)), off, level)
         with override_settings(ADMIN_WALLET_SIGN_IN=True):
             on = without_csrf(self.client.get(LOGIN, {"next": "/admin/auth/"}))
-            link = ('\n<p class="admin-wallet-sign-in"><a href="/admin/login/wallet/?next=%2Fadmin%2Fauth%2F">'
-                    "Sign in with your wallet</a></p>\n")
+            link = (
+                '\n<p class="admin-wallet-sign-in"><a href="/admin/login/wallet/?next=%2Fadmin%2Fauth%2F">'
+                "Sign in with your wallet</a></p>\n"
+            )
             self.assertIn(link, on)
         with override_settings(ADMIN_WALLET_SIGN_IN=False):
             plain = without_csrf(self.client.get(LOGIN, {"next": "/admin/auth/"}))
@@ -237,8 +244,11 @@ class Levels(Base):
                 client = browser()
                 self.password(client)
                 page = client.get(SETUP)
-                self.assertContains(page, f"This site asks for more than one step (ADMIN_SECOND_FACTOR is {level}): "
-                                          "the wallets linked here do not sign in.")
+                self.assertContains(
+                    page,
+                    f"This site asks for more than one step (ADMIN_SECOND_FACTOR is {level}): "
+                    "the wallets linked here do not sign in.",
+                )
                 self.assertContains(page, "phone")
         self.assertTrue(AdminWallet.objects.exists())
 
@@ -269,6 +279,7 @@ class Levels(Base):
 # The sign-in
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 @ON
 class SignIn(Base):
     def test_link_code_signature_admin(self):
@@ -284,13 +295,18 @@ class SignIn(Base):
         self.assertFalse(signed_in(other))
         # The link on the login page, the code, the signature
         login = other.get(LOGIN, {"next": "/admin/auth/user/"})
-        self.assertContains(login, 'href="/admin/login/wallet/?next=%2Fadmin%2Fauth%2Fuser%2F">Sign in with your wallet')
+        self.assertContains(
+            login, 'href="/admin/login/wallet/?next=%2Fadmin%2Fauth%2Fuser%2F">Sign in with your wallet'
+        )
         page = self.wallet_page(other, next="/admin/auth/user/")
         self.assertRegex(page.content.decode(), r"admin-wallet(\.[0-9a-f]+)?\.js")  # with or without its fingerprint
         self.assertContains(page, 'data-status="/admin/login/wallet/status/"')
         self.assertContains(page, f'href="lightning:{page.context["lnurl"]}"')
-        self.assertContains(page, "The first time on a browser, after a change of password, and for an account with a "
-                                  "second factor, sign in with the password.")
+        self.assertContains(
+            page,
+            "The first time on a browser, after a change of password, and for an account with a "
+            "second factor, sign in with the password.",
+        )
         self.assertEqual(other.get(STATUS).json(), {"state": "pending"})
         before = other.session.session_key
         self.assertEqual(self.signs(page.context["lnurl"], key), {"status": "OK"})
@@ -368,8 +384,12 @@ class SignIn(Base):
     def test_where_it_goes_is_checked(self):
         key = wallet()
         self.linked(key)
-        for target, expected in (("https://elsewhere.example/", "/admin/"), ("//elsewhere.example/", "/admin/"),
-                                 ("", "/admin/"), ("/admin/shops/", "/admin/shops/")):
+        for target, expected in (
+            ("https://elsewhere.example/", "/admin/"),
+            ("//elsewhere.example/", "/admin/"),
+            ("", "/admin/"),
+            ("/admin/shops/", "/admin/shops/"),
+        ):
             with self.subTest(target):
                 client = browser()
                 self.assertEqual(self.sign_in(key, client, next=target).json(), {"state": "ok", "next": expected})
@@ -446,10 +466,20 @@ class SignIn(Base):
         good = signed(k1, key)
         tampered = good["sig"][:-2] + ("00" if good["sig"][-2:] != "00" else "01")
         forged = k1[:40] + ("0" if k1[40] != "0" else "1") + k1[41:]
-        for query in ({**good, "k1": "ab" * 32}, {**good, "k1": "zz"}, {**good, "k1": k1.upper()},
-                      signed(forged, key), {**good, "sig": tampered}, {**good, "sig": "zz"}, {**good, "sig": ""},
-                      {**good, "key": pub(wallet())}, {**good, "key": "04" + good["key"][2:]},
-                      {**good, "key": "xyz"}, {"k1": k1}, {}):
+        for query in (
+            {**good, "k1": "ab" * 32},
+            {**good, "k1": "zz"},
+            {**good, "k1": k1.upper()},
+            signed(forged, key),
+            {**good, "sig": tampered},
+            {**good, "sig": "zz"},
+            {**good, "sig": ""},
+            {**good, "key": pub(wallet())},
+            {**good, "key": "04" + good["key"][2:]},
+            {**good, "key": "xyz"},
+            {"k1": k1},
+            {},
+        ):
             with self.subTest(query):
                 answer = phone().get(CALLBACK, query)
                 self.assertEqual(answer.status_code, 200)
@@ -478,15 +508,26 @@ class SignIn(Base):
         turn_on(with_code)
         AdminPasskey.objects.create(user=with_passkey, credential_id="x", public_key=b"", algorithm=webauthn.ES256)
         unknown, of_plain, of_gone, of_code, of_passkey, mine = (wallet() for _ in range(6))
-        for key, user in ((of_plain, plain_user), (of_gone, gone), (of_code, with_code), (of_passkey, with_passkey),
-                          (mine, self.staff)):
+        for key, user in (
+            (of_plain, plain_user),
+            (of_gone, gone),
+            (of_code, with_code),
+            (of_passkey, with_passkey),
+            (mine, self.staff),
+        ):
             self.linked(key, user)
         users, wallets = User.objects.count(), AdminWallet.objects.count()
         answers = []
         # A key nobody linked; of an account not staff, not active, with a code, with a passkey; a browser that is not
         # a known one of the account
-        for key, known in ((unknown, self.staff), (of_plain, plain_user), (of_gone, gone), (of_code, with_code),
-                           (of_passkey, with_passkey), (mine, False)):
+        for key, known in (
+            (unknown, self.staff),
+            (of_plain, plain_user),
+            (of_gone, gone),
+            (of_code, with_code),
+            (of_passkey, with_passkey),
+            (mine, False),
+        ):
             client = browser()
             answer = self.sign_in(key, client, known=known)
             answers.append((answer.status_code, answer.content))
@@ -599,8 +640,11 @@ class Onion(Base):
     def test_only_at_the_sites_own_address(self):
         key = wallet()
         self.linked(key)
-        for client in (Client(HTTP_HOST=HOST, **HTTPS, headers={"x-entrance": "onion"}),
-                       Client(HTTP_HOST="127.0.0.1", **HTTPS), Client(HTTP_HOST=HOST)):
+        for client in (
+            Client(HTTP_HOST=HOST, **HTTPS, headers={"x-entrance": "onion"}),
+            Client(HTTP_HOST="127.0.0.1", **HTTPS),
+            Client(HTTP_HOST=HOST),
+        ):
             with self.subTest(client):
                 page = client.get(WALLET_LOGIN)
                 self.assertContains(page, "The wallet signs in only at https://localhost, not at this address.")
@@ -616,6 +660,7 @@ class Onion(Base):
 # ---------------------------------------------------------------------------------------------------------------------
 # The sessions
 # ---------------------------------------------------------------------------------------------------------------------
+
 
 @ON
 class Sessions(Base):
@@ -643,7 +688,9 @@ class Sessions(Base):
         row = self.linked(key)
         self.assert_signed_in(self.sign_in(key))
         page = self.client.get(SETUP)
-        self.assertContains(page, "This session was opened with a wallet: sign in with the password to manage the wallets.")
+        self.assertContains(
+            page, "This session was opened with a wallet: sign in with the password to manage the wallets."
+        )
         self.assertNotIn("wallet_lnurl", page.context)
         self.assertNotContains(page, 'value="wallet-remove"')
         self.assertEqual(self.client.get(LINK_STATUS).json(), {"state": "expired"})
@@ -666,6 +713,7 @@ class Sessions(Base):
         """Whoever holds the phone for a moment must not add a factor of their own: the session would become that
         factor's, manage the wallets, and leave the owner with the password alone outside."""
         from shops.models import AdminPasskey, AdminSecondFactor
+
         key = wallet()
         self.linked(key)
         self.assert_signed_in(self.sign_in(key))
@@ -701,6 +749,7 @@ class Sessions(Base):
 
     def test_a_made_up_session_cookie_is_counted_too(self):
         from django.contrib.sessions.models import Session
+
         with steady_limits(), patch.object(admin_wallet, "PAGES", (2, 2)):
             for n in range(2):
                 client = browser()
@@ -714,6 +763,7 @@ class Sessions(Base):
 
     def test_the_sign_in_page_makes_few_sessions_per_address(self):
         from django.contrib.sessions.models import Session
+
         with steady_limits(), patch.object(admin_wallet, "PAGES", (2, 2)):
             for _n in range(2):
                 self.assertIn("lnurl", browser().get(WALLET_LOGIN).context)
@@ -726,8 +776,11 @@ class Sessions(Base):
     def test_it_ends_when_the_switch_goes_off_or_the_level_rises(self):
         key = wallet()
         self.linked(key)
-        for change in ({"ADMIN_WALLET_SIGN_IN": False}, {"ADMIN_SECOND_FACTOR": "required"},
-                       {"ADMIN_SECOND_FACTOR": "passkey"}):
+        for change in (
+            {"ADMIN_WALLET_SIGN_IN": False},
+            {"ADMIN_SECOND_FACTOR": "required"},
+            {"ADMIN_SECOND_FACTOR": "passkey"},
+        ):
             with self.subTest(change):
                 client = browser()
                 self.assert_signed_in(self.sign_in(key, client), client)
@@ -801,6 +854,7 @@ class Sessions(Base):
 # Linking, renaming, removing
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 @ON
 class Linking(Base):
     def test_linked_told_and_written(self):
@@ -860,8 +914,9 @@ class Linking(Base):
         self.signs(page.context["wallet_lnurl"], key)
         confirm = self.client.get(SETUP)
         self.assertContains(confirm, "It is not mine: cancel")
-        self.assertContains(confirm, "If your own wallet reported an error, press cancel: someone else's wallet signed "
-                                     "first.")
+        self.assertContains(
+            confirm, "If your own wallet reported an error, press cancel: someone else's wallet signed first."
+        )
         self.client.post(SETUP, {"action": "wallet-cancel"})
         self.client.post(SETUP, {"action": "wallet-link", "name": "x"})
         self.assertFalse(AdminWallet.objects.exists())
@@ -941,8 +996,13 @@ class Linking(Base):
         theirs = self.linked(wallet(), name="secret-name-of-volunteer")
         boss = browser()
         self.password(boss, username="boss")
-        for url in (SETUP, "/admin/", f"/admin/auth/user/{self.staff.pk}/change/",
-                    f"/admin/auth/user/{self.staff.pk}/history/", "/admin/auth/user/"):
+        for url in (
+            SETUP,
+            "/admin/",
+            f"/admin/auth/user/{self.staff.pk}/change/",
+            f"/admin/auth/user/{self.staff.pk}/history/",
+            "/admin/auth/user/",
+        ):
             page = boss.get(url)
             self.assertEqual(page.status_code, 200, url)
             self.assertNotIn("secret-name-of-volunteer", page.content.decode(), url)
@@ -950,8 +1010,7 @@ class Linking(Base):
         for action in ("wallet-remove", "wallet-rename"):
             boss.post(SETUP, {"action": action, "wallet": theirs.pk, "name": "taken"})
         self.assertEqual(AdminWallet.objects.get(pk=theirs.pk).name, "secret-name-of-volunteer")
-        for lookup in ("admin_wallets__linking_key__startswith", "admin_wallets__name",
-                       "admin_wallets__created__gte"):
+        for lookup in ("admin_wallets__linking_key__startswith", "admin_wallets__name", "admin_wallets__created__gte"):
             self.assertEqual(boss.get(f"/admin/auth/user/?{lookup}=a").status_code, 400, lookup)
         # The other account's signature waiting to be linked is not the boss's either
         self.password()
@@ -973,7 +1032,9 @@ class Linking(Base):
             self.password(client)
             client.post("/admin/login/code/", {"code": code(factor)})
         page = client.get(SETUP)
-        self.assertContains(page, "Your account has a second factor: the wallets linked here do not sign in while it is on.")
+        self.assertContains(
+            page, "Your account has a second factor: the wallets linked here do not sign in while it is on."
+        )
         # Linking stays possible
         self.link(wallet(), client)
         self.assertTrue(AdminWallet.objects.exists())
@@ -982,6 +1043,7 @@ class Linking(Base):
 # ---------------------------------------------------------------------------------------------------------------------
 # One key, one role: a staff key on the shops' side and the team's
 # ---------------------------------------------------------------------------------------------------------------------
+
 
 @ON
 class OneKeyOneRole(Base):
@@ -1049,8 +1111,11 @@ class OneKeyOneRole(Base):
 
         self.assertTrue(errors(staff_page))
         self.assertEqual(errors(staff_page), errors(other_page))
-        self.assertContains(staff_page, "This wallet already has an account of its own with a shop or an email, or is "
-                                        "connected to another account: it cannot be connected here.")
+        self.assertContains(
+            staff_page,
+            "This wallet already has an account of its own with a shop or an email, or is "
+            "connected to another account: it cannot be connected here.",
+        )
 
     def test_a_key_linked_to_a_staff_account_while_it_is_connected(self):
         key = wallet()
@@ -1075,13 +1140,16 @@ class OneKeyOneRole(Base):
         self.assertEqual(page.status_code, 200)
         answer = member.get("/team/auth/", signed(k1_of(page.context["lnurl"]), key), headers={"X-Entrance": "site"})
         self.assertEqual(answer.json()["status"], "ERROR")
-        self.assertIn("This wallet cannot join the team here: it already has another use on this site.",
-                      answer.json()["reason"])
+        self.assertIn(
+            "This wallet cannot join the team here: it already has another use on this site.", answer.json()["reason"]
+        )
         self.assertFalse(TeamKey.objects.exists())
         self.assertIsNone(TeamInvite.objects.get().used)
         # The invite is still good for another wallet
         page = member.get(f"/team/join/{token}/")
-        other = member.get("/team/auth/", signed(k1_of(page.context["lnurl"]), wallet()), headers={"X-Entrance": "site"})
+        other = member.get(
+            "/team/auth/", signed(k1_of(page.context["lnurl"]), wallet()), headers={"X-Entrance": "site"}
+        )
         self.assertEqual(other.json()["status"], "OK")
 
     @override_settings(TEAM_ACCESS=True, SITE_MODE="development", DEV_ALLOWED_IPS="")
@@ -1106,6 +1174,7 @@ class OneKeyOneRole(Base):
 # The commands, preflight, the setting, the translations
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 @ON
 class Commands(Base):
     def test_list(self):
@@ -1120,10 +1189,16 @@ class Commands(Base):
         self.assertIn("  volunteer  2", text)
         self.assertIn("  anna  0", text)
         self.assertNotIn(AdminWallet.objects.first().linking_key, text)
-        for change, words in (({"ADMIN_SECOND_FACTOR": "passkey"},
-                               "ADMIN_WALLET_SIGN_IN is on, but ADMIN_SECOND_FACTOR is passkey: no wallet signs in"),
-                              ({"ADMIN_WALLET_SIGN_IN": False},
-                               "ADMIN_WALLET_SIGN_IN is off (ADMIN_SECOND_FACTOR is optional): no wallet signs in")):
+        for change, words in (
+            (
+                {"ADMIN_SECOND_FACTOR": "passkey"},
+                "ADMIN_WALLET_SIGN_IN is on, but ADMIN_SECOND_FACTOR is passkey: no wallet signs in",
+            ),
+            (
+                {"ADMIN_WALLET_SIGN_IN": False},
+                "ADMIN_WALLET_SIGN_IN is off (ADMIN_SECOND_FACTOR is optional): no wallet signs in",
+            ),
+        ):
             out = StringIO()
             with override_settings(**change):
                 call_command("admin_wallet", "list", stdout=out)
@@ -1143,9 +1218,13 @@ class Commands(Base):
             call_command("admin_wallet", "reset", "volunteer", stdout=out)
         self.assertIn("volunteer: 2 wallets removed", out.getvalue())
         self.assertFalse(AdminWallet.objects.exists())
-        self.assertIn("The wallets of the staff account volunteer were removed with manage.py admin_wallet reset.",
-                      self.told_texts()[0])
-        self.assertTrue(LogEntry.objects.filter(change_message="Wallets removed with manage.py admin_wallet reset").exists())
+        self.assertIn(
+            "The wallets of the staff account volunteer were removed with manage.py admin_wallet reset.",
+            self.told_texts()[0],
+        )
+        self.assertTrue(
+            LogEntry.objects.filter(change_message="Wallets removed with manage.py admin_wallet reset").exists()
+        )
         self.assertEqual(self.client.get("/admin/").status_code, 302)
         self.assertRedirects(self.password(browser()), "/admin/", fetch_redirect_response=False)
 
@@ -1161,11 +1240,17 @@ class Commands(Base):
     def test_preflight(self):
         from shops.management.commands.preflight import admin_notes
 
-        self.assertTrue(any("ADMIN_WALLET_SIGN_IN is on: a linked wallet alone opens /admin/" in note
-                            for note in admin_notes()))
+        self.assertTrue(
+            any("ADMIN_WALLET_SIGN_IN is on: a linked wallet alone opens /admin/" in note for note in admin_notes())
+        )
         with override_settings(ADMIN_SECOND_FACTOR="required"):
-            self.assertTrue(any("ADMIN_WALLET_SIGN_IN is on and ADMIN_SECOND_FACTOR is required: at this level no "
-                                "wallet signs in" in note for note in admin_notes()))
+            self.assertTrue(
+                any(
+                    "ADMIN_WALLET_SIGN_IN is on and ADMIN_SECOND_FACTOR is required: at this level no "
+                    "wallet signs in" in note
+                    for note in admin_notes()
+                )
+            )
         with override_settings(ADMIN_WALLET_SIGN_IN=False):
             self.assertFalse(any("ADMIN_WALLET_SIGN_IN" in note for note in admin_notes()))
 
@@ -1187,8 +1272,10 @@ class ResetSaysWhoWasTold(TransactionTestCase):
 
     def test_told_and_not_told(self):
         user = User.objects.create_user("volunteer", password=PASSWORD, is_staff=True)
-        for answer, words in ((("TELEGRAM_MODERATION_CHAT", []), "told: TELEGRAM_MODERATION_CHAT"),
-                              ((None, ["Telegram refused it"]), "not told: Telegram refused it")):
+        for answer, words in (
+            (("TELEGRAM_MODERATION_CHAT", []), "told: TELEGRAM_MODERATION_CHAT"),
+            ((None, ["Telegram refused it"]), "not told: Telegram refused it"),
+        ):
             AdminWallet.objects.create(user=user, linking_key=pub(wallet()))
             out = StringIO()
             with patch("shops.notifications.deliver_to_moderators", return_value=answer) as told:
@@ -1200,20 +1287,36 @@ class ResetSaysWhoWasTold(TransactionTestCase):
 class Setting(SimpleTestCase):
     def test_a_bad_value_stops_the_start(self):
         for value in ("yes", "ON", "1"):
-            env = {**os.environ, "SECRET_KEY": "x", "DJANGO_SETTINGS_MODULE": "config.settings",
-                   "ADMIN_WALLET_SIGN_IN": value}
-            result = subprocess.run([sys.executable, "-c", "import django; from django.conf import settings; settings.DEBUG"],
-                                    env=env, cwd=settings.BASE_DIR, capture_output=True, text=True, timeout=60,
-                                    check=False)
+            env = {
+                **os.environ,
+                "SECRET_KEY": "x",
+                "DJANGO_SETTINGS_MODULE": "config.settings",
+                "ADMIN_WALLET_SIGN_IN": value,
+            }
+            result = subprocess.run(
+                [sys.executable, "-c", "import django; from django.conf import settings; settings.DEBUG"],
+                env=env,
+                cwd=settings.BASE_DIR,
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=False,
+            )
             self.assertNotEqual(result.returncode, 0, value)
             self.assertIn(f"ADMIN_WALLET_SIGN_IN is {value!r}: it must be on or off", result.stderr)
 
     def test_off_by_default(self):
         env = {key: value for key, value in os.environ.items() if key != "ADMIN_WALLET_SIGN_IN"}
         script = "from django.conf import settings; print(settings.ADMIN_WALLET_SIGN_IN)"
-        result = subprocess.run([sys.executable, "-c", script],
-                                env={**env, "SECRET_KEY": "x", "DJANGO_SETTINGS_MODULE": "config.settings"},
-                                cwd=settings.BASE_DIR, capture_output=True, text=True, timeout=60, check=False)
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            env={**env, "SECRET_KEY": "x", "DJANGO_SETTINGS_MODULE": "config.settings"},
+            cwd=settings.BASE_DIR,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
         self.assertEqual(result.stdout.strip(), "False", result.stderr)
 
 
@@ -1253,8 +1356,13 @@ class Script(SimpleTestCase):
         with tempfile.TemporaryDirectory() as folder:
             harness = Path(folder) / "harness.js"
             harness.write_text(HARNESS)
-            result = subprocess.run([node, str(harness), str(SCRIPT), json.dumps(answers)], capture_output=True,
-                                    text=True, timeout=60, check=False)
+            result = subprocess.run(
+                [node, str(harness), str(SCRIPT), json.dumps(answers)],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=False,
+            )
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
 

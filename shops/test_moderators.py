@@ -1,6 +1,7 @@
 """The moderators' group (shops/moderators.py) and `manage.py moderators`: the exact rights, on a new database and on one
 brought up to date, what a moderator can and cannot do in /admin/, and the command with the register of the changes to the
 owners' accounts."""
+
 import logging
 from io import StringIO
 from unittest.mock import patch
@@ -23,7 +24,10 @@ User = get_user_model()
 
 # Written out here, apart from the list in the code: a right added to the group by mistake fails this test
 EXPECTED = {
-    "shops.view_shop", "shops.view_helprequest", "shops.change_helprequest", "shops.view_accountchange",
+    "shops.view_shop",
+    "shops.view_helprequest",
+    "shops.change_helprequest",
+    "shops.view_accountchange",
 }
 
 
@@ -61,6 +65,7 @@ class Without:
 # The group
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 class TheGroup(TestCase):
     def test_a_new_database_has_the_group_with_exactly_these_rights(self):
         """The test database is made by `migrate` from nothing: this is what a new installation starts with."""
@@ -79,8 +84,12 @@ class TheGroup(TestCase):
         self.assertEqual({right for right in rights if right.split(".")[1].startswith(("add_", "delete_"))}, set())
         self.assertEqual({right for right in rights if ".change_" in right}, {"shops.change_helprequest"})
         for model in ("shop", "user", "group", "permission", "profile", "closure", "accountchange", "drop"):
-            self.assertFalse([right for right in rights if right.endswith(f"_{model}") and ".view_" not in right], model)
-        self.assertEqual({right for right in rights if right.endswith(("_user", "_group", "_permission", "_drop"))}, set())
+            self.assertFalse(
+                [right for right in rights if right.endswith(f"_{model}") and ".view_" not in right], model
+            )
+        self.assertEqual(
+            {right for right in rights if right.endswith(("_user", "_group", "_permission", "_drop"))}, set()
+        )
 
     def test_a_database_that_is_brought_up_to_date_gets_the_group(self):
         """A site that runs since before the group: its next `migrate` makes it, though there is nothing to migrate."""
@@ -90,7 +99,9 @@ class TheGroup(TestCase):
 
     def test_migrate_takes_away_a_right_given_by_hand_and_gives_back_one_taken(self):
         group = the_group()
-        group.permissions.add(Permission.objects.get(codename="change_shop"), Permission.objects.get(codename="change_user"))
+        group.permissions.add(
+            Permission.objects.get(codename="change_shop"), Permission.objects.get(codename="change_user")
+        )
         group.permissions.remove(Permission.objects.get(codename="view_accountchange"))
         call_command("migrate", verbosity=0, interactive=False)
         self.assertEqual(rights_of(the_group()), EXPECTED)
@@ -99,14 +110,18 @@ class TheGroup(TestCase):
         """Not assertLogs, which changes the levels it checks: the records that the site's own configuration (settings.LOGGING,
         everything below ERROR dropped) hands to a handler. The first version logged a warning, which nobody ever saw."""
         group = the_group()
-        group.permissions.add(Permission.objects.get(codename="change_shop"), Permission.objects.get(codename="change_user"))
+        group.permissions.add(
+            Permission.objects.get(codename="change_shop"), Permission.objects.get(codename="change_user")
+        )
         handed = []
         logger, handlers = logging.getLogger("shops.moderators"), []
         while logger:
             handlers += logger.handlers
             logger = logger.parent if logger.propagate else None
         self.assertTrue(handlers, "the configuration has a handler for this logger")
-        patchers = [patch.object(handler, "handle", side_effect=lambda record: handed.append(record)) for handler in handlers]
+        patchers = [
+            patch.object(handler, "handle", side_effect=lambda record: handed.append(record)) for handler in handlers
+        ]
         for patcher in patchers:
             patcher.start()
             self.addCleanup(patcher.stop)
@@ -154,14 +169,19 @@ class TheGroup(TestCase):
     def test_a_right_the_list_has_and_the_app_does_not_is_logged_and_does_not_stop_the_rest(self):
         Group.objects.all().delete()
         invented = (*moderators.PERMISSIONS, ("shops", "fly_shop", "A right that does not exist"))
-        with patch.object(moderators, "PERMISSIONS", invented), self.assertLogs("shops.moderators", logging.ERROR) as logs:
+        with (
+            patch.object(moderators, "PERMISSIONS", invented),
+            self.assertLogs("shops.moderators", logging.ERROR) as logs,
+        ):
             moderators.sync()
         self.assertIn("shops.fly_shop", logs.output[0])
         self.assertEqual(rights_of(the_group()), EXPECTED)
 
     def test_a_failure_while_migrating_is_logged_and_does_not_stop_the_start(self):
-        with patch.object(moderators, "sync", side_effect=RuntimeError("no database")), \
-                self.assertLogs("shops.moderators", logging.ERROR):
+        with (
+            patch.object(moderators, "sync", side_effect=RuntimeError("no database")),
+            self.assertLogs("shops.moderators", logging.ERROR),
+        ):
             moderators.on_post_migrate(sender=None)
 
     def test_migrate_runs_it_for_the_shops_app_only_and_once(self):
@@ -180,6 +200,7 @@ class TheGroup(TestCase):
 # ---------------------------------------------------------------------------------------------------------------------
 # What a moderator can do in /admin/
 # ---------------------------------------------------------------------------------------------------------------------
+
 
 def make_moderator(client, name="volunteer"):
     """A staff account in the group, signed in as /admin/ signs it in, and nothing else."""
@@ -241,16 +262,28 @@ class InTheAdmin(Base):
         self.assertNotIn('name="_save"', page)
         self.assertNotIn("claim_hash", page)
         before = Shop.objects.values().get(pk=self.shop.pk)
-        for post in ({"name": "Taken", "owner": self.moderator.pk, "suspended": "on", "_save": "Save"},
-                     {"owner": self.moderator.pk, "telegram_chat": "999", "_save": "Save"}):
+        for post in (
+            {"name": "Taken", "owner": self.moderator.pk, "suspended": "on", "_save": "Save"},
+            {"owner": self.moderator.pk, "telegram_chat": "999", "_save": "Save"},
+        ):
             self.assertEqual(self.client.post(url, post).status_code, 403)
         self.assertEqual(self.client.get(reverse("admin:shops_shop_add")).status_code, 403)
         self.assertEqual(self.client.get(reverse("admin:shops_shop_delete", args=[self.shop.pk])).status_code, 403)
-        self.assertEqual(self.client.post(reverse("admin:shops_shop_delete", args=[self.shop.pk]), {"post": "yes"}).status_code, 403)
+        self.assertEqual(
+            self.client.post(reverse("admin:shops_shop_delete", args=[self.shop.pk]), {"post": "yes"}).status_code, 403
+        )
         # The list's own boxes (suspended, historic) are for who can change
-        self.client.post(reverse("admin:shops_shop_changelist"), {
-            "form-TOTAL_FORMS": 1, "form-INITIAL_FORMS": 1, "form-0-id": self.shop.pk, "form-0-suspended": "on",
-            "form-0-closed_on": "2026-01-01", "_save": "Save"})
+        self.client.post(
+            reverse("admin:shops_shop_changelist"),
+            {
+                "form-TOTAL_FORMS": 1,
+                "form-INITIAL_FORMS": 1,
+                "form-0-id": self.shop.pk,
+                "form-0-suspended": "on",
+                "form-0-closed_on": "2026-01-01",
+                "_save": "Save",
+            },
+        )
         self.assertEqual(Shop.objects.values().get(pk=self.shop.pk), before)
 
     def test_the_certificate_actions_need_the_right_to_change_a_shop(self):
@@ -271,9 +304,15 @@ class InTheAdmin(Base):
 
     def test_closures_are_not_theirs_to_write(self):
         # The closures are written under a shop, and a shop is not theirs to change
-        self.client.post(reverse("admin:shops_shop_change", args=[self.shop.pk]), {
-            "closure_set-TOTAL_FORMS": 1, "closure_set-INITIAL_FORMS": 0, "closure_set-0-first_day": "2026-11-05",
-            "_save": "Save"})
+        self.client.post(
+            reverse("admin:shops_shop_change", args=[self.shop.pk]),
+            {
+                "closure_set-TOTAL_FORMS": 1,
+                "closure_set-INITIAL_FORMS": 0,
+                "closure_set-0-first_day": "2026-11-05",
+                "_save": "Save",
+            },
+        )
         self.assertFalse(Closure.objects.exists())
 
     def test_the_requests_for_help_are_read_and_marked(self):
@@ -318,13 +357,16 @@ class InTheAdmin(Base):
 # The command
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 class Command(TestCase):
     def test_add_makes_the_account_staff_and_a_member(self):
         User.objects.create_user("maria", password="x")
         out = run("add", "maria")
         user = User.objects.get(username="maria")
-        self.assertEqual((user.is_staff, user.is_superuser, list(user.groups.values_list("name", flat=True))),
-                         (True, False, ["Moderators"]))
+        self.assertEqual(
+            (user.is_staff, user.is_superuser, list(user.groups.values_list("name", flat=True))),
+            (True, False, ["Moderators"]),
+        )
         self.assertIn("maria is a moderator and now has access to /admin/.", out)
         self.assertNotIn("no password", out)
 
@@ -391,8 +433,10 @@ class Command(TestCase):
 
     def test_remove_keeps_the_staff_status_of_who_has_other_rights(self):
         other = Group.objects.create(name="Other")
-        for name, setup in (("with_group", lambda user: user.groups.add(other)),
-                            ("with_permission", lambda user: user.user_permissions.add(Permission.objects.get(codename="view_shop")))):
+        for name, setup in (
+            ("with_group", lambda user: user.groups.add(other)),
+            ("with_permission", lambda user: user.user_permissions.add(Permission.objects.get(codename="view_shop"))),
+        ):
             user = User.objects.create_user(name, password="x")
             run("add", name)
             setup(user)
@@ -463,7 +507,9 @@ class Command(TestCase):
         user = User.objects.create_user("maria", password="x")
         run("add", "maria")
         user.groups.add(other)
-        user.user_permissions.add(Permission.objects.get(codename="view_shop"), Permission.objects.get(codename="change_shop"))
+        user.user_permissions.add(
+            Permission.objects.get(codename="view_shop"), Permission.objects.get(codename="change_shop")
+        )
         User.objects.create_user("pia", password="x")
         run("add", "pia")
         out = run("list")
@@ -520,7 +566,9 @@ class Command(TestCase):
         self.assertTrue(user.pk)
 
 
-@override_settings(LANGUAGE_CODE="en", TELEGRAM_BOT_TOKEN="1:x", TELEGRAM_MODERATION_CHAT="-100", PUBLIC_URL="https://site.example.org")
+@override_settings(
+    LANGUAGE_CODE="en", TELEGRAM_BOT_TOKEN="1:x", TELEGRAM_MODERATION_CHAT="-100", PUBLIC_URL="https://site.example.org"
+)
 class TheRegister(Base):
     """The command works through the models, so the register of the changes to the owners' accounts sees what it does, as it
     sees the admin (shops/guard.py). It records the accounts that own a shop, and `add` refuses those; `remove` takes

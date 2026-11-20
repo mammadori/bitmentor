@@ -1,4 +1,5 @@
 """Every email has an HTML copy with real links (config/mail.py)."""
+
 from django.core import mail
 from django.test import SimpleTestCase, TestCase, override_settings
 
@@ -7,7 +8,9 @@ from config.mail import html, send_mail
 
 class Html(SimpleTestCase):
     def test_an_address_alone_is_a_button_and_one_in_a_sentence_a_link(self):
-        page = html("Take your shop:\nhttps://example.org/it/shops/claim/?code=ab-12&x=1\n\nOr open https://example.org/a.")
+        page = html(
+            "Take your shop:\nhttps://example.org/it/shops/claim/?code=ab-12&x=1\n\nOr open https://example.org/a."
+        )
         self.assertIn('<a href="https://example.org/it/shops/claim/?code=ab-12&amp;x=1" style=', page)
         self.assertIn('<a href="https://example.org/a">https://example.org/a</a>.', page)
 
@@ -61,37 +64,73 @@ class Senders(SimpleTestCase):
     @override_settings(MERCHANT_FROM_EMAIL="")
     def test_with_no_merchant_sender_the_default_one(self):
         from config.mail import merchant_sender
+
         self.assertIsNone(merchant_sender())
 
-    @override_settings(MERCHANT_FROM_EMAIL="Shops <shops@example.org>", DEFAULT_FROM_EMAIL="noreply@example.org",
-                       EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    @override_settings(
+        MERCHANT_FROM_EMAIL="Shops <shops@example.org>",
+        DEFAULT_FROM_EMAIL="noreply@example.org",
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    )
     def test_the_owner_gets_the_shops_address_the_links_the_noreply_one(self):
         from django.core import mail
 
         from config.mail import merchant_sender, send_mail
+
         send_mail("a", "b", merchant_sender(), ["o@example.org"])
         send_mail("c", "d", None, ["o@example.org"])
         self.assertEqual([m.from_email for m in mail.outbox], ["Shops <shops@example.org>", "noreply@example.org"])
 
     def test_the_mails_to_the_owner_use_the_merchant_sender(self):
         from pathlib import Path
+
         for name in ("guard.py", "lightning_watch.py", "vacation.py"):
             self.assertIn("merchant_sender()", (Path(__file__).parent.parent / "shops" / name).read_text(), name)
 
-    @override_settings(EMAIL_ENVELOPE_FROM="shops@example.org", DEFAULT_FROM_EMAIL="Valley (automatic) <shops@example.org>",
-                       EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    @override_settings(
+        EMAIL_ENVELOPE_FROM="shops@example.org",
+        DEFAULT_FROM_EMAIL="Valley (automatic) <shops@example.org>",
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    )
     def test_the_envelope_is_its_own_address_the_from_the_one_shown(self):
         from django.core import mail
+
         send_mail("a", "b", None, ["o@example.org"])
         sent = mail.outbox[-1]
         self.assertEqual(sent.from_email, "shops@example.org")
-        self.assertEqual(sent.message()["From"], "Valley (automatic) <shops@example.org>")
+        # the whole name reaches the reader: in quotes, or the part in brackets would be a comment and left out
+        self.assertEqual(sent.message()["From"], '"Valley (automatic)" <shops@example.org>')
+
+    def test_a_sender_keeps_its_whole_name(self):
+        from config.mail import sender
+
+        for written, sent in (
+            ("Shops (automatic) <shops@example.org>", '"Shops (automatic)" <shops@example.org>'),
+            ('"Shops (automatic)" <shops@example.org>', '"Shops (automatic)" <shops@example.org>'),
+            ("Shops: news <shops@example.org>", '"Shops: news" <shops@example.org>'),
+            ("Bar, Caffè & Co <shops@example.org>", '"Bar, Caffè & Co" <shops@example.org>'),
+            ("Shops <shops@example.org>", "Shops <shops@example.org>"),
+            ("shops@example.org", "shops@example.org"),
+            ("<shops@example.org>", "<shops@example.org>"),
+            ("", ""),
+        ):
+            self.assertEqual(sender(written), sent, written)
+        with self.settings(
+            DEFAULT_FROM_EMAIL="Shops (automatic) <shops@example.org>",
+            EMAIL_ENVELOPE_FROM="",
+            EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        ):
+            from django.core import mail
+
+            send_mail("a", "b", None, ["o@example.org"])
+            self.assertEqual(mail.outbox[-1].message()["From"], '"Shops (automatic)" <shops@example.org>')
 
 
 class Kinds(SimpleTestCase):
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_each_email_says_its_kind_to_the_backend(self):
         from django.core import mail
+
         send_mail("a", "b", None, ["o@example.org"], kind="link")
         self.assertEqual(mail.outbox[-1].kind, "link")
 
@@ -100,9 +139,14 @@ class Kinds(SimpleTestCase):
         from pathlib import Path
 
         from config.mail import KINDS
+
         root = Path(__file__).parent.parent
-        calls = [call for path in root.glob("shops/**/*.py") if not path.name.startswith("test")
-                 for call in re.findall(r"send_mail\((.*)", path.read_text())]
+        calls = [
+            call
+            for path in root.glob("shops/**/*.py")
+            if not path.name.startswith("test")
+            for call in re.findall(r"send_mail\((.*)", path.read_text())
+        ]
         self.assertTrue(calls)
         for call in calls:
             kind = re.search(r'kind="(\w+)"', call)
@@ -115,6 +159,7 @@ class Later(SimpleTestCase):
 
     def wait(self):
         import threading
+
         for thread in threading.enumerate():
             if thread.name == "mail":
                 thread.join(5)
@@ -122,6 +167,7 @@ class Later(SimpleTestCase):
 
     def free(self):
         import config.mail
+
         taken = 0
         while config.mail.WAITING.acquire(blocking=False):
             taken += 1
@@ -134,6 +180,7 @@ class Later(SimpleTestCase):
         from unittest.mock import patch
 
         import config.mail
+
         hold, started, callers = threading.Event(), threading.Event(), []
 
         def slow(*args, **kwargs):
@@ -154,6 +201,7 @@ class Later(SimpleTestCase):
 
     def test_it_arrives_with_its_html_and_kind(self):
         import config.mail
+
         mail.outbox = []
         config.mail.send_later("Subject", "Open https://example.org/x", ["a@example.org"], kind="link")
         self.wait()
@@ -165,14 +213,20 @@ class Later(SimpleTestCase):
         from unittest.mock import patch
 
         import config.mail
+
         # A mail server's refusal quotes the address, and so does Django's «Invalid address»
-        for refusal in ({"side_effect": OSError("no route to a@example.org")},
-                        {"side_effect": SMTPRecipientsRefused({"a@example.org": (550, b"<a@example.org>: user unknown")})},
-                        {"side_effect": SMTPDataError(554, b"a@example.org refused")},
-                        {"side_effect": ValueError("Invalid address a@example.org")}, {"return_value": 0}):
+        for refusal in (
+            {"side_effect": OSError("no route to a@example.org")},
+            {"side_effect": SMTPRecipientsRefused({"a@example.org": (550, b"<a@example.org>: user unknown")})},
+            {"side_effect": SMTPDataError(554, b"a@example.org refused")},
+            {"side_effect": ValueError("Invalid address a@example.org")},
+            {"return_value": 0},
+        ):
             told = []
             with patch("config.mail.send_mail", **refusal), self.assertLogs("config.mail", "ERROR") as log:
-                config.mail.send_later("Subject", "Text", ["a@example.org"], kind="link", failed=lambda told=told: told.append(1))
+                config.mail.send_later(
+                    "Subject", "Text", ["a@example.org"], kind="link", failed=lambda told=told: told.append(1)
+                )
                 self.wait()
             self.assertEqual((len(log.output), told), (1, [1]), refusal)
             # The log says which email, not to whom
@@ -199,11 +253,15 @@ class Later(SimpleTestCase):
         from unittest.mock import patch
 
         import config.mail
+
         callers = []
         for _ in range(8):
             config.mail.WAITING.acquire()
         try:
-            with patch("config.mail.send_mail", side_effect=lambda *a, **k: callers.append(threading.current_thread().name) or 1):
+            with patch(
+                "config.mail.send_mail",
+                side_effect=lambda *a, **k: callers.append(threading.current_thread().name) or 1,
+            ):
                 config.mail.send_later("Subject", "Text", ["a@example.org"])
         finally:
             for _ in range(8):
@@ -217,6 +275,7 @@ class Later(SimpleTestCase):
         from django.utils.translation import gettext_lazy, override
 
         import config.mail
+
         seen = []
         with patch("config.mail.send_mail", side_effect=lambda subject, *a, **k: seen.append(subject) or 1):
             with override("it"):

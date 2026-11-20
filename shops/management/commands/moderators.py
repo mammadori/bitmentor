@@ -12,6 +12,7 @@ visitor on every page of a shop (config/guard.py), so making a shop's owner a mo
 from them. `remove` accepts it, since taking rights away is always allowed, and the register says so.
 
 All or nothing: a change is made in one transaction."""
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand, CommandError
@@ -36,9 +37,11 @@ class Command(BaseCommand):
         actions.add_parser("list", help="The group's rights and members")
         actions.add_parser("sync", help="Put the group's rights right now, as `migrate` does at every start")
         actions.add_parser("add", help="Make an existing account a moderator").add_argument(
-            "username", help="The account's sign-in name, as in /admin/ (Users)")
+            "username", help="The account's sign-in name, as in /admin/ (Users)"
+        )
         actions.add_parser("remove", help="Take an account out of the moderators").add_argument(
-            "username", help="The account's sign-in name")
+            "username", help="The account's sign-in name"
+        )
 
     def handle(self, *args, action, username=None, **options):
         {"list": self.show, "sync": self.sync, "add": self.add, "remove": self.remove}[action](username)
@@ -47,8 +50,10 @@ class Command(BaseCommand):
         try:
             return User.objects.get_by_natural_key(username)
         except User.DoesNotExist:
-            raise CommandError(f"There is no account called {plain(username)!r}. A superuser makes it in /admin/, under "
-                               "Users: a name and a password. Nothing changed.") from None
+            raise CommandError(
+                f"There is no account called {plain(username)!r}. A superuser makes it in /admin/, under "
+                "Users: a name and a password. Nothing changed."
+            ) from None
 
     def shops(self, user):
         return list(Shop.objects.filter(owner=user).order_by("name").values_list("name", flat=True))
@@ -56,8 +61,10 @@ class Command(BaseCommand):
     def show(self, username):
         group = Group.objects.filter(name=moderators.GROUP).first()
         if group is None:
-            self.stdout.write(f"The group {moderators.GROUP} does not exist yet: `manage.py migrate` makes it "
-                              "(`manage.py moderators add <name>` too).")
+            self.stdout.write(
+                f"The group {moderators.GROUP} does not exist yet: `manage.py migrate` makes it "
+                "(`manage.py moderators add <name>` too)."
+            )
             return
         missing, extra = moderators.difference(group)
         have = moderators.wanted() - missing
@@ -106,7 +113,9 @@ class Command(BaseCommand):
                 self.stdout.write(f"  taken away  {label}.{codename}")
             self.stdout.write(f"The group {moderators.GROUP} now has exactly the rights of the list.")
         else:
-            self.stdout.write(f"The group {moderators.GROUP} already has exactly the rights of the list. Nothing changed.")
+            self.stdout.write(
+                f"The group {moderators.GROUP} already has exactly the rights of the list. Nothing changed."
+            )
 
     def add(self, username):
         user = self.account(username)
@@ -117,13 +126,17 @@ class Command(BaseCommand):
                 f"{name} owns {len(owned)} shop(s): {', '.join(plain(shop) for shop in owned[:3])}"
                 f"{', …' if len(owned) > 3 else ''}. A staff account is a visitor on every page of a shop, so a moderator "
                 "cannot also use their shop's panel or register. Use a second account for the moderators' work. "
-                "Nothing changed.")
+                "Nothing changed."
+            )
         if not user.is_active:
-            raise CommandError(f"The account {name} is switched off: it could not sign in. Switch it on in /admin/ first. "
-                               "Nothing changed.")
+            raise CommandError(
+                f"The account {name} is switched off: it could not sign in. Switch it on in /admin/ first. "
+                "Nothing changed."
+            )
         if user.is_superuser:
-            raise CommandError(f"{name} is a superuser: it has every right already, and a group would add nothing. "
-                               "Nothing changed.")
+            raise CommandError(
+                f"{name} is a superuser: it has every right already, and a group would add nothing. Nothing changed."
+            )
         with transaction.atomic():
             # The group is put right first, as `migrate` does: made if somebody deleted it, and with the rights of the
             # list and no others, so nobody joins a group that has more than the work asks
@@ -141,8 +154,10 @@ class Command(BaseCommand):
             return
         self.stdout.write(f"{name} is a moderator" + (" and now has access to /admin/." if made_staff else "."))
         if not user.has_usable_password():
-            self.stdout.write(f"{name} has no password: `manage.py changepassword {name}` gives one, or they cannot sign "
-                              "in at /admin/.")
+            self.stdout.write(
+                f"{name} has no password: `manage.py changepassword {name}` gives one, or they cannot sign "
+                "in at /admin/."
+            )
 
     def remove(self, username):
         user = self.account(username)
@@ -155,10 +170,17 @@ class Command(BaseCommand):
             user.groups.remove(group)
             # Staff only because of this group: with nothing else to see in /admin/, it goes too. A superuser, or
             # someone with another group or a right of their own, keeps it
-            left = user.is_staff and not user.is_superuser and not user.groups.exists() and not user.user_permissions.exists()
+            left = (
+                user.is_staff
+                and not user.is_superuser
+                and not user.groups.exists()
+                and not user.user_permissions.exists()
+            )
             if left:
                 user.is_staff = False
                 user.save(update_fields=["is_staff"])
-        self.stdout.write(f"{name} is not a moderator any more" + (" and no longer has access to /admin/." if left else "."))
+        self.stdout.write(
+            f"{name} is not a moderator any more" + (" and no longer has access to /admin/." if left else ".")
+        )
         if user.is_staff:
             self.stdout.write(f"{name} stays staff: it has other rights. `/admin/auth/user/` shows which.")

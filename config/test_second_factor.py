@@ -1,5 +1,6 @@
 """The second factor of /admin/ (config/second_factor.py, config/totp.py): the codes, the set-up, the sign-in in two steps,
 the limits, the day's end, turning it off, the command, the registers and preflight."""
+
 import base64
 import hashlib
 import os
@@ -45,8 +46,9 @@ def code(factor, seconds=T, steps=0):
 
 
 def turn_on(user, last_step=0):
-    return AdminSecondFactor.objects.create(user=user, secret=totp.new_secret(), confirmed=timezone.now(),
-                                            last_step=last_step)
+    return AdminSecondFactor.objects.create(
+        user=user, secret=totp.new_secret(), confirmed=timezone.now(), last_step=last_step
+    )
 
 
 class _Clock:
@@ -101,15 +103,24 @@ class Base(TestCase):
 # The codes
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 class Codes(TestCase):
     # RFC 6238, appendix B: the SHA1 key and the 8-digit codes at these times
     KEY = b"12345678901234567890"
-    VECTORS = ((59, "94287082"), (1111111109, "07081804"), (1111111111, "14050471"), (1234567890, "89005924"),
-               (2000000000, "69279037"), (20000000000, "65353130"))
+    VECTORS = (
+        (59, "94287082"),
+        (1111111109, "07081804"),
+        (1111111111, "14050471"),
+        (1234567890, "89005924"),
+        (2000000000, "69279037"),
+        (20000000000, "65353130"),
+    )
 
     def test_the_rfc_6238_sha1_vectors(self):
         for seconds, expected in self.VECTORS:
-            self.assertEqual(totp.hotp(self.KEY, totp.step_of(seconds), digits=8, digest=hashlib.sha1), expected, seconds)
+            self.assertEqual(
+                totp.hotp(self.KEY, totp.step_of(seconds), digits=8, digest=hashlib.sha1), expected, seconds
+            )
         # The same through the base32 secret, which is what the apps get
         secret = base64.b32encode(self.KEY).decode()
         self.assertEqual(totp.code_at(secret, 59, digits=8), "94287082")
@@ -145,14 +156,18 @@ class Codes(TestCase):
 
     def test_the_link_for_the_apps(self):
         link = totp.uri("JBSWY3DPEHPK3PXP", "anna@example.org", "shops.example.org")
-        self.assertEqual(link, "otpauth://totp/shops.example.org:anna@example.org?secret=JBSWY3DPEHPK3PXP&"
-                               "issuer=shops.example.org&algorithm=SHA1&digits=6&period=30")
+        self.assertEqual(
+            link,
+            "otpauth://totp/shops.example.org:anna@example.org?secret=JBSWY3DPEHPK3PXP&"
+            "issuer=shops.example.org&algorithm=SHA1&digits=6&period=30",
+        )
         self.assertIn("totp/a%3Ab:c%20d?", totp.uri("S", "c d", "a:b"))
 
 
 # ---------------------------------------------------------------------------------------------------------------------
 # The set-up
 # ---------------------------------------------------------------------------------------------------------------------
+
 
 class SetUp(Base):
     def setUp(self):
@@ -254,8 +269,13 @@ class SetUp(Base):
         waiting = AdminSecondFactor.objects.get(user=self.staff)
         with clock(T):
             self.client.post(SETUP, {"action": "on", "code": code(waiting)})
-            pages = [SETUP, "/admin/", f"/admin/auth/user/{self.staff.pk}/change/",
-                     f"/admin/auth/user/{self.staff.pk}/history/", "/admin/auth/user/"]
+            pages = [
+                SETUP,
+                "/admin/",
+                f"/admin/auth/user/{self.staff.pk}/change/",
+                f"/admin/auth/user/{self.staff.pk}/history/",
+                "/admin/auth/user/",
+            ]
             self.staff.is_superuser = True
             self.staff.save()
             for url in pages:
@@ -286,8 +306,10 @@ class SetUp(Base):
         with clock(T):
             self.client.post(SETUP, {"action": "on", "code": code(waiting)})
         entry = LogEntry.objects.get()
-        self.assertEqual((entry.user_id, entry.object_id, entry.change_message),
-                         (self.staff.pk, str(self.staff.pk), "Second factor turned on"))
+        self.assertEqual(
+            (entry.user_id, entry.object_id, entry.change_message),
+            (self.staff.pk, str(self.staff.pk), "Second factor turned on"),
+        )
         # A staff account with no shop is not in the register of the owners' accounts, as for a change of its password
         self.assertFalse(AccountChange.objects.exists())
 
@@ -318,8 +340,10 @@ class OwnerOfAShop(Base):
             with self.captureOnCommitCallbacks(execute=True):
                 self.client.post(SETUP, {"action": "on", "code": code(waiting)})
         row = AccountChange.objects.get()
-        self.assertEqual((row.user, row.changed, row.via, row.actor, row.shops),
-                         (self.staff, "second_factor", "admin", "volunteer", "Bar"))
+        self.assertEqual(
+            (row.user, row.changed, row.via, row.actor, row.shops),
+            (self.staff, "second_factor", "admin", "volunteer", "Bar"),
+        )
         self.assertIn("email", row.told)
 
     def test_reset_with_the_command(self):
@@ -334,11 +358,19 @@ class OwnerOfAShop(Base):
 # The sign-in
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 def admin_urls():
     """Every page of the admin that can be named without a row: the index, each app's and each model's list and add
     page, the account's own pages, the second factor's set-up, and the association's list."""
-    urls = {reverse("admin:index"), reverse("admin:password_change"), reverse("admin:password_change_done"),
-            reverse("admin:jsi18n"), reverse("admin:autocomplete"), SETUP, "/admin/today/"}
+    urls = {
+        reverse("admin:index"),
+        reverse("admin:password_change"),
+        reverse("admin:password_change_done"),
+        reverse("admin:jsi18n"),
+        reverse("admin:autocomplete"),
+        SETUP,
+        "/admin/today/",
+    }
     for model in admin.site._registry:
         opts = model._meta
         urls.add(reverse("admin:app_list", args=[opts.app_label]))
@@ -385,8 +417,9 @@ class SignIn(Base):
             # Outside /admin/ the browser is a visitor not signed in, with no staff behind it either
             self.assertFalse(signed_in(self.client))
             # The `next` is kept for after the code, and only then
-            self.assertRedirects(self.client.post(CODE, {"code": code(self.factor)}), "/admin/shops/shop/",
-                                 fetch_redirect_response=False)
+            self.assertRedirects(
+                self.client.post(CODE, {"code": code(self.factor)}), "/admin/shops/shop/", fetch_redirect_response=False
+            )
 
     def test_a_next_elsewhere_ends_on_the_index(self):
         answer = self.sign_in(self.factor, next="https://evil.example/")
@@ -413,8 +446,9 @@ class SignIn(Base):
             # Nor an earlier one
             self.assertContains(again.post(CODE, {"code": code(self.factor, steps=-1)}), "not right")
         with clock(T + 30):
-            self.assertRedirects(again.post(CODE, {"code": code(self.factor, T + 30)}), "/admin/",
-                                 fetch_redirect_response=False)
+            self.assertRedirects(
+                again.post(CODE, {"code": code(self.factor, T + 30)}), "/admin/", fetch_redirect_response=False
+            )
 
     def test_the_step_window(self):
         for steps, accepted in ((-2, False), (-1, True), (1, True), (2, False)):
@@ -458,14 +492,18 @@ class SignIn(Base):
             self.assertEqual(refused.status_code, 429)
             self.assertFalse(signed_in(self.client))
             # Apart from the passwords': the password's page still lets the account try
-            self.assertRedirects(self.password(Client(**EN), REMOTE_ADDR="203.0.113.101"), CODE,
-                                 fetch_redirect_response=False)
+            self.assertRedirects(
+                self.password(Client(**EN), REMOTE_ADDR="203.0.113.101"), CODE, fetch_redirect_response=False
+            )
 
     def test_the_two_windows_of_the_budget(self):
         day = 86400 * (T // 86400) + 3600
         hands = _Clock(day)
-        with patch("config.ratelimit.secrets.randbelow", return_value=1), patch("config.ratelimit.time", hands), \
-                clock(T):
+        with (
+            patch("config.ratelimit.secrets.randbelow", return_value=1),
+            patch("config.ratelimit.time", hands),
+            clock(T),
+        ):
             addresses = iter(range(200))
             for window in range(4):
                 hands.now = day + window * 900
@@ -494,8 +532,11 @@ class SignIn(Base):
             for number in range(8):
                 answer = browser.post(CODE, {"code": "000000"}, REMOTE_ADDR=f"203.0.113.{number}")
                 self.assertEqual(answer.status_code, 200, number)
-            self.assertRedirects(browser.post(CODE, {"code": code(self.factor)}, REMOTE_ADDR="203.0.113.99"), "/admin/",
-                                 fetch_redirect_response=False)
+            self.assertRedirects(
+                browser.post(CODE, {"code": code(self.factor)}, REMOTE_ADDR="203.0.113.99"),
+                "/admin/",
+                fetch_redirect_response=False,
+            )
 
     def test_a_cookie_from_before_the_factor_is_not_a_known_device(self):
         """The reviewer's case: a browser signed in with the password alone, then the account turned its factor on."""
@@ -508,15 +549,20 @@ class SignIn(Base):
         reset_limits()
         with steady_limits(), clock(T):
             self.password(old, REMOTE_ADDR="203.0.113.200")
-            answers = [old.post(CODE, {"code": "000000"}, REMOTE_ADDR=f"203.0.113.{number}").status_code
-                       for number in range(40)]
+            answers = [
+                old.post(CODE, {"code": "000000"}, REMOTE_ADDR=f"203.0.113.{number}").status_code
+                for number in range(40)
+            ]
         self.assertEqual(answers, [200] * 5 + [429] * 35)
         # Nor on the password's page: the account's twenty wrong passwords refuse that browser too
         reset_limits()
         with steady_limits():
             for number in range(20):
-                old.post(LOGIN, {"username": "volunteer", "password": "wrong", "next": "/admin/"},
-                         REMOTE_ADDR=f"198.51.100.{number}")
+                old.post(
+                    LOGIN,
+                    {"username": "volunteer", "password": "wrong", "next": "/admin/"},
+                    REMOTE_ADDR=f"198.51.100.{number}",
+                )
             self.assertEqual(self.password(old, REMOTE_ADDR="198.51.100.200").status_code, 429)
 
     def test_a_cookie_of_another_factor_is_not_a_known_device(self):
@@ -525,15 +571,20 @@ class SignIn(Base):
         self.factor = turn_on(self.staff)
         with steady_limits(), clock(T):
             self.password(browser, REMOTE_ADDR="203.0.113.200")
-            answers = [browser.post(CODE, {"code": "000000"}, REMOTE_ADDR=f"203.0.113.{number}").status_code
-                       for number in range(6)]
+            answers = [
+                browser.post(CODE, {"code": "000000"}, REMOTE_ADDR=f"203.0.113.{number}").status_code
+                for number in range(6)
+            ]
         self.assertEqual(answers, [200] * 5 + [429])
 
     def test_the_first_wrong_code_of_a_day_is_written_and_told_once(self):
         day = 86400 * (T // 86400) + 3600
         hands = _Clock(day)
-        with patch("config.ratelimit.secrets.randbelow", return_value=1), patch("config.ratelimit.time", hands), \
-                clock(T):
+        with (
+            patch("config.ratelimit.secrets.randbelow", return_value=1),
+            patch("config.ratelimit.time", hands),
+            clock(T),
+        ):
             self.password()
             first = self.client.post(CODE, {"code": "000000"})
             self.client.post(CODE, {"code": "000001"})
@@ -542,10 +593,15 @@ class SignIn(Base):
             self.assertNotContains(first, "known")
             texts = self.told_texts()
             self.assertEqual(len(texts), 1)
-            self.assertIn("A wrong second-factor code after the right password for the staff account volunteer: its "
-                          "password may be known to someone else. Change it.", texts[0])
-            self.assertEqual(list(LogEntry.objects.values_list("change_message", flat=True)),
-                             ["A wrong second-factor code after the right password"])
+            self.assertIn(
+                "A wrong second-factor code after the right password for the staff account volunteer: its "
+                "password may be known to someone else. Change it.",
+                texts[0],
+            )
+            self.assertEqual(
+                list(LogEntry.objects.values_list("change_message", flat=True)),
+                ["A wrong second-factor code after the right password"],
+            )
             hands.now = day + 86400
             self.password()
             self.client.post(CODE, {"code": "000002"})
@@ -579,7 +635,9 @@ class SignIn(Base):
             self.password()
             self.staff.set_password("another long password 77")
             self.staff.save()
-            self.assertRedirects(self.client.post(CODE, {"code": code(self.factor)}), LOGIN, fetch_redirect_response=False)
+            self.assertRedirects(
+                self.client.post(CODE, {"code": code(self.factor)}), LOGIN, fetch_redirect_response=False
+            )
             self.assertFalse(signed_in(self.client))
         self.staff.set_password(PASSWORD)
         self.staff.save()
@@ -587,13 +645,17 @@ class SignIn(Base):
             self.password()
         call_command("admin_totp", "reset", "volunteer", stdout=StringIO())
         with clock(T):
-            self.assertRedirects(self.client.post(CODE, {"code": code(self.factor)}), LOGIN, fetch_redirect_response=False)
+            self.assertRedirects(
+                self.client.post(CODE, {"code": code(self.factor)}), LOGIN, fetch_redirect_response=False
+            )
         self.assertFalse(signed_in(self.client))
 
     def test_the_code_page_without_a_password_first(self):
         self.assertRedirects(self.client.get(CODE), LOGIN, fetch_redirect_response=False)
         with clock(T):
-            self.assertRedirects(self.client.post(CODE, {"code": code(self.factor)}), LOGIN, fetch_redirect_response=False)
+            self.assertRedirects(
+                self.client.post(CODE, {"code": code(self.factor)}), LOGIN, fetch_redirect_response=False
+            )
         self.assertFalse(signed_in(self.client))
 
     def test_the_wait_of_one_account_does_not_open_another(self):
@@ -623,7 +685,9 @@ class SignIn(Base):
         with clock(T):
             self.assertRedirects(self.password(username="moderator"), CODE, fetch_redirect_response=False)
             self.assertEqual(self.client.get("/admin/today/").status_code, 302)
-            self.assertRedirects(self.client.post(CODE, {"code": code(factor)}), "/admin/", fetch_redirect_response=False)
+            self.assertRedirects(
+                self.client.post(CODE, {"code": code(factor)}), "/admin/", fetch_redirect_response=False
+            )
             self.assertEqual(self.client.get("/admin/today/").status_code, 200)
 
 
@@ -674,7 +738,13 @@ class Plumbing(TestCase):
         )
 
         request = RequestFactory().get("/")
-        request.session = {ADMIN_SESSION: True, FACTOR_SESSION: ["totp", 1, T], SETUP_SESSION: 2, PASSKEY_SETUP_SESSION: ["c", T, "h"], "other": 3}
+        request.session = {
+            ADMIN_SESSION: True,
+            FACTOR_SESSION: ["totp", 1, T],
+            SETUP_SESSION: 2,
+            PASSKEY_SETUP_SESSION: ["c", T, "h"],
+            "other": 3,
+        }
         a_new_sign_in_ends_the_admin_session(None, request, None)
         self.assertEqual(request.session, {"other": 3})
 
@@ -690,8 +760,10 @@ class Plumbing(TestCase):
             def start(self):
                 self.target()
 
-        with patch("config.second_factor.threading.Thread", Inline), \
-                patch("django.db.connections.close_all") as close_all:
+        with (
+            patch("config.second_factor.threading.Thread", Inline),
+            patch("django.db.connections.close_all") as close_all,
+        ):
             in_background(lambda: done.append(1))
             self.assertEqual((done, close_all.call_count), ([1], 1))
             with self.assertRaises(RuntimeError):
@@ -730,8 +802,9 @@ class OneDay(Base):
         with clock(T + 24 * 3600 - 1):
             self.assertEqual(self.client.get("/admin/").status_code, 200)
         with clock(T + 24 * 3600):
-            self.assertRedirects(self.client.get("/admin/shops/shop/"), f"{LOGIN}?next=/admin/shops/shop/",
-                                 fetch_redirect_response=False)
+            self.assertRedirects(
+                self.client.get("/admin/shops/shop/"), f"{LOGIN}?next=/admin/shops/shop/", fetch_redirect_response=False
+            )
             self.assertFalse(signed_in(self.client))
             # Password and code again
             self.assertRedirects(self.password(), CODE, fetch_redirect_response=False)
@@ -799,6 +872,7 @@ class TurnOff(Base):
 # ADMIN_SECOND_FACTOR=required
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 @override_settings(ADMIN_SECOND_FACTOR="required")
 class Required(Base):
     def test_set_up_first_and_nothing_else(self):
@@ -827,8 +901,9 @@ class Required(Base):
             self.assertRedirects(self.client.get(SETUP), "/admin/password_change/", fetch_redirect_response=False)
             self.assertEqual(self.client.get("/admin/password_change/").status_code, 200)
             new = "a brand new secret 8421 z"
-            changed = self.client.post("/admin/password_change/", {"old_password": PASSWORD, "new_password1": new,
-                                                                   "new_password2": new})
+            changed = self.client.post(
+                "/admin/password_change/", {"old_password": PASSWORD, "new_password1": new, "new_password2": new}
+            )
             self.assertEqual(changed.status_code, 302)
             self.assertRedirects(self.client.get("/admin/"), SETUP, fetch_redirect_response=False)
             self.assertEqual(self.client.get(SETUP).status_code, 200)
@@ -853,8 +928,9 @@ class Optional(Base):
     def test_the_admin_says_nothing_about_it(self):
         """Exactly as before any second factor existed: no page in between, no banner, no message; only the quiet link
         among the user tools."""
-        answer = self.client.post(LOGIN, {"username": "volunteer", "password": PASSWORD, "next": "/admin/"},
-                                  follow=True)
+        answer = self.client.post(
+            LOGIN, {"username": "volunteer", "password": PASSWORD, "next": "/admin/"}, follow=True
+        )
         self.assertEqual(answer.redirect_chain, [("/admin/", 302)])
         text = answer.content.decode()
         self.assertEqual(list(answer.context["messages"]), [])
@@ -872,6 +948,7 @@ class Optional(Base):
 # ---------------------------------------------------------------------------------------------------------------------
 # The command, preflight, the settings
 # ---------------------------------------------------------------------------------------------------------------------
+
 
 class Command(Base):
     def test_list(self):
@@ -894,8 +971,10 @@ class Command(Base):
             call_command("admin_totp", "reset", "volunteer", stdout=out)
         self.assertIn("the second factor is removed", out.getvalue())
         self.assertEqual(len(self.told_texts()), 1)
-        self.assertIn("The second factor of the staff account volunteer was reset with manage.py admin_totp reset.",
-                      self.told_texts()[0])
+        self.assertIn(
+            "The second factor of the staff account volunteer was reset with manage.py admin_totp reset.",
+            self.told_texts()[0],
+        )
         self.assertFalse(AdminSecondFactor.objects.exists())
         entry = LogEntry.objects.get()
         self.assertEqual(entry.change_message, "Second factor removed with manage.py admin_totp reset")
@@ -970,14 +1049,22 @@ class Preflight(Base):
 class Settings(TestCase):
     def start(self, **values):
         env = {**os.environ, "SECRET_KEY": "x", "DJANGO_SETTINGS_MODULE": "config.settings", **values}
-        return subprocess.run([sys.executable, "-c", "import django; from django.conf import settings; settings.DEBUG"],
-                              env=env, cwd=settings.BASE_DIR, capture_output=True, text=True, timeout=60, check=False)
+        return subprocess.run(
+            [sys.executable, "-c", "import django; from django.conf import settings; settings.DEBUG"],
+            env=env,
+            cwd=settings.BASE_DIR,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
 
     def test_a_bad_value_stops_the_start(self):
-        for name, value, words in (("ADMIN_SECOND_FACTOR", "yes",
-                                    "ADMIN_SECOND_FACTOR is 'yes': it must be optional, required or passkey"),
-                                   ("ADMIN_SESSION_HOURS", "0", "ADMIN_SESSION_HOURS is '0'"),
-                                   ("ADMIN_SESSION_HOURS", "1.5", "ADMIN_SESSION_HOURS is '1.5'")):
+        for name, value, words in (
+            ("ADMIN_SECOND_FACTOR", "yes", "ADMIN_SECOND_FACTOR is 'yes': it must be optional, required or passkey"),
+            ("ADMIN_SESSION_HOURS", "0", "ADMIN_SESSION_HOURS is '0'"),
+            ("ADMIN_SESSION_HOURS", "1.5", "ADMIN_SESSION_HOURS is '1.5'"),
+        ):
             result = self.start(**{name: value})
             self.assertNotEqual(result.returncode, 0, name)
             self.assertIn(words, result.stderr)

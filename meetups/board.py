@@ -1,5 +1,6 @@
 """What the board shows: the visible meetups of the window, the copies of one evening taken out, split into the next ones
 and the last ones, and each one as the plain texts a page or a calendar needs."""
+
 import hashlib
 import secrets
 from datetime import timedelta
@@ -8,8 +9,8 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import models
 from django.utils import dateformat, formats, timezone
-from django.utils.translation import get_language, gettext as _
-from django.utils.translation import pgettext
+from django.utils.translation import get_language, pgettext
+from django.utils.translation import gettext as _
 
 from . import conf
 from .models import Meetup
@@ -77,8 +78,10 @@ def collapse(meetups):
         kept.extend(m for m in cluster if curated(m) or identity(m) == identity(best))
 
     for meetup in sorted(meetups, key=lambda m: (m.city.casefold(), m.starts_at)):
-        if cluster and (meetup.city.casefold() != cluster[0].city.casefold()
-                        or meetup.starts_at - cluster[0].starts_at > SAME_EVENING):
+        if cluster and (
+            meetup.city.casefold() != cluster[0].city.casefold()
+            or meetup.starts_at - cluster[0].starts_at > SAME_EVENING
+        ):
             close()
             cluster = []
         cluster.append(meetup)
@@ -114,23 +117,34 @@ def row(meetup, now, fallback_link):
     start = meetup.local_start
     home = timezone.get_default_timezone_name()
     return {
-        "id": str(meetup.id), "start": start, "all_day": meetup.all_day,
+        "id": str(meetup.id),
+        "start": start,
+        "all_day": meetup.all_day,
         "iso": start.date().isoformat() if meetup.all_day else start.isoformat(timespec="minutes"),
-        "weekday": dateformat.format(start, "l"), "date": dateformat.format(start, _("j F Y")),
-        "day": start.day, "month": dateformat.format(start, "M"),
+        "weekday": dateformat.format(start, "l"),
+        "date": dateformat.format(start, _("j F Y")),
+        "day": start.day,
+        "month": dateformat.format(start, "M"),
         "time": "" if meetup.all_day else formats.time_format(start, "TIME_FORMAT"),
         # The zone is said only when it is not the community's: a visitor reads the hour as local time
         "zone": "" if meetup.all_day or meetup.tzid == home else start.tzname() or meetup.tzid,
-        "city": meetup.city, "place": meetup.place, **heading(meetup),
-        "status": meetup.status, "status_text": status_text(meetup), "off": meetup.status in (Meetup.Status.CANCELLED, Meetup.Status.POSTPONED),
+        "city": meetup.city,
+        "place": meetup.place,
+        **heading(meetup),
+        "status": meetup.status,
+        "status_text": status_text(meetup),
+        "off": meetup.status in (Meetup.Status.CANCELLED, Meetup.Status.POSTPONED),
         # The community's group stands in only for the meetups of its series: a one-off event is not that group's
-        "url": conf.safe_link(meetup.url) or (fallback_link if meetup.in_series else ""), "past": is_past(meetup, now),
+        "url": conf.safe_link(meetup.url) or (fallback_link if meetup.in_series else ""),
+        "past": is_past(meetup, now),
     }
 
 
 def is_past(meetup, now):
     if meetup.all_day:
-        return meetup.starts_at < now.astimezone(timezone.get_default_timezone()).replace(hour=0, minute=0, second=0, microsecond=0)
+        return meetup.starts_at < now.astimezone(timezone.get_default_timezone()).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
     return meetup.starts_at < now - ONGOING
 
 
@@ -165,13 +179,18 @@ def build(upcoming, past, now):
     wanted_ahead = PAGE_LIMIT if upcoming is None else upcoming
     wanted_behind = PAGE_LIMIT if past is None else past
     coming, gone = sides(now)
-    ahead = collapse(list(coming[:wanted_ahead * 2 + MARGIN]))[:wanted_ahead] if wanted_ahead else []
-    behind = collapse(list(gone[:wanted_behind * 2 + MARGIN]))[::-1][:wanted_behind] if wanted_behind else []
+    ahead = collapse(list(coming[: wanted_ahead * 2 + MARGIN]))[:wanted_ahead] if wanted_ahead else []
+    behind = collapse(list(gone[: wanted_behind * 2 + MARGIN]))[::-1][:wanted_behind] if wanted_behind else []
     link = conf.default_link(language)
-    return {"upcoming": [row(meetup, now, link) for meetup in ahead], "past": [row(meetup, now, link) for meetup in behind],
-            "updated": Meetup.objects.filter(visible=True, starts_at__gte=now - conf.past_months() * MONTH)
-            .aggregate(latest=models.Max("updated"))["latest"],
-            "more_upcoming": max(0, coming.count() - len(ahead)), "more_past": max(0, gone.count() - len(behind))}
+    return {
+        "upcoming": [row(meetup, now, link) for meetup in ahead],
+        "past": [row(meetup, now, link) for meetup in behind],
+        "updated": Meetup.objects.filter(visible=True, starts_at__gte=now - conf.past_months() * MONTH).aggregate(
+            latest=models.Max("updated")
+        )["latest"],
+        "more_upcoming": max(0, coming.count() - len(ahead)),
+        "more_past": max(0, gone.count() - len(behind)),
+    }
 
 
 def next_one(now=None):

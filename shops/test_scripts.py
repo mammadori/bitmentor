@@ -1,5 +1,6 @@
 """What holds for every script in static/: each one parses, and the ones that must talk to nobody have no way to. The
 behaviour of the scripts is tried in node by the other tests; these are the tripwires a change trips at once."""
+
 import os
 import shutil
 import subprocess
@@ -66,7 +67,8 @@ on["window:pageshow"]();
 states.push(button.disabled);
 process.stdout.write(JSON.stringify(states));
 """
-        result = subprocess.run([node, "-e", harness, str(STATIC / "link_confirm.js")], capture_output=True, text=True,
-                                timeout=60)
+        result = subprocess.run(
+            [node, "-e", harness, str(STATIC / "link_confirm.js")], capture_output=True, text=True, timeout=60
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "[false,true,false]")

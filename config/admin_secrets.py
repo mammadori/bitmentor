@@ -17,6 +17,7 @@ reverse relation, which no admin names (`?teamchallenge__k1__startswith=` read t
 that was its primary key). So the rule here is the other way round: a lookup is refused unless its first part is
 something this admin shows, or the primary key. A reverse relation is never one of them. And no model of the site that
 another one points to, or that points to another, keeps a secret as its primary key (config/test_admin_secrets.py)."""
+
 from django.db.models.constants import LOOKUP_SEP
 
 

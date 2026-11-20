@@ -5,6 +5,7 @@ under-construction page calls: docs/features/team-access.md. Caddy opens each of
 
 The volunteers' area (TEAM_AREA, team/area.py) is the other addresses: /team/ and what follows it below. Caddy opens
 none of them from outside on a site under construction: they are reached with a pass, like the rest of the site."""
+
 from django.urls import path
 
 from . import area, views

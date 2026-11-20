@@ -10,6 +10,7 @@ Overpass is bigger than a Lightning address's, so the limits here are the commun
 The token of the account that signs the edits (`OSM_TOKEN`) is read from the environment by osm_upload, handed to
 `request` for one call, and sent in one header to the editing API of the community's settings. It is never in a URL, in
 a log, in an error message or in a file. The tests replace `request` with a fake: no test reaches a server."""
+
 import socket
 import time
 from urllib.parse import urlencode, urlsplit
@@ -77,8 +78,15 @@ def request(method, url, *, seconds, size, data=None, headers=None):
         with requests.Session() as session:
             watchdog = Watchdog(left, pinned=addresses)
             session.mount("https://", watchdog)
-            with session.request(method, url, data=data, headers={"User-Agent": user_agent(), **(headers or {})},
-                                 timeout=(min(CONNECT_SECONDS, seconds), seconds), allow_redirects=False, stream=True) as response:
+            with session.request(
+                method,
+                url,
+                data=data,
+                headers={"User-Agent": user_agent(), **(headers or {})},
+                timeout=(min(CONNECT_SECONDS, seconds), seconds),
+                allow_redirects=False,
+                stream=True,
+            ) as response:
                 if response.status_code >= 400:
                     raise OsmError(f"the server answered {response.status_code}{refusal(response)}")
                 if 300 <= response.status_code < 400:

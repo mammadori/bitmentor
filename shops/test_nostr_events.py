@@ -1,4 +1,5 @@
 """What `manage.py publish_nostr` sends: the profile (NIP-01) and the shops, and what it withdraws. No real relay."""
+
 import itertools
 import json
 from io import StringIO
@@ -24,12 +25,13 @@ class Profile(TestCase):
     def test_the_picture_comes_from_the_configuration(self):
         base = "https://example.org"
         for data, expected in (
-                ({"nostr": {"picture": "/theme/logo.png"}, "logo": "logo.svg"}, "https://example.org/theme/logo.png"),
-                ({"nostr": {"picture": "https://img.example.net/a.jpg"}}, "https://img.example.net/a.jpg"),
-                ({"logo": "logo.png"}, "https://example.org/theme/logo.png"),
-                ({"logo": "logo.svg"}, ""),
-                ({"nostr": None}, ""),
-                ({}, "")):
+            ({"nostr": {"picture": "/theme/logo.png"}, "logo": "logo.svg"}, "https://example.org/theme/logo.png"),
+            ({"nostr": {"picture": "https://img.example.net/a.jpg"}}, "https://img.example.net/a.jpg"),
+            ({"logo": "logo.png"}, "https://example.org/theme/logo.png"),
+            ({"logo": "logo.svg"}, ""),
+            ({"nostr": None}, ""),
+            ({}, ""),
+        ):
             with self.subTest(data):
                 self.assertEqual(picture(data, base), expected)
 
@@ -40,11 +42,15 @@ class Command(TestCase):
         """`relay_has`: what the relay answers to the question about shops, before the OKs."""
         community_data = {**community(), **data}
         out, errors = StringIO(), StringIO()
-        with patch("config.community.community", return_value=community_data), \
-                patch("shops.management.commands.publish_nostr.community", return_value=community_data), \
-                patch("shops.management.commands.publish_nostr.connect") as connect:
+        with (
+            patch("config.community.community", return_value=community_data),
+            patch("shops.management.commands.publish_nostr.community", return_value=community_data),
+            patch("shops.management.commands.publish_nostr.connect") as connect,
+        ):
             socket = connect.return_value.__enter__.return_value
-            answers = [message if isinstance(message, Exception) else json.dumps(message) for message in relay_has or []]
+            answers = [
+                message if isinstance(message, Exception) else json.dumps(message) for message in relay_has or []
+            ]
             socket.recv.side_effect = itertools.chain(answers, itertools.repeat(json.dumps(["OK", "x", True, ""])))
             call_command("publish_nostr", stdout=out, stderr=errors)
         self.out = out.getvalue()
@@ -59,15 +65,26 @@ class Command(TestCase):
         """NIP-09: suspended, removed from the map or deleted, the shop does not stay on the relays with name and position."""
         shown = Shop.objects.create(name="Bar", latitude=46, longitude=11)
         hidden = Shop.objects.create(name="Pub", latitude=46, longitude=11, suspended=True)
-        on_the_relay = [self.shop_on_the_relay(str(shown.id)), self.shop_on_the_relay(str(hidden.id)), ["NOTICE", "slow down"],
-                        self.shop_on_the_relay("deleted"), ["EOSE", "shops"]]
+        on_the_relay = [
+            self.shop_on_the_relay(str(shown.id)),
+            self.shop_on_the_relay(str(hidden.id)),
+            ["NOTICE", "slow down"],
+            self.shop_on_the_relay("deleted"),
+            ["EOSE", "shops"],
+        ]
         sent, _errors = self.publish(relay_has=on_the_relay)
         deletion = next(event for event in sent if event["kind"] == 5)
         # By id too: nostr-rs-relay 0.9 ignores `a` tags
-        self.assertEqual(sorted(tag[1] for tag in deletion["tags"] if tag[0] == "e"), sorted([on_the_relay[1][2]["id"], on_the_relay[3][2]["id"]]))
+        self.assertEqual(
+            sorted(tag[1] for tag in deletion["tags"] if tag[0] == "e"),
+            sorted([on_the_relay[1][2]["id"], on_the_relay[3][2]["id"]]),
+        )
         self.assertEqual(deletion["kind"], 5)
         pubkey = public_key(SECRET)
-        self.assertEqual(sorted(tag[1] for tag in deletion["tags"] if tag[0] == "a"), sorted([f"30402:{pubkey}:deleted", f"30402:{pubkey}:{hidden.id}"]))
+        self.assertEqual(
+            sorted(tag[1] for tag in deletion["tags"] if tag[0] == "a"),
+            sorted([f"30402:{pubkey}:deleted", f"30402:{pubkey}:{hidden.id}"]),
+        )
         self.assertIn(["k", "30402"], deletion["tags"])
         self.assertEqual([event["kind"] for event in sent].count(30402), 1)
         self.assertIn("3/3, withdrawn: 2", self.out)
@@ -81,7 +98,9 @@ class Command(TestCase):
 
     def test_events_of_other_keys_are_not_withdrawn(self):
         Shop.objects.create(name="Bar", latitude=46, longitude=11)
-        sent, _errors = self.publish(relay_has=[self.shop_on_the_relay("somebody-elses", pubkey="ab" * 32), ["EOSE", "shops"]])
+        sent, _errors = self.publish(
+            relay_has=[self.shop_on_the_relay("somebody-elses", pubkey="ab" * 32), ["EOSE", "shops"]]
+        )
         self.assertNotIn(5, [event["kind"] for event in sent])
 
     def test_without_any_shop_to_send_nothing_is_asked_or_withdrawn(self):
@@ -106,8 +125,15 @@ class Command(TestCase):
         release = sign(SECRET, 1063, "", [["d", "release"], ["x", "ab" * 32]])
         made_up = {**self.shop_on_the_relay("made_up")[2], "id": release["id"]}
         unsigned = {**self.shop_on_the_relay("unsigned")[2], "sig": "00" * 64}
-        sent, _errors = self.publish(relay_has=[stale, ["EVENT", "shops", made_up], ["EVENT", "shops", unsigned],
-                                                ["EVENT", "shops", release], ["EOSE", "shops"]])
+        sent, _errors = self.publish(
+            relay_has=[
+                stale,
+                ["EVENT", "shops", made_up],
+                ["EVENT", "shops", unsigned],
+                ["EVENT", "shops", release],
+                ["EOSE", "shops"],
+            ]
+        )
         deletion = next(event for event in sent if event["kind"] == 5)
         self.assertEqual([tag[1] for tag in deletion["tags"] if tag[0] == "e"], [stale[2]["id"]])
         self.assertEqual([tag[1].rsplit(":", 1)[1] for tag in deletion["tags"] if tag[0] == "a"], ["real"])
@@ -115,9 +141,13 @@ class Command(TestCase):
     def test_malformed_events_from_the_relay_do_not_stop_the_shops(self):
         Shop.objects.create(name="Bar", latitude=46, longitude=11)
         pubkey = public_key(SECRET)
-        odd = [["EVENT", "shops", {"pubkey": pubkey, "kind": 30402, "tags": None, "id": "x"}],
-               ["EVENT", "shops", {"pubkey": pubkey, "kind": 30402, "tags": [["d", 5]], "id": "y"}],
-               ["EVENT", "shops", sign(SECRET, 30402, "Bar", [["d", ["list"]]])], ["EVENT"], ["EOSE", "shops"]]
+        odd = [
+            ["EVENT", "shops", {"pubkey": pubkey, "kind": 30402, "tags": None, "id": "x"}],
+            ["EVENT", "shops", {"pubkey": pubkey, "kind": 30402, "tags": [["d", 5]], "id": "y"}],
+            ["EVENT", "shops", sign(SECRET, 30402, "Bar", [["d", ["list"]]])],
+            ["EVENT"],
+            ["EOSE", "shops"],
+        ]
         sent, errors = self.publish(relay_has=odd)
         self.assertEqual([event["kind"] for event in sent], [0, 30402])
         self.assertIn("2/2", self.out)
@@ -131,15 +161,26 @@ class Command(TestCase):
 
     def test_late_answers_to_the_question_are_not_taken_for_an_ok(self):
         Shop.objects.create(name="Bar", latitude=46, longitude=11)
-        sent, _errors = self.publish(relay_has=[self.shop_on_the_relay("old"), ["EOSE", "shops"], ["CLOSED", "shops", ""],
-                                                ["NOTICE", "bye"], ["OK", "x", False, "too big"], ["OK", "x", True, ""], ["OK", "x", True, ""]])
+        sent, _errors = self.publish(
+            relay_has=[
+                self.shop_on_the_relay("old"),
+                ["EOSE", "shops"],
+                ["CLOSED", "shops", ""],
+                ["NOTICE", "bye"],
+                ["OK", "x", False, "too big"],
+                ["OK", "x", True, ""],
+                ["OK", "x", True, ""],
+            ]
+        )
         self.assertIn("2/3", self.out)
         self.assertNotIn("withdrawn", self.out)
 
     @patch("shops.management.commands.publish_nostr.DELETION_BLOCK", 1)
     def test_many_shops_are_withdrawn_in_blocks(self):
         Shop.objects.create(name="Bar", latitude=46, longitude=11)
-        sent, _errors = self.publish(relay_has=[self.shop_on_the_relay("uno"), self.shop_on_the_relay("due"), ["EOSE", "shops"]])
+        sent, _errors = self.publish(
+            relay_has=[self.shop_on_the_relay("uno"), self.shop_on_the_relay("due"), ["EOSE", "shops"]]
+        )
         # The deletions go first: an event rejected afterwards does not stop them
         self.assertEqual([event["kind"] for event in sent], [5, 5, 0, 30402])
         self.assertIn("4/4, withdrawn: 2", self.out)

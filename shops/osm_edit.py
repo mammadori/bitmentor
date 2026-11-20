@@ -7,6 +7,7 @@ Only `manage.py osm_upload` uses this, and it sends nothing unless a person has 
   meantime makes the server refuse the upload, which is what we want);
 - the proposals that need a person's judgement (`REVIEW`) only when the person asks for them;
 - a few elements at a time: one changeset is a thing a person can read through."""
+
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 
@@ -50,8 +51,11 @@ def plan(config, elements, now=None, review=False, limit=MAX_ELEMENTS):
         # An element that was not read whole is never given back: the edit would take away what was left out
         if element is None or element.version is None or element.unreliable:
             continue
-        found = [change for change in changes_for(shop, element, config, today)
-                 if change[0] in config.tags and (review or change[3] != REVIEW)]
+        found = [
+            change
+            for change in changes_for(shop, element, config, today)
+            if change[0] in config.tags and (review or change[3] != REVIEW)
+        ]
         if found:
             edits.append(Edit(shop, element, found))
     return edits[:limit], max(len(edits) - limit, 0)
@@ -109,4 +113,5 @@ def finish_requests(shops):
     """The merchants' requests that this upload did: marked done. Only the shops with nothing left to review."""
     now = timezone.now()
     return OsmRequest.objects.filter(shop__in=shops, state=OsmRequest.State.OPEN, kind=OsmRequest.Kind.UPDATE).update(
-        state=OsmRequest.State.DONE, done=now, done_by="osm_upload")
+        state=OsmRequest.State.DONE, done=now, done_by="osm_upload"
+    )

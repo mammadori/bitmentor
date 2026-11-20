@@ -1,6 +1,7 @@
 """Every foreign key of the site's tables does in the database what its model says (shops/going_back.py), so that an
 earlier image put back on a migrated database can still delete a shop or an account. The rules are set after every
 `migrate` by a post_migrate handler that changes only the keys that differ: PostgreSQL only."""
+
 from unittest import skipIf, skipUnless
 from unittest.mock import MagicMock
 
@@ -25,8 +26,9 @@ def fake_connection(rules, vendor="postgresql"):
             asked["last"] = tuple(params)
 
     cursor.execute.side_effect = execute
-    cursor.fetchall.side_effect = lambda: ([(f"{asked['last'][0]}_{asked['last'][1]}_fk", rules[asked["last"]])]
-                                           if asked["last"] in rules else [])
+    cursor.fetchall.side_effect = lambda: (
+        [(f"{asked['last'][0]}_{asked['last'][1]}_fk", rules[asked["last"]])] if asked["last"] in rules else []
+    )
     return connection_, cursor
 
 
@@ -40,20 +42,32 @@ class ForeignKeys(SimpleTestCase):
         labels = {model._meta.app_label for model, _field in found}
         self.assertLessEqual(labels, set(going_back.APPS))
         self.assertTrue(all(isinstance(field, models.ForeignKey) for _model, field in found))
-        everything = {(model._meta.label_lower, field.name) for model in apps.get_models()
-                      if model._meta.app_label in going_back.APPS for field in model._meta.local_fields
-                      if isinstance(field, models.ForeignKey)}
+        everything = {
+            (model._meta.label_lower, field.name)
+            for model in apps.get_models()
+            if model._meta.app_label in going_back.APPS
+            for field in model._meta.local_fields
+            if isinstance(field, models.ForeignKey)
+        }
         self.assertEqual({(model._meta.label_lower, field.name) for model, field in found}, everything)
         for pair in (("shops.staffregister", "shop"), ("shops.closure", "shop"), ("shops.chaincount", "shop")):
             self.assertIn(pair, everything)
         # Every one of them has a rule the database can hold: none would be skipped by mistake
-        self.assertEqual([(model._meta.label_lower, field.name) for model, field in found
-                          if field.remote_field.on_delete not in going_back.ACTIONS], [])
+        self.assertEqual(
+            [
+                (model._meta.label_lower, field.name)
+                for model, field in found
+                if field.remote_field.on_delete not in going_back.ACTIONS
+            ],
+            [],
+        )
 
     def test_only_the_keys_that_differ_are_changed(self):
         pairs = going_back.site_foreign_keys(apps)
-        rules = {(model._meta.db_table, field.column): going_back.CODES[going_back.ACTIONS[field.remote_field.on_delete]]
-                 for model, field in pairs}
+        rules = {
+            (model._meta.db_table, field.column): going_back.CODES[going_back.ACTIONS[field.remote_field.on_delete]]
+            for model, field in pairs
+        }
         wrong_model, wrong_field = pairs[0]
         rules[(wrong_model._meta.db_table, wrong_field.column)] = "a"  # NO ACTION, as Django makes them
         connection_, cursor = fake_connection(rules)
@@ -63,15 +77,22 @@ class ForeignKeys(SimpleTestCase):
         self.assertEqual(done[0], "SET LOCAL lock_timeout = '30s'")
         self.assertEqual(len(done), 2)
         action = going_back.ACTIONS[wrong_field.remote_field.on_delete]
-        self.assertRegex(done[1], r'^ALTER TABLE "\w+" DROP CONSTRAINT "\w+", ADD CONSTRAINT "\w+" FOREIGN KEY \("\w+"\) '
-                                  rf'REFERENCES "\w+" \("\w+"\) ON DELETE {action} DEFERRABLE INITIALLY DEFERRED$')
+        self.assertRegex(
+            done[1],
+            r'^ALTER TABLE "\w+" DROP CONSTRAINT "\w+", ADD CONSTRAINT "\w+" FOREIGN KEY \("\w+"\) '
+            rf'REFERENCES "\w+" \("\w+"\) ON DELETE {action} DEFERRABLE INITIALLY DEFERRED$',
+        )
         # The constraint keeps its name
-        self.assertEqual(done[1].split("DROP CONSTRAINT ")[1].split(",")[0], done[1].split("ADD CONSTRAINT ")[1].split(" FOREIGN")[0])
+        self.assertEqual(
+            done[1].split("DROP CONSTRAINT ")[1].split(",")[0], done[1].split("ADD CONSTRAINT ")[1].split(" FOREIGN")[0]
+        )
 
     def test_keys_already_right_change_nothing(self):
         pairs = going_back.site_foreign_keys(apps)
-        rules = {(model._meta.db_table, field.column): going_back.CODES[going_back.ACTIONS[field.remote_field.on_delete]]
-                 for model, field in pairs}
+        rules = {
+            (model._meta.db_table, field.column): going_back.CODES[going_back.ACTIONS[field.remote_field.on_delete]]
+            for model, field in pairs
+        }
         connection_, cursor = fake_connection(rules)
         self.assertEqual(going_back.align(connection_, pairs), [])
         self.assertEqual(statements(cursor), [])
@@ -119,8 +140,10 @@ class InTheDatabase(TestCase):
         table = ChainCount._meta.db_table
         with connection.cursor() as cursor:
             name, _code = going_back.constraint_of(cursor, table, field.column)
-            cursor.execute(f'ALTER TABLE "{table}" DROP CONSTRAINT "{name}", ADD CONSTRAINT "{name}" FOREIGN KEY '
-                           f'("{field.column}") REFERENCES "shops_shop" ("id") DEFERRABLE INITIALLY DEFERRED')
+            cursor.execute(
+                f'ALTER TABLE "{table}" DROP CONSTRAINT "{name}", ADD CONSTRAINT "{name}" FOREIGN KEY '
+                f'("{field.column}") REFERENCES "shops_shop" ("id") DEFERRABLE INITIALLY DEFERRED'
+            )
         self.assertEqual(going_back.align(connection, going_back.site_foreign_keys(apps)), [f"{table}.{field.column}"])
         with connection.cursor() as cursor:
             self.assertEqual(going_back.constraint_of(cursor, table, field.column)[1], "c")
@@ -128,5 +151,7 @@ class InTheDatabase(TestCase):
     @skipUnless(connection.vendor == "postgresql", "only PostgreSQL changes a constraint in place")
     def test_the_database_deletes_the_chain_counts_of_a_deleted_shop(self):
         with connection.cursor() as cursor:
-            cursor.execute("SELECT confdeltype FROM pg_constraint WHERE conrelid = 'shops_chaincount'::regclass AND contype = 'f'")
+            cursor.execute(
+                "SELECT confdeltype FROM pg_constraint WHERE conrelid = 'shops_chaincount'::regclass AND contype = 'f'"
+            )
             self.assertEqual([row[0] for row in cursor.fetchall()], ["c"])

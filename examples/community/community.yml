@@ -48,6 +48,10 @@ tagline:
 languages:
   en: English
   it: Italiano
+# The language switcher marks with a * the languages no native speaker has read; each catalog says it of itself
+# (docs/languages.md). Here the community has the last word, one language at a time, or `true` for no mark at all.
+# native_reviewed:
+#   it: true
 # Where the shop map starts. zoom: 6 a country, 13 a city, 16 a street
 map:
   latitude: 41.9

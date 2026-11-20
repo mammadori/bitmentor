@@ -1,13 +1,14 @@
 """Forgetting (shops/management/commands/forget_old_requests.py): a request for help closed more than a year ago loses what it
 kept of a person and stays as a row for the counts; one that is open, waiting, reopened or closed less than a year ago is not
 touched; the second run does nothing; and the command runs with the payments timer."""
+
 from datetime import timedelta
 from io import StringIO
 from unittest.mock import patch
 
 from django.conf import settings
-from django.core import checks
 from django.contrib.auth import get_user_model
+from django.core import checks
 from django.core.management import CommandError, call_command
 from django.test import TestCase
 from django.utils import timezone
@@ -21,10 +22,12 @@ from .test_help import Base as HelpBase
 
 User = get_user_model()
 
-DIAGNOSIS = ("✓ [owner_recovery_email] You can sign in with a link sent to your email, even without the wallet.\n"
-             "    signs in with: wallet key 02ab12cd…; last login 2025-01-03 18:02 UTC; recovery email m***@e***.org\n"
-             "! [lightning_no_answer] Your Lightning wallet is not answering.\n"
-             "    bar@ln.example.org; 4.2 s: LNURL-pay metadata or invoice not obtained")
+DIAGNOSIS = (
+    "✓ [owner_recovery_email] You can sign in with a link sent to your email, even without the wallet.\n"
+    "    signs in with: wallet key 02ab12cd…; last login 2025-01-03 18:02 UTC; recovery email m***@e***.org\n"
+    "! [lightning_no_answer] Your Lightning wallet is not answering.\n"
+    "    bar@ln.example.org; 4.2 s: LNURL-pay metadata or invoice not obtained"
+)
 FORGOTTEN = {"note": "", "summary": "", "channel": "page", "asked_by_id": None, "resolved_by": ""}
 
 
@@ -45,9 +48,18 @@ class ForgetOldRequests(TestCase):
         """A request that keeps a person's words, solved `solved_days_ago` days ago (open when None)."""
         solved = None if solved_days_ago is None else self.now - timedelta(days=solved_days_ago)
         asked = self.now - timedelta(days=asked_days_ago if asked_days_ago is not None else (solved_days_ago or 0) + 1)
-        values = {"shop": self.shop, "asked_by": self.owner, "symptom": HelpRequest.Symptom.PAY, "note": "Call me after six",
-                  "channel": HelpRequest.Channel.PHONE, "summary": DIAGNOSIS, "delivery": HelpRequest.Delivery.SENT,
-                  "created": asked, "resolved": solved, "resolved_by": "volunteer" if solved else ""}
+        values = {
+            "shop": self.shop,
+            "asked_by": self.owner,
+            "symptom": HelpRequest.Symptom.PAY,
+            "note": "Call me after six",
+            "channel": HelpRequest.Channel.PHONE,
+            "summary": DIAGNOSIS,
+            "delivery": HelpRequest.Delivery.SENT,
+            "created": asked,
+            "resolved": solved,
+            "resolved_by": "volunteer" if solved else "",
+        }
         return HelpRequest.objects.create(**{**values, **fields})
 
     def stored(self, row):
@@ -77,11 +89,20 @@ class ForgetOldRequests(TestCase):
 
     def test_the_shop_and_the_account_are_not_touched_only_the_rows_link_to_it(self):
         row = self.ask(solved_days_ago=400)
-        before = (Shop.objects.values().get(pk=self.shop.pk), User.objects.values().get(pk=self.owner.pk),
-                  Profile.objects.values().get(user=self.owner))
+        before = (
+            Shop.objects.values().get(pk=self.shop.pk),
+            User.objects.values().get(pk=self.owner.pk),
+            Profile.objects.values().get(user=self.owner),
+        )
         run()
-        self.assertEqual((Shop.objects.values().get(pk=self.shop.pk), User.objects.values().get(pk=self.owner.pk),
-                          Profile.objects.values().get(user=self.owner)), before)
+        self.assertEqual(
+            (
+                Shop.objects.values().get(pk=self.shop.pk),
+                User.objects.values().get(pk=self.owner.pk),
+                Profile.objects.values().get(user=self.owner),
+            ),
+            before,
+        )
         self.assertIsNone(HelpRequest.objects.get(pk=row.pk).asked_by)
 
     # -- what is not -------------------------------------------------------------------------------------------------
@@ -321,11 +342,13 @@ class ForgetOldRequests(TestCase):
         welcome back, forgets its reason (back to the default) and when it was seen (back to nothing)."""
         day, seen = self.now.date(), self.now - timedelta(days=3)
         shop = Shop.objects.create(name="Long ago", city="Town")
-        closed = Closure.objects.create(shop=shop, first_day=day, reason=Closure.Reason.WORKS, seen=seen,
-                                        welcomed=self.now - timedelta(days=400))
+        closed = Closure.objects.create(
+            shop=shop, first_day=day, reason=Closure.Reason.WORKS, seen=seen, welcomed=self.now - timedelta(days=400)
+        )
         later = Shop.objects.create(name="Later", city="Town")
-        recent = Closure.objects.create(shop=later, first_day=day, reason=Closure.Reason.WORKS, seen=seen,
-                                        welcomed=self.now - timedelta(days=5))
+        recent = Closure.objects.create(
+            shop=later, first_day=day, reason=Closure.Reason.WORKS, seen=seen, welcomed=self.now - timedelta(days=5)
+        )
         waiting = Shop.objects.create(name="Waiting", city="Town")
         open_one = Closure.objects.create(shop=waiting, first_day=day, reason=Closure.Reason.WORKS, seen=seen)
         rules = (*forget_old_requests.RULES, forget_old_requests.Rule("shops.Closure", "welcomed", ("reason", "seen")))
@@ -358,19 +381,32 @@ class ForgetOldRequests(TestCase):
 
     def test_it_runs_with_the_morning_timer_and_its_failure_counts(self):
         script = (settings.BASE_DIR / "deploy" / "dashboard.sh").read_text()
-        line = next(line for line in script.splitlines() if "forget_old_requests" in line and line.startswith("docker exec"))
+        line = next(
+            line for line in script.splitlines() if "forget_old_requests" in line and line.startswith("docker exec")
+        )
         self.assertTrue(line.endswith("|| result=$?"), line)
         self.assertIn('[ "$result" = 0 ] || exit "$result"', script)
         # Before the summary
-        self.assertLess(script.index("manage.py forget_old_requests"), script.index('docker exec "$web" python manage.py dashboard'))
+        self.assertLess(
+            script.index("manage.py forget_old_requests"), script.index('docker exec "$web" python manage.py dashboard')
+        )
 
 
 class WhatTheMerchantAndTheAssociationSeeAfter(HelpBase):
     def old_request(self):
         old = timezone.now() - timedelta(days=500)
         return HelpRequest.objects.create(
-            shop=self.shop, asked_by=self.owner, symptom="pay", note="Please call after six", channel="phone", summary=DIAGNOSIS,
-            delivery="sent", created=old - timedelta(hours=2), resolved=old, resolved_by="volunteer")
+            shop=self.shop,
+            asked_by=self.owner,
+            symptom="pay",
+            note="Please call after six",
+            channel="phone",
+            summary=DIAGNOSIS,
+            delivery="sent",
+            created=old - timedelta(hours=2),
+            resolved=old,
+            resolved_by="volunteer",
+        )
 
     def test_the_old_request_is_in_the_history_of_the_owner_until_it_is_forgotten_and_then_it_is_not(self):
         self.old_request()

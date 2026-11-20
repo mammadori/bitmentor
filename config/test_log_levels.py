@@ -1,5 +1,6 @@
 """What the site's logging (settings.LOGGING) hands to its handler: the warnings and errors of the site's apps and of
 any other code, a community's included, the lines Django always wrote, and only the errors of the libraries."""
+
 import logging
 
 from django.conf import settings
@@ -29,8 +30,16 @@ class Levels(SimpleTestCase):
         self.assertNotIn("django", settings.QUIET_LOGGERS)
 
     def test_the_libraries_write_only_their_errors(self):
-        for name in ("py.warnings", "asyncio", "urllib3.connectionpool", "requests", "websockets.client", "psycopg.pool",
-                     "MARKDOWN", "PIL.Image"):
+        for name in (
+            "py.warnings",
+            "asyncio",
+            "urllib3.connectionpool",
+            "requests",
+            "websockets.client",
+            "psycopg.pool",
+            "MARKDOWN",
+            "PIL.Image",
+        ):
             self.assertFalse(written(name, logging.WARNING), name)
             self.assertTrue(written(name, logging.ERROR), name)
 

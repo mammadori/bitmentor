@@ -1,5 +1,6 @@
 """`moderators_emails` in community.yml: the moderators' messages by email, when Telegram does not take them, to a few
 addresses of their own instead of the community's public `email`."""
+
 from io import StringIO
 from smtplib import SMTPException
 from unittest.mock import patch
@@ -44,8 +45,10 @@ class ModeratorsEmails(TestCase):
         self.assertTrue(all(not message.cc and not message.bcc for message in mail.outbox))
 
     def test_telegram_first_the_emails_only_when_it_does_not_take_it(self):
-        with override_settings(TELEGRAM_BOT_TOKEN="t", TELEGRAM_MODERATION_CHAT="11"), \
-                configured(moderators_emails=["anna@example.org"]):
+        with (
+            override_settings(TELEGRAM_BOT_TOKEN="t", TELEGRAM_MODERATION_CHAT="11"),
+            configured(moderators_emails=["anna@example.org"]),
+        ):
             with patch("shops.notifications.telegram", return_value=True):
                 self.assertEqual(deliver_to_moderators("Subject", "hello"), ("TELEGRAM_MODERATION_CHAT", []))
             self.assertEqual(mail.outbox, [])
@@ -63,23 +66,34 @@ class ModeratorsEmails(TestCase):
             mail.EmailMessage(subject, text, None, recipients, connection=real()).send()
             return 1
 
-        with configured(moderators_emails=["anna@example.org", "bruno@example.net"]), \
-                patch("shops.notifications.send_mail", side_effect=send):
+        with (
+            configured(moderators_emails=["anna@example.org", "bruno@example.net"]),
+            patch("shops.notifications.send_mail", side_effect=send),
+        ):
             where, problems = deliver_to_moderators("Subject", "hello")
         self.assertEqual(where, "the community's email")
         self.assertEqual(problems, ["`moderators_emails`: address 1 of 2 failed (SMTPException)"])
         self.assertEqual([message.to for message in mail.outbox], [["bruno@example.net"]])
         # None went: nowhere, and the community's email is not tried behind the moderators' back
-        with configured(email="public@example.org", moderators_emails=["anna@example.org"]), \
-                patch("shops.notifications.send_mail", side_effect=OSError) as sent:
+        with (
+            configured(email="public@example.org", moderators_emails=["anna@example.org"]),
+            patch("shops.notifications.send_mail", side_effect=OSError) as sent,
+        ):
             where, problems = deliver_to_moderators("Subject", "hello")
         self.assertIsNone(where)
         self.assertEqual(sent.call_count, 1)
         self.assertNotIn("anna", " ".join(problems))
 
     def test_addresses_that_cannot_be_used_are_left_out_and_checked(self):
-        bad = ["not an address", "anna@example.org", "ANNA@example.org", 42, "x@example.org\nBcc: y@example.org",
-               "bruno@example.net, eve@example.com", "carla@example.org"]
+        bad = [
+            "not an address",
+            "anna@example.org",
+            "ANNA@example.org",
+            42,
+            "x@example.org\nBcc: y@example.org",
+            "bruno@example.net, eve@example.com",
+            "carla@example.org",
+        ]
         with configured(moderators_emails=bad):
             addresses, problems = read_moderators_emails()
             warnings = wrong_moderators_emails(None)
@@ -136,19 +150,27 @@ class MorningSummary(TestCase):
         self.assertEqual([message.to for message in mail.outbox], [["anna@example.org"], ["bruno@example.net"]])
 
     def test_a_summary_that_no_address_took_is_tried_again_next_run(self):
-        with configured(email="public@example.org", moderators_emails=["anna@example.org"]), \
-                patch("shops.management.commands.dashboard.send_mail", side_effect=OSError), \
-                self.assertRaises(CommandError) as raised:
+        with (
+            configured(email="public@example.org", moderators_emails=["anna@example.org"]),
+            patch("shops.management.commands.dashboard.send_mail", side_effect=OSError),
+            self.assertRaises(CommandError) as raised,
+        ):
             self.send()
         self.assertIn("address 1 of 1 failed (OSError)", str(raised.exception))
         self.assertNotIn("anna", str(raised.exception))
 
 
-@override_settings(TELEGRAM_BOT_TOKEN="", TELEGRAM_MODERATION_CHAT="", EMAIL_BACKEND="config.mailbudget.CountingBackend",
-                   EMAIL_REAL_BACKEND="django.core.mail.backends.locmem.EmailBackend", LANGUAGE_CODE="en")
+@override_settings(
+    TELEGRAM_BOT_TOKEN="",
+    TELEGRAM_MODERATION_CHAT="",
+    EMAIL_BACKEND="config.mailbudget.CountingBackend",
+    EMAIL_REAL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    LANGUAGE_CODE="en",
+)
 class EmailBudgetUsedUp(TestCase):
     """Over the email budget the counting backend drops a message without an error (config/mailbudget.py): that is not
     a delivery."""
+
     def setUp(self):
         cache.clear()
         self.enterContext(patch("config.mailbudget.blocked", return_value="limits.emails_per_month"))

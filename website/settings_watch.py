@@ -22,6 +22,7 @@ but the message names none: it counts them. The user and password in an address 
 
 Not a defence against whoever controls the machine or edits the `.env`: they can turn it off, change the database, or
 redirect the messages (the moderators' chat and the bot token changed together)."""
+
 import hashlib
 import hmac
 import json
@@ -261,7 +262,7 @@ def shown(value):
     text = plain(" ".join(without_credentials(text)[0].split()))
     if not text:
         return _("(empty)")
-    return text if len(text) <= SHOWN_LENGTH else text[:SHOWN_LENGTH - 1] + "…"
+    return text if len(text) <= SHOWN_LENGTH else text[: SHOWN_LENGTH - 1] + "…"
 
 
 # --- The database -----------------------------------------------------------------------------------------------------
@@ -287,8 +288,11 @@ class Claim:
         from .models import SettingsWatch
 
         SettingsWatch.objects.bulk_create([SettingsWatch(pk=1)], ignore_conflicts=True)
-        if SettingsWatch.objects.filter(pk=1).filter(Q(claimed_until__isnull=True) | Q(claimed_until__lt=now)).update(
-                claimed_until=now + CLAIM):
+        if (
+            SettingsWatch.objects.filter(pk=1)
+            .filter(Q(claimed_until__isnull=True) | Q(claimed_until__lt=now))
+            .update(claimed_until=now + CLAIM)
+        ):
             self.until = now + CLAIM
         return self.until is not None
 
@@ -380,7 +384,8 @@ def line(change):
             text = _("{name}: removed: {removed}, now empty").format(name=name, removed=len(old))
         else:
             text = _("{name}: removed: {removed}, added: {added}").format(
-                name=name, removed=len(old - new), added=len(new - old))
+                name=name, removed=len(old - new), added=len(new - old)
+            )
     elif change.before == change.after:
         # Only the user or the password in the address changed: neither is ever stored nor shown
         text = _("{name}: the credentials in the address changed").format(name=name)
@@ -396,11 +401,18 @@ def message(changes, key_changed, now):
 
     with translation.override(settings.LANGUAGE_CODE):
         when = formats.date_format(timezone.localtime(now), "DATETIME_FORMAT")
-        lines = [site_label(), _("Security settings changed since the previous start of the site ({time}):").format(time=when)]
+        lines = [
+            site_label(),
+            _("Security settings changed since the previous start of the site ({time}):").format(time=when),
+        ]
         lines += [line(change) for change in changes]
         if key_changed:
-            lines.append(_("The other secrets cannot be compared this time, because SECRET_KEY changed: they are "
-                           "recorded again."))
+            lines.append(
+                _(
+                    "The other secrets cannot be compared this time, because SECRET_KEY changed: they are "
+                    "recorded again."
+                )
+            )
         lines.append(_("If nobody of the team did this, look at the machine's .env."))
         return str(_("Settings changed")), "\n".join(lines)
 
@@ -443,8 +455,11 @@ def deliver(subject, text, changes, hold=lambda: None):
         if change.entry.reaches == "telegram":
             extra_chats += [chat for chat in listed(change.before) if f"telegram:{chat}" not in reached]
         elif change.entry.reaches == "mail":
-            extra_mail += [address for address in [*listed(change.before), *listed(change.after)]
-                           if f"mail:{address.lower()}" not in reached]
+            extra_mail += [
+                address
+                for address in [*listed(change.before), *listed(change.after)]
+                if f"mail:{address.lower()}" not in reached
+            ]
     extra_chats = list(dict.fromkeys(extra_chats))
     # Each address once, as first written
     seen = {}
@@ -472,12 +487,15 @@ def deliver(subject, text, changes, hold=lambda: None):
                     sent = True
                 else:
                     again = True
-                    problems.append(f"address {place} of {len(extra_mail)} of the old and new moderators' emails: "
-                                    f"{mail.NOT_SENT}")
+                    problems.append(
+                        f"address {place} of {len(extra_mail)} of the old and new moderators' emails: {mail.NOT_SENT}"
+                    )
             except (OSError, SMTPException, ValueError) as error:
                 again = True
-                problems.append(f"address {place} of {len(extra_mail)} of the old and new moderators' emails failed "
-                                f"({type(error).__name__})")
+                problems.append(
+                    f"address {place} of {len(extra_mail)} of the old and new moderators' emails failed "
+                    f"({type(error).__name__})"
+                )
     if not channel:
         done = not again
     return done, sent, problems
@@ -515,8 +533,12 @@ def compare(now=None):
             done, sent, problems = deliver(subject, text, changes, claim.hold)
             if not done:
                 # The record stays the one the moderators know: the next start tries again
-                logger.warning("settings watch: the moderators were not told of %s changed settings, the next start "
-                               "tries again (%s)", len(changes), "; ".join(problems))
+                logger.warning(
+                    "settings watch: the moderators were not told of %s changed settings, the next start "
+                    "tries again (%s)",
+                    len(changes),
+                    "; ".join(problems),
+                )
                 record(values, stored, now, keep=stored)
                 return "not told"
             if problems:
@@ -551,16 +573,23 @@ def switched_off(now):
 
         with translation.override(settings.LANGUAGE_CODE):
             when = formats.date_format(timezone.localtime(now), "DATETIME_FORMAT")
-            text = "\n".join([
-                site_label(),
-                _("The settings watch was turned off in community.yml ({time}): the moderators no longer hear when a "
-                  "security setting changes.").format(time=when),
-                _("If nobody of the team did this, look at community.yml on the machine.")])
+            text = "\n".join(
+                [
+                    site_label(),
+                    _(
+                        "The settings watch was turned off in community.yml ({time}): the moderators no longer hear when a "
+                        "security setting changes."
+                    ).format(time=when),
+                    _("If nobody of the team did this, look at community.yml on the machine."),
+                ]
+            )
             subject = str(_("Settings watch turned off"))
         done, sent, problems = deliver(subject, text, [], claim.hold)
         if not done:
-            logger.warning("settings watch: the moderators were not told that it was turned off, the next start tries "
-                           "again (%s)", "; ".join(problems))
+            logger.warning(
+                "settings watch: the moderators were not told that it was turned off, the next start tries again (%s)",
+                "; ".join(problems),
+            )
             return "off, not told"
         forget()
         return "off, told" if sent else "off"
@@ -576,8 +605,9 @@ def record(values, stored, now, keep=()):
     for name, (value, print_) in values.items():
         if name in keep or stored.get(name) == (value, print_):
             continue
-        WatchedSetting.objects.update_or_create(name=name, defaults={
-            "secret": secret[name], "value": value, "fingerprint": print_, "recorded": now})
+        WatchedSetting.objects.update_or_create(
+            name=name, defaults={"secret": secret[name], "value": value, "fingerprint": print_, "recorded": now}
+        )
 
 
 def at_start():

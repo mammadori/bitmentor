@@ -3,6 +3,7 @@ tags in the pages draw nothing.
 
 The format is next to the block in examples/community/community.yml and in docs/features/meetups.md. A value that cannot
 be used is left out, the reason goes to `warn` and the board stays up."""
+
 import math
 import re
 from urllib.parse import urlsplit
@@ -37,8 +38,14 @@ def enabled():
 def safe_link(value):
     """An address a visitor can follow: https, a server, no user name or password, no spaces or control characters and
     nothing outside ASCII (an address with other letters is written percent-encoded). Anything else is not a link."""
-    if not isinstance(value, str) or not value or len(value) > MAX_LINK or not value.isascii() or not value.isprintable() \
-            or any(char in value for char in " \\\"'<>`"):
+    if (
+        not isinstance(value, str)
+        or not value
+        or len(value) > MAX_LINK
+        or not value.isascii()
+        or not value.isprintable()
+        or any(char in value for char in " \\\"'<>`")
+    ):
         return ""
     return value if weburl.parts(value, "https") else ""
 
@@ -49,7 +56,9 @@ def past_months(warn=None):
     if isinstance(value, int) and not isinstance(value, bool) and low <= value <= high:
         return value
     if warn:
-        warn(f"`meetups.past_months` must be a whole number from {low} to {high}: {value!r}; {DEFAULT_PAST_MONTHS} counts instead")
+        warn(
+            f"`meetups.past_months` must be a whole number from {low} to {high}: {value!r}; {DEFAULT_PAST_MONTHS} counts instead"
+        )
     return DEFAULT_PAST_MONTHS
 
 
@@ -156,13 +165,22 @@ def cities(warn=None):
     found = []
     for entry in data if isinstance(data, list) else [data]:
         try:
-            if not isinstance(entry, dict) or not isinstance(entry.get("name"), str) or not entry["name"].strip() \
-                    or len(entry["name"]) > 100:
+            if (
+                not isinstance(entry, dict)
+                or not isinstance(entry.get("name"), str)
+                or not entry["name"].strip()
+                or len(entry["name"]) > 100
+            ):
                 raise ValueError("write it as `- name: …` with `latitude` and `longitude`")
             radius = entry.get("radius_km", DEFAULT_RADIUS_KM)
-            found.append({"name": entry["name"].strip(), "latitude": number(entry, "latitude", -90, 90),
-                          "longitude": number(entry, "longitude", -180, 180),
-                          "radius_km": number({"radius_km": radius}, "radius_km", *RADIUS_LIMITS)})
+            found.append(
+                {
+                    "name": entry["name"].strip(),
+                    "latitude": number(entry, "latitude", -90, 90),
+                    "longitude": number(entry, "longitude", -180, 180),
+                    "radius_km": number({"radius_km": radius}, "radius_km", *RADIUS_LIMITS),
+                }
+            )
         except ValueError as error:
             if warn:
                 warn(f"`meetups.cities`: {entry!r} is left out: {error}")

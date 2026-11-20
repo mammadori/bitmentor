@@ -60,13 +60,18 @@ RETIRED_GRACE = timedelta(hours=24)
 class StaffRegisterForm(forms.ModelForm):
     """The name of a staff register and, for a shop with other places, the place it is used at: the choice is among
     the places of `shop` only, so a place of another shop is refused as an invalid choice."""
+
     class Meta:
         model = StaffRegister
         fields = ["name", "place"]
         labels = {"name": gettext_lazy("Who will use it"), "place": gettext_lazy("Where it is used")}
-        help_texts = {"name": gettext_lazy("A first name or a word you recognise, for example «Anna» or «evening shift». "
-                                           "It shows at the top of the register's screen."),
-                      "place": gettext_lazy("Only to find it in this list: it changes nothing in the register.")}
+        help_texts = {
+            "name": gettext_lazy(
+                "A first name or a word you recognise, for example «Anna» or «evening shift». "
+                "It shows at the top of the register's screen."
+            ),
+            "place": gettext_lazy("Only to find it in this list: it changes nothing in the register."),
+        }
 
     def __init__(self, *args, shop=None, has_places=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -84,16 +89,24 @@ class StaffRegisterForm(forms.ModelForm):
             raise forms.ValidationError(_("Write a name."))
         # A register takes the name of another one only by being renamed: the day closing tells the registers apart by
         # name, and two with the same one would be counted together. Adding one is left as it was.
-        if self.shop and self.instance.pk and self.shop.staff_registers.filter(
-                retired__isnull=True, name__iexact=name).exclude(pk=self.instance.pk).exists():
+        if (
+            self.shop
+            and self.instance.pk
+            and self.shop.staff_registers.filter(retired__isnull=True, name__iexact=name)
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
             raise forms.ValidationError(_("Another register of this shop has this name: choose a different one."))
         return name
 
 
 def staff_register(register, key):
     """The register with this id, if `key` is its key; 404 otherwise. Turned off registers too: the callers decide."""
-    found = (StaffRegister.objects.select_related("shop").filter(shop__lightning_address__gt="").filter(pk=register).first()
-             if KEY.fullmatch(key or "") else None)
+    found = (
+        StaffRegister.objects.select_related("shop").filter(shop__lightning_address__gt="").filter(pk=register).first()
+        if KEY.fullmatch(key or "")
+        else None
+    )
     if not found or not hmac.compare_digest(found.key, key):
         raise Http404
     return found
@@ -146,26 +159,50 @@ def pairing_data(shop, register, url):
     data = register_data(shop) or {}
     start = preferences(shop)
     onchain = features.enabled(features.ONCHAIN)
-    return {"url": url, "register": str(register.id), "shop_id": str(shop.id), "lightning": data.get("address", ""),
-            "network": settings.NETWORK, "sources": options()["sources"],
-            "currency": data.get("currency", ""), "discount": start["discount"], "confirm_above": start["confirm_above"],
-            "shop": start["shop"], **relays(), **({"chain_on": True} if onchain else {}), "texts": pairing_texts(onchain)}
+    return {
+        "url": url,
+        "register": str(register.id),
+        "shop_id": str(shop.id),
+        "lightning": data.get("address", ""),
+        "network": settings.NETWORK,
+        "sources": options()["sources"],
+        "currency": data.get("currency", ""),
+        "discount": start["discount"],
+        "confirm_above": start["confirm_above"],
+        "shop": start["shop"],
+        **relays(),
+        **({"chain_on": True} if onchain else {}),
+        "texts": pairing_texts(onchain),
+    }
 
 
 def pairing_texts(onchain=True):
     return {
         "lightning": _("Lightning: {address}"),
-        **({"chain_key": _("On-chain: the receive addresses of your wallet, …/{path}, counted with your other registers. "
-                           "The first one is {address}."),
-            "chain_fixed": _("On-chain: your fixed address {address}."),
-            "lightning_only": _("On-chain: no. To add it, set it in your register's settings on this phone, then come back here."),
-            "preferences": _("Discount {discount}%, currency {currency}, a confirmation above {above}.")}
-           if onchain else {"preferences": _("Discount {discount}%, currency {currency}.")}),
+        **(
+            {
+                "chain_key": _(
+                    "On-chain: the receive addresses of your wallet, …/{path}, counted with your other registers. "
+                    "The first one is {address}."
+                ),
+                "chain_fixed": _("On-chain: your fixed address {address}."),
+                "lightning_only": _(
+                    "On-chain: no. To add it, set it in your register's settings on this phone, then come back here."
+                ),
+                "preferences": _("Discount {discount}%, currency {currency}, a confirmation above {above}."),
+            }
+            if onchain
+            else {"preferences": _("Discount {discount}%, currency {currency}.")}
+        ),
         "nostr": _("Sales sent to you on Nostr as they happen, encrypted to {owner}."),
-        "pin_changed": _("The shop's Lightning address is {after}, but the register on this phone takes payments into "
-                         "{before}. Open your register first and check it: no code until they are the same."),
-        "failed": _("The code cannot be made on this browser: try another browser, or open this page on the phone with "
-                    "your register."),
+        "pin_changed": _(
+            "The shop's Lightning address is {after}, but the register on this phone takes payments into "
+            "{before}. Open your register first and check it: no code until they are the same."
+        ),
+        "failed": _(
+            "The code cannot be made on this browser: try another browser, or open this page on the phone with "
+            "your register."
+        ),
     }
 
 
@@ -194,8 +231,9 @@ def manage(request, shop):
     if request.method == "POST":
         if ratelimit.over_limit(f"staff:{request.user.pk}", REGISTER_CHANGES, REGISTER_CHANGE_WINDOW):
             form.add_error(None, _("Too many changes in a short time: wait a few minutes."))
-        elif limits.get("staff_registers_per_shop") and \
-                shop.staff_registers.filter(retired__isnull=True).count() >= limits.get("staff_registers_per_shop"):
+        elif limits.get("staff_registers_per_shop") and shop.staff_registers.filter(
+            retired__isnull=True
+        ).count() >= limits.get("staff_registers_per_shop"):
             form.add_error(None, _("Too many registers turned on: turn off the ones nobody uses any more."))
         elif form.is_valid():
             register = form.save(commit=False)
@@ -217,12 +255,26 @@ def list_page(request, shop, form, renamed=None):
     has_places = "place" in form.fields
     for register in registers:
         if not register.retired:
-            register.rename_form = (renamed if renamed and renamed.instance.pk == register.pk else StaffRegisterForm(
-                instance=register, shop=shop, has_places=has_places, auto_id=f"rename-{register.pk}-%s"))
+            register.rename_form = (
+                renamed
+                if renamed and renamed.instance.pk == register.pk
+                else StaffRegisterForm(
+                    instance=register, shop=shop, has_places=has_places, auto_id=f"rename-{register.pk}-%s"
+                )
+            )
     active = [r for r in registers if not r.retired]
-    return render(request, "shops/staff_registers.html", {
-        "shop": shop, "form": form, "active": active, "groups": by_place(shop, active),
-        "retired": [r for r in registers if r.retired], "owner_register": reverse("register", args=[shop.id])})
+    return render(
+        request,
+        "shops/staff_registers.html",
+        {
+            "shop": shop,
+            "form": form,
+            "active": active,
+            "groups": by_place(shop, active),
+            "retired": [r for r in registers if r.retired],
+            "owner_register": reverse("register", args=[shop.id]),
+        },
+    )
 
 
 def by_place(shop, registers):
@@ -272,8 +324,12 @@ def retire(request, shop, register):
             register.retired = timezone.now()
             register.code = ""
             register.save(update_fields=["retired", "code"])
-    messages.success(request, _("«{name}» is turned off: it takes no more payments. If the person needs a register "
-                                "again, add a new one.").format(name=register.name))
+    messages.success(
+        request,
+        _(
+            "«{name}» is turned off: it takes no more payments. If the person needs a register again, add a new one."
+        ).format(name=register.name),
+    )
     return redirect("staff_registers", shop.id)
 
 
@@ -295,9 +351,14 @@ def rename(request, shop, register):
             # Only what the form changes: never the code, the key or the state of the register
             form.save(commit=False).save(update_fields=list(form.fields))
             if register.name != before:
-                messages.success(request, _("«{before}» is now «{name}». Its phone shows the new name the next time "
-                                            "the register opens with the site; the sales already made keep the old "
-                                            "one.").format(before=before, name=register.name))
+                messages.success(
+                    request,
+                    _(
+                        "«{before}» is now «{name}». Its phone shows the new name the next time "
+                        "the register opens with the site; the sales already made keep the old "
+                        "one."
+                    ).format(before=before, name=register.name),
+                )
             else:
                 messages.success(request, _("«{name}» is saved.").format(name=register.name))
             return redirect("staff_registers", shop.id)
@@ -309,8 +370,14 @@ def open_register(request):
     """Where the one-time code leads. A page with a button, not a redirect: the previews of chats and of some camera
     apps open links by themselves, and would use up the code. The button puts the register on this phone."""
     code = request.POST.get("code", "") if request.method == "POST" else request.GET.get("c", "")
-    found = (StaffRegister.objects.select_related("shop").filter(shop__lightning_address__gt="").filter(
-        code=code, retired__isnull=True, code_until__gt=timezone.now()).first() if KEY.fullmatch(code) else None)
+    found = (
+        StaffRegister.objects.select_related("shop")
+        .filter(shop__lightning_address__gt="")
+        .filter(code=code, retired__isnull=True, code_until__gt=timezone.now())
+        .first()
+        if KEY.fullmatch(code)
+        else None
+    )
     if request.method == "POST":
         if ratelimit.over_limit(f"staff-open:{ratelimit.client_ip(request)}", OPENS_PER_IP, OPEN_WINDOW):
             return private(render(request, "shops/staff_open.html", {"busy": True}, status=429))
@@ -323,8 +390,9 @@ def open_register(request):
             found = None
     # The page keeps the pairing of the link's fragment for the register page (static/staff-open.js): only for a code
     # that opens a register, and only for that register
-    return private(render(request, "shops/staff_open.html", {"register": found, "code": code},
-                          status=200 if found else 404))
+    return private(
+        render(request, "shops/staff_open.html", {"register": found, "code": code}, status=200 if found else 404)
+    )
 
 
 def register(request, register):
@@ -350,5 +418,7 @@ def manifest(request, register):
 def worker(request, register):
     """No key: the browser asks for the script on its own. The script has nothing of the register, and for a register
     turned off it is the one that removes the copy kept on the phone."""
-    staff = get_object_or_404(StaffRegister.objects.select_related("shop").filter(shop__lightning_address__gt=""), pk=register)
+    staff = get_object_or_404(
+        StaffRegister.objects.select_related("shop").filter(shop__lightning_address__gt=""), pk=register
+    )
     return views.register_worker(request, staff.shop.id, keep=not staff.retired, staff=True)

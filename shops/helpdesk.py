@@ -15,6 +15,7 @@ a merchant writes reaches a message as anything but plain text, and nothing secr
 
 This module does not import shops/diagnosis.py at the top: that one imports the views, and the panel (a view) asks
 `panel` for the state of a request."""
+
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
@@ -74,55 +75,126 @@ class Kind:
         return Symptom(self.key).label
 
 
-KINDS = {kind.key: kind for kind in (
-    Kind("pay", gettext_lazy("The code does not scan, the wallet refuses it, or the register shows no code."), (
-        gettext_lazy("Start the sale again from the register: a new code appears. An old code can stop working."),
-        gettext_lazy("Ask the customer to scan the code from inside their bitcoin wallet app, not with the camera of the phone, "
-          "and to check that they have enough in the wallet."),
-        gettext_lazy("If the register shows no code or the page does not load, look at the phone's connection and reload the "
-          "page."),
-        gettext_lazy("A customer with no wallet at all: show them the card «Card for customers without a wallet» (in your panel, "
-          "under your shop). The phone guides them."),
-        gettext_lazy("Do not keep the customer waiting: if nothing works, they can pay another way. Then ask us for help below."),
-    ), local=("shop", "waiting", "register", "closure"), deep=("lightning",), watch=True),
-    Kind("waiting", gettext_lazy("The customer says they paid, but the register keeps waiting."), (
-        gettext_lazy("Do not ask the customer to pay again, and do not hand over the goods yet."),
-        gettext_lazy("Open your wallet app: did the money arrive? If it did, the payment is good even if the register is still "
-          "waiting. Then ask us for help below: we find out why the register did not notice."),
-        gettext_lazy("The money is not in your wallet: a Lightning payment is instant, so ask the customer to look at their "
-          "wallet and try again."),
-        gettext_lazy("The list of sales at the bottom of the register, on the phone that took the sale, shows how each sale ended."),
-    ), local=("shop", "waiting", "register", "closure"), deep=("lightning",), watch=True),
-    Kind("open", gettext_lazy("The register page does not load, asks you to sign in, or a person of your staff cannot open theirs."), (
-        gettext_lazy("Reload the page and look at the connection of the phone: wifi or data."),
-        gettext_lazy("If it asks you to sign in, sign in again from your panel: with your wallet, or with the link we send to "
-          "your email."),
-        gettext_lazy("A register of your staff: the code on its card works once and lasts 24 hours. If it has expired, make a new "
-          "one in «Registers for your staff»."),
-        gettext_lazy("If the page does not load for anyone, the site may be resting for a few minutes."),
-        gettext_lazy("A phone where the register was opened before keeps taking Lightning payments, even when the site "
-                     "does not answer."),
-    ), local=("shop", "waiting", "owner", "register", "staff", "account", "closure")),
-    Kind("phone", gettext_lazy("You can no longer sign in from the phone you used, or someone else may have it."), (
-        gettext_lazy("Your money is safe: it is in your wallet, not in the phone and not on this site."),
-        gettext_lazy("On the new phone, sign in here with your wallet, or with the link we send to your email, if you gave us "
-          "one."),
-        gettext_lazy("Open your register from your panel and add it to the home screen of the new phone."),
-        gettext_lazy("If somebody else may use the old phone: turn off the registers of your staff that were on it, in "
-          "«Registers for your staff». Your own register only takes payments, and they go to your wallet."),
-        gettext_lazy("If your wallet is new too, ask us for help below: only you can connect the new wallet, and we show you how."),
-    ), local=("owner", "account", "staff", "waiting")),
-    Kind("change", gettext_lazy("You gave back too much, or a customer paid more than the price."), (
-        gettext_lazy("A customer paid more than the price: the extra is theirs. Give it back from your wallet."),
-        gettext_lazy("You gave too much change: the register cannot take it back, and a payment already made does not change."),
-        gettext_lazy("If you are not sure what happened, ask us for help below."),
-    ), local=("waiting",)),
-    Kind("other", gettext_lazy("Anything else: tell us in a line, and we look at everything the site knows."), (
-        gettext_lazy("Write in a line what you see and when it started."),
-        gettext_lazy("If a customer is waiting, let them pay another way first: we answer afterwards."),
-    ), local=("shop", "waiting", "owner", "register", "first_day", "closure", "staff", "account"),
-        deep=("lightning",)),
-)}
+KINDS = {
+    kind.key: kind
+    for kind in (
+        Kind(
+            "pay",
+            gettext_lazy("The code does not scan, the wallet refuses it, or the register shows no code."),
+            (
+                gettext_lazy(
+                    "Start the sale again from the register: a new code appears. An old code can stop working."
+                ),
+                gettext_lazy(
+                    "Ask the customer to scan the code from inside their bitcoin wallet app, not with the camera of the phone, "
+                    "and to check that they have enough in the wallet."
+                ),
+                gettext_lazy(
+                    "If the register shows no code or the page does not load, look at the phone's connection and reload the "
+                    "page."
+                ),
+                gettext_lazy(
+                    "A customer with no wallet at all: show them the card «Card for customers without a wallet» (in your panel, "
+                    "under your shop). The phone guides them."
+                ),
+                gettext_lazy(
+                    "Do not keep the customer waiting: if nothing works, they can pay another way. Then ask us for help below."
+                ),
+            ),
+            local=("shop", "waiting", "register", "closure"),
+            deep=("lightning",),
+            watch=True,
+        ),
+        Kind(
+            "waiting",
+            gettext_lazy("The customer says they paid, but the register keeps waiting."),
+            (
+                gettext_lazy("Do not ask the customer to pay again, and do not hand over the goods yet."),
+                gettext_lazy(
+                    "Open your wallet app: did the money arrive? If it did, the payment is good even if the register is still "
+                    "waiting. Then ask us for help below: we find out why the register did not notice."
+                ),
+                gettext_lazy(
+                    "The money is not in your wallet: a Lightning payment is instant, so ask the customer to look at their "
+                    "wallet and try again."
+                ),
+                gettext_lazy(
+                    "The list of sales at the bottom of the register, on the phone that took the sale, shows how each sale ended."
+                ),
+            ),
+            local=("shop", "waiting", "register", "closure"),
+            deep=("lightning",),
+            watch=True,
+        ),
+        Kind(
+            "open",
+            gettext_lazy(
+                "The register page does not load, asks you to sign in, or a person of your staff cannot open theirs."
+            ),
+            (
+                gettext_lazy("Reload the page and look at the connection of the phone: wifi or data."),
+                gettext_lazy(
+                    "If it asks you to sign in, sign in again from your panel: with your wallet, or with the link we send to "
+                    "your email."
+                ),
+                gettext_lazy(
+                    "A register of your staff: the code on its card works once and lasts 24 hours. If it has expired, make a new "
+                    "one in «Registers for your staff»."
+                ),
+                gettext_lazy("If the page does not load for anyone, the site may be resting for a few minutes."),
+                gettext_lazy(
+                    "A phone where the register was opened before keeps taking Lightning payments, even when the site "
+                    "does not answer."
+                ),
+            ),
+            local=("shop", "waiting", "owner", "register", "staff", "account", "closure"),
+        ),
+        Kind(
+            "phone",
+            gettext_lazy("You can no longer sign in from the phone you used, or someone else may have it."),
+            (
+                gettext_lazy("Your money is safe: it is in your wallet, not in the phone and not on this site."),
+                gettext_lazy(
+                    "On the new phone, sign in here with your wallet, or with the link we send to your email, if you gave us "
+                    "one."
+                ),
+                gettext_lazy("Open your register from your panel and add it to the home screen of the new phone."),
+                gettext_lazy(
+                    "If somebody else may use the old phone: turn off the registers of your staff that were on it, in "
+                    "«Registers for your staff». Your own register only takes payments, and they go to your wallet."
+                ),
+                gettext_lazy(
+                    "If your wallet is new too, ask us for help below: only you can connect the new wallet, and we show you how."
+                ),
+            ),
+            local=("owner", "account", "staff", "waiting"),
+        ),
+        Kind(
+            "change",
+            gettext_lazy("You gave back too much, or a customer paid more than the price."),
+            (
+                gettext_lazy(
+                    "A customer paid more than the price: the extra is theirs. Give it back from your wallet."
+                ),
+                gettext_lazy(
+                    "You gave too much change: the register cannot take it back, and a payment already made does not change."
+                ),
+                gettext_lazy("If you are not sure what happened, ask us for help below."),
+            ),
+            local=("waiting",),
+        ),
+        Kind(
+            "other",
+            gettext_lazy("Anything else: tell us in a line, and we look at everything the site knows."),
+            (
+                gettext_lazy("Write in a line what you see and when it started."),
+                gettext_lazy("If a customer is waiting, let them pay another way first: we answer afterwards."),
+            ),
+            local=("shop", "waiting", "owner", "register", "first_day", "closure", "staff", "account"),
+            deep=("lightning",),
+        ),
+    )
+}
 
 
 def kind(key):
@@ -148,19 +220,34 @@ def facts(shop, found):
     watch = lightning_watch.panel(shop)
     if watch and watch["broken"]:
         if watch["status"] == LightningStatus.NO_CONFIRMATION:
-            text = _("The site watches your Lightning address: it answers, but it does not tell the register when a "
-                     "payment arrives (since {since}, checked {checked}).")
+            text = _(
+                "The site watches your Lightning address: it answers, but it does not tell the register when a "
+                "payment arrives (since {since}, checked {checked})."
+            )
         elif watch["never"]:
             text = _("The site watches your Lightning address: it has never answered (checked {checked}).")
         else:
             text = _("The site watches your Lightning address: it has not answered since {since} (checked {checked}).")
         text = text.format(since=watch["since"], checked=watch["checked"])
-        out.append(Finding("address_broken", PROBLEM, f"{text} {watch['customer']}",
-                           f"guardian: {shop.lightning_status} since {shop.lightning_since}"))
+        out.append(
+            Finding(
+                "address_broken",
+                PROBLEM,
+                f"{text} {watch['customer']}",
+                f"guardian: {shop.lightning_status} since {shop.lightning_since}",
+            )
+        )
     elif watch:
-        out.append(Finding("address_works", OK, _("The site watches your Lightning address: it worked when it last "
-                                                  "checked, {checked}.").format(checked=watch["checked"]),
-                           f"guardian: ok, last worked {shop.lightning_worked}"))
+        out.append(
+            Finding(
+                "address_works",
+                OK,
+                _("The site watches your Lightning address: it worked when it last checked, {checked}.").format(
+                    checked=watch["checked"]
+                ),
+                f"guardian: ok, last worked {shop.lightning_worked}",
+            )
+        )
     return out
 
 
@@ -186,8 +273,7 @@ class Look:
 
     @property
     def worst(self):
-        return PROBLEM if any(item.level == PROBLEM for item in self.findings) else (
-            WARNING if self.problems else OK)
+        return PROBLEM if any(item.level == PROBLEM for item in self.findings) else (WARNING if self.problems else OK)
 
 
 def look(shop, found, deep=False):
@@ -204,6 +290,7 @@ def look(shop, found, deep=False):
 # The request
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 def channels(shop):
     """How the merchant can be called back: what the shop already has, and always «I will look at my panel»."""
     from .diagnosis import masked
@@ -215,7 +302,9 @@ def channels(shop):
     if shop.telegram_chat:
         found.append((Channel.TELEGRAM, _("On Telegram, in the chat of your shop")))
     if shop.phone:
-        found.append((Channel.PHONE, _("By phone, to {phone} (the one in your shop's details)").format(phone=plain(shop.phone))))
+        found.append(
+            (Channel.PHONE, _("By phone, to {phone} (the one in your shop's details)").format(phone=plain(shop.phone)))
+        )
     found.append((Channel.PAGE, _("I will look at my panel: it says when it is solved")))
     return found
 
@@ -227,9 +316,13 @@ def clean_note(text):
 
 class AskForm(forms.Form):
     symptom = forms.ChoiceField(choices=Symptom.choices, widget=forms.HiddenInput)
-    note = forms.CharField(required=False, max_length=NOTE_LENGTH, label=gettext_lazy("In a line: what do you see?"),
-                           widget=forms.TextInput(attrs={"maxlength": NOTE_LENGTH, "autocomplete": "off"}),
-                           error_messages={"max_length": gettext_lazy("Please keep it to a line of up to %(limit_value)d characters.")})
+    note = forms.CharField(
+        required=False,
+        max_length=NOTE_LENGTH,
+        label=gettext_lazy("In a line: what do you see?"),
+        widget=forms.TextInput(attrs={"maxlength": NOTE_LENGTH, "autocomplete": "off"}),
+        error_messages={"max_length": gettext_lazy("Please keep it to a line of up to %(limit_value)d characters.")},
+    )
     channel = forms.ChoiceField(widget=forms.RadioSelect, label=gettext_lazy("How do you want us to call you back?"))
 
     def __init__(self, *args, shop, **kwargs):
@@ -241,8 +334,12 @@ class AskForm(forms.Form):
     def clean_note(self):
         note = clean_note(self.cleaned_data["note"])
         if secret_warning(note):
-            raise forms.ValidationError(_("This looks like a secret (a private key or the words of a wallet): never "
-                                          "write it here. We never ask for it."))
+            raise forms.ValidationError(
+                _(
+                    "This looks like a secret (a private key or the words of a wallet): never "
+                    "write it here. We never ask for it."
+                )
+            )
         return note
 
 
@@ -265,8 +362,17 @@ def create(shop, symptom, note, channel, asked_by, now=None):
     with transaction.atomic():
         Shop.objects.select_for_update().filter(pk=shop.pk).first()
         recent = list(shop.help_requests.filter(created__gte=now - ASK_WINDOW))
-        again = next((row for row in recent if row.symptom == symptom and not row.resolved and row.asked_by_id == asked_by.pk
-                      and row.created >= now - DOUBLE_TAP), None)
+        again = next(
+            (
+                row
+                for row in recent
+                if row.symptom == symptom
+                and not row.resolved
+                and row.asked_by_id == asked_by.pk
+                and row.created >= now - DOUBLE_TAP
+            ),
+            None,
+        )
         if again:
             if note and note not in again.note:
                 again.note = f"{again.note} / {note}"[:NOTE_LENGTH] if again.note else note
@@ -277,8 +383,9 @@ def create(shop, symptom, note, channel, asked_by, now=None):
             raise TooMany
         if limits.refuse("help_requests"):
             raise Full
-        return HelpRequest.objects.create(shop=shop, symptom=symptom, note=note, channel=channel, created=now,
-                                          asked_by=asked_by), NEW
+        return HelpRequest.objects.create(
+            shop=shop, symptom=symptom, note=note, channel=channel, created=now, asked_by=asked_by
+        ), NEW
 
 
 SIGNS = {"problem": "✗", "warning": "!", "ok": "✓"}
@@ -293,7 +400,7 @@ def summary_lines(findings):
         if item.detail:
             lines.append(plain(f"    {item.detail}"))
     text = "\n".join(lines)
-    return text if len(text) <= SUMMARY_LENGTH else text[:SUMMARY_LENGTH - 1] + "…"
+    return text if len(text) <= SUMMARY_LENGTH else text[: SUMMARY_LENGTH - 1] + "…"
 
 
 def codes_line(findings, level):
@@ -310,9 +417,12 @@ def message(row, findings):
 
         shop = row.shop
         # The site first: development and production may write to the same chat
-        lines = [site_label(), _("{shop} asks for help.").format(shop=alert_name(shop)),
-                 _("Symptom: {symptom}").format(symptom=row.get_symptom_display()),
-                 _("Call back: {channel}").format(channel=row.get_channel_display())]
+        lines = [
+            site_label(),
+            _("{shop} asks for help.").format(shop=alert_name(shop)),
+            _("Symptom: {symptom}").format(symptom=row.get_symptom_display()),
+            _("Call back: {channel}").format(channel=row.get_channel_display()),
+        ]
         if row.note:
             lines.append(_("They wrote: «{note}»").format(note=alert_text(row.note, NOTE_LENGTH)))
         problems, warnings = codes_line(findings, "problem"), codes_line(findings, "warning")
@@ -371,12 +481,18 @@ def finish(row, notify=True):
 # What the merchant sees afterwards
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 def state(row):
     """A request as the panel and the help page say it."""
-    return {"request": row, "open": row.resolved is None, "when": lightning_watch.when(row.created),
-            "solved_when": lightning_watch.when(row.resolved) if row.resolved else "",
-            "delivered": row.delivery == SENT, "symptom": row.get_symptom_display(),
-            "channel": row.get_channel_display()}
+    return {
+        "request": row,
+        "open": row.resolved is None,
+        "when": lightning_watch.when(row.created),
+        "solved_when": lightning_watch.when(row.resolved) if row.resolved else "",
+        "delivered": row.delivery == SENT,
+        "symptom": row.get_symptom_display(),
+        "channel": row.get_channel_display(),
+    }
 
 
 def own(shop):
@@ -396,7 +512,8 @@ def panel(shop, now=None):
     now = now or timezone.now()
     rows = list(own(shop)[:HISTORY])
     chosen = next((row for row in rows if row.resolved is None), None) or next(
-        (row for row in rows if row.resolved >= now - SOLVED_SHOWN), None)
+        (row for row in rows if row.resolved >= now - SOLVED_SHOWN), None
+    )
     return state(chosen) if chosen else None
 
 

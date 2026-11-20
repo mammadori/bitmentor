@@ -1,5 +1,6 @@
 """The settings watch (website/settings_watch.py): what the last start recorded of the security settings, and forgetting
 it. `compare` is what the start of the site runs (config/gunicorn.py)."""
+
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
@@ -7,8 +8,10 @@ from website import settings_watch
 
 
 class Command(BaseCommand):
-    help = ("The security settings recorded at the last start, which the moderators hear of when they change: show, "
-            "forget (the next start records again without a message), compare (what the start of the site runs)")
+    help = (
+        "The security settings recorded at the last start, which the moderators hear of when they change: show, "
+        "forget (the next start records again without a message), compare (what the start of the site runs)"
+    )
     # The start runs it beside gunicorn: the checks are migrate's, already done
     requires_system_checks = ()
 
@@ -49,5 +52,8 @@ class Command(BaseCommand):
                 value = settings_watch.shown(settings_watch.loaded(row.value))
             self.stdout.write(f"{entry.name}: {value}")
         told = settings_watch.last_told()
-        self.stdout.write(f"Last change told to the moderators: {timezone.localtime(told):%Y-%m-%d %H:%M}"
-                          if told else "Last change told to the moderators: never")
+        self.stdout.write(
+            f"Last change told to the moderators: {timezone.localtime(told):%Y-%m-%d %H:%M}"
+            if told
+            else "Last change told to the moderators: never"
+        )

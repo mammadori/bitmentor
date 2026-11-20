@@ -1,6 +1,7 @@
 """A temporary password is changed at the first sign-in (config/temporary.py): the mark, the redirect, the change, the
 command. On SQLite and on PostgreSQL (with POSTGRES_HOST set): the mark is a row of the Profile, written and read in
 the same transactions as the rest."""
+
 import logging
 import re
 import uuid
@@ -58,6 +59,7 @@ class Base(TestCase):
 # The redirect
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 class Redirect(Base):
     def setUp(self):
         super().setUp()
@@ -66,8 +68,16 @@ class Redirect(Base):
         admin_password_session(self.client, self.user)
 
     def test_every_page_of_the_admin_goes_to_the_change(self):
-        for url in ("/admin/", "/admin/today/", "/admin/shops/shop/", "/admin/shops/shop/add/", "/admin/auth/user/",
-                    "/admin/shops/accountchange/", "/admin/jsi18n/", "/admin/nothing/here/"):
+        for url in (
+            "/admin/",
+            "/admin/today/",
+            "/admin/shops/shop/",
+            "/admin/shops/shop/add/",
+            "/admin/auth/user/",
+            "/admin/shops/accountchange/",
+            "/admin/jsi18n/",
+            "/admin/nothing/here/",
+        ):
             response = self.client.get(url)
             self.assertEqual((response.status_code, response["Location"]), (302, CHANGE), url)
 
@@ -80,8 +90,17 @@ class Redirect(Base):
         """Outside /admin/ the staff is a visitor already (config/guard.py): a staff member who reaches the site from a
         network the admin is closed to (ADMIN_ALLOWED_IPS) would be sent to a page that answers 403, and could not use the
         public pages at all. The merchants' pages answer as to a stranger, and nothing sends them to the change."""
-        for url in ("/en/", "/it/", "/en/shops/map/", "/shops.json", "/robots.txt", "/en/shops/",
-                    f"/en/shops/edit/{uuid.uuid4()}/", f"/en/shops/register/{uuid.uuid4()}/", "/en/shops/new/"):
+        for url in (
+            "/en/",
+            "/it/",
+            "/en/shops/map/",
+            "/shops.json",
+            "/robots.txt",
+            "/en/shops/",
+            f"/en/shops/edit/{uuid.uuid4()}/",
+            f"/en/shops/register/{uuid.uuid4()}/",
+            "/en/shops/new/",
+        ):
             response = self.client.get(url)
             self.assertNotEqual(response.headers.get("Location"), CHANGE, url)
             self.assertIn(response.status_code, (200, 302, 404), url)
@@ -115,7 +134,13 @@ class Redirect(Base):
     def test_only_the_change_and_its_exits_are_exempt(self):
         for path in (CHANGE, DONE, "/admin/logout/"):
             self.assertTrue(exempt(path), path)
-        for path in ("/admin/", "/en/", "/admin/password_change/other/", "/admin/jsi18n/", "/static/admin/css/base.css"):
+        for path in (
+            "/admin/",
+            "/en/",
+            "/admin/password_change/other/",
+            "/admin/jsi18n/",
+            "/static/admin/css/base.css",
+        ):
             self.assertFalse(exempt(path), path)
         # The files of the site are not in /admin/: nothing to exempt, nothing sent
         for url in ("/static/admin/css/not-there.css", "/theme/not-there.css"):
@@ -127,8 +152,13 @@ class Redirect(Base):
         # German is the other languages' business (the example community has two): the catalogue has the sentences
         from .test_translations import untranslated
 
-        untranslated(self, {"Your password is temporary. Choose a new one to go on.",
-                            "The new password must be different from the old one."})
+        untranslated(
+            self,
+            {
+                "Your password is temporary. Choose a new one to go on.",
+                "The new password must be different from the old one.",
+            },
+        )
 
     def test_a_staff_member_with_an_ordinary_password_is_not_told_so(self):
         create_staff("other")
@@ -215,6 +245,7 @@ class WhoIsNotSent(Base):
 # The change
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 class Change(Base):
     def setUp(self):
         super().setUp()
@@ -227,8 +258,9 @@ class Change(Base):
         admin_password_session(self.client, self.user)
 
     def change(self, old=OLD, new=NEW, again=None):
-        return self.client.post(CHANGE, {"old_password": old, "new_password1": new,
-                                         "new_password2": new if again is None else again}, **EN)
+        return self.client.post(
+            CHANGE, {"old_password": old, "new_password1": new, "new_password2": new if again is None else again}, **EN
+        )
 
     def refused(self, response, text):
         self.assertEqual(response.status_code, 200)
@@ -294,8 +326,11 @@ class Change(Base):
 
     def test_the_limit_in_the_language(self):
         for _ in range(11):
-            response = self.client.post(CHANGE, {"old_password": "not the one 2026", "new_password1": NEW,
-                                                 "new_password2": NEW}, headers={"accept-language": "it"})
+            response = self.client.post(
+                CHANGE,
+                {"old_password": "not the one 2026", "new_password1": NEW, "new_password2": NEW},
+                headers={"accept-language": "it"},
+            )
         self.assertContains(response, "Troppe password sbagliate.", status_code=429)
 
     def test_only_a_wrong_old_password_counts(self):
@@ -352,6 +387,7 @@ class Change(Base):
 # The sign-in
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 class SignIn(Base):
     def sign_in(self, client, password=OLD):
         return client.post("/admin/login/", {"username": "volunteer", "password": password, "next": "/admin/"})
@@ -391,7 +427,10 @@ class SignIn(Base):
     def test_a_sign_in_that_stores_the_password_with_a_newer_hash_keeps_the_mark(self):
         """Django re-hashes a password at the sign-in when the hasher changed since it was set: the hash is another and
         the password is not, and the mark must not be lost on the very sign-in it is for."""
-        old_first = ["django.contrib.auth.hashers.MD5PasswordHasher", "django.contrib.auth.hashers.PBKDF2PasswordHasher"]
+        old_first = [
+            "django.contrib.auth.hashers.MD5PasswordHasher",
+            "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+        ]
         with override_settings(PASSWORD_HASHERS=old_first):
             user = create_staff()
             self.assertTrue(user.password.startswith("md5$"))
@@ -407,7 +446,10 @@ class SignIn(Base):
             self.assertEqual(client.get("/admin/")["Location"], CHANGE)
 
     def test_a_sign_in_typed_with_spaces_keeps_the_mark_on_a_rehash_too(self):
-        old_first = ["django.contrib.auth.hashers.MD5PasswordHasher", "django.contrib.auth.hashers.PBKDF2PasswordHasher"]
+        old_first = [
+            "django.contrib.auth.hashers.MD5PasswordHasher",
+            "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+        ]
         with override_settings(PASSWORD_HASHERS=old_first):
             user = create_staff()
             mark()
@@ -437,7 +479,10 @@ class SignIn(Base):
     def test_nor_when_that_sign_in_stores_a_newer_hash_of_it(self):
         """The sneaky one: the same password set again with an older hasher, then the sign-in re-hashes it. The password
         typed fits the hash that was marked, but the mark was not in force just before this sign-in."""
-        old_first = ["django.contrib.auth.hashers.MD5PasswordHasher", "django.contrib.auth.hashers.PBKDF2PasswordHasher"]
+        old_first = [
+            "django.contrib.auth.hashers.MD5PasswordHasher",
+            "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+        ]
         user = create_staff()
         mark()
         with override_settings(PASSWORD_HASHERS=old_first):
@@ -476,6 +521,7 @@ class SignIn(Base):
 # ---------------------------------------------------------------------------------------------------------------------
 # The command
 # ---------------------------------------------------------------------------------------------------------------------
+
 
 class Command(Base):
     def run_command(self, *args):

@@ -1,5 +1,6 @@
 """The register: the phone collects in Lightning by itself. Here what the server decides: who has a register, what the
 page carries along, the CSP of the register alone, the service worker with its scope, and that no sale comes back."""
+
 import json
 import re
 from unittest.mock import patch
@@ -37,8 +38,25 @@ class Register(TestCase):
         self.assertEqual(data["tolerance"], 1.0)
         self.assertEqual(data["max_age"], 120)
         # Nothing of on-chain, an experimental feature that is off unless the community turns it on
-        self.assertEqual(set(data), {"address", "domain", "currency", "sources", "tolerance", "max_age", "network",
-                                     "relays", "public_relays", "discount", "confirm_above", "shop", "now", "texts"})
+        self.assertEqual(
+            set(data),
+            {
+                "address",
+                "domain",
+                "currency",
+                "sources",
+                "tolerance",
+                "max_age",
+                "network",
+                "relays",
+                "public_relays",
+                "discount",
+                "confirm_above",
+                "shop",
+                "now",
+                "texts",
+            },
+        )
         self.assertEqual(data["network"], "signet")
         self.assertEqual(data["shop"]["name"], "Bar")
         self.assertIn(f'data-worker="/en/shops/register/{self.shop.id}/sw.js"', page)
@@ -46,8 +64,27 @@ class Register(TestCase):
     @on(features.ONCHAIN)
     def test_with_on_chain_on_the_page_also_carries_where_to_look(self):
         data = register_data(self.client.get(self.url).content.decode())
-        self.assertEqual(set(data), {"address", "domain", "currency", "sources", "tolerance", "max_age", "network", "chain_on",
-                                     "explorers", "relays", "public_relays", "discount", "confirm_above", "shop", "now", "texts"})
+        self.assertEqual(
+            set(data),
+            {
+                "address",
+                "domain",
+                "currency",
+                "sources",
+                "tolerance",
+                "max_age",
+                "network",
+                "chain_on",
+                "explorers",
+                "relays",
+                "public_relays",
+                "discount",
+                "confirm_above",
+                "shop",
+                "now",
+                "texts",
+            },
+        )
         # On-chain: that it is on, where to look, and the owner's starting preferences; never an address or a key
         self.assertEqual((data["chain_on"], data["explorers"]), (True, ["https://mempool.space/signet/api"]))
 
@@ -73,15 +110,31 @@ class Register(TestCase):
         self.assertEqual(self.client.get(self.url).status_code, 404)
 
     def test_an_address_that_would_open_the_policy_gets_no_register(self):
-        for address in ("a@ln.example.org; script-src *", "a b@ln.example.org", "a@*.org", "a@localhost", "nobody",
-                        "a@ln.example.org/x", "a@[::1]"):
+        for address in (
+            "a@ln.example.org; script-src *",
+            "a b@ln.example.org",
+            "a@*.org",
+            "a@localhost",
+            "nobody",
+            "a@ln.example.org/x",
+            "a@[::1]",
+        ):
             Shop.objects.filter(pk=self.shop.pk).update(lightning_address=address)
             self.assertEqual(self.client.get(self.url).status_code, 404, address)
 
     def test_the_community_chooses_the_sources(self):
         base = community()
-        with patch("shops.register.community", return_value={**base, "register": {
-                "price_sources": ["bitstamp", "nowhere", "bitstamp", "mempool"], "tolerance": 2, "max_rate_age": 30}}):
+        with patch(
+            "shops.register.community",
+            return_value={
+                **base,
+                "register": {
+                    "price_sources": ["bitstamp", "nowhere", "bitstamp", "mempool"],
+                    "tolerance": 2,
+                    "max_rate_age": 30,
+                },
+            },
+        ):
             response = self.client.get(self.url)
         data = register_data(response.content.decode())
         self.assertEqual((data["sources"], data["tolerance"], data["max_age"]), (["bitstamp", "mempool"], 2.0, 30))
@@ -99,7 +152,9 @@ class Register(TestCase):
         # Without Service-Worker-Allowed the scope cannot go beyond the till
         self.assertNotIn("Service-Worker-Allowed", response.headers)
         script = response.content.decode()
-        self.assertIn('if (request.method !== "GET" || new URL(request.url).origin !== location.origin) return;', script)
+        self.assertIn(
+            'if (request.method !== "GET" || new URL(request.url).origin !== location.origin) return;', script
+        )
         self.assertNotIn("sw-website", script)
 
     def test_without_a_register_the_old_service_worker_removes_itself(self):
@@ -126,8 +181,15 @@ class Register(TestCase):
         the JSON would not parse. The default applies, too much is the most, and `manage.py check` says so."""
         from .register import MAX_TOLERANCE, TOLERANCE, number_problems
 
-        for written, used in (("inf", TOLERANCE), ("nan", TOLERANCE), (-1, TOLERANCE), ("-0.5%", TOLERANCE),
-                              (1e9, MAX_TOLERANCE), ("2%", 2.0), (0, 0.0)):
+        for written, used in (
+            ("inf", TOLERANCE),
+            ("nan", TOLERANCE),
+            (-1, TOLERANCE),
+            ("-0.5%", TOLERANCE),
+            (1e9, MAX_TOLERANCE),
+            ("2%", 2.0),
+            (0, 0.0),
+        ):
             loose = {**community(), "register": {"tolerance": written, "max_rate_age": -5}}
             with patch("shops.register.community", return_value=loose):
                 self.assertEqual(options()["tolerance"], used, written)
@@ -142,7 +204,9 @@ class Register(TestCase):
     def test_no_service_worker_without_a_register(self):
         Shop.objects.filter(pk=self.shop.pk).update(lightning_address="")
         self.assertEqual(self.client.get(f"{self.url}sw.js").status_code, 404)
-        self.assertEqual(self.client.get("/en/shops/register/00000000-0000-0000-0000-000000000000/sw.js").status_code, 404)
+        self.assertEqual(
+            self.client.get("/en/shops/register/00000000-0000-0000-0000-000000000000/sw.js").status_code, 404
+        )
 
     def test_the_page_and_the_script_know_the_same_sources(self):
         script = (settings.BASE_DIR / "static" / "register.js").read_text()
@@ -150,7 +214,6 @@ class Register(TestCase):
         self.assertEqual(re.findall(r"^    (\w+): \{", block, re.M), list(PRICE_SOURCES))
         for name, origin in PRICE_SOURCES.items():
             self.assertIn(f"{origin}/", block, name)
-
 
 
 class History(TestCase):
@@ -163,12 +226,16 @@ class History(TestCase):
         self.script = (settings.BASE_DIR / "static" / "register.js").read_text()
 
     def test_the_page_says_once_where_the_sales_are(self):
-        sentence = ("Sales stay only on this phone and in the copies you download. The site does not see or keep them: if you "
-                    "lose the phone without a copy, you lose the history (not the money, which is in your wallet).")
+        sentence = (
+            "Sales stay only on this phone and in the copies you download. The site does not see or keep them: if you "
+            "lose the phone without a copy, you lose the history (not the money, which is in your wallet)."
+        )
         # In the history; at the first opening a short line, under the keypad so that the keypad stays in view
         self.assertEqual(self.page.count(sentence), 1)
         self.assertIn("Sales stay only on this phone: download a copy now and then.", self.page)
-        self.assertLess(self.page.index('class="keys"'), self.page.index('<div id="keep-first" class="notice keep-first" hidden>'))
+        self.assertLess(
+            self.page.index('class="keys"'), self.page.index('<div id="keep-first" class="notice keep-first" hidden>')
+        )
 
     def test_a_staff_register_says_whose_wallet_has_the_money(self):
         register = StaffRegister.objects.create(shop=self.shop, name="Anna")
@@ -179,13 +246,22 @@ class History(TestCase):
         self.assertIn("owner", page.context["register"]["texts"]["by_hand"])
 
     def test_the_history_screen_has_the_closing_and_the_copies(self):
-        for element in ('id="history"', 'id="copy-state"', 'id="day"', 'id="close-day"', 'id="csv-form"', 'id="export-form"',
-                        'id="import-form"', 'id="history-back"', "data-history", 'data-file="cafe-central"'):
+        for element in (
+            'id="history"',
+            'id="copy-state"',
+            'id="day"',
+            'id="close-day"',
+            'id="csv-form"',
+            'id="export-form"',
+            'id="import-form"',
+            'id="history-back"',
+            "data-history",
+            'data-file="cafe-central"',
+        ):
             self.assertIn(element, self.page)
         # The reminder choices are the ones the script knows
         choices = re.findall(r'<option value="(\w+)">', self.page.split('id="copy-every"')[1].split("</select>")[0])
         self.assertEqual(choices, ["manual", "daily", "weekly", "monthly", "closing"])
-
 
 
 class NoSalesBack(TestCase):
@@ -194,4 +270,6 @@ class NoSalesBack(TestCase):
     def test_there_is_no_address_for_the_sales(self):
         shop = Shop.objects.create(name="Bar", lightning_address="till@ln.example.org")
         sale = json.dumps({"id": "1", "cents": 100})
-        self.assertEqual(self.client.post(f"/register/{shop.id}/sale/", sale, content_type="application/json").status_code, 404)
+        self.assertEqual(
+            self.client.post(f"/register/{shop.id}/sale/", sale, content_type="application/json").status_code, 404
+        )

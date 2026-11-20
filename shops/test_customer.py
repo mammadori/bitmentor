@@ -2,6 +2,7 @@
 
 The pages are read-only, open to anyone, ask for nothing and call no other server. The wallets they offer come from
 the community and follow the same rules as the merchants' list; the pictures are drawn here and carry no text."""
+
 import re
 from datetime import date
 from unittest.mock import patch
@@ -27,13 +28,24 @@ DESKTOP = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131 Safari/
 
 
 def wallet(name, platforms=("android", "ios"), **fields):
-    return {"name": name, "link": f"https://{name.lower().replace(' ', '-')}.example.org/", "platforms": list(platforms),
-            "description": {"en": f"{name} is free.", "it": f"{name} è gratis."}, "open_source": True, "self_custody": True,
-            "free": True, **fields}
+    return {
+        "name": name,
+        "link": f"https://{name.lower().replace(' ', '-')}.example.org/",
+        "platforms": list(platforms),
+        "description": {"en": f"{name} is free.", "it": f"{name} è gratis."},
+        "open_source": True,
+        "self_custody": True,
+        "free": True,
+        **fields,
+    }
 
 
-WALLETS = [wallet("Pocket Wallet"), wallet("Apple Only", ["ios"]), wallet("Robot Only", ["android"]),
-           wallet("Anywhere Wallet", [])]
+WALLETS = [
+    wallet("Pocket Wallet"),
+    wallet("Apple Only", ["ios"]),
+    wallet("Robot Only", ["android"]),
+    wallet("Anywhere Wallet", []),
+]
 
 
 LANGUAGES = [code for code, _name in settings.LANGUAGES]
@@ -96,14 +108,20 @@ class Hub(Customer):
 
     def test_the_communitys_page_on_wallets(self):
         with configured(wallet="learn/wallet/"):
-            self.assertContains(page(self.client, self.onchain), '<a href="/en/learn/wallet/">More about wallets, from our community</a>')
+            self.assertContains(
+                page(self.client, self.onchain),
+                '<a href="/en/learn/wallet/">More about wallets, from our community</a>',
+            )
         with configured():
             self.assertNotContains(page(self.client, self.onchain), "More about wallets")
 
     def test_the_shop_page_leads_here(self):
         response = self.client.get(f"/en/shops/s/{self.lightning.id}/")
-        self.assertContains(response, f"<a href=\"/en/shops/customer/{self.lightning.id}/1/\">I don't have a wallet</a>")
-        self.assertContains(response, f"<a href=\"/en/shops/customer/{self.lightning.id}/help/\">I have a wallet, but I'm not sure how to pay</a>")
+        self.assertContains(response, f'<a href="/en/shops/customer/{self.lightning.id}/1/">I don\'t have a wallet</a>')
+        self.assertContains(
+            response,
+            f'<a href="/en/shops/customer/{self.lightning.id}/help/">I have a wallet, but I\'m not sure how to pay</a>',
+        )
 
     def test_not_for_a_shop_where_nobody_can_pay(self):
         """The shop page says why; a printed card that outlives the shop does not lead to an error"""
@@ -134,9 +152,14 @@ class Hub(Customer):
     def test_a_copy_per_phone_only_where_the_phone_picks_the_list(self):
         """The first screen, until the visitor chooses a phone: its list starts with the wallets for the browser's"""
         self.assertIn("User-Agent", self.step(self.lightning, 1)["Vary"])
-        for response in (self.step(self.lightning, 1, "?on=ios"), self.step(self.lightning, 1, "?on=all"),
-                         page(self.client, self.lightning), page(self.client, self.lightning, "help/"),
-                         self.step(self.lightning, 2), self.step(self.lightning, 3)):
+        for response in (
+            self.step(self.lightning, 1, "?on=ios"),
+            self.step(self.lightning, 1, "?on=all"),
+            page(self.client, self.lightning),
+            page(self.client, self.lightning, "help/"),
+            self.step(self.lightning, 2),
+            self.step(self.lightning, 3),
+        ):
             self.assertNotIn("User-Agent", response.get("Vary", ""))
         # A phone that is not one of the two is not a choice: back to the browser's
         self.assertIn("User-Agent", self.step(self.lightning, 1, "?on=nokia")["Vary"])
@@ -168,8 +191,11 @@ class Pages(Customer):
                         self.assertEqual(scripts(content), ["/static/site.js"])
 
     def test_no_request_to_any_server(self):
-        with configured(wallets=WALLETS), patch("requests.sessions.Session.request", side_effect=AssertionError("called out")), \
-                patch("socket.create_connection", side_effect=AssertionError("called out")):
+        with (
+            configured(wallets=WALLETS),
+            patch("requests.sessions.Session.request", side_effect=AssertionError("called out")),
+            patch("socket.create_connection", side_effect=AssertionError("called out")),
+        ):
             for shop, path in self.everything():
                 self.assertIn(page(self.client, shop, path).status_code, (200, 302))
 
@@ -181,7 +207,9 @@ class Pages(Customer):
                     # The link to the source code (AGPLv3) in the footer is the one other server
                     self.assertTrue(link.endswith(".example.org/") or link == settings.SOURCE_URL, link)
                 # What the browser loads or may be sent to: the site's own address, the canonical one included
-                for link in re.findall(r'<(?:img|link|iframe|source|script)[^>]*(?:src|href)="(https?://[^"]+)"', content):
+                for link in re.findall(
+                    r'<(?:img|link|iframe|source|script)[^>]*(?:src|href)="(https?://[^"]+)"', content
+                ):
                     self.assertTrue(link.startswith(settings.PUBLIC_URL), link)
 
     def test_the_progress_marks_the_step(self):
@@ -189,13 +217,22 @@ class Pages(Customer):
             response = self.step(self.lightning, number)
             self.assertContains(response, '<ol class="customer-progress"')
             self.assertEqual(len(re.findall(r'aria-current="step"', response.content.decode())), 1)
-            self.assertContains(response, f'<li aria-current="step"><span>{("Choose", "Install", "Get ready")[number - 1]}</span>')
-        self.assertContains(self.step(self.lightning, 3), '<li class="done"><span>Choose</span><span class="visually-hidden"> (done)</span></li>')
+            self.assertContains(
+                response, f'<li aria-current="step"><span>{("Choose", "Install", "Get ready")[number - 1]}</span>'
+            )
+        self.assertContains(
+            self.step(self.lightning, 3),
+            '<li class="done"><span>Choose</span><span class="visually-hidden"> (done)</span></li>',
+        )
 
 
 class Choosing(Customer):
     def listed(self, response):
-        return [name for name in ("Pocket Wallet", "Apple Only", "Robot Only", "Anywhere Wallet") if f"<strong>{name}</strong>" in response.content.decode()]
+        return [
+            name
+            for name in ("Pocket Wallet", "Apple Only", "Robot Only", "Anywhere Wallet")
+            if f"<strong>{name}</strong>" in response.content.decode()
+        ]
 
     def test_the_communitys_wallets(self):
         with configured(wallets=WALLETS):
@@ -224,8 +261,10 @@ class Choosing(Customer):
 
     def test_the_visitor_can_choose_another_list(self):
         with configured(wallets=WALLETS):
-            self.assertEqual(self.listed(self.step(self.lightning, 1, "?on=ios", HTTP_USER_AGENT=ANDROID)),
-                             ["Pocket Wallet", "Apple Only", "Anywhere Wallet"])
+            self.assertEqual(
+                self.listed(self.step(self.lightning, 1, "?on=ios", HTTP_USER_AGENT=ANDROID)),
+                ["Pocket Wallet", "Apple Only", "Anywhere Wallet"],
+            )
             self.assertEqual(len(self.listed(self.step(self.lightning, 1, "?on=all", HTTP_USER_AGENT=ANDROID))), 4)
             # Whatever else is written there is not a phone
             for junk in ("?on=<script>", "?on=", "?on=nokia", "?on=android&on=ios"):
@@ -247,14 +286,30 @@ class Choosing(Customer):
 
     @on(features.ONCHAIN)
     def test_a_shop_gets_the_wallets_that_can_pay_there(self):
-        wallets = [wallet("Lightning Only", methods=["lightning"]), wallet("Chain Only", methods="onchain"), wallet("Both")]
+        wallets = [
+            wallet("Lightning Only", methods=["lightning"]),
+            wallet("Chain Only", methods="onchain"),
+            wallet("Both"),
+        ]
         with configured(wallets=wallets):
             lightning = self.step(self.lightning, 1, "?on=all")
             onchain = self.step(self.onchain, 1, "?on=all")
-        self.assertEqual([n for n in ("Lightning Only", "Chain Only", "Both") if f"<strong>{n}</strong>" in lightning.content.decode()],
-                         ["Lightning Only", "Both"])
-        self.assertEqual([n for n in ("Lightning Only", "Chain Only", "Both") if f"<strong>{n}</strong>" in onchain.content.decode()],
-                         ["Chain Only", "Both"])
+        self.assertEqual(
+            [
+                n
+                for n in ("Lightning Only", "Chain Only", "Both")
+                if f"<strong>{n}</strong>" in lightning.content.decode()
+            ],
+            ["Lightning Only", "Both"],
+        )
+        self.assertEqual(
+            [
+                n
+                for n in ("Lightning Only", "Chain Only", "Both")
+                if f"<strong>{n}</strong>" in onchain.content.decode()
+            ],
+            ["Chain Only", "Both"],
+        )
 
     def test_the_merchants_list_when_the_customers_has_none(self):
         data = {**community(), "shop_form": {"wallets": [wallet("Merchant Wallet")]}}
@@ -282,8 +337,14 @@ class Choosing(Customer):
         self.assertTrue(all(problem.startswith("`shop_page.wallets`, wallet ") for problem in problems))
 
     def test_wrong_wallets_are_left_out_and_said(self):
-        wrong = [wallet("Bad link", link="javascript:alert(1)"), wallet("Plain", link="http://plain.example.org/"),
-                 wallet("Bad phone", ["nokia"]), wallet("Bad method", methods=["cheque"]), wallet("x" * 41), "Pocket Wallet"]
+        wrong = [
+            wallet("Bad link", link="javascript:alert(1)"),
+            wallet("Plain", link="http://plain.example.org/"),
+            wallet("Bad phone", ["nokia"]),
+            wallet("Bad method", methods=["cheque"]),
+            wallet("x" * 41),
+            "Pocket Wallet",
+        ]
         problems = []
         with configured(wallets=[*wrong, wallet("Fine")]):
             found = customer_links("en", problems.append)["wallets"]
@@ -301,11 +362,15 @@ class Choosing(Customer):
     def test_the_communitys_page_stays_reachable_with_a_list_too(self):
         """The shop page no longer links it: the first screen does, whether or not the community listed wallets"""
         with configured(wallets=WALLETS, wallet="learn/wallet/"):
-            self.assertContains(self.step(self.lightning, 1), '<a href="/en/learn/wallet/">More about wallets, from our community</a>')
+            self.assertContains(
+                self.step(self.lightning, 1), '<a href="/en/learn/wallet/">More about wallets, from our community</a>'
+            )
         with configured(wallets=WALLETS):
             self.assertNotContains(self.step(self.lightning, 1), "More about wallets")
         with configured(wallet="learn/wallet/"):
-            self.assertContains(self.step(self.lightning, 1), '<a class="button" href="/en/learn/wallet/">The wallets we suggest</a>')
+            self.assertContains(
+                self.step(self.lightning, 1), '<a class="button" href="/en/learn/wallet/">The wallets we suggest</a>'
+            )
             self.assertNotContains(self.step(self.lightning, 1), "More about wallets")
 
     def test_without_a_list_the_page_of_the_community(self):
@@ -315,8 +380,10 @@ class Choosing(Customer):
         self.assertContains(response, f'href="/en/shops/customer/{self.lightning.id}/2/"')
 
     def test_keys_for_the_choice(self):
-        self.assertEqual(wallet_keys([{"name": "Pocket Wallet"}, {"name": "Pocket wallet"}, {"name": "!!"}, {"name": "ÄÖ"}]),
-                         ["pocket-wallet", "pocket-wallet-2", "3", "ao"])
+        self.assertEqual(
+            wallet_keys([{"name": "Pocket Wallet"}, {"name": "Pocket wallet"}, {"name": "!!"}, {"name": "ÄÖ"}]),
+            ["pocket-wallet", "pocket-wallet-2", "3", "ao"],
+        )
 
 
 class Installing(Customer):
@@ -324,7 +391,10 @@ class Installing(Customer):
         with configured(wallets=WALLETS):
             response = self.step(self.lightning, 2, "?w=pocket-wallet")
         self.assertContains(response, "<h1>Install Pocket Wallet and make your wallet</h1>")
-        self.assertContains(response, '<a class="button button-quiet" href="https://pocket-wallet.example.org/" rel="noopener noreferrer">The page of Pocket Wallet</a>')
+        self.assertContains(
+            response,
+            '<a class="button button-quiet" href="https://pocket-wallet.example.org/" rel="noopener noreferrer">The page of Pocket Wallet</a>',
+        )
         self.assertContains(response, "Write the words on paper")
         self.assertContains(response, "Never type those words anywhere else")
         self.assertContains(response, f'href="/en/shops/customer/{self.lightning.id}/3/?w=pocket-wallet"')
@@ -334,10 +404,16 @@ class Installing(Customer):
         with configured(wallets=WALLETS):
             for query in ("", "?w=nobody", "?w=%3Cscript%3E", "?w=", "?w=pocket-wallet%0A"):
                 with self.subTest(query):
-                    self.assertRedirects(self.step(self.lightning, 2, query), f"/en/shops/customer/{self.lightning.id}/1/",
-                                         fetch_redirect_response=False)
-                    self.assertRedirects(self.step(self.lightning, 3, query), f"/en/shops/customer/{self.lightning.id}/1/",
-                                         fetch_redirect_response=False)
+                    self.assertRedirects(
+                        self.step(self.lightning, 2, query),
+                        f"/en/shops/customer/{self.lightning.id}/1/",
+                        fetch_redirect_response=False,
+                    )
+                    self.assertRedirects(
+                        self.step(self.lightning, 3, query),
+                        f"/en/shops/customer/{self.lightning.id}/1/",
+                        fetch_redirect_response=False,
+                    )
 
     @on(features.ONCHAIN)
     def test_a_wallet_that_cannot_pay_here_is_not_chosen_here(self):
@@ -410,7 +486,7 @@ class FirstSats(Customer):
     @override_settings(NETWORK="mainnet")
     def test_the_way_to_the_shop(self):
         response = self.step(self.lightning, 3)
-        self.assertContains(response, '-10% <span>if you pay in bitcoin</span>')
+        self.assertContains(response, "-10% <span>if you pay in bitcoin</span>")
         self.assertContains(response, f'href="/en/shops/s/{self.lightning.id}/#shop-pay-title"')
         self.assertContains(response, f'href="/en/shops/customer/{self.lightning.id}/help/"')
 
@@ -435,9 +511,14 @@ class Paying(Customer):
     def test_what_to_do_when_it_says_error(self):
         response = page(self.client, self.lightning, "help/")
         self.assertContains(response, "<h2>If your wallet says error</h2>")
-        for problem in ("It does not scan", "It says there is not enough money", "It says the code has expired",
-                        "It says the code is not valid, or the network is wrong", "I paid, but the till shows nothing",
-                        "I paid too little, or too much"):
+        for problem in (
+            "It does not scan",
+            "It says there is not enough money",
+            "It says the code has expired",
+            "It says the code is not valid, or the network is wrong",
+            "I paid, but the till shows nothing",
+            "I paid too little, or too much",
+        ):
             self.assertContains(response, f"<summary>{problem}</summary>")
         self.assertContains(response, "Do not pay again.")
         # The answers are open to a reader without JavaScript: <details> needs none
@@ -454,8 +535,11 @@ class Paying(Customer):
     def test_the_discount_is_asked_for_at_the_till(self):
         """The till does not apply it: the card to show the cashier asks for it, and so does this page"""
         response = page(self.client, self.lightning, "help/")
-        self.assertContains(response, "This shop takes 10% off when you pay in bitcoin: ask for it at the till. "
-                                      "On a bill of 20.00 EUR, you save 2.00 EUR.")
+        self.assertContains(
+            response,
+            "This shop takes 10% off when you pay in bitcoin: ask for it at the till. "
+            "On a bill of 20.00 EUR, you save 2.00 EUR.",
+        )
         self.assertNotContains(response, "already in the price")
         self.assertNotContains(page(self.client, self.onchain, "help/"), "off when you pay in bitcoin")
 
@@ -470,9 +554,21 @@ class Pictures(TestCase):
         for name in customer_art.PICTURES:
             with self.subTest(name):
                 picture = str(customer_art.picture(name))
-                self.assertTrue(picture.startswith('<svg class="art" viewBox="0 0 160 120" aria-hidden="true" focusable="false">'))
+                self.assertTrue(
+                    picture.startswith('<svg class="art" viewBox="0 0 160 120" aria-hidden="true" focusable="false">')
+                )
                 self.assertTrue(picture.endswith("</svg>"))
-                for forbidden in ("<text", "<image", "<script", "<style", "href", "style=", "onload", "<foreignObject", "data:"):
+                for forbidden in (
+                    "<text",
+                    "<image",
+                    "<script",
+                    "<style",
+                    "href",
+                    "style=",
+                    "onload",
+                    "<foreignObject",
+                    "data:",
+                ):
                     self.assertNotIn(forbidden, picture)
                 self.assertEqual(picture, str(customer_art.picture(name)))
 
@@ -481,9 +577,16 @@ class Pictures(TestCase):
         row of the dots is full, and the squares are drawn without the quiet zone and the timing lines of a real code"""
         self.assertTrue(all("1" * 9 != row and row.count("1") < 8 for row in customer_art.CODE_DOTS))
         self.assertEqual(customer_art.code(0, 0, 4), customer_art.code(0, 0, 4))
-        self.assertEqual(customer_art.code(0, 0, 4).count('class="art-ink"'), 3 * 2 + sum(
-            1 for row, dots in enumerate(customer_art.CODE_DOTS) for column, dot in enumerate(dots) if dot == "1"
-            and not any(0 <= column - fx < 3 and 0 <= row - fy < 3 for fx, fy in customer_art.FINDERS)))
+        self.assertEqual(
+            customer_art.code(0, 0, 4).count('class="art-ink"'),
+            3 * 2
+            + sum(
+                1
+                for row, dots in enumerate(customer_art.CODE_DOTS)
+                for column, dot in enumerate(dots)
+                if dot == "1" and not any(0 <= column - fx < 3 and 0 <= row - fy < 3 for fx, fy in customer_art.FINDERS)
+            ),
+        )
 
     def test_nothing_leaves_the_picture(self):
         """Every rectangle drawn outside a rotated group stays inside the 160x120 frame, a stroke's width from the edge"""
@@ -491,7 +594,9 @@ class Pictures(TestCase):
             picture = str(customer_art.picture(name))
             flat = re.sub(r"<g transform=.*?</g>", "", picture, flags=re.S)
             for tag in re.findall(r"<rect [^>]*>", flat):
-                x, y, width, height = (float(re.search(rf'\b{key}="([\d.]+)"', tag)[1]) for key in ("x", "y", "width", "height"))
+                x, y, width, height = (
+                    float(re.search(rf'\b{key}="([\d.]+)"', tag)[1]) for key in ("x", "y", "width", "height")
+                )
                 with self.subTest(name, tag=tag):
                     self.assertGreaterEqual(x, 1.5)
                     self.assertGreaterEqual(y, 1.5)
@@ -504,7 +609,9 @@ class Pictures(TestCase):
         self.assertIn("page: customer-card", css)
 
     def test_every_picture_is_in_the_pages(self):
-        self.assertEqual(set(customer_art.PICTURES), {"store", "paper", "receive", "scan", "confirm", "done", "problem"})
+        self.assertEqual(
+            set(customer_art.PICTURES), {"store", "paper", "receive", "scan", "confirm", "done", "problem"}
+        )
 
 
 class Card(TestCase):
@@ -512,8 +619,9 @@ class Card(TestCase):
         cache.clear()
         self.owner = get_user_model().objects.create(username="owner")
         self.client.force_login(self.owner)
-        self.shop = Shop.objects.create(owner=self.owner, name="Bar", lightning=True, discount=10,
-                                        lightning_address="bar@ln.example.org")
+        self.shop = Shop.objects.create(
+            owner=self.owner, name="Bar", lightning=True, discount=10, lightning_address="bar@ln.example.org"
+        )
 
     def card(self, shop=None, language="en"):
         return self.client.get(f"/{language}/shops/customer-card/{(shop or self.shop).id}/")
@@ -533,7 +641,9 @@ class Card(TestCase):
                 url = f"https://localhost/{language}/shops/customer/{self.shop.id}/"
                 with override_settings(PUBLIC_URL="https://localhost"):
                     response = self.card(language=language)
-                self.assertContains(response, segno.make(url, error="m").svg_data_uri(scale=10, border=1, dark="#000", light="#fff"))
+                self.assertContains(
+                    response, segno.make(url, error="m").svg_data_uri(scale=10, border=1, dark="#000", light="#fff")
+                )
                 self.assertContains(response, f'<a href="{url}">')
 
     def test_the_languages_of_the_sheet(self):
@@ -558,7 +668,9 @@ class Card(TestCase):
         waiting = Shop.objects.create(owner=self.owner, name="Soon", awaiting_wallet=True)
         suspended = Shop.objects.create(owner=self.owner, name="Off", suspended=True)
         response = self.client.get("/en/shops/")
-        self.assertContains(response, f'href="/en/shops/customer-card/{self.shop.id}/">Card for customers without a wallet</a>')
+        self.assertContains(
+            response, f'href="/en/shops/customer-card/{self.shop.id}/">Card for customers without a wallet</a>'
+        )
         self.assertNotContains(response, f"/customer-card/{waiting.id}/")
         self.assertNotContains(response, f"/customer-card/{suspended.id}/")
 

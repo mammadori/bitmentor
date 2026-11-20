@@ -23,6 +23,7 @@ The map's icons say how recently the Lightning address last answered (`lightning
 community's calendar (`bands`): never the date itself. Only the days the shop was open count (`vacation.open_days`).
 Outside the site only `certified` and the band leave, never the month or the dates.
 """
+
 import logging
 
 from django.db import DatabaseError
@@ -46,8 +47,12 @@ BANDS = ((WEEK, 7), (MONTH, 31), (YEAR, 366))
 # What the icon says, for screen readers and next to it in the map card. The map gets them as a whole (map.html,
 # #paid-texts), never a date
 TEXTS = {
-    "lightning": {WEEK: _("Lightning, active in the last week"), MONTH: _("Lightning, active in the last month"),
-                  YEAR: _("Lightning, active in the last year"), OLDER: _("Lightning, not active in the last year")},
+    "lightning": {
+        WEEK: _("Lightning, active in the last week"),
+        MONTH: _("Lightning, active in the last month"),
+        YEAR: _("Lightning, active in the last year"),
+        OLDER: _("Lightning, not active in the last year"),
+    },
 }
 # On-chain has no band: the site sees no on-chain payment, only that the owner says the till takes them (Shop.onchain)
 ONCHAIN = _("On-chain payments too")
@@ -55,14 +60,19 @@ CERTIFIED = _("Certified shop")
 # What the badge means, for the public pages: true of every certified shop, without dates, which never leave the site
 MEANING = _("Certified shop: its Lightning address works, and its owner has done the community's training.")
 # The rule, for the panel of a shop not certified yet
-RULE = _("A shop is certified when its Lightning address works and its owner has earned the basic pass of the training.")
+RULE = _(
+    "A shop is certified when its Lightning address works and its owner has earned the basic pass of the training."
+)
 
 
 def texts():
     """The words of the badge and of the icons in the page's language, for map.js."""
-    return {"certified": str(CERTIFIED), "rule": str(MEANING),
-            **({"onchain": str(ONCHAIN)} if features.enabled(features.ONCHAIN) else {}),
-            **{kind: {name: str(text) for name, text in by_band.items()} for kind, by_band in TEXTS.items()}}
+    return {
+        "certified": str(CERTIFIED),
+        "rule": str(MEANING),
+        **({"onchain": str(ONCHAIN)} if features.enabled(features.ONCHAIN) else {}),
+        **{kind: {name: str(text) for name, text in by_band.items()} for kind, by_band in TEXTS.items()},
+    }
 
 
 def marks(shop, now=None):
@@ -88,7 +98,11 @@ def owns_certified_shop(user):
         return False
     try:
         # A shop whose owner just changed its address waits for the guardian, as its badge (Shop.certified)
-        return Shop.objects.filter(owner=user, suspended=False, certified_month__isnull=False).exclude(address_pending()).exists()
+        return (
+            Shop.objects.filter(owner=user, suspended=False, certified_month__isnull=False)
+            .exclude(address_pending())
+            .exists()
+        )
     except DatabaseError:
         return False
 
@@ -100,17 +114,23 @@ def sees_private_part(user):
         return False
     try:
         # A shop whose address is also another owner's opens nothing until that is resolved, as for the certificate
-        return (Shop.objects.filter(owner=user, suspended=False, certified_month__isnull=False,
-                                    private_approved__isnull=False).exclude(shared_with_another_owner())
-                .exclude(address_pending()).exists())
+        return (
+            Shop.objects.filter(
+                owner=user, suspended=False, certified_month__isnull=False, private_approved__isnull=False
+            )
+            .exclude(shared_with_another_owner())
+            .exclude(address_pending())
+            .exists()
+        )
     except DatabaseError:
         return False
 
 
 def waiting_approval(shops):
     """The certified shops of a queryset, with an owner and not suspended, whose private part nobody approved yet."""
-    return shops.filter(certified_month__isnull=False, private_approved__isnull=True, owner__isnull=False,
-                        suspended=False)
+    return shops.filter(
+        certified_month__isnull=False, private_approved__isnull=True, owner__isnull=False, suspended=False
+    )
 
 
 def same_address(address):
@@ -134,9 +154,13 @@ def address_taken(address, owner, shop=None):
 def shared_with_another_owner():
     """An expression for a queryset of shops: true when a shop of another owner, any shop, historic or suspended too,
     has the same Lightning address however it is written. For data from before the rule: the forms refuse it now."""
-    others = (Shop.objects.annotate(_address=Lower(Trim("lightning_address"))).filter(owner__isnull=False)
-              .exclude(lightning_address="").filter(_address=Lower(Trim(OuterRef("lightning_address"))))
-              .exclude(owner=OuterRef("owner")))
+    others = (
+        Shop.objects.annotate(_address=Lower(Trim("lightning_address")))
+        .filter(owner__isnull=False)
+        .exclude(lightning_address="")
+        .filter(_address=Lower(Trim(OuterRef("lightning_address"))))
+        .exclude(owner=OuterRef("owner"))
+    )
     return Exists(others)
 
 
@@ -152,9 +176,16 @@ def qualifies(shops):
     """The shops of a queryset that meet the rule now: the Lightning address that the guardian found working is the one
     they have today, the owner has the basic pass, the certificate was not revoked, and no shop of another owner has the
     same address."""
-    return (shops.exclude(shared_with_another_owner()).filter(certified_revoked=False, owner__trainee__base_earned__isnull=False,
-                         lightning_status=LightningStatus.OK, lightning_checked_address=F("lightning_address"))
-            .exclude(lightning_address=""))
+    return (
+        shops.exclude(shared_with_another_owner())
+        .filter(
+            certified_revoked=False,
+            owner__trainee__base_earned__isnull=False,
+            lightning_status=LightningStatus.OK,
+            lightning_checked_address=F("lightning_address"),
+        )
+        .exclude(lightning_address="")
+    )
 
 
 def meets_rule(shop):

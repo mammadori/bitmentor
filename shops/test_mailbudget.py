@@ -1,12 +1,13 @@
 """The email budget (config/mailbudget.py): the count in the database, the totals, the reserve for security notices, the
 cap per recipient, the month rollover and the larger allowance of the staff."""
+
 from datetime import timedelta
 from unittest.mock import patch
 
 from django.core import mail
 from django.core.mail import send_mail
-from django.urls import reverse
 from django.test import RequestFactory, TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from config import limits, mailbudget
@@ -15,8 +16,10 @@ from .models import EmailSent
 from .test_limits import row, set_limits
 from .tests import reset_limits
 
-COUNTING = override_settings(EMAIL_BACKEND="config.mailbudget.CountingBackend",
-                             EMAIL_REAL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+COUNTING = override_settings(
+    EMAIL_BACKEND="config.mailbudget.CountingBackend",
+    EMAIL_REAL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+)
 
 
 def ask(address="visitor@example.org"):
@@ -190,11 +193,14 @@ class Pages(TestCase):
         """Sign-in links to made-up recipients from one address stop at `emails_per_sender_day`: the others still get theirs."""
         with set_limits(emails_per_sender_day=3):
             for number in range(3):
-                response = self.client.post(reverse("recovery"), {"email": f"made-up-{number}@example.org"},
-                                            REMOTE_ADDR="203.0.113.7")
+                response = self.client.post(
+                    reverse("recovery"), {"email": f"made-up-{number}@example.org"}, REMOTE_ADDR="203.0.113.7"
+                )
                 self.assertContains(response, "Email sent to")
             with self.assertLogs("config.mailbudget", "WARNING"):
-                refused = self.client.post(reverse("recovery"), {"email": "made-up-3@example.org"}, REMOTE_ADDR="203.0.113.7")
+                refused = self.client.post(
+                    reverse("recovery"), {"email": "made-up-3@example.org"}, REMOTE_ADDR="203.0.113.7"
+                )
             other = self.client.post(reverse("recovery"), {"email": "owner@example.org"}, REMOTE_ADDR="203.0.113.8")
         self.assertContains(refused, "try again tomorrow", status_code=429)
         self.assertNotContains(refused, "Email sent to", status_code=429)
@@ -206,8 +212,14 @@ class Pages(TestCase):
     def test_the_wider_network_of_an_address_has_three_times_as_many(self):
         """An IPv6 /48 holds 65,536 /64 networks, free with a tunnel: together they get three times one address's emails."""
         with set_limits(emails_per_sender_day=1):
-            answers = [self.client.post(reverse("recovery"), {"email": f"made-up-{number}@example.org"},
-                                        REMOTE_ADDR=f"2001:db8:5:{number}::1").status_code for number in range(4)]
+            answers = [
+                self.client.post(
+                    reverse("recovery"),
+                    {"email": f"made-up-{number}@example.org"},
+                    REMOTE_ADDR=f"2001:db8:5:{number}::1",
+                ).status_code
+                for number in range(4)
+            ]
         self.assertEqual(answers, [200, 200, 200, 429])
 
     def test_a_request_refused_for_another_reason_is_not_counted(self):
@@ -216,7 +228,9 @@ class Pages(TestCase):
         with set_limits(emails_per_sender_day=4):
             for _ in range(5):
                 self.client.post(reverse("recovery"), {"email": "same@example.org"}, REMOTE_ADDR="203.0.113.7")
-            response = self.client.post(reverse("recovery"), {"email": "another@example.org"}, REMOTE_ADDR="203.0.113.7")
+            response = self.client.post(
+                reverse("recovery"), {"email": "another@example.org"}, REMOTE_ADDR="203.0.113.7"
+            )
         self.assertContains(response, "Email sent to")
 
     def test_the_onion_s_visitors_share_a_count_of_their_own(self):
@@ -224,10 +238,16 @@ class Pages(TestCase):
         has, and they do not use up the day of whoever comes from that address on the site."""
         onion = {"REMOTE_ADDR": "172.18.0.5", "headers": {"X-Entrance": "onion"}}
         with set_limits(emails_per_sender_day=1):
-            answers = [self.client.post(reverse("recovery"), {"email": f"made-up-{number}@example.org"}, **onion).status_code
-                       for number in range(4)]
-            site = self.client.post(reverse("recovery"), {"email": "owner@example.org"}, REMOTE_ADDR="172.18.0.5",
-                                    headers={"X-Entrance": "site"})
+            answers = [
+                self.client.post(reverse("recovery"), {"email": f"made-up-{number}@example.org"}, **onion).status_code
+                for number in range(4)
+            ]
+            site = self.client.post(
+                reverse("recovery"),
+                {"email": "owner@example.org"},
+                REMOTE_ADDR="172.18.0.5",
+                headers={"X-Entrance": "site"},
+            )
         self.assertEqual(answers, [200, 200, 200, 429])
         self.assertContains(site, "Email sent to")
 
@@ -236,9 +256,15 @@ class Pages(TestCase):
         with set_limits(emails_per_sender_day=2):
             with patch("config.mail.send_mail", side_effect=OSError), self.assertLogs("config.mail", "ERROR"):
                 for number in range(4):
-                    self.client.post(reverse("recovery"), {"email": f"made-up-{number}@example.org"}, REMOTE_ADDR="203.0.113.7")
-            answers = [self.client.post(reverse("recovery"), {"email": f"real-{number}@example.org"},
-                                        REMOTE_ADDR="203.0.113.7").status_code for number in range(3)]
+                    self.client.post(
+                        reverse("recovery"), {"email": f"made-up-{number}@example.org"}, REMOTE_ADDR="203.0.113.7"
+                    )
+            answers = [
+                self.client.post(
+                    reverse("recovery"), {"email": f"real-{number}@example.org"}, REMOTE_ADDR="203.0.113.7"
+                ).status_code
+                for number in range(3)
+            ]
         self.assertEqual(answers, [200, 200, 429])
 
     def test_an_address_over_its_day_does_not_use_up_a_mailbox_s_minutes(self):
@@ -246,15 +272,21 @@ class Pages(TestCase):
         with set_limits(emails_per_sender_day=1):
             self.client.post(reverse("recovery"), {"email": "made-up@example.org"}, REMOTE_ADDR="203.0.113.7")
             for _ in range(5):
-                refused = self.client.post(reverse("recovery"), {"email": "owner@example.org"}, REMOTE_ADDR="203.0.113.7")
+                refused = self.client.post(
+                    reverse("recovery"), {"email": "owner@example.org"}, REMOTE_ADDR="203.0.113.7"
+                )
             owner = self.client.post(reverse("recovery"), {"email": "owner@example.org"}, REMOTE_ADDR="203.0.113.8")
         self.assertEqual(refused.status_code, 429)
         self.assertContains(owner, "Email sent to")
 
     def test_zero_is_no_daily_limit_for_an_address(self):
         with set_limits(emails_per_sender_day=0):
-            answers = [self.client.post(reverse("recovery"), {"email": f"made-up-{number}@example.org"},
-                                        REMOTE_ADDR="203.0.113.7").status_code for number in range(6)]
+            answers = [
+                self.client.post(
+                    reverse("recovery"), {"email": f"made-up-{number}@example.org"}, REMOTE_ADDR="203.0.113.7"
+                ).status_code
+                for number in range(6)
+            ]
         self.assertEqual(answers, [200] * 6)
 
     def test_the_advice_does_not_send_an_email_account_to_the_wallet(self):
@@ -281,5 +313,7 @@ class OneAddress(TestCase):
     def test_a_full_email_limit_gives_its_own_advice(self):
         from . import dashboard
 
-        found = dashboard.limit_items([{"key": "emails_per_month", "level": "full", "what": "emails", "used": 3, "limit": 3}])
+        found = dashboard.limit_items(
+            [{"key": "emails_per_month", "level": "full", "what": "emails", "used": 3, "limit": 3}]
+        )
         self.assertIn("security notices", found[0].what)

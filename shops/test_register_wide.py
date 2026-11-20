@@ -21,7 +21,7 @@ class WideRegister(SimpleTestCase):
         self.assertIn(f'matchMedia("{WIDE}")', JS)
 
     def test_the_wide_layout_leaves_the_practice_register_alone(self):
-        block = CSS[CSS.index(f"@media {WIDE} {{"):]
+        block = CSS[CSS.index(f"@media {WIDE} {{") :]
         rules = re.findall(r"^  ([^{}/\n][^{}]*)\{", block, flags=re.MULTILINE)
         self.assertGreater(len(rules), 30)
         for rule in rules:
@@ -52,8 +52,13 @@ class WideRegister(SimpleTestCase):
     def test_escape_cancels_through_the_button_that_asks_first(self):
         # Esc presses Cancel, whose click asks before cancelling (data-cancel-warning): never a path of its own
         self.assertIn('if (event.key === "Escape" && shown === "pay") tap("cancel");', JS)
-        self.assertIn('$("cancel").addEventListener("click", async () => {\n    if (!confirm(text.cancelWarning)) return;', JS)
+        self.assertIn(
+            '$("cancel").addEventListener("click", async () => {\n    if (!confirm(text.cancelWarning)) return;', JS
+        )
 
     def test_what_is_typed_in_a_field_beside_the_keypad_is_not_an_amount(self):
-        keypad = JS[JS.index('if ($("keypad").hidden || menu.open'):]
-        self.assertLess(keypad.index('closest?.("input, select, textarea, #history button'), keypad.index("press(Number(event.key))"))
+        keypad = JS[JS.index('if ($("keypad").hidden || menu.open') :]
+        self.assertLess(
+            keypad.index('closest?.("input, select, textarea, #history button'),
+            keypad.index("press(Number(event.key))"),
+        )

@@ -17,6 +17,7 @@ show within PUBLIC_LIST_SECONDS.
 Some of the body changes with the day alone, with nothing saved: a shop becomes historic the day after its closing day
 (Shop.closed), a closure for a while starts or ends, the icons' bands count whole days. The key has the local date in it,
 so a body is never given out after its day, however long PUBLIC_LIST_SECONDS is."""
+
 import secrets
 
 from django.conf import settings
@@ -31,12 +32,22 @@ GENERATION = "public-shops:generation"
 # Shop columns that neither /shops.json nor the map read: an update of these alone keeps the cached list (the
 # OpenStreetMap sync writes them for thousands of shops in a row, the guardian at every probe). Not
 # `lightning_worked`: the icons' bands come from it (shops/certified.py)
-NOT_PUBLIC = frozenset({
-    "osm_notes", "osm_seen",
-    "lightning_status", "lightning_since", "lightning_checked", "lightning_failures", "lightning_failing_since",
-    "lightning_checked_address",
-    # The merchant's own ticks of the first day (shops/first_day.py)
-    "first_sale", "sign_printed", "register_shared"})
+NOT_PUBLIC = frozenset(
+    {
+        "osm_notes",
+        "osm_seen",
+        "lightning_status",
+        "lightning_since",
+        "lightning_checked",
+        "lightning_failures",
+        "lightning_failing_since",
+        "lightning_checked_address",
+        # The merchant's own ticks of the first day (shops/first_day.py)
+        "first_sale",
+        "sign_printed",
+        "register_shared",
+    }
+)
 
 # The attribute same_list() sets on a shop about to be saved
 SAME_LIST = "_public_list_same"

@@ -24,13 +24,13 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.sessions.models import Session
-from django.db import IntegrityError, transaction
-from django.forms import modelform_factory
 from django.core import mail, signing
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.db import IntegrityError, transaction
+from django.forms import modelform_factory
 from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -49,13 +49,13 @@ from .nostr import file_event, public_key, shop_event, sign
 from .notifications import NotificationFailed, telegram
 from .views import profile_for
 
-
 SEED = " ".join(["abandon"] * 11 + ["about"])
 
 
 def public_names(*inside):
     """Every name of a fetch points to a public address, without asking the DNS; the names in `inside` lead inside. The
     address given is of TEST-NET: a test that reached the network by mistake would connect nowhere."""
+
     def addresses(host, seconds):
         if host in inside:
             raise ValueError(host)
@@ -141,20 +141,28 @@ class LnurlAuth(TestCase):
         k1 = self.k1()
         signature, key = self.sign(k1)
         with self.assertLogs("shops.views", "INFO") as log:
-            self.assertEqual(self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": key}).json()["status"], "OK")
+            self.assertEqual(
+                self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": key}).json()["status"], "OK"
+            )
         self.assertIn("ok (sign in)", log.output[0])
         with self.assertLogs("shops.views", "INFO") as log:
-            self.assertEqual(self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": key}).json()["status"], "OK")
+            self.assertEqual(
+                self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": key}).json()["status"], "OK"
+            )
         self.assertIn("ok (sign in, asked again)", log.output[0])
         self.assertNotIn(key, log.output[0])
         self.assertNotIn(k1, log.output[0])
         self.assertTrue(self.client.get("/lnurl-auth/status/").json()["logged_in"])
         self.assertTrue(get_user_model().objects.filter(username=key).exists())
         # The wallet that asks once more, after the site signed it in, still hears OK; the challenge signs in nobody else
-        self.assertEqual(self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": key}).json()["status"], "OK")
+        self.assertEqual(
+            self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": key}).json()["status"], "OK"
+        )
         self.assertFalse(self.client.get("/lnurl-auth/status/").json()["logged_in"])
         other = self.sign(k1)
-        self.assertEqual(self.client.get("/lnurl-auth/", {"k1": k1, "sig": other[0], "key": other[1]}).json()["status"], "ERROR")
+        self.assertEqual(
+            self.client.get("/lnurl-auth/", {"k1": k1, "sig": other[0], "key": other[1]}).json()["status"], "ERROR"
+        )
         # A wallet alone, with no shop and no email, is told that a shop taken with an email is under that email
         self.assertContains(self.client.get("/en/shops/"), 'id="wallet-alone"')
 
@@ -164,8 +172,10 @@ class LnurlAuth(TestCase):
 
     def call(self, client, k1, key):
         """The wallet's call for a challenge, as LUD-04 has it."""
-        return client.get("/lnurl-auth/", {"k1": k1, "sig": key.sign(bytes.fromhex(k1), hasher=None).hex(),
-                                           "key": key.public_key.format().hex()}).json()["status"]
+        return client.get(
+            "/lnurl-auth/",
+            {"k1": k1, "sig": key.sign(bytes.fromhex(k1), hasher=None).hex(), "key": key.public_key.format().hex()},
+        ).json()["status"]
 
     def sign_in(self, key):
         """A browser that signs in with the wallet: the account it lands in, or None."""
@@ -178,6 +188,7 @@ class LnurlAuth(TestCase):
 
     def connect(self, client, key, answer="confirm"):
         from shops.models import WalletKey
+
         before = list(WalletKey.objects.values_list("user", flat=True))
         client.get("/en/shops/wallet/")
         k1 = LoginChallenge.objects.exclude(link_user=None).latest("created").k1
@@ -203,6 +214,7 @@ class LnurlAuth(TestCase):
     def test_a_wallet_is_connected_to_the_account_opened_with_the_email(self):
         from shops import address_change
         from shops.models import WalletKey
+
         user, shop, client = self.email_account()
         self.assertNotContains(client.get("/en/shops/"), 'id="wallet-alone"')
         self.assertContains(client.get("/en/shops/"), "/en/shops/wallet/")
@@ -232,7 +244,9 @@ class LnurlAuth(TestCase):
         # The wallet's holder, at the first sign-in, is asked whether this is their account
         phone = Client()
         phone.get("/en/shops/")
-        self.assertEqual(self.call(phone, LoginChallenge.objects.filter(link_user=None).latest("created").k1, key), "OK")
+        self.assertEqual(
+            self.call(phone, LoginChallenge.objects.filter(link_user=None).latest("created").k1, key), "OK"
+        )
         phone.get("/lnurl-auth/status/")
         self.assertContains(phone.get("/en/shops/"), 'id="wallet-to-confirm"')
         self.assertNotContains(client.get("/en/shops/"), 'id="wallet-to-confirm"')
@@ -260,12 +274,15 @@ class LnurlAuth(TestCase):
 
     def test_whoever_was_shown_someone_elses_code_can_leave_that_account(self):
         from shops.models import WalletKey
+
         user, _shop, client = self.email_account()
         key, public = self.wallet()
         self.assertTrue(self.connect(client, key))
         phone = Client()
         phone.get("/en/shops/")
-        self.assertEqual(self.call(phone, LoginChallenge.objects.filter(link_user=None).latest("created").k1, key), "OK")
+        self.assertEqual(
+            self.call(phone, LoginChallenge.objects.filter(link_user=None).latest("created").k1, key), "OK"
+        )
         phone.get("/lnurl-auth/status/")
         phone.post("/en/shops/wallet/", {"remove": WalletKey.objects.get().pk, "leave": "1"})
         self.assertFalse(WalletKey.objects.exists())
@@ -276,6 +293,7 @@ class LnurlAuth(TestCase):
     def test_an_account_the_wallet_opened_is_left_behind_only_when_empty(self):
         from shops.models import WalletKey
         from shops.views import holds_nothing, other_ways_in
+
         user, _shop, client = self.email_account()
         key, public = self.wallet()
         born = get_user_model().objects.create(username=public)
@@ -303,6 +321,7 @@ class LnurlAuth(TestCase):
 
     def test_the_two_kinds_of_challenge_do_not_mix(self):
         from shops.models import WalletKey
+
         user, _shop, client = self.email_account()
         key, _public = self.wallet()
         # A sign-in challenge signed by a wallet connects nothing, also for a browser signed in
@@ -327,6 +346,7 @@ class LnurlAuth(TestCase):
 
     def test_a_wallet_with_its_own_shop_or_another_account_is_not_moved(self):
         from shops.models import WalletKey
+
         user, _shop, client = self.email_account()
         key, public = self.wallet()
         owner = get_user_model().objects.create(username=public)
@@ -351,6 +371,7 @@ class LnurlAuth(TestCase):
 
     def test_the_only_way_in_is_not_taken_away_and_the_wallets_have_a_limit(self):
         from shops.models import WalletKey
+
         user, _shop, client = self.email_account()
         key, _public = self.wallet()
         self.assertTrue(self.connect(client, key))
@@ -360,13 +381,17 @@ class LnurlAuth(TestCase):
         for number in range(4):
             WalletKey.objects.create(user=user, key=f"02{number:064x}")
         self.assertNotContains(client.get("/en/shops/wallet/"), "lightning:")
-        client.post("/en/shops/wallet/", {"remove": WalletKey.objects.order_by("pk").last().pk})  # another way in is left
+        client.post(
+            "/en/shops/wallet/", {"remove": WalletKey.objects.order_by("pk").last().pk}
+        )  # another way in is left
         self.assertEqual(WalletKey.objects.count(), 4)
         # Whoever says «not mine» from the wallet that is the only way in is signed out, and the wallet stays
         WalletKey.objects.exclude(key=key.public_key.format().hex()).delete()
         phone = Client()
         phone.get("/en/shops/")
-        self.assertEqual(self.call(phone, LoginChallenge.objects.filter(link_user=None).latest("created").k1, key), "OK")
+        self.assertEqual(
+            self.call(phone, LoginChallenge.objects.filter(link_user=None).latest("created").k1, key), "OK"
+        )
         phone.get("/lnurl-auth/status/")
         phone.post("/en/shops/wallet/", {"remove": WalletKey.objects.get().pk, "leave": "1"})
         self.assertNotIn("_auth_user_id", phone.session)
@@ -387,7 +412,9 @@ class LnurlAuth(TestCase):
     def test_forged_login(self):
         k1 = self.k1()
         signature, key = self.sign("cd" * 32)
-        self.assertEqual(self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": key}).json()["status"], "ERROR")
+        self.assertEqual(
+            self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": key}).json()["status"], "ERROR"
+        )
         self.assertFalse(self.client.get("/lnurl-auth/status/").json()["logged_in"])
 
     def test_anonymous_visits_leave_no_session(self):
@@ -410,13 +437,20 @@ class Destinations(TestCase):
         return str(ShopForm({"name": "Bar", "lightning_address": "mario@example.org", **fields}).errors)
 
     def test_secrets_refused_in_every_field_with_a_warning(self):
-        for field, value in (("description", f"my phrase: {SEED}"), ("description", "Xprv" + "a" * 60),
-                             ("lightning_address", "xprv" + "a" * 60 + "@example.org"), ("lightning_address", SEED),
-                             ("description", SEED.replace(" ", ", ")), ("address", "1. " + SEED.replace(" ", " 2. "))):
+        for field, value in (
+            ("description", f"my phrase: {SEED}"),
+            ("description", "Xprv" + "a" * 60),
+            ("lightning_address", "xprv" + "a" * 60 + "@example.org"),
+            ("lightning_address", SEED),
+            ("description", SEED.replace(" ", ", ")),
+            ("address", "1. " + SEED.replace(" ", " 2. ")),
+        ):
             self.assertIn("never share it", self.warning(**{field: value}), (field, value))
 
     def test_ordinary_text_passes(self):
-        self.assertEqual(self.warning(description="A bar on the square, open in the evening with a wide choice of wines"), "")
+        self.assertEqual(
+            self.warning(description="A bar on the square, open in the evening with a wide choice of wines"), ""
+        )
 
     def test_lightning_address_as_wallets_copy_it(self):
         form = ShopForm({"name": "Bar", "lightning_address": " lightning:Mario@Example.org "})
@@ -435,8 +469,17 @@ class Destinations(TestCase):
         self.assertEqual(form.cleaned_data["website"], "https://www.example.org")
 
     def test_refuses_internal_lightning_hosts(self):
-        for address in ("x@172.25.0.13:8999", "x@172.25.0.13", "x@web", "x@bitcoind:43782", "x@host.internal", "a@b@example.org",
-                        "mario@example.org;server=http://attacker.example;", "mario@[::1]", "mario@example.org/x"):
+        for address in (
+            "x@172.25.0.13:8999",
+            "x@172.25.0.13",
+            "x@web",
+            "x@bitcoind:43782",
+            "x@host.internal",
+            "a@b@example.org",
+            "mario@example.org;server=http://attacker.example;",
+            "mario@[::1]",
+            "mario@example.org/x",
+        ):
             self.assertFalse(self.valid(lightning_address=address), address)
 
     def test_refuses_names_that_resolve_inside(self):
@@ -444,12 +487,19 @@ class Destinations(TestCase):
             self.assertFalse(self.valid(lightning_address="x@intranet.example.org"))
 
     def test_field_limits(self):
-        for fields in ({"discount": 150}, {"latitude": 999}, {"longitude": -999}, {"nostr_pubkey": "abc"},
-                       {"telegram_chat": "no idea what this is"}):
+        for fields in (
+            {"discount": 150},
+            {"latitude": 999},
+            {"longitude": -999},
+            {"nostr_pubkey": "abc"},
+            {"telegram_chat": "no idea what this is"},
+        ):
             self.assertFalse(self.valid(lightning_address="mario@example.org", **fields), fields)
 
     def test_comma_in_coordinates(self):
-        form = ShopForm({"name": "Bar", "lightning_address": "mario@example.org", "latitude": "41,88", "longitude": "12.5"})
+        form = ShopForm(
+            {"name": "Bar", "lightning_address": "mario@example.org", "latitude": "41,88", "longitude": "12.5"}
+        )
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.cleaned_data["latitude"], 41.88)
 
@@ -500,20 +550,30 @@ class LightningAddressProbe(TestCase):
         self.assertIn("has its invoices made by another site", result)
         self.assertEqual(get.call_count, 1)
         elsewhere = {**self.INVOICE, "verify": "https://other.example/verify/a"}
-        result, get = self.probe({**self.METADATA, "callback": "https://shop.example/cb"}, elsewhere, address="mario@shop.example")
+        result, get = self.probe(
+            {**self.METADATA, "callback": "https://shop.example/cb"}, elsewhere, address="mario@shop.example"
+        )
         self.assertIn("does not tell the register", result)
         self.assertEqual(get.call_count, 2)
 
     def test_a_silent_domain_is_refused(self):
-        with public_names(), patch("shops.lnaddress.requests.Session.get", side_effect=requests.ConnectionError), \
-                patch("shops.lnaddress.missing", return_value=False):
+        with (
+            public_names(),
+            patch("shops.lnaddress.requests.Session.get", side_effect=requests.ConnectionError),
+            patch("shops.lnaddress.missing", return_value=False),
+        ):
             self.assertIn("does not answer", refusal("mario@phoenixwallet.me"))
 
     def test_not_an_lnurl_endpoint(self):
         self.assertIn("not as a Lightning address does", self.probe({"tag": "other"})[0])
 
     def test_answers_cannot_send_us_inside(self):
-        for callback in ("http://pay.example.org/cb", "https://web/cb", "https://pay.example.org:8000/cb", "https://host.internal/cb"):
+        for callback in (
+            "http://pay.example.org/cb",
+            "https://web/cb",
+            "https://pay.example.org:8000/cb",
+            "https://host.internal/cb",
+        ):
             with public_names("web"):
                 reply = stream({**self.METADATA, "callback": callback})
                 with patch("shops.lnaddress.requests.Session.get", return_value=reply) as get:
@@ -541,7 +601,10 @@ class NewShop(TestCase):
     def test_the_map_speaks_the_language_of_the_page(self):
         """The Leaflet buttons are called "Zoom in" and "Zoom out": on an Italian page they must be said in Italian."""
         page = self.client.get("/it/shops/new/")
-        self.assertContains(page, 'aria-describedby="pick-status" data-label="Mappa" data-zoom-in="Ingrandisci" data-zoom-out="Rimpicciolisci"')
+        self.assertContains(
+            page,
+            'aria-describedby="pick-status" data-label="Mappa" data-zoom-in="Ingrandisci" data-zoom-out="Rimpicciolisci"',
+        )
 
     def test_second_submit_creates_nothing(self):
         self.assertEqual(self.post().status_code, 302)
@@ -557,7 +620,9 @@ class ManageShop(TestCase):
         self.shop = Shop.objects.create(owner=self.user, name="Bar", lightning_address="old@example.org")
 
     def test_edit_changes_details_but_never_the_address(self):
-        response = self.client.post(f"/en/shops/edit/{self.shop.id}/", {"name": "New", "lightning_address": "x@example.org"})
+        response = self.client.post(
+            f"/en/shops/edit/{self.shop.id}/", {"name": "New", "lightning_address": "x@example.org"}
+        )
         self.assertEqual(response.status_code, 302)
         self.shop.refresh_from_db()
         self.assertEqual((self.shop.name, self.shop.lightning_address), ("New", "old@example.org"))
@@ -601,7 +666,9 @@ class ManageShop(TestCase):
 
     def test_the_sign_fits_the_phone(self):
         """Without a viewport the phone draws it 980 px wide: back and Print become tiny."""
-        self.assertContains(self.client.get(f"/it/shops/sign/{self.shop.id}/"), 'name="viewport" content="width=device-width')
+        self.assertContains(
+            self.client.get(f"/it/shops/sign/{self.shop.id}/"), 'name="viewport" content="width=device-width'
+        )
 
     def test_the_way_back_from_the_register_is_for_the_owner(self):
         url = f"/en/shops/register/{self.shop.id}/"
@@ -636,18 +703,25 @@ class EmailLogin(TestCase):
 
     def test_the_page_of_the_link_says_which_account(self):
         """Against the link forwarded by someone else: whoever opens it sees which account they are entering"""
-        self.assertContains(self.client.get(self.request_link("mario@example.org")), "You are signing in as mario@example.org.")
-        self.assertContains(self.client.get(self.request_link("mario@example.org").replace("/en/", "/it/")), "Stai entrando come mario@example.org.")
+        self.assertContains(
+            self.client.get(self.request_link("mario@example.org")), "You are signing in as mario@example.org."
+        )
+        self.assertContains(
+            self.client.get(self.request_link("mario@example.org").replace("/en/", "/it/")),
+            "Stai entrando come mario@example.org.",
+        )
 
     def test_unicode_spellings_of_a_domain_are_the_same_address(self):
-        """"ｇｍａｉｌ.com" in full width arrives at gmail.com: for the limits it is the same mailbox"""
+        """ "ｇｍａｉｌ.com" in full width arrives at gmail.com: for the limits it is the same mailbox"""
         self.enterContext(steady_limits())
         for address in ("mario@gmail.com", "mario@ｇｍａｉｌ.com", "mario@gmａil.com", "mario@GMAIL.com"):
             self.client.post("/en/shops/recovery/", {"email": address})
         self.assertEqual([m.to for m in mail.outbox], [["mario@gmail.com"]] * 3)
 
     def test_a_domain_that_is_not_one_is_refused(self):
-        self.assertContains(self.client.post("/en/shops/recovery/", {"email": "mario@" + "a" * 64 + ".com"}), "valid email")
+        self.assertContains(
+            self.client.post("/en/shops/recovery/", {"email": "mario@" + "a" * 64 + ".com"}), "valid email"
+        )
         self.assertEqual(mail.outbox, [])
 
     def follow(self, address):
@@ -784,7 +858,10 @@ class EmailLogin(TestCase):
         self.assertEqual(get_user_model().objects.count(), 1)
 
     def test_long_addresses_do_not_collide(self):
-        for address in ("a" * 60 + "." + "b" * 60 + "@" + "c" * 60 + ".org", "a" * 60 + "." + "b" * 60 + "@" + "c" * 60 + ".net"):
+        for address in (
+            "a" * 60 + "." + "b" * 60 + "@" + "c" * 60 + ".org",
+            "a" * 60 + "." + "b" * 60 + "@" + "c" * 60 + ".net",
+        ):
             self.client = self.client_class()
             self.assertEqual(self.follow(address).status_code, 200)
 
@@ -800,7 +877,9 @@ class EmailLogin(TestCase):
         self.enterContext(steady_limits())
         Profile.objects.create(user=get_user_model().objects.create(username="k"), email="g@example.org")
         for n in range(3):
-            self.client_class().post("/en/shops/recovery/", {"email": "g@example.org"}, HTTP_X_FORWARDED_FOR=f"192.0.2.{n}")
+            self.client_class().post(
+                "/en/shops/recovery/", {"email": "g@example.org"}, HTTP_X_FORWARDED_FOR=f"192.0.2.{n}"
+            )
         pages = []
         for address in ("g@example.org", "h@example.org"):
             for n in range(3 if address.startswith("h") else 0):
@@ -858,7 +937,7 @@ class RecoveryEmail(TestCase):
             for method in (client.get, client.post):
                 response = method(link)
                 self.assertContains(response, "only that account can confirm the email", status_code=403)
-                self.assertNotContains(response, "<form method=\"post\"", status_code=403)
+                self.assertNotContains(response, '<form method="post"', status_code=403)
         self.assertEqual(self.email(), "old@example.org")
         # The link is still good for the account that asked, in its own browser
         self.assertRedirects(self.client.post(link), "/en/shops/", fetch_redirect_response=False)
@@ -918,8 +997,12 @@ class RecoveryEmail(TestCase):
             self.assertContains(ask(f"c{n}@example.org", f"2001:db8:1:{n:x}::1"), "We sent a confirmation link")
         self.assertContains(ask("d@example.org", "2001:db8:1:ff::1"), "Too many emails in a short time")
         # The recovery form shares the counters of that network
-        self.assertEqual(self.client.post("/en/shops/recovery/", {"email": "e@example.org"},
-                                          REMOTE_ADDR="2001:db8:1:fe::1").status_code, 429)
+        self.assertEqual(
+            self.client.post(
+                "/en/shops/recovery/", {"email": "e@example.org"}, REMOTE_ADDR="2001:db8:1:fe::1"
+            ).status_code,
+            429,
+        )
 
     def test_clearing_needs_no_link(self):
         self.client.post("/en/shops/", {"email": ""})
@@ -959,17 +1042,24 @@ class Nostr(TestCase):
         event = file_event(self.SECRET, "ab" * 32, 12, "application/zip", "A copy")
         self.assertEqual(event["kind"], 1063)
         self.assertEqual(dict(event["tags"]), {"x": "ab" * 32, "m": "application/zip", "size": "12", "alt": "A copy"})
-        self.assertEqual(dict(file_event(self.SECRET, "ab" * 32, 12, "a/b", "c", "https://x.test/f")["tags"])["url"], "https://x.test/f")
+        self.assertEqual(
+            dict(file_event(self.SECRET, "ab" * 32, 12, "a/b", "c", "https://x.test/f")["tags"])["url"],
+            "https://x.test/f",
+        )
 
     @override_settings(NOSTR_SECRET_KEY=SECRET, NOSTR_RELAYS=["ws://relay"])
     def test_command_signs_a_file_and_prints_only_the_event(self):
         out = StringIO()
         with patch("shops.management.commands.publish_nostr.connect") as connect:
             connect.return_value.__enter__.return_value.recv.return_value = json.dumps(["OK", "x", True, ""])
-            call_command("publish_nostr", sha256="ab" * 32, size=3, mime="text/plain", summary="s", stdout=out, stderr=StringIO())
+            call_command(
+                "publish_nostr", sha256="ab" * 32, size=3, mime="text/plain", summary="s", stdout=out, stderr=StringIO()
+            )
         event = json.loads(out.getvalue())
         self.assertEqual(event["pubkey"], public_key(self.SECRET))
-        self.assertEqual(json.loads(connect.return_value.__enter__.return_value.send.call_args[0][0])[1]["id"], event["id"])
+        self.assertEqual(
+            json.loads(connect.return_value.__enter__.return_value.send.call_args[0][0])[1]["id"], event["id"]
+        )
         self.assertNotIn(self.SECRET, out.getvalue())
 
     @override_settings(NOSTR_SECRET_KEY=SECRET, NOSTR_RELAYS=["ws://relay"])
@@ -1011,7 +1101,9 @@ class Nostr(TestCase):
             errors = StringIO()
             with patch("shops.management.commands.publish_nostr.connect", side_effect=[strange, working]):
                 with self.assertRaises(CommandError):
-                    call_command("publish_nostr", sha256="ab" * 32, size=3, summary="s", stdout=StringIO(), stderr=errors)
+                    call_command(
+                        "publish_nostr", sha256="ab" * 32, size=3, summary="s", stdout=StringIO(), stderr=errors
+                    )
             self.assertTrue(socket.send.called, answer)
             self.assertIn("ws://strange: ", errors.getvalue())
             self.assertIn("ws://su: 1/1", errors.getvalue())
@@ -1026,11 +1118,13 @@ class Directory(TestCase):
     def test_suspended_shops_leave_the_map(self):
         owner = get_user_model().objects.create(username="k")
         Shop.objects.create(owner=owner, name="Open", lightning_address="a@b.example", latitude=1, longitude=1)
-        Shop.objects.create(owner=owner, name="Suspended shop", lightning_address="a@b.example", latitude=1, longitude=1,
-                            suspended=True)
+        Shop.objects.create(
+            owner=owner, name="Suspended shop", lightning_address="a@b.example", latitude=1, longitude=1, suspended=True
+        )
         Shop.objects.create(owner=owner, name="No position", lightning_address="a@b.example")
-        Shop.objects.create(owner=owner, name="Unlisted", lightning_address="a@b.example", latitude=1, longitude=1,
-                            listed=False)
+        Shop.objects.create(
+            owner=owner, name="Unlisted", lightning_address="a@b.example", latitude=1, longitude=1, listed=False
+        )
         self.assertEqual([s["name"] for s in self.client.get("/shops.json").json()["shops"]], ["Open"])
 
     def test_map_lists_the_shops_without_javascript(self):
@@ -1081,7 +1175,10 @@ class Featured(TestCase):
 
     def test_city_comes_from_the_community(self):
         data = {**community(), "map": {**community()["map"], "featured_city": "Example"}}
-        with patch("website.views.community", return_value=data), patch("website.views.featured_shops", return_value=[]) as featured:
+        with (
+            patch("website.views.community", return_value=data),
+            patch("website.views.featured_shops", return_value=[]) as featured,
+        ):
             self.client.get("/it/")
         featured.assert_called_once_with(city="Example")
 
@@ -1118,7 +1215,9 @@ class ImportedShop(TestCase):
         for number in (20, 21):
             self.assertEqual(self.client.get(f"/en/shops/e/{number}/").status_code, 404, number)
         historic = Shop.objects.create(name="Historic", external_id="22", closed_on=date(2020, 1, 1))
-        self.assertRedirects(self.client.get("/en/shops/e/22/"), f"/en/shops/s/{historic.id}/", fetch_redirect_response=False)
+        self.assertRedirects(
+            self.client.get("/en/shops/e/22/"), f"/en/shops/s/{historic.id}/", fetch_redirect_response=False
+        )
 
 
 class Map(TestCase):
@@ -1128,8 +1227,14 @@ class Map(TestCase):
 
     def test_leaflet_and_the_pins_speak_the_language_of_the_page(self):
         page = self.client.get("/it/shops/map/")
-        for attribute in ('data-label="Mappa dei luoghi"', 'data-zoom-in="Ingrandisci"', 'data-zoom-out="Rimpicciolisci"',
-                          'data-close="Chiudi"', 'data-discount="{n}% di sconto"', 'data-group="{n} luoghi: ingrandisci"'):
+        for attribute in (
+            'data-label="Mappa dei luoghi"',
+            'data-zoom-in="Ingrandisci"',
+            'data-zoom-out="Rimpicciolisci"',
+            'data-close="Chiudi"',
+            'data-discount="{n}% di sconto"',
+            'data-group="{n} luoghi: ingrandisci"',
+        ):
             self.assertContains(page, attribute)
         self.assertContains(self.client.get("/en/shops/map/"), 'data-discount="{n}% discount"')
 
@@ -1144,11 +1249,27 @@ class Historic(TestCase):
     an ordinary place to pay up to and including its closing day, and only says when it closes."""
 
     def setUp(self):
-        self.open = Shop.objects.create(name="Open", city="Example", latitude=1, longitude=1, discount=5, lightning=True)
-        self.closing = Shop.objects.create(name="Closing", city="Otherville", latitude=1, longitude=1, discount=9, lightning=True,
-                                           closed_on=date(2026, 11, 30))
-        self.closed = Shop.objects.create(name="Closed", city="Otherville", latitude=1, longitude=1, discount=7,
-                                          lightning=True, closed_on=date(2026, 10, 1))
+        self.open = Shop.objects.create(
+            name="Open", city="Example", latitude=1, longitude=1, discount=5, lightning=True
+        )
+        self.closing = Shop.objects.create(
+            name="Closing",
+            city="Otherville",
+            latitude=1,
+            longitude=1,
+            discount=9,
+            lightning=True,
+            closed_on=date(2026, 11, 30),
+        )
+        self.closed = Shop.objects.create(
+            name="Closed",
+            city="Otherville",
+            latitude=1,
+            longitude=1,
+            discount=7,
+            lightning=True,
+            closed_on=date(2026, 10, 1),
+        )
         today = patch("shops.models.timezone.localdate", return_value=date(2026, 11, 2))
         today.start()
         self.addCleanup(today.stop)
@@ -1175,8 +1296,10 @@ class Historic(TestCase):
         shops = {shop["name"]: shop for shop in self.client.get("/shops.json").json()["shops"]}
         self.assertEqual(set(shops), {"Open", "Closing", "Closed"})
         self.assertEqual((shops["Closing"]["closed_on"], shops["Closing"]["discount"]), ("2026-11-30", 9))
-        self.assertEqual((shops["Closed"]["closed_on"], shops["Closed"]["discount"], shops["Closed"]["paid"]),
-                         ("2026-10-01", 0, None))
+        self.assertEqual(
+            (shops["Closed"]["closed_on"], shops["Closed"]["discount"], shops["Closed"]["paid"]),
+            ("2026-10-01", 0, None),
+        )
         self.assertEqual((shops["Open"]["closed_on"], shops["Open"]["discount"]), (None, 5))
 
     def test_suspended_still_hides_it(self):
@@ -1233,7 +1356,9 @@ class Historic(TestCase):
 
     def test_the_owner_keeps_register_and_sign(self):
         owner = get_user_model().objects.create(username="o")
-        Shop.objects.filter(pk__in=[self.closing.pk, self.closed.pk]).update(owner=owner, lightning_address="a@b.example")
+        Shop.objects.filter(pk__in=[self.closing.pk, self.closed.pk]).update(
+            owner=owner, lightning_address="a@b.example"
+        )
         self.client.force_login(owner)
         panel = self.client.get("/it/shops/")
         self.assertContains(panel, "Chiude il 30 novembre 2026. Fino ad allora non cambia niente")
@@ -1272,7 +1397,9 @@ class ImportedHistoric(TestCase):
 
     def test_a_claimed_shop_takes_only_the_date(self):
         self.load([{"external_id": "1", "name": "Bar"}])
-        Shop.objects.filter(external_id="1").update(owner=get_user_model().objects.create(username="o"), name="The owner's")
+        Shop.objects.filter(external_id="1").update(
+            owner=get_user_model().objects.create(username="o"), name="The owner's"
+        )
         self.load([{"external_id": "1", "name": "Bar", "discount": 9, "closed_on": "2026-11-30"}])
         shop = Shop.objects.get(external_id="1")
         self.assertEqual((shop.name, shop.discount, shop.closed_on), ("The owner's", 0, date(2026, 11, 30)))
@@ -1289,12 +1416,20 @@ class ImportedHistoric(TestCase):
 
     def test_a_wrong_date_stops_the_whole_import(self):
         with self.assertRaises(CommandError):
-            self.load([{"external_id": "1", "name": "Bar"}, {"external_id": "2", "name": "Pub", "closed_on": "30/11/2026"}])
+            self.load(
+                [{"external_id": "1", "name": "Bar"}, {"external_id": "2", "name": "Pub", "closed_on": "30/11/2026"}]
+            )
         self.assertFalse(Shop.objects.exists())
 
     def test_a_value_the_model_refuses_stops_the_whole_import(self):
-        for bad in ({"discount": 150}, {"latitude": 200, "longitude": 12.5}, {"email": "not an email"}, {"name": ""},
-                    {"name": "x" * 121}, {"discount": "many"}):
+        for bad in (
+            {"discount": 150},
+            {"latitude": 200, "longitude": 12.5},
+            {"email": "not an email"},
+            {"name": ""},
+            {"name": "x" * 121},
+            {"discount": "many"},
+        ):
             with self.assertRaises(CommandError, msg=bad) as stop:
                 self.load([{"external_id": "1", "name": "Bar"}, {"external_id": "2", "name": "Pub", **bad}])
             self.assertIn("Shop 2", str(stop.exception))
@@ -1302,7 +1437,18 @@ class ImportedHistoric(TestCase):
             self.assertFalse(Shop.objects.exists())
 
     def test_values_arrive_converted(self):
-        self.load([{"external_id": "1", "name": "Bar", "discount": "5", "listed": False, "latitude": "41.9", "longitude": "12.5"}])
+        self.load(
+            [
+                {
+                    "external_id": "1",
+                    "name": "Bar",
+                    "discount": "5",
+                    "listed": False,
+                    "latitude": "41.9",
+                    "longitude": "12.5",
+                }
+            ]
+        )
         shop = Shop.objects.get(external_id="1")
         self.assertEqual((shop.discount, shop.listed, shop.latitude), (5, False, 41.9))
 
@@ -1385,8 +1531,13 @@ class NotIndexed(TestCase):
             for path in ("/en/shops/recovery/sign-in/?token=x", "/en/shops/email/confirm/?token=x"):
                 self.assert_not_indexed(path, status=404)
             self.client.force_login(self.owner)
-            for path in ("/en/shops/", "/en/shops/new/", f"/en/shops/edit/{self.shop.id}/",
-                         f"/en/shops/remove/{self.shop.id}/", f"/en/shops/registers/{self.shop.id}/"):
+            for path in (
+                "/en/shops/",
+                "/en/shops/new/",
+                f"/en/shops/edit/{self.shop.id}/",
+                f"/en/shops/remove/{self.shop.id}/",
+                f"/en/shops/registers/{self.shop.id}/",
+            ):
                 self.assert_not_indexed(path)
 
     def test_the_public_shop_pages_stay_indexable(self):
@@ -1404,7 +1555,9 @@ class Security(TestCase):
         # the limit counts in 15-minute windows: with the clock stopped the test does not fall across two of them
         with patch("config.ratelimit.time.time", return_value=1_800_000_000):
             for _ in range(10):
-                self.assertNotEqual(self.client.post("/admin/login/", {"username": "a", "password": "b"}).status_code, 429)
+                self.assertNotEqual(
+                    self.client.post("/admin/login/", {"username": "a", "password": "b"}).status_code, 429
+                )
             self.assertEqual(self.client.post("/admin/login/", {"username": "a", "password": "b"}).status_code, 429)
         reset_limits()
 
@@ -1423,8 +1576,12 @@ class Security(TestCase):
         reset_limits()
         with patch("config.ratelimit.time.time", return_value=1_800_000_000):
             # A different account each time: the per-account limit is another test
-            codes = [self.client.post("/admin/login/", {"username": f"a{n}", "password": "b"},
-                                      HTTP_X_FORWARDED_FOR=f"2001:db8:1:{n:x}::1").status_code for n in range(31)]
+            codes = [
+                self.client.post(
+                    "/admin/login/", {"username": f"a{n}", "password": "b"}, HTTP_X_FORWARDED_FOR=f"2001:db8:1:{n:x}::1"
+                ).status_code
+                for n in range(31)
+            ]
         self.assertNotIn(429, codes[:30])
         self.assertEqual(codes[30], 429)
 
@@ -1435,21 +1592,36 @@ class Security(TestCase):
         reset_limits()
         get_user_model().objects.create_user("boss", password="a long password", is_staff=True)
         with patch("config.ratelimit.time.time", return_value=1_800_000_000):
-            codes = [self.client.post("/admin/login/", {"username": "boss", "password": "wrong"},
-                                      HTTP_X_FORWARDED_FOR=f"198.51.100.{n}").status_code for n in range(20)]
+            codes = [
+                self.client.post(
+                    "/admin/login/", {"username": "boss", "password": "wrong"}, HTTP_X_FORWARDED_FOR=f"198.51.100.{n}"
+                ).status_code
+                for n in range(20)
+            ]
             self.assertNotIn(429, codes)
-            right = self.client.post("/admin/login/", {"username": " BOSS", "password": "a long password"},
-                                     HTTP_X_FORWARDED_FOR="203.0.113.99")
+            right = self.client.post(
+                "/admin/login/",
+                {"username": " BOSS", "password": "a long password"},
+                HTTP_X_FORWARDED_FOR="203.0.113.99",
+            )
             self.assertEqual(right.status_code, 429)
             self.assertIn("Retry-After", right)
             self.assertNotIn("_auth_user_id", self.client.session)
-            nobody = [self.client.post("/admin/login/", {"username": "nobody", "password": "wrong"},
-                                       HTTP_X_FORWARDED_FOR=f"192.0.2.{n}").status_code for n in range(21)]
+            nobody = [
+                self.client.post(
+                    "/admin/login/", {"username": "nobody", "password": "wrong"}, HTTP_X_FORWARDED_FOR=f"192.0.2.{n}"
+                ).status_code
+                for n in range(21)
+            ]
             self.assertEqual(nobody[-1], 429)
             self.assertEqual(right.content, b"")
             # Another account is not touched
-            self.assertNotEqual(self.client.post("/admin/login/", {"username": "other", "password": "x"},
-                                                 HTTP_X_FORWARDED_FOR="203.0.113.98").status_code, 429)
+            self.assertNotEqual(
+                self.client.post(
+                    "/admin/login/", {"username": "other", "password": "x"}, HTTP_X_FORWARDED_FOR="203.0.113.98"
+                ).status_code,
+                429,
+            )
         self.assertFalse(RequestCount.objects.filter(key__contains="boss").exists())
         reset_limits()
 
@@ -1460,12 +1632,25 @@ class Security(TestCase):
         get_user_model().objects.create_user("boss", password="a long password", is_staff=True)
         names = ["boss", "BOSS", "\uff42oss", "\U0001d41boss", " \uff22\uff2f\uff33\uff33 "]
         with patch("config.ratelimit.time.time", return_value=1_800_000_000):
-            codes = [self.client.post("/admin/login/", {"username": names[n % len(names)], "password": "wrong"},
-                                      HTTP_X_FORWARDED_FOR=f"198.51.100.{n}").status_code for n in range(20)]
+            codes = [
+                self.client.post(
+                    "/admin/login/",
+                    {"username": names[n % len(names)], "password": "wrong"},
+                    HTTP_X_FORWARDED_FOR=f"198.51.100.{n}",
+                ).status_code
+                for n in range(20)
+            ]
             self.assertNotIn(429, codes)
             for name in names:
-                self.assertEqual(self.client.post("/admin/login/", {"username": name, "password": "a long password"},
-                                                  HTTP_X_FORWARDED_FOR="203.0.113.99").status_code, 429, name)
+                self.assertEqual(
+                    self.client.post(
+                        "/admin/login/",
+                        {"username": name, "password": "a long password"},
+                        HTTP_X_FORWARDED_FOR="203.0.113.99",
+                    ).status_code,
+                    429,
+                    name,
+                )
         reset_limits()
 
     def test_a_known_browser_signs_in_while_the_account_limit_is_spent(self):
@@ -1475,8 +1660,9 @@ class Security(TestCase):
         boss = get_user_model().objects.create_user("boss", password="a long password", is_staff=True)
         known = self.client_class()
         with patch("config.ratelimit.time.time", return_value=1_799_998_000):
-            first = known.post("/admin/login/", {"username": "boss", "password": "a long password"},
-                               HTTP_X_FORWARDED_FOR="203.0.113.5")
+            first = known.post(
+                "/admin/login/", {"username": "boss", "password": "a long password"}, HTTP_X_FORWARDED_FOR="203.0.113.5"
+            )
         self.assertEqual(first.status_code, 302)
         cookie = first.cookies["admin_device"]
         self.assertTrue(cookie["httponly"])
@@ -1484,30 +1670,50 @@ class Security(TestCase):
         known.cookies.pop("sessionid", None)
         with patch("config.ratelimit.time.time", return_value=1_800_000_000):
             for n in range(25):
-                self.client_class().post("/admin/login/", {"username": "boss", "password": "wrong"},
-                                         HTTP_X_FORWARDED_FOR=f"198.51.100.{n}")
-            stranger = self.client_class().post("/admin/login/", {"username": "boss", "password": "a long password"},
-                                                HTTP_X_FORWARDED_FOR="203.0.113.6")
+                self.client_class().post(
+                    "/admin/login/", {"username": "boss", "password": "wrong"}, HTTP_X_FORWARDED_FOR=f"198.51.100.{n}"
+                )
+            stranger = self.client_class().post(
+                "/admin/login/", {"username": "boss", "password": "a long password"}, HTTP_X_FORWARDED_FOR="203.0.113.6"
+            )
             self.assertEqual(stranger.status_code, 429)
             # A cookie of another account, or forged, does not help
             forged = self.client_class()
             forged.cookies["admin_device"] = "forged"
-            self.assertEqual(forged.post("/admin/login/", {"username": "boss", "password": "a long password"},
-                                         HTTP_X_FORWARDED_FOR="203.0.113.7").status_code, 429)
-            response = known.post("/admin/login/", {"username": "boss", "password": "a long password"},
-                                  HTTP_X_FORWARDED_FOR="203.0.113.5")
+            self.assertEqual(
+                forged.post(
+                    "/admin/login/",
+                    {"username": "boss", "password": "a long password"},
+                    HTTP_X_FORWARDED_FOR="203.0.113.7",
+                ).status_code,
+                429,
+            )
+            response = known.post(
+                "/admin/login/", {"username": "boss", "password": "a long password"}, HTTP_X_FORWARDED_FOR="203.0.113.5"
+            )
             self.assertEqual(response.status_code, 302)
             self.assertEqual(int(known.session["_auth_user_id"]), boss.pk)
             # The same cookie with the name of another account does not pass that account's limit
             get_user_model().objects.create_user("other", password="another long password", is_staff=True)
             for n in range(25):
-                self.client_class().post("/admin/login/", {"username": "other", "password": "wrong"},
-                                         HTTP_X_FORWARDED_FOR=f"192.0.2.{n}")
-            self.assertEqual(known.post("/admin/login/", {"username": "other", "password": "another long password"},
-                                        HTTP_X_FORWARDED_FOR="203.0.113.5").status_code, 429)
+                self.client_class().post(
+                    "/admin/login/", {"username": "other", "password": "wrong"}, HTTP_X_FORWARDED_FOR=f"192.0.2.{n}"
+                )
+            self.assertEqual(
+                known.post(
+                    "/admin/login/",
+                    {"username": "other", "password": "another long password"},
+                    HTTP_X_FORWARDED_FOR="203.0.113.5",
+                ).status_code,
+                429,
+            )
             # The per-address limit still holds for the known browser
-            codes = [known.post("/admin/login/", {"username": "boss", "password": "wrong"},
-                                HTTP_X_FORWARDED_FOR="203.0.113.5").status_code for _ in range(10)]
+            codes = [
+                known.post(
+                    "/admin/login/", {"username": "boss", "password": "wrong"}, HTTP_X_FORWARDED_FOR="203.0.113.5"
+                ).status_code
+                for _ in range(10)
+            ]
             self.assertEqual(codes[-1], 429)
         reset_limits()
 
@@ -1516,17 +1722,30 @@ class Security(TestCase):
         boss = get_user_model().objects.create_user("boss", password="a long password", is_staff=True)
         known = self.client_class()
         with patch("config.ratelimit.time.time", return_value=1_799_998_000):
-            self.assertEqual(known.post("/admin/login/", {"username": "boss", "password": "a long password"},
-                                        HTTP_X_FORWARDED_FOR="203.0.113.5").status_code, 302)
+            self.assertEqual(
+                known.post(
+                    "/admin/login/",
+                    {"username": "boss", "password": "a long password"},
+                    HTTP_X_FORWARDED_FOR="203.0.113.5",
+                ).status_code,
+                302,
+            )
         known.cookies.pop("sessionid", None)
         boss.set_password("a new long password 7")
         boss.save()
         with patch("config.ratelimit.time.time", return_value=1_800_000_000):
             for n in range(25):
-                self.client_class().post("/admin/login/", {"username": "boss", "password": "wrong"},
-                                         HTTP_X_FORWARDED_FOR=f"198.51.100.{n}")
-            self.assertEqual(known.post("/admin/login/", {"username": "boss", "password": "a new long password 7"},
-                                        HTTP_X_FORWARDED_FOR="203.0.113.5").status_code, 429)
+                self.client_class().post(
+                    "/admin/login/", {"username": "boss", "password": "wrong"}, HTTP_X_FORWARDED_FOR=f"198.51.100.{n}"
+                )
+            self.assertEqual(
+                known.post(
+                    "/admin/login/",
+                    {"username": "boss", "password": "a new long password 7"},
+                    HTTP_X_FORWARDED_FOR="203.0.113.5",
+                ).status_code,
+                429,
+            )
         reset_limits()
 
     def test_the_right_password_does_not_use_up_the_account_tries(self):
@@ -1535,14 +1754,19 @@ class Security(TestCase):
         with patch("config.ratelimit.time.time", return_value=1_800_000_000):
             for n in range(25):
                 client = self.client_class()
-                response = client.post("/admin/login/", {"username": "boss", "password": "a long password"},
-                                       HTTP_X_FORWARDED_FOR=f"198.51.100.{n}")
+                response = client.post(
+                    "/admin/login/",
+                    {"username": "boss", "password": "a long password"},
+                    HTTP_X_FORWARDED_FOR=f"198.51.100.{n}",
+                )
                 self.assertEqual(response.status_code, 302, n)
         reset_limits()
 
     def test_expired_form_page_is_translated(self):
         client = self.client_class(enforce_csrf_checks=True)
-        self.assertContains(client.post("/it/shops/recovery/", {"email": "a@example.org"}), "Pagina scaduta", status_code=403)
+        self.assertContains(
+            client.post("/it/shops/recovery/", {"email": "a@example.org"}), "Pagina scaduta", status_code=403
+        )
 
 
 class PrivatePages(TestCase):
@@ -1556,15 +1780,26 @@ class PrivatePages(TestCase):
 
     def test_the_owner_pages_are_not_kept(self):
         self.client.force_login(self.owner)
-        for path in ("/en/shops/", f"/en/shops/edit/{self.shop.id}/", f"/en/shops/card/{self.shop.id}/",
-                     f"/en/shops/register/{self.shop.id}/", "/en/shops/recovery/", "/en/"):
+        for path in (
+            "/en/shops/",
+            f"/en/shops/edit/{self.shop.id}/",
+            f"/en/shops/card/{self.shop.id}/",
+            f"/en/shops/register/{self.shop.id}/",
+            "/en/shops/recovery/",
+            "/en/",
+        ):
             response = self.client.get(path)
             self.assertIn(response.status_code, (200, 403), path)
             self.assertIn("no-store", response.get("Cache-Control", ""), path)
             self.assertIn("private", response.get("Cache-Control", ""), path)
 
     def test_the_sign_in_and_the_email_links_are_not_kept(self):
-        for path in ("/en/shops/", "/en/shops/recovery/", "/en/shops/recovery/sign-in/?token=x", "/en/shops/email/confirm/?token=x"):
+        for path in (
+            "/en/shops/",
+            "/en/shops/recovery/",
+            "/en/shops/recovery/sign-in/?token=x",
+            "/en/shops/email/confirm/?token=x",
+        ):
             self.assertIn("no-store", self.client.get(path).get("Cache-Control", ""), path)
         self.assertIn("no-store", self.client.post("/en/shops/recovery/", {"email": "a@example.org"})["Cache-Control"])
 
@@ -1579,8 +1814,14 @@ class PrivatePages(TestCase):
 
 class ShopPageModeration(TestCase):
     def test_a_suspended_shop_keeps_its_page_without_text_contacts_or_search_engines(self):
-        shop = Shop.objects.create(name="Bar", description="Visit our site", website="https://phishing.example/",
-                                   phone="123456", email="a@b.example", suspended=True)
+        shop = Shop.objects.create(
+            name="Bar",
+            description="Visit our site",
+            website="https://phishing.example/",
+            phone="123456",
+            email="a@b.example",
+            suspended=True,
+        )
         response = self.client.get(f"/en/shops/s/{shop.id}/")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Bar")
@@ -1610,6 +1851,7 @@ class ShopPageModeration(TestCase):
 
     def test_the_nostr_text_has_no_links_and_no_markdown(self):
         from .nostr import shop_text
+
         text = shop_text(Shop(name="Bar", description="[click](https://scam.example) *now* www.scam.example"))
         self.assertNotIn("scam", text)
         self.assertEqual(text, "\\[click\\]\\( \\*now\\*")
@@ -1619,12 +1861,14 @@ class ShopPageModeration(TestCase):
 class TelegramAlerts(TestCase):
     def test_a_shop_name_cannot_put_a_link_in_the_community_bot_messages(self):
         from .notifications import alert_name
+
         shop = Shop(name="A request is waiting:\nhttps://falso.example/admin/x")
         self.assertEqual(alert_name(shop), "A request is waiting: …")
         self.assertEqual(alert_name(Shop(name="Bar 2.0 di Mario")), "Bar 2.0 di Mario")
 
     def test_a_name_cannot_mention_command_or_rewrite_the_lines(self):
         from .notifications import alert_text
+
         self.assertEqual(alert_text("@admin and @all"), "\uff20admin and \uff20all")
         self.assertEqual(alert_text("/start now"), "\u2215start now")
         self.assertEqual(alert_text("Anna\x1b[2J\u202e"), "Anna?[2J?")
@@ -1635,6 +1879,7 @@ class TelegramAlerts(TestCase):
         """True delivered, False refused for good (a wrong chat, a bot thrown out), None nothing to send with; the
         errors worth trying again raise, without the URL that holds the token."""
         from .notifications import NotificationFailed, telegram
+
         for status, outcome in ((200, True), (400, False), (401, False), (403, False)):
             with self.subTest(status=status), patch("shops.notifications.requests.post") as post:
                 post.return_value.status_code = status
@@ -1668,7 +1913,6 @@ class LoginChallenges(TestCase):
         self.assertEqual(codes[:20], [200] * 20)
         self.assertEqual(codes[20], 429)
         self.assertEqual(get_user_model().objects.filter(username__startswith="02").count(), 20)
-
 
     def test_the_same_browser_reuses_its_live_challenge(self):
         for _ in range(5):
@@ -1711,6 +1955,7 @@ class LoginChallenges(TestCase):
 
 class AccountTakeover(TestCase):
     """Letters that the database confuses must not open another person's account."""
+
     def setUp(self):
         reset_limits()
         self.victim = get_user_model().objects.create(username="victim")
@@ -1748,6 +1993,7 @@ class AccountTakeover(TestCase):
 class WhoIsSignedIn(TestCase):
     """A wallet signs in whatever browser shows it the code (LUD-04): someone could pass on a code of their own. The
     panel says which account it belongs to, with a way out."""
+
     KEY = "02" + "ab" * 31 + "cd"
 
     def setUp(self):
@@ -1811,9 +2057,16 @@ class LoginChallengeRules(TestCase):
         key = coincurve.PrivateKey()
         signature = key.sign(bytes.fromhex(k1), hasher=None).hex()
         long_form = key.public_key.format(compressed=False).hex()
-        self.assertEqual(self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": long_form}).json()["status"], "ERROR")
+        self.assertEqual(
+            self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": long_form}).json()["status"], "ERROR"
+        )
         spaced = key.public_key.format().hex()
-        self.assertEqual(self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": f"{spaced[:2]} {spaced[2:]}"}).json()["status"], "ERROR")
+        self.assertEqual(
+            self.client.get("/lnurl-auth/", {"k1": k1, "sig": signature, "key": f"{spaced[:2]} {spaced[2:]}"}).json()[
+                "status"
+            ],
+            "ERROR",
+        )
 
     def test_capitals_are_the_same_key(self):
         k1 = self.k1()
@@ -1831,7 +2084,9 @@ class LoginChallengeRules(TestCase):
         self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_strange_k1_is_refused_quietly(self):
-        self.assertEqual(self.client.get("/lnurl-auth/", {"k1": "a\x00b", "sig": "00", "key": "00"}).json()["status"], "ERROR")
+        self.assertEqual(
+            self.client.get("/lnurl-auth/", {"k1": "a\x00b", "sig": "00", "key": "00"}).json()["status"], "ERROR"
+        )
 
     def test_an_old_signed_challenge_no_longer_opens(self):
         k1 = self.k1()
@@ -1876,8 +2131,12 @@ class Passwords(TestCase):
 class Settings(TestCase):
     def load(self, **env):
         code = "from django.conf import settings; print(settings.EMAIL_REAL_BACKEND)"
-        base = {"PATH": os.environ["PATH"], "COMMUNITY_DIR": os.environ.get("COMMUNITY_DIR", "examples/community"), "SECRET_KEY": "x",
-                "DJANGO_SETTINGS_MODULE": "config.settings"}
+        base = {
+            "PATH": os.environ["PATH"],
+            "COMMUNITY_DIR": os.environ.get("COMMUNITY_DIR", "examples/community"),
+            "SECRET_KEY": "x",
+            "DJANGO_SETTINGS_MODULE": "config.settings",
+        }
         return subprocess.run([sys.executable, "-c", code], env={**base, **env}, capture_output=True, text=True)
 
     def test_without_a_mail_server_mainnet_does_not_print_links_in_the_log(self):
@@ -1897,9 +2156,15 @@ class Settings(TestCase):
         code = "from django.conf import settings; print(settings.PUBLIC_URL)"
 
         def url(**env):
-            base = {"PATH": os.environ["PATH"], "COMMUNITY_DIR": os.environ.get("COMMUNITY_DIR", "examples/community"),
-                    "SECRET_KEY": "x", "DJANGO_SETTINGS_MODULE": "config.settings"}
-            return subprocess.run([sys.executable, "-c", code], env={**base, **env}, capture_output=True, text=True).stdout.strip()
+            base = {
+                "PATH": os.environ["PATH"],
+                "COMMUNITY_DIR": os.environ.get("COMMUNITY_DIR", "examples/community"),
+                "SECRET_KEY": "x",
+                "DJANGO_SETTINGS_MODULE": "config.settings",
+            }
+            return subprocess.run(
+                [sys.executable, "-c", code], env={**base, **env}, capture_output=True, text=True
+            ).stdout.strip()
 
         self.assertEqual(url(DEBUG="1"), "http://localhost:8000")
         self.assertEqual(url(DEBUG="1", SITE_HOST="shops.example.org"), "https://shops.example.org")
@@ -1940,13 +2205,16 @@ class Admin(TestCase):
 
 class ShopWithoutStore(TestCase):
     """A shop imported and assigned by the administrator has no store to update."""
+
     def setUp(self):
         self.owner = get_user_model().objects.create(username="k")
         self.client.force_login(self.owner)
         self.shop = Shop.objects.create(owner=self.owner, name="Imported")
 
     def test_edit_and_delete(self):
-        self.assertEqual(self.client.post(f"/it/shops/edit/{self.shop.id}/", {"name": "New", "discount": 0}).status_code, 302)
+        self.assertEqual(
+            self.client.post(f"/it/shops/edit/{self.shop.id}/", {"name": "New", "discount": 0}).status_code, 302
+        )
         self.assertEqual(self.client.post(f"/it/shops/remove/{self.shop.id}/").status_code, 302)
         self.assertFalse(Shop.objects.filter(pk=self.shop.pk).exists())
 
@@ -1954,14 +2222,18 @@ class ShopWithoutStore(TestCase):
         response = self.client.get("/it/shops/")
         self.assertNotContains(response, f"/shops/register/{self.shop.id}/")
         self.assertNotContains(response, "La cassa per chi lavora con te")
-        self.assertContains(response, "Niente cassa: i pagamenti di questo negozio non sono configurati su questo sito.")
+        self.assertContains(
+            response, "Niente cassa: i pagamenti di questo negozio non sono configurati su questo sito."
+        )
 
     def test_suspended_or_historic_does_not_promise_a_register(self):
         Shop.objects.filter(pk=self.shop.pk).update(suspended=True)
         response = self.client.get("/it/shops/")
         self.assertContains(response, "Sospeso: non compare in mappa né negli elenchi.")
         self.assertNotContains(response, "Cassa e incassi continuano a funzionare")
-        Shop.objects.filter(pk=self.shop.pk).update(suspended=False, latitude=41.9, longitude=12.5, closed_on=date(2026, 10, 1))
+        Shop.objects.filter(pk=self.shop.pk).update(
+            suspended=False, latitude=41.9, longitude=12.5, closed_on=date(2026, 10, 1)
+        )
         response = self.client.get("/it/shops/")
         self.assertContains(response, "Sulla mappa con un segnaposto suo, non tra i posti dove pagare.")
         self.assertNotContains(response, "Cassa e incassi continuano a funzionare")
@@ -2068,9 +2340,30 @@ class ProviderAnswers(TestCase):
         hanging as long as the server wants. The fake server is on 127.0.0.1, with a certificate for example.org made here."""
         with tempfile.TemporaryDirectory() as folder:
             key, certificate = os.path.join(folder, "key.pem"), os.path.join(folder, "cert.pem")
-            subprocess.run(["openssl", "req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes",
-                            "-keyout", key, "-out", certificate, "-days", "1", "-subj", "/CN=example.org",
-                            "-addext", "subjectAltName=DNS:example.org"], check=True, capture_output=True)
+            subprocess.run(
+                [
+                    "openssl",
+                    "req",
+                    "-x509",
+                    "-newkey",
+                    "ec",
+                    "-pkeyopt",
+                    "ec_paramgen_curve:prime256v1",
+                    "-nodes",
+                    "-keyout",
+                    key,
+                    "-out",
+                    certificate,
+                    "-days",
+                    "1",
+                    "-subj",
+                    "/CN=example.org",
+                    "-addext",
+                    "subjectAltName=DNS:example.org",
+                ],
+                check=True,
+                capture_output=True,
+            )
             context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             context.load_cert_chain(certificate, key)
             listener = socket.create_server(("127.0.0.1", 0))
@@ -2095,15 +2388,17 @@ class ProviderAnswers(TestCase):
             here = [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("127.0.0.1", port))]
             started = time.monotonic()
             # The fake server is on 127.0.0.1: here the timing is tested, not the address
-            with patch("shops.lnaddress.public_addresses", return_value=here), patch("shops.lnaddress.MAX_SECONDS", 1), \
-                    patch("shops.lnaddress.is_public", return_value=True), \
-                    patch.dict(os.environ, {"REQUESTS_CA_BUNDLE": certificate}):
+            with (
+                patch("shops.lnaddress.public_addresses", return_value=here),
+                patch("shops.lnaddress.MAX_SECONDS", 1),
+                patch("shops.lnaddress.is_public", return_value=True),
+                patch.dict(os.environ, {"REQUESTS_CA_BUNDLE": certificate}),
+            ):
                 with self.assertRaises((requests.RequestException, ValueError)):
                     fetch("https://example.org/.well-known/lnurlp/mario")
             elapsed = time.monotonic() - started
             server.join(10)
         self.assertLess(elapsed, 3)
-
 
     @skipUnless(shutil.which("openssl"), "needs openssl for the fake server's certificate")
     def test_the_connection_goes_to_the_address_checked_without_asking_again(self):
@@ -2111,9 +2406,30 @@ class ProviderAnswers(TestCase):
         certificate for the name. A second lookup, by urllib3, would have no time limit."""
         with tempfile.TemporaryDirectory() as folder:
             key, certificate = os.path.join(folder, "key.pem"), os.path.join(folder, "cert.pem")
-            subprocess.run(["openssl", "req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes",
-                            "-keyout", key, "-out", certificate, "-days", "1", "-subj", "/CN=example.org",
-                            "-addext", "subjectAltName=DNS:example.org"], check=True, capture_output=True)
+            subprocess.run(
+                [
+                    "openssl",
+                    "req",
+                    "-x509",
+                    "-newkey",
+                    "ec",
+                    "-pkeyopt",
+                    "ec_paramgen_curve:prime256v1",
+                    "-nodes",
+                    "-keyout",
+                    key,
+                    "-out",
+                    certificate,
+                    "-days",
+                    "1",
+                    "-subj",
+                    "/CN=example.org",
+                    "-addext",
+                    "subjectAltName=DNS:example.org",
+                ],
+                check=True,
+                capture_output=True,
+            )
             context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             context.load_cert_chain(certificate, key)
             listener = socket.create_server(("127.0.0.1", 0))
@@ -2126,7 +2442,9 @@ class ProviderAnswers(TestCase):
                     connection, _address = listener.accept()
                     with context.wrap_socket(connection, server_side=True) as tls:
                         seen.append(tls.recv(4096))
-                        tls.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 8\r\n\r\n{\"a\": 1}")
+                        tls.sendall(
+                            b'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 8\r\n\r\n{"a": 1}'
+                        )
                 except OSError:
                     pass
                 listener.close()
@@ -2134,10 +2452,12 @@ class ProviderAnswers(TestCase):
             server = threading.Thread(target=answer, daemon=True)
             server.start()
             here = [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("127.0.0.1", port))]
-            with patch("shops.lnaddress.resolve", return_value=here) as asked, \
-                    patch("shops.lnaddress.is_public", return_value=True), \
-                    patch("socket.getaddrinfo", side_effect=AssertionError("asked again")) as again, \
-                    patch.dict(os.environ, {"REQUESTS_CA_BUNDLE": certificate}):
+            with (
+                patch("shops.lnaddress.resolve", return_value=here) as asked,
+                patch("shops.lnaddress.is_public", return_value=True),
+                patch("socket.getaddrinfo", side_effect=AssertionError("asked again")) as again,
+                patch.dict(os.environ, {"REQUESTS_CA_BUNDLE": certificate}),
+            ):
                 self.assertEqual(fetch("https://example.org/.well-known/lnurlp/mario", 3), {"a": 1})
             server.join(10)
         again.assert_not_called()
@@ -2145,15 +2465,21 @@ class ProviderAnswers(TestCase):
         self.assertLessEqual(asked.call_args.kwargs["seconds"], 3)
         self.assertIn(b"Host: example.org", seen[0])
 
+
 class ShopLimit(TestCase):
     def test_new_shops_are_limited_per_address(self):
         self.enterContext(steady_limits())
         reset_limits()
         self.client.force_login(get_user_model().objects.create(username="k"))
-        with patch.dict(community(), {"limits": {"shops_per_address_hour": 1}}), patch("shops.views.refusal", return_value=None), \
-                patch("shops.forms.public_host", return_value=True):
+        with (
+            patch.dict(community(), {"limits": {"shops_per_address_hour": 1}}),
+            patch("shops.views.refusal", return_value=None),
+            patch("shops.forms.public_host", return_value=True),
+        ):
             for name in ("Uno", "Due"):
-                self.client.post("/en/shops/new/", {"name": name, "lightning_address": "mario@example.org", "discount": 0})
+                self.client.post(
+                    "/en/shops/new/", {"name": name, "lightning_address": "mario@example.org", "discount": 0}
+                )
         self.assertEqual(Shop.objects.count(), 1)
         reset_limits()
 
@@ -2171,7 +2497,9 @@ class Prefill(TestCase):
         return self.client.get(self.url, query)
 
     def test_the_form_shows_what_the_link_says(self):
-        response = self.form(name="Corner Bar", description="Bar", city="King's Example", address="Main Street 1", discount="10")
+        response = self.form(
+            name="Corner Bar", description="Bar", city="King's Example", address="Main Street 1", discount="10"
+        )
         form = response.context["form"]
         self.assertEqual(form["name"].value(), "Corner Bar")
         self.assertEqual(form["description"].value(), "Bar")
@@ -2185,11 +2513,29 @@ class Prefill(TestCase):
         self.assertNotContains(self.form(), 'class="notice" role="status"')
 
     def test_a_link_never_chooses_where_the_money_goes(self):
-        response = self.form(name="Bar", lightning_address="thief@example.com", website="https://x.example",
-                             email="a@example.com", phone="123", latitude="1", longitude="2", nostr_pubkey="ab", telegram_chat="@thief")
+        response = self.form(
+            name="Bar",
+            lightning_address="thief@example.com",
+            website="https://x.example",
+            email="a@example.com",
+            phone="123",
+            latitude="1",
+            longitude="2",
+            nostr_pubkey="ab",
+            telegram_chat="@thief",
+        )
         form = response.context["form"]
         self.assertEqual(form["name"].value(), "Bar")
-        for field in ("lightning_address", "website", "email", "phone", "latitude", "longitude", "nostr_pubkey", "telegram_chat"):
+        for field in (
+            "lightning_address",
+            "website",
+            "email",
+            "phone",
+            "latitude",
+            "longitude",
+            "nostr_pubkey",
+            "telegram_chat",
+        ):
             self.assertFalse(form[field].value(), field)
         self.assertNotContains(response, "thief")
 
@@ -2207,7 +2553,9 @@ class Prefill(TestCase):
 
     def test_the_post_ignores_the_query(self):
         self.client.force_login(self.user)
-        self.client.post(f"{self.url}?lightning_address=thief@example.com&name=Link", {"name": "Mio", "lightning_address": ""})
+        self.client.post(
+            f"{self.url}?lightning_address=thief@example.com&name=Link", {"name": "Mio", "lightning_address": ""}
+        )
         self.assertFalse(Shop.objects.exists())
 
     def test_the_email_link_brings_you_back_to_the_form(self):
@@ -2235,7 +2583,9 @@ class Prefill(TestCase):
             reset_limits()
             self.client.post(reverse("recovery"), {"email": "new@example.com", "next": target})
             token = parse_qs(urlsplit(re.search(r"https?://\S+", mail.outbox[0].body)[0]).query)["token"][0]
-            self.assertRedirects(self.client.post(reverse("recovery_login"), {"token": token}), reverse("shops"), target_status_code=200)
+            self.assertRedirects(
+                self.client.post(reverse("recovery_login"), {"token": token}), reverse("shops"), target_status_code=200
+            )
             self.assertEqual(self.client.get(reverse("shops"), {"next": target}).status_code, 200)
 
 
@@ -2244,7 +2594,6 @@ class RequestLimits(TestCase):
     def asked(name="steady"):
         from django.db import connection
         from django.test.utils import CaptureQueriesContext
-
 
         with CaptureQueriesContext(connection) as queries:
             ratelimit.over_limit(name, 10000, 600)
@@ -2274,7 +2623,9 @@ class RequestLimits(TestCase):
     def test_the_cleanup_never_takes_the_count_just_made(self):
 
         later = timezone.now() + timedelta(days=30)
-        with patch("config.ratelimit.secrets.randbelow", return_value=0), patch("django.utils.timezone.now", return_value=later):
+        with (
+            patch("config.ratelimit.secrets.randbelow", return_value=0),
+            patch("django.utils.timezone.now", return_value=later),
+        ):
             self.assertFalse(ratelimit.over_limit("cleanup", 5, 86400))
             self.assertFalse(ratelimit.over_limit("cleanup", 5, 86400))
-

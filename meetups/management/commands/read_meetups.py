@@ -1,4 +1,5 @@
 """Reads the certified organisers' calendar events (NIP-52) from the relays and updates the meetups of the board."""
+
 import time
 
 from django.core.management.base import BaseCommand, CommandError
@@ -12,13 +13,19 @@ DEFAULT_DAYS = 400
 
 
 class Command(BaseCommand):
-    help = ("Reads the calendar events (NIP-52) of the trusted authors from the relays of `meetups` in community.yml and "
-            "updates the board. bitmentor-meetups@<project>.timer runs it every day. It only reads: nothing is sent to a relay.")
+    help = (
+        "Reads the calendar events (NIP-52) of the trusted authors from the relays of `meetups` in community.yml and "
+        "updates the board. bitmentor-meetups@<project>.timer runs it every day. It only reads: nothing is sent to a relay."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument("--dry-run", action="store_true", help="read and check, but change nothing")
-        parser.add_argument("--days", type=int, default=DEFAULT_DAYS, help="ask for the events published in the last N days")
-        parser.add_argument("--relay", action="append", default=[], help="read this relay instead of the configured ones")
+        parser.add_argument(
+            "--days", type=int, default=DEFAULT_DAYS, help="ask for the events published in the last N days"
+        )
+        parser.add_argument(
+            "--relay", action="append", default=[], help="read this relay instead of the configured ones"
+        )
 
     def handle(self, *args, **options):
         if not conf.enabled():
@@ -30,8 +37,11 @@ class Command(BaseCommand):
         for problem in problems:
             self.stderr.write(problem)
         if not urls or not authors:
-            self.stdout.write("Nothing to read: " + ("no relays" if not urls else "no trusted authors")
-                              + " (see docs/features/meetups.md).")
+            self.stdout.write(
+                "Nothing to read: "
+                + ("no relays" if not urls else "no trusted authors")
+                + " (see docs/features/meetups.md)."
+            )
             return
         since = int(time.time()) - max(1, min(options["days"], 3650)) * 86400
         events, answered = relays.read_all(urls, authors, since, self.stdout.write)
@@ -46,14 +56,26 @@ class Command(BaseCommand):
                 transaction.set_rollback(True)
         else:
             report = ingest(events)
-        self.stdout.write(f"{report.seen} events: {report.created} new, {report.updated} updated, {report.cancelled} cancelled, "
-                          f"{report.older} older than what we have, {report.kept} left alone for the staff, "
-                          f"{report.rejected_total} rejected")
+        self.stdout.write(
+            f"{report.seen} events: {report.created} new, {report.updated} updated, {report.cancelled} cancelled, "
+            f"{report.older} older than what we have, {report.kept} left alone for the staff, "
+            f"{report.rejected_total} rejected"
+        )
         for line in report.detail().splitlines():
             self.stdout.write(f"  {line}")
-        self.save(Reading(relays_asked=len(urls), relays_answered=answered, events_seen=report.seen, created=report.created,
-                          updated=report.updated, cancelled=report.cancelled, rejected=report.rejected_total,
-                          detail=report.detail()), options)
+        self.save(
+            Reading(
+                relays_asked=len(urls),
+                relays_answered=answered,
+                events_seen=report.seen,
+                created=report.created,
+                updated=report.updated,
+                cancelled=report.cancelled,
+                rejected=report.rejected_total,
+                detail=report.detail(),
+            ),
+            options,
+        )
 
     def save(self, reading, options):
         if options["dry_run"]:

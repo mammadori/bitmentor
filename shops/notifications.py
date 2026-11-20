@@ -1,14 +1,15 @@
 """Optional notifications: with no token nothing is sent."""
+
 import logging
 import re
 import unicodedata
-
 from smtplib import SMTPException
 
 import requests
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+
 from config.mail import NOT_SENT, send_mail
 
 logger = logging.getLogger(__name__)
@@ -62,8 +63,11 @@ def telegram(chat, text):
 
 def _telegram(chat, text):
     try:
-        response = requests.post(f"{settings.TELEGRAM_API}/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage",
-                                 json={"chat_id": chat, "text": text}, timeout=10)
+        response = requests.post(
+            f"{settings.TELEGRAM_API}/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage",
+            json={"chat_id": chat, "text": text},
+            timeout=10,
+        )
     except requests.RequestException as error:
         raise Unreachable(type(error).__name__) from None
     if response.status_code == 429 or response.status_code >= 500:
@@ -84,7 +88,9 @@ def alert_name(shop):
 def plain(text):
     """A text as a terminal or a message shows it: control and format characters (an escape sequence, a direction
     override) become "?", so a name cannot rewrite the lines around it. The joiner of emoji stays."""
-    return "".join("?" if unicodedata.category(char).startswith("C") and char != "\u200d" else char for char in str(text))
+    return "".join(
+        "?" if unicodedata.category(char).startswith("C") and char != "\u200d" else char for char in str(text)
+    )
 
 
 def alert_text(text, limit=60):
@@ -111,8 +117,12 @@ def read_moderators_emails():
     if value is None:
         return [], []
     if not isinstance(value, list):
-        return [], [(f"`moderators_emails` is a list of up to {MAX_MODERATORS_EMAILS} email addresses, not "
-                     f"{type(value).__name__}: the community's `email` is used")]
+        return [], [
+            (
+                f"`moderators_emails` is a list of up to {MAX_MODERATORS_EMAILS} email addresses, not "
+                f"{type(value).__name__}: the community's `email` is used"
+            )
+        ]
     found, problems, seen = [], [], set()
     for place, address in enumerate(value, 1):
         try:
@@ -130,7 +140,9 @@ def read_moderators_emails():
         seen.add(address.lower())
         found.append(address)
     if len(found) > MAX_MODERATORS_EMAILS:
-        problems.append(f"`moderators_emails` has {len(found)} addresses: only the first {MAX_MODERATORS_EMAILS} are used")
+        problems.append(
+            f"`moderators_emails` has {len(found)} addresses: only the first {MAX_MODERATORS_EMAILS} are used"
+        )
         found = found[:MAX_MODERATORS_EMAILS]
     if not found:
         problems.append("`moderators_emails` has no address that can be used: the community's `email` is used")
@@ -159,7 +171,9 @@ def email_moderators(subject, text, problems):
                 else:
                     problems.append(f"`moderators_emails`: address {place} of {len(addresses)}: {NOT_SENT}")
             except (OSError, SMTPException, ValueError) as error:
-                problems.append(f"`moderators_emails`: address {place} of {len(addresses)} failed ({type(error).__name__})")
+                problems.append(
+                    f"`moderators_emails`: address {place} of {len(addresses)} failed ({type(error).__name__})"
+                )
         return sent
     address = community().get("email")
     if isinstance(address, str) and "@" in address:

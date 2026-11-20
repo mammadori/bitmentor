@@ -17,6 +17,7 @@ A waiting shop that is not for the map (a trial of the team's, a duplicate, some
 aside from /admin/today/ (`set_aside`): it stays not approved, so off the map exactly like a waiting shop, with its
 register working, but it is no longer in `waiting()` and nobody is asked about it again. Its owner reads so in the panel.
 It can be put back among the waiting ones (`put_back`), or approved all the same."""
+
 import logging
 import threading
 from typing import NamedTuple
@@ -50,22 +51,27 @@ def set_aside(shop, user):
     """Sets aside `shop`, if it still waits: not for the map, not asked about any more. It stays not approved. Only if
     nobody approved it or set it aside meanwhile, so two people clicking write one history line. Returns whether it did."""
     now, name = timezone.now(), user.get_username()[:150]
-    if not Shop.objects.filter(pk=shop.pk, approved_on=None, set_aside_on=None).update(set_aside_on=now, set_aside_by=name):
+    if not Shop.objects.filter(pk=shop.pk, approved_on=None, set_aside_on=None).update(
+        set_aside_on=now, set_aside_by=name
+    ):
         return False
     shop.set_aside_on, shop.set_aside_by = now, name
-    LogEntry.objects.log_actions(user.pk, [shop], CHANGE, change_message="Shop set aside: not for the map",
-                                 single_object=True)
+    LogEntry.objects.log_actions(
+        user.pk, [shop], CHANGE, change_message="Shop set aside: not for the map", single_object=True
+    )
     return True
 
 
 def put_back(shop, user):
     """Puts a shop set aside back among the waiting ones: asked about again. Returns whether it did."""
-    if not Shop.objects.filter(pk=shop.pk, approved_on=None, set_aside_on__isnull=False).update(set_aside_on=None,
-                                                                                                 set_aside_by=""):
+    if not Shop.objects.filter(pk=shop.pk, approved_on=None, set_aside_on__isnull=False).update(
+        set_aside_on=None, set_aside_by=""
+    ):
         return False
     shop.set_aside_on, shop.set_aside_by = None, ""
-    LogEntry.objects.log_actions(user.pk, [shop], CHANGE, change_message="Shop put back among the waiting ones",
-                                 single_object=True)
+    LogEntry.objects.log_actions(
+        user.pk, [shop], CHANGE, change_message="Shop put back among the waiting ones", single_object=True
+    )
     return True
 
 
@@ -126,8 +132,9 @@ def approve_or_hold(shops, user, *, confirmed=False, by=None):
     held_shops = [] if confirmed else [shop for shop in found if approval_signals.asks(signals[shop.pk])]
     if held_shops:
         # A trace for a caller that suddenly approves fewer: how many, never which
-        logger.warning("approval: %d shops held, a signal asks a person to check them (shops/approval_signals.py)",
-                       len(held_shops))
+        logger.warning(
+            "approval: %d shops held, a signal asks a person to check them (shops/approval_signals.py)", len(held_shops)
+        )
     count = 0
     for shop in found:
         if shop in held_shops:
@@ -185,25 +192,38 @@ def owner_texts(shop):
     panel = f"{settings.PUBLIC_URL}{reverse('shops')}"
     shown, wallet = on_the_map(shop), waits_for_wallet(shop)
     headline = _("{shop} is on the map") if shown else _("{shop} is approved")
-    said = [(_("Good news: the community approved {shop}. It is on the map now, and in the lists.") if shown
-             else _("Good news: the community approved {shop}.")).format(shop=shop.name)]
+    said = [
+        (
+            _("Good news: the community approved {shop}. It is on the map now, and in the lists.")
+            if shown
+            else _("Good news: the community approved {shop}.")
+        ).format(shop=shop.name)
+    ]
     # «As soon as» only when that one thing is all that keeps the shop off the map; otherwise only «approved»
     no_position = shop.latitude is None or shop.longitude is None
     rest_fine = shop.listed and not shop.suspended and not shop.closed
     if not shown and rest_fine and wallet and not no_position:
-        said.append(_("It goes on the map as soon as you add the wallet where the money arrives: your panel shows how."))
+        said.append(
+            _("It goes on the map as soon as you add the wallet where the money arrives: your panel shows how.")
+        )
     elif not shown and rest_fine and no_position and not wallet:
         said.append(_("It goes on the map as soon as its position is in its details: you can add it from your panel."))
     lines = []
     if not wallet:
         lines.append(_("Its page, the one customers see: {link}").format(link=page))
     if sign_ready(shop):
-        lines.append(_("You can print the sign now: its QR code opens that page. You find it in your panel, together "
-                       "with the card for the till."))
+        lines.append(
+            _(
+                "You can print the sign now: its QR code opens that page. You find it in your panel, together "
+                "with the card for the till."
+            )
+        )
     lines.append(_("Your panel: {link}").format(link=panel))
     subject = f"{community()['name']}: {headline.format(shop=alert_name(shop))}"
     body = "\n\n".join([" ".join(said), *lines])
-    chat = "\n".join([f"{alert_text(community()['name'])}: {headline.format(shop=alert_name(shop))}", *said[1:], *lines])
+    chat = "\n".join(
+        [f"{alert_text(community()['name'])}: {headline.format(shop=alert_name(shop))}", *said[1:], *lines]
+    )
     return subject, body, chat
 
 
@@ -226,8 +246,11 @@ def tell_owner(shop):
         if email:
             try:
                 if not send_mail(subject, body, merchant_sender(), [email], kind="merchant"):
-                    logger.error("approval notice: email not sent for shop %s (kept back by the email budget, or "
-                                 "taken by no backend)", shop_id)
+                    logger.error(
+                        "approval notice: email not sent for shop %s (kept back by the email budget, or "
+                        "taken by no backend)",
+                        shop_id,
+                    )
             except Exception as error:  # noqa: BLE001 (the log, never the approver's page)
                 logger.error("approval notice: email not delivered for shop %s: %s", shop_id, type(error).__name__)
         for place, where in enumerate(found, 1):
@@ -364,8 +387,10 @@ def watch_edit(before, shop):
         try:
             with translation.override(settings.LANGUAGE_CODE):
                 heading = f"⚠ {_('Check this shop')}"
-                text = _("%(name)s, already on the map, was changed by its owner and now looks like a shop already on the "
-                         "site.") % {"name": alert_text(name)}
+                text = _(
+                    "%(name)s, already on the map, was changed by its owner and now looks like a shop already on the "
+                    "site."
+                ) % {"name": alert_text(name)}
                 link = f"{settings.PUBLIC_URL}{reverse('admin:shops_shop_change', args=[shop_id])}"
                 message = f"{heading}\n{site_label()}\n{text}\n" + "".join(f"- {line}\n" for line in found) + link
                 where, problems = deliver_to_moderators(heading, message)
@@ -387,12 +412,19 @@ def watch_edit(before, shop):
             with translation.override(settings.LANGUAGE_CODE):
                 # Every signal of before and after, not only the first shops a page shows: an edit that only puts the
                 # others in another order announces nothing
-                had = {(signal.code, signal.other_id) for signal in
-                       approval_signals.signals_for(previous, everything, accounts, most=None) if signal.asks}
-                now = approval_signals.signals_for(approval_signals.card(current), everything, accounts, alert_text,
-                                                   most=None)
-                gained = {(signal.code, signal.other_id) for signal in now
-                          if signal.asks and (signal.code, signal.other_id) not in had}
+                had = {
+                    (signal.code, signal.other_id)
+                    for signal in approval_signals.signals_for(previous, everything, accounts, most=None)
+                    if signal.asks
+                }
+                now = approval_signals.signals_for(
+                    approval_signals.card(current), everything, accounts, alert_text, most=None
+                )
+                gained = {
+                    (signal.code, signal.other_id)
+                    for signal in now
+                    if signal.asks and (signal.code, signal.other_id) not in had
+                }
                 # Once a day for each shop, signal and other shop: an owner who goes back and forth between their own
                 # name and a copied one sends one message, not one per round trip
                 gained = {pair for pair in gained if cache.add(told_key(shop_id, *pair), True, TOLD_SECONDS)}

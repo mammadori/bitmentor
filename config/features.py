@@ -24,6 +24,7 @@ the whole feature.
 Code asks `enabled("name")`; a page that must not exist when its feature is off is wrapped with `gated` in the URLs
 (a 404 for everybody, signed in or not, before any other check); templates read `features.<name>` and
 `experimental.<name>`."""
+
 from functools import wraps
 
 from django.http import Http404
@@ -87,8 +88,10 @@ def problems():
     if data is None:
         return found
     if not isinstance(data, dict):
-        return [f"`features` is a block with the names {', '.join(FEATURES)}, each true or false: {data!r}; "
-                "every feature stays on"]
+        return [
+            f"`features` is a block with the names {', '.join(FEATURES)}, each true or false: {data!r}; "
+            "every feature stays on"
+        ]
     for name, value in data.items():
         if name not in FEATURES:
             found.append(f"`features.{name}` is not a feature of the software ({', '.join(FEATURES)}): it does nothing")
@@ -104,14 +107,18 @@ def experimental_problems():
     if data is None:
         return []
     if not isinstance(data, dict):
-        problem = (f"`experimental` is a block with the names {', '.join(EXPERIMENTAL)}, each true or false: {data!r}; "
-                   "every experimental feature stays off")
+        problem = (
+            f"`experimental` is a block with the names {', '.join(EXPERIMENTAL)}, each true or false: {data!r}; "
+            "every experimental feature stays off"
+        )
         return [problem]
     found = []
     for name, value in data.items():
         if name not in EXPERIMENTAL:
-            found.append(f"`experimental.{name}` is not an experimental feature of the software "
-                         f"({', '.join(EXPERIMENTAL)}): it does nothing")
+            found.append(
+                f"`experimental.{name}` is not an experimental feature of the software "
+                f"({', '.join(EXPERIMENTAL)}): it does nothing"
+            )
         elif not isinstance(value, bool):
             found.append(f"`experimental.{name}` must be true or false, not {value!r}: it stays off")
     return found
@@ -120,6 +127,7 @@ def experimental_problems():
 def gated(name, view):
     """`view` as long as the feature is on; a 404 for everybody otherwise, before the view's own checks (a visitor who is
     not signed in learns nothing either: the page does not exist)."""
+
     @wraps(view)
     def wrapper(request, *args, **kwargs):
         if not enabled(name):

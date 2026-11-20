@@ -1,5 +1,6 @@
 """The cookie that lets a browser that signed in before past the per-account limit of the admin sign-in (config/urls.py):
 it must hold only for the account it was made for, and never for a stranger who can produce something that looks like it."""
+
 import time
 from unittest.mock import patch
 

@@ -16,6 +16,7 @@ Nothing here writes or asks for anything: the pages are only read, there is no f
 other server, and nothing about the visitor is kept. The phone's make is looked at once, to show the wallets that run on
 it first, and forgotten.
 """
+
 from decimal import Decimal
 
 import segno
@@ -97,11 +98,18 @@ def common(request, shop):
     for wallet, key in zip(wallets, wallet_keys(wallets)):
         wallet["key"] = key
     context = {
-        "shop": shop, "methods": methods, "network": settings.NETWORK, "test_network": settings.NETWORK != "mainnet",
+        "shop": shop,
+        "methods": methods,
+        "network": settings.NETWORK,
+        "test_network": settings.NETWORK != "mainnet",
         "address_start": ADDRESS_START.get(settings.NETWORK, "tb1"),
-        "wallets": wallets, "first_bitcoin": links["first_bitcoin"], "community_email": data.get("email", ""),
-        "wallet_page": shop_page_links(get_language())["wallet"], "deal": deal(shop, data.get("currency", "EUR")),
-        "art": pictures()}
+        "wallets": wallets,
+        "first_bitcoin": links["first_bitcoin"],
+        "community_email": data.get("email", ""),
+        "wallet_page": shop_page_links(get_language())["wallet"],
+        "deal": deal(shop, data.get("currency", "EUR")),
+        "art": pictures(),
+    }
     return context, None
 
 
@@ -115,8 +123,11 @@ def deal(shop, currency):
     if not shop.discount:
         return None
     saving = (EXAMPLE_BILL * shop.discount / 100).quantize(CENT)
-    return {"percent": shop.discount, "bill": views.money_text(EXAMPLE_BILL, currency),
-            "saving": views.money_text(saving, currency)}
+    return {
+        "percent": shop.discount,
+        "bill": views.money_text(EXAMPLE_BILL, currency),
+        "saving": views.money_text(saving, currency),
+    }
 
 
 def answer(request, template, context, by_phone=False):
@@ -155,18 +166,32 @@ def step(request, shop, number):
     # path goes on with "your wallet"
     if number > 1 and wallets and chosen is None:
         return redirect(reverse("customer_step", args=[shop.id, 1]))
-    context.update(number=number, chosen=chosen, query=f"?w={chosen['key']}" if chosen else "",
-                   progress=[{"number": item, "done": item < number, "current": item == number} for item in STEPS])
+    context.update(
+        number=number,
+        chosen=chosen,
+        query=f"?w={chosen['key']}" if chosen else "",
+        progress=[{"number": item, "done": item < number, "current": item == number} for item in STEPS],
+    )
     by_phone = False
     if number == 1:
         phone = request.GET.get("on")
         if phone not in DEVICES + ("all",):
             phone, by_phone = device(request) or "all", True
-        shown = [wallet for wallet in wallets if phone == "all" or not wallet["platforms"] or phone in wallet["platforms"]]
+        shown = [
+            wallet for wallet in wallets if phone == "all" or not wallet["platforms"] or phone in wallet["platforms"]
+        ]
         context.update(
-            phone=phone, shown=[{**wallet, "platform_names": ", ".join(str(views.PLATFORM_NAMES[name]) for name in wallet["platforms"])}
-                                for wallet in shown],
-            filters=[("android", views.PLATFORM_NAMES["android"]), ("ios", views.PLATFORM_NAMES["ios"]), ("all", _("All"))])
+            phone=phone,
+            shown=[
+                {**wallet, "platform_names": ", ".join(str(views.PLATFORM_NAMES[name]) for name in wallet["platforms"])}
+                for wallet in shown
+            ],
+            filters=[
+                ("android", views.PLATFORM_NAMES["android"]),
+                ("ios", views.PLATFORM_NAMES["ios"]),
+                ("all", _("All")),
+            ],
+        )
     return answer(request, "shops/customer_step.html", context, by_phone)
 
 
@@ -186,13 +211,23 @@ def help_page(request, shop):
 def card(request, shop):
     """An A4 sheet for the merchant to print and keep at the till: "No wallet? Scan here", with a QR code that opens the
     first screen of the path, in the language of the page. Only for a shop where a customer can pay."""
-    shop = get_object_or_404(request.user.shops.exclude(waiting_for_wallet()).filter(still_trading(), suspended=False), pk=shop)
+    shop = get_object_or_404(
+        request.user.shops.exclude(waiting_for_wallet()).filter(still_trading(), suspended=False), pk=shop
+    )
     if views.sign_waits(shop):
         # Its code leads to the shop's page, which shows how to pay only once approved: like the sign, it waits
         return render(request, "shops/sign_waiting.html", {"shop": shop, "customer_card": True})
     url = f"{settings.PUBLIC_URL}{reverse('customer', args=[shop.id])}"
-    return render(request, "shops/customer_card.html", {
-        "shop": shop, "methods": views.till_methods(shop), "url": url,
-        # White behind it, dark or light theme: a code on a dark page is not read, and a sheet is printed on white
-        "qr": segno.make(url, error="m").svg_data_uri(scale=10, border=1, dark="#000", light="#fff"), "art": pictures(),
-        "deal": deal(shop, community().get("currency", "EUR"))})
+    return render(
+        request,
+        "shops/customer_card.html",
+        {
+            "shop": shop,
+            "methods": views.till_methods(shop),
+            "url": url,
+            # White behind it, dark or light theme: a code on a dark page is not read, and a sheet is printed on white
+            "qr": segno.make(url, error="m").svg_data_uri(scale=10, border=1, dark="#000", light="#fff"),
+            "art": pictures(),
+            "deal": deal(shop, community().get("currency", "EUR")),
+        },
+    )

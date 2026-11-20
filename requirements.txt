@@ -1,7 +1,7 @@
-Django==5.2.*
-gunicorn==23.*
-psycopg[binary]==3.2.*
-requests==2.33.*
+Django==6.1.*
+gunicorn==27.*
+psycopg[binary]==3.3.*
+requests==2.34.*
 PyYAML==6.*
 Markdown==3.*
 whitenoise==6.*
@@ -12,5 +12,5 @@ coincurve @ https://github.com/mammadori/bitmentor/releases/download/deps/coincu
 coincurve @ git+https://github.com/ofek/coincurve@2d11b1160c75ae8fd94fe8fe3f226aec176bf9bf ; sys_platform != "linux" or platform_machine != "x86_64"
 segno==1.*
 bech32==1.*
-websockets==15.*
+websockets==17.*
 cryptography==50.*

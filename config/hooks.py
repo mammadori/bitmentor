@@ -22,6 +22,7 @@ mistake in the community's code never breaks a page and never opens the private 
 exception: when that function cannot reach the database, the register stays open, as it does whenever the database
 does not answer (shops/training.py, `locked`). A function may be asked more than once for a page: it should answer
 fast, and the same."""
+
 import logging
 import time
 from datetime import date, datetime
@@ -133,10 +134,17 @@ def problems():
     if not name:
         return []
     if not isinstance(name, str):
-        return [f"COMMUNITY_HOOKS is the dotted name of a module, like \"mycommunity.hooks\": {name!r}; no hook is called"]
+        return [
+            f'COMMUNITY_HOOKS is the dotted name of a module, like "mycommunity.hooks": {name!r}; no hook is called'
+        ]
     try:
         found = import_module(name)
     except Exception as error:  # noqa: BLE001 (said to whoever runs the check, with the reason)
-        return [f"COMMUNITY_HOOKS: the module {name} cannot be imported ({type(error).__name__}: {error}); no hook is called"]
-    return [f"COMMUNITY_HOOKS: {name}.{attribute} is not a function; it is never called"
-            for attribute in NAMES if hasattr(found, attribute) and not callable(getattr(found, attribute))]
+        return [
+            f"COMMUNITY_HOOKS: the module {name} cannot be imported ({type(error).__name__}: {error}); no hook is called"
+        ]
+    return [
+        f"COMMUNITY_HOOKS: {name}.{attribute} is not a function; it is never called"
+        for attribute in NAMES
+        if hasattr(found, attribute) and not callable(getattr(found, attribute))
+    ]

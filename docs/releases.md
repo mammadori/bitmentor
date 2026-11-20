@@ -205,6 +205,38 @@ Read them from a machine you trust, right after the CI pipeline of the tag, and 
   ([Copies on Nostr](features/nostr-copies.md#turning-it-on)). Every address written before means what it meant.
 - An example git hook, `examples/git-hooks/commit-msg`, for whoever works on the code: off until it is linked.
 
+### From 0.2.1 to 0.3.0
+
+- No migration and no new variable in the `.env`; one new text, one new optional key in `community.yml`. What changes
+  is mostly under the site: the newest stable release of everything it stands on.
+- **The language switcher marks the languages no native speaker has read** with a small `*`, and one line explains
+  it (in the open menu of a small screen; on a large one when the switcher is pointed at). Italian has been read;
+  German and the English the texts are written in have not. The community's own language, the first of `languages`,
+  never has the mark, so a site whose first language is English and whose second is Italian sees nothing new.
+  `native_reviewed` in `community.yml` has the last word, for one language or for all, and a catalog of the
+  community can say it of itself ([Adding a language](languages.md#read-by-a-native-speaker-or-not)). One new text
+  to translate in a catalog of your own: "Not read by a native speaker yet."
+- **Django 6.1** (it was 5.2). For a site nothing to do. For a community's own code, which uses Django directly, read
+  [Django's notes for 6.0 and 6.1](https://docs.djangoproject.com/en/6.1/releases/): `first()` and `last()` no longer
+  order by the primary key after an empty `order_by()`; the `EMAIL_*` settings, `get_connection()` and `fail_silently`
+  still work and are deprecated in favour of `MAILERS` (the software keeps reading `EMAIL_HOST` and the others from
+  the `.env`, and will move by itself before Django removes them); PostgreSQL 15 at least.
+- A sender written with brackets or a colon in its name, `DEFAULT_FROM_EMAIL=Shops (automatic) <shops@example.org>`,
+  keeps its whole name: the software puts it in quotes, because Django 6.1 reads the part in brackets as a comment
+  and leaves it out.
+- **gunicorn 27** (it was 23), with its new control socket turned off; **websockets 17.4** (it was 15); requests
+  2.34, psycopg 3.3, Markdown 3.11.3; **PostgreSQL 18.7** in `docker-compose.yml` (a minor version: it starts on the
+  data of 18.6 as they are).
+- The images are built on newer bases: **Caddy 2.11.9** (it was 2.10.2, with known advisories in Caddy itself, in the
+  Go libraries inside it and in Alpine's OpenSSL), and a newer pip in the site's image. The Caddyfile is the same; a
+  community that builds its own Caddy image from the software's follows by itself at its next build.
+- The site's image asks Debian's mirrors over https while it is built (it was plain http): a machine that builds
+  it must reach `deb.debian.org` on port 443.
+- The two icons of Leaflet's layers control, which its style sheet names, are now there with the rest of Leaflet.
+- The Python code was formatted with ruff in one go ([ruff.toml](../ruff.toml)): whoever keeps patches of their own
+  on top of the software rebases them once, and may run `ruff format` on their side first to make it easier.
+- Going back to 0.2.1 needs nothing: no table and no column changed.
+
 ### Going back
 
 When a release does not answer, `release.sh` puts the previous image back, **on the database the release has already
@@ -265,7 +297,9 @@ A backup every night, and a restore tried once: [Backup and restore](backup.md).
 Docker images are pinned by digest in `docker-compose.yml` and `Dockerfile`, Python dependencies by hash in
 `requirements.lock`, generated from `requirements.txt` with `pip-compile --generate-hashes` (the checks image adds
 `requirements-test.lock`, from `requirements-test.txt`, never in production). They are updated by hand,
-reading the release notes and testing on a test site.
+reading the release notes and testing on a test site, and a new version is taken only once it has been out for a week
+(most packages published with something bad inside are found within days): only a fix for a known vulnerability
+does not wait.
 
 ### coincurve, until version 22 is on PyPI
 

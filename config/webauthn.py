@@ -17,6 +17,7 @@ the authenticator's data): which brand of authenticator made a passkey is not th
 
 The sign count, the account the credential belongs to and the challenge's lifetime and single use are the caller's.
 """
+
 import base64
 import hashlib
 import hmac
@@ -69,7 +70,12 @@ def b64url(data):
 
 def unb64url(text, limit):
     """The bytes of a base64url text without padding, at most `limit` of them; Refused for anything else."""
-    if not isinstance(text, str) or len(text) > (limit * 4 + 2) // 3 or not BASE64URL.fullmatch(text) or len(text) % 4 == 1:
+    if (
+        not isinstance(text, str)
+        or len(text) > (limit * 4 + 2) // 3
+        or not BASE64URL.fullmatch(text)
+        or len(text) % 4 == 1
+    ):
         raise Refused("not base64url")
     return base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
 
@@ -94,19 +100,31 @@ def origin():
 def creation_options(challenge, user_handle, username, rp_name, exclude):
     """The options of navigator.credentials.create, as JSON (binary values in base64url): `exclude` are the
     account's credential ids already registered."""
-    return {"challenge": challenge, "rp": {"id": rp_id(), "name": rp_name},
-            "user": {"id": user_handle, "name": username, "displayName": username},
-            "pubKeyCredParams": [{"type": "public-key", "alg": alg} for alg in ALGORITHMS],
-            "timeout": TIMEOUT_MS, "attestation": "none",
-            "authenticatorSelection": {"residentKey": "discouraged", "requireResidentKey": False,
-                                       "userVerification": "preferred"},
-            "excludeCredentials": [{"type": "public-key", "id": credential} for credential in exclude]}
+    return {
+        "challenge": challenge,
+        "rp": {"id": rp_id(), "name": rp_name},
+        "user": {"id": user_handle, "name": username, "displayName": username},
+        "pubKeyCredParams": [{"type": "public-key", "alg": alg} for alg in ALGORITHMS],
+        "timeout": TIMEOUT_MS,
+        "attestation": "none",
+        "authenticatorSelection": {
+            "residentKey": "discouraged",
+            "requireResidentKey": False,
+            "userVerification": "preferred",
+        },
+        "excludeCredentials": [{"type": "public-key", "id": credential} for credential in exclude],
+    }
 
 
 def request_options(challenge, allow):
     """The options of navigator.credentials.get: `allow` are the account's credential ids."""
-    return {"challenge": challenge, "rpId": rp_id(), "timeout": TIMEOUT_MS, "userVerification": "preferred",
-            "allowCredentials": [{"type": "public-key", "id": credential} for credential in allow]}
+    return {
+        "challenge": challenge,
+        "rpId": rp_id(),
+        "timeout": TIMEOUT_MS,
+        "userVerification": "preferred",
+        "allowCredentials": [{"type": "public-key", "id": credential} for credential in allow],
+    }
 
 
 # --- What the browser posts ------------------------------------------------------------------------------------------
@@ -163,8 +181,12 @@ def check_client_data(raw, kind, challenge):
     if data.get("type") != kind:
         raise Refused("another type")
     sent = data.get("challenge")
-    if not (isinstance(sent, str) and isinstance(challenge, str) and challenge
-            and hmac.compare_digest(sent.encode(), challenge.encode())):
+    if not (
+        isinstance(sent, str)
+        and isinstance(challenge, str)
+        and challenge
+        and hmac.compare_digest(sent.encode(), challenge.encode())
+    ):
         raise Refused("another challenge")
     if data.get("origin") != origin():
         raise Refused("another origin")
@@ -200,11 +222,11 @@ def parse_authenticator_data(data, attested):
         if attested:
             if len(data) < offset + 18:
                 raise Refused("truncated attested credential data")
-            length = int.from_bytes(data[offset + 16:offset + 18], "big")
+            length = int.from_bytes(data[offset + 16 : offset + 18], "big")
             offset += 18
             if not 1 <= length <= MAX_CREDENTIAL_ID or offset + length > len(data):
                 raise Refused("credential id of a wrong size")
-            found.credential_id = data[offset:offset + length]
+            found.credential_id = data[offset : offset + length]
             offset += length
             found.cose_key, offset = cbor.decode_prefix(data, offset, MAX_ATTESTATION)
             if not isinstance(found.cose_key, dict):
@@ -243,8 +265,9 @@ def public_key(cose):
             if kty != 2 or cose.get(-1) != 1 or not _int(cose.get(-1)):
                 raise Refused("ES256 that is not EC2 on P-256")
             x, y = _bytes(cose, -2, 32), _bytes(cose, -3, 32)
-            key = ec.EllipticCurvePublicNumbers(int.from_bytes(x, "big"), int.from_bytes(y, "big"),
-                                                ec.SECP256R1()).public_key()
+            key = ec.EllipticCurvePublicNumbers(
+                int.from_bytes(x, "big"), int.from_bytes(y, "big"), ec.SECP256R1()
+            ).public_key()
         elif alg == EDDSA:
             if kty != 1 or cose.get(-1) != 6 or not _int(cose.get(-1)):
                 raise Refused("EdDSA that is not OKP Ed25519")
@@ -282,8 +305,12 @@ def verify_registration(posted, challenge):
         attestation = cbor.decode(unb64url(response.get("attestationObject"), MAX_ATTESTATION), MAX_ATTESTATION)
     except cbor.CBORError as error:
         raise Refused(f"CBOR: {error}") from None
-    if not (isinstance(attestation, dict) and set(attestation) == {"fmt", "attStmt", "authData"}
-            and isinstance(attestation["fmt"], str) and isinstance(attestation["attStmt"], dict)):
+    if not (
+        isinstance(attestation, dict)
+        and set(attestation) == {"fmt", "attStmt", "authData"}
+        and isinstance(attestation["fmt"], str)
+        and isinstance(attestation["attStmt"], dict)
+    ):
         raise Refused("not an attestation object")
     # The statement is not verified (attestation "none"): only the credential's id and key are read
     data = parse_authenticator_data(attestation["authData"], attested=True)
@@ -308,10 +335,13 @@ def parse_assertion(posted):
     raw_id, response = _credential(posted)
     # An empty user handle is none: what an authenticator sends for a credential that is not discoverable
     handle = response.get("userHandle")
-    return Assertion(b64url(raw_id), unb64url(response.get("clientDataJSON"), MAX_CLIENT_DATA),
-                     unb64url(response.get("authenticatorData"), MAX_AUTHENTICATOR_DATA),
-                     unb64url(response.get("signature"), MAX_SIGNATURE),
-                     None if handle in (None, "") else unb64url(handle, MAX_USER_HANDLE) or None)
+    return Assertion(
+        b64url(raw_id),
+        unb64url(response.get("clientDataJSON"), MAX_CLIENT_DATA),
+        unb64url(response.get("authenticatorData"), MAX_AUTHENTICATOR_DATA),
+        unb64url(response.get("signature"), MAX_SIGNATURE),
+        None if handle in (None, "") else unb64url(handle, MAX_USER_HANDLE) or None,
+    )
 
 
 def verify_assertion(assertion, challenge, key_der, algorithm, stored_count, user_handle, backup_eligible):
@@ -323,8 +353,9 @@ def verify_assertion(assertion, challenge, key_der, algorithm, stored_count, use
     if bool(data.flags & BE) != bool(backup_eligible):
         raise Refused("a BE flag other than at registration")
     # Without a resident key the authenticator may send no user handle; one that it sends must be the account's
-    if assertion.user_handle is not None and not hmac.compare_digest(assertion.user_handle,
-                                                                     unb64url(user_handle, MAX_USER_HANDLE)):
+    if assertion.user_handle is not None and not hmac.compare_digest(
+        assertion.user_handle, unb64url(user_handle, MAX_USER_HANDLE)
+    ):
         raise Refused("another user handle")
     signed = assertion.authenticator_data + hashlib.sha256(assertion.client_data).digest()
     try:

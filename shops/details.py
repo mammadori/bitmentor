@@ -9,6 +9,7 @@ map, `/shops.json`, the Nostr events, the owner's own preview. A detail that is 
 even empty: a page added tomorrow that reads `shop.phone` directly would show it, and `shops/test_details.py` walks
 the public outputs to catch it.
 """
+
 import re
 import unicodedata
 
@@ -24,8 +25,12 @@ DEFAULT_SHOWN = frozenset({"website", "address"})
 PAGE_ONLY = ("phone", "email", "legal_name", "vat_number")
 # What the owner reads next to each choice
 LABELS = {
-    "website": _("Website"), "address": _("Address"), "phone": _("Phone"), "email": _("Email"),
-    "legal_name": _("Business name"), "vat_number": _("VAT number"),
+    "website": _("Website"),
+    "address": _("Address"),
+    "phone": _("Phone"),
+    "email": _("Email"),
+    "legal_name": _("Business name"),
+    "vat_number": _("VAT number"),
 }
 
 
@@ -57,8 +62,11 @@ def rows(shop, facts, preview=False):
     """The lines of a shop's page that say who and where it is (shops/shop_facts.html): {name, value, hidden}. `facts` is
     what is shown. The owner's preview also carries the filled ones that are hidden, marked, so that ticking a box can
     show a line without asking the server."""
-    return [{"name": name, "value": getattr(shop, name), "hidden": name not in facts}
-            for name in PAGE_ORDER if name in facts or (preview and getattr(shop, name))]
+    return [
+        {"name": name, "value": getattr(shop, name), "hidden": name not in facts}
+        for name in PAGE_ORDER
+        if name in facts or (preview and getattr(shop, name))
+    ]
 
 
 def place(shop):
@@ -118,11 +126,15 @@ def vat_doubt(text):
             return ""
         return str(_("Start with the two letters of the country, like IT for Italy or DE for Germany."))
     if prefix not in EU_PREFIXES:
-        return str(_("The letters %(prefix)s are not those of a country of the EU (IT, DE, FR, ES…).") % {"prefix": prefix})
+        return str(
+            _("The letters %(prefix)s are not those of a country of the EU (IT, DE, FR, ES…).") % {"prefix": prefix}
+        )
     if prefix == "IT":
         if ITALIAN.fullmatch(body) and italian_check(body):
             return ""
-        return str(_("An Italian number is IT and eleven digits, the last one checks the others: one of them may be wrong."))
+        return str(
+            _("An Italian number is IT and eleven digits, the last one checks the others: one of them may be wrong.")
+        )
     if OTHER_BODY.fullmatch(body):
         return ""
     return str(_("After the two letters of the country there are a few digits or letters, with no other signs."))

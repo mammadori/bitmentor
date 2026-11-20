@@ -1,7 +1,7 @@
 import unicodedata
 
-from django.conf.urls.i18n import i18n_patterns
 from django.conf import settings
+from django.conf.urls.i18n import i18n_patterns
 from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
 from django.core import signing
@@ -17,10 +17,9 @@ from config import admin_wallet, ratelimit, second_factor, temporary, webauthn
 from config.guard import ADMIN_SESSION
 from meetups import views as meetups
 from shops import explorer, staff
-from shops.admin import approve_view, dashboard_view, set_aside_view
 from shops import views as shops
+from shops.admin import approve_view, dashboard_view, set_aside_view
 from website.views import robots, sitemap, switch_view, theme_file
-
 
 # The admin opens only with a session born from the password, here (ADMIN_SESSION, config/guard.py), or from a staff
 # account's own linked wallet at the hobby level (config/admin_wallet.py, ADMIN_WALLET_SIGN_IN). A session opened from
@@ -73,8 +72,13 @@ def known_device(request, name=None):
         user = User._default_manager.get_by_natural_key(name)
     except User.DoesNotExist:
         return False
-    if not (isinstance(data, dict) and data.get("user") == user.pk and user.is_active and user.is_staff
-            and signing.constant_time_compare(str(data.get("auth", "")), user.get_session_auth_hash())):
+    if not (
+        isinstance(data, dict)
+        and data.get("user") == user.pk
+        and user.is_active
+        and user.is_staff
+        and signing.constant_time_compare(str(data.get("auth", "")), user.get_session_auth_hash())
+    ):
         return False
     factors = second_factor.accepted_factors(user)
     return not factors or data.get("factor") in factors.marks()
@@ -83,11 +87,20 @@ def known_device(request, name=None):
 def remember_device(response, user, factor=None):
     """The cookie of a known browser, after a right password (and, with `factor`, the right code or passkey of that
     factor: the cookie names it by kind and key)."""
-    value = {"user": user.pk, "auth": user.get_session_auth_hash(),
-             **({"factor": second_factor.factor_key(factor)} if factor else {})}
-    response.set_cookie(KNOWN_DEVICE_COOKIE, signing.dumps(value, salt=KNOWN_DEVICE_SALT),
-                        max_age=KNOWN_DEVICE_AGE, path="/admin/", secure=settings.SESSION_COOKIE_SECURE, httponly=True,
-                        samesite="Lax")
+    value = {
+        "user": user.pk,
+        "auth": user.get_session_auth_hash(),
+        **({"factor": second_factor.factor_key(factor)} if factor else {}),
+    }
+    response.set_cookie(
+        KNOWN_DEVICE_COOKIE,
+        signing.dumps(value, salt=KNOWN_DEVICE_SALT),
+        max_age=KNOWN_DEVICE_AGE,
+        path="/admin/",
+        secure=settings.SESSION_COOKIE_SECURE,
+        httponly=True,
+        samesite="Lax",
+    )
 
 
 @sensitive_post_parameters("password")
@@ -98,7 +111,9 @@ def admin_login(request, extra_context=None):
     if request.method == "POST":
         spent = ratelimit.over_address_limits(request, "admin", 10, 30, ADMIN_WINDOW)
         if not spent:
-            spent = ratelimit.over_limit(admin_account(request), ADMIN_TRIES_PER_ACCOUNT, ADMIN_WINDOW) and not known_device(request)
+            spent = ratelimit.over_limit(
+                admin_account(request), ADMIN_TRIES_PER_ACCOUNT, ADMIN_WINDOW
+            ) and not known_device(request)
         if spent:
             return HttpResponse(status=429, headers={"Retry-After": str(ratelimit.seconds_left(ADMIN_WINDOW))})
     # Whether the password is temporary has to be read before the sign-in, which can store the same password with a newer hash
@@ -127,12 +142,18 @@ def second_factor_page(request, factors, context, status=200):
     """The second factor's page: the passkey, with a fresh challenge, where the account has one and passkeys work
     here; the code, where the account has a TOTP the mode accepts, or, in `passkey` mode, one to add a first passkey."""
     here = second_factor.passkeys_here(request)
-    context = {**context, "has_passkeys": bool(factors.passkeys), "passkeys_here": here,
-               "has_totp": factors.code_factor is not None, "bootstrap": factors.bootstrap is not None,
-               "public_url": settings.PUBLIC_URL}
+    context = {
+        **context,
+        "has_passkeys": bool(factors.passkeys),
+        "passkeys_here": here,
+        "has_totp": factors.code_factor is not None,
+        "bootstrap": factors.bootstrap is not None,
+        "public_url": settings.PUBLIC_URL,
+    }
     if factors.passkeys and here:
-        context["passkey_options"] = webauthn.request_options(second_factor.pending_challenge(request),
-                                                              [passkey.credential_id for passkey in factors.passkeys])
+        context["passkey_options"] = webauthn.request_options(
+            second_factor.pending_challenge(request), [passkey.credential_id for passkey in factors.passkeys]
+        )
     return TemplateResponse(request, second_factor.CODE_TEMPLATE, context, status=status)
 
 
@@ -204,8 +225,12 @@ def admin_code(request):
 
 def admin_permission(request):
     # The last check only for a session that passed the others: it reads the account's second factor
-    return (request.user.is_active and request.user.is_staff and request.session.get(ADMIN_SESSION, False)
-            and second_factor.session_holds(request))
+    return (
+        request.user.is_active
+        and request.user.is_staff
+        and request.session.get(ADMIN_SESSION, False)
+        and second_factor.session_holds(request)
+    )
 
 
 admin.site.has_permission = admin_permission
@@ -236,8 +261,11 @@ urlpatterns = [
     # The account's own second factor: set it up, turn it off, behind the admin's own checks
     path("admin/second-factor/", admin.site.admin_view(second_factor.setup_view), name="admin_second_factor"),
     # What became of the code of a wallet being linked there (ADMIN_WALLET_SIGN_IN): 404 when off
-    path("admin/second-factor/wallet/status/", admin.site.admin_view(admin_wallet.link_status),
-         name="admin_wallet_link_status"),
+    path(
+        "admin/second-factor/wallet/status/",
+        admin.site.admin_view(admin_wallet.link_status),
+        name="admin_wallet_link_status",
+    ),
     # What to do today about the registers, behind the admin's own checks (the password session, staff)
     path("admin/today/", admin.site.admin_view(dashboard_view), name="admin_dashboard"),
     path("admin/today/approve/<uuid:shop>/", admin.site.admin_view(approve_view), name="admin_approve_shop"),
@@ -255,6 +283,6 @@ urlpatterns = [
     # A staff register (shops/staff.py): its manifest, with the register's id instead of the shop, and its key in the query
     path("register/p/<uuid:register>/manifest.webmanifest", staff.manifest, name="staff_manifest"),
 ]
-urlpatterns += i18n_patterns(path("shops/", include("shops.urls")),
-                              path("meetups/", include("meetups.urls")),
-                              path("", include("website.urls")))
+urlpatterns += i18n_patterns(
+    path("shops/", include("shops.urls")), path("meetups/", include("meetups.urls")), path("", include("website.urls"))
+)

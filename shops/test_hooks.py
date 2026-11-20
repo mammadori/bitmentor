@@ -1,5 +1,6 @@
 """The community's own code (config/hooks.py, COMMUNITY_HOOKS): what each hook changes, and that a mistake in it is no
 answer, never an error of a page, an open private part or a locked register."""
+
 import sys
 import types
 from datetime import datetime, timedelta
@@ -66,8 +67,15 @@ class NoHooks(TestCase):
     def test_without_the_setting_nothing_is_called(self):
         self.assertIsNone(hooks.module())
         self.assertFalse(hooks.defined("private_ok"))
-        self.assertEqual((hooks.call("private_ok", None), hooks.yes("private_ok", None), hooks.day("training_grace_until", None),
-                          hooks.rows("dashboard_items")), (None, False, None, []))
+        self.assertEqual(
+            (
+                hooks.call("private_ok", None),
+                hooks.yes("private_ok", None),
+                hooks.day("training_grace_until", None),
+                hooks.rows("dashboard_items"),
+            ),
+            (None, False, None, []),
+        )
         self.assertEqual(hooks.problems(), [])
 
     def test_a_module_that_cannot_be_imported_is_told_and_calls_nothing(self):
@@ -107,8 +115,10 @@ class NoHooks(TestCase):
 
     def test_a_module_that_raises_when_read_counts_as_missing(self):
         with Hooked() as module:
+
             def broken(name):
                 raise RuntimeError(name)
+
             module.__getattr__ = broken
             with self.assertLogs("config.hooks", "ERROR"):
                 self.assertFalse(hooks.defined("private_ok"))
@@ -142,7 +152,9 @@ class Grace(Base):
             self.assertEqual(seen, [self.owner])
             self.assertEqual(self.client.get(f"/en/shops/register/{self.shop.id}/").status_code, 200)
             state = training.standing(self.owner)
-            self.assertEqual((state.locked, state.grace["days"], state.grace["until"]), (False, 3, self.today + timedelta(days=3)))
+            self.assertEqual(
+                (state.locked, state.grace["days"], state.grace["until"]), (False, 3, self.today + timedelta(days=3))
+            )
             panel = self.client.get("/en/shops/")
             self.assertContains(panel, "Your register keeps working.")
             self.assertContains(panel, "You have 3 more days")
@@ -177,16 +189,23 @@ class Grace(Base):
     def test_a_database_that_does_not_answer_inside_the_rule_never_locks(self):
         """As for the software's own queries: `locked` never closes a till because the database is away. Any other
         mistake of the rule gives no days: the register waits for the pass, as without the rule."""
+
         def away(user):
             raise DatabaseError("the community's table does not answer")
+
         with Hooked(training_grace_until=away):
             self.assertFalse(training.locked(self.shop))
             self.assertEqual(self.client.get(f"/en/shops/register/{self.shop.id}/").status_code, 200)
 
     def test_a_mistake_in_the_hook_never_opens_and_never_breaks(self):
         """What is not a day, or raises, is no answer: the register waits for the pass as without the hook."""
-        for answer in (fails, lambda user: "tomorrow", lambda user: True, lambda user: 20991231,
-                       lambda user: datetime(2099, 12, 31, 9, 0)):
+        for answer in (
+            fails,
+            lambda user: "tomorrow",
+            lambda user: True,
+            lambda user: 20991231,
+            lambda user: datetime(2099, 12, 31, 9, 0),
+        ):
             with self.subTest(answer), Hooked(training_grace_until=answer), self.assertLogs("config.hooks", "ERROR"):
                 self.assertTrue(training.locked(self.shop))
                 self.assertEqual(self.client.get("/en/shops/").status_code, 200)
@@ -252,25 +271,59 @@ class DashboardLines(TestCase):
             return [item for item in dashboard.summary()["items"] if item.code.startswith("community")]
 
     def test_the_community_s_lines_are_in_the_list(self):
-        found = self.lines([{"what": "Three old links were used this month.", "do": "Write to their shops.", "level": "warning",
-                             "code": "old_links", "links": [{"text": "The list", "url": "/admin/"},
-                                                            {"text": "Outside", "url": "https://example.org/x"}]},
-                            {"what": "For your information.", "do": "Nothing."}])
-        self.assertEqual([(item.level, item.code, item.what, item.do) for item in found],
-                         [("warning", "community_old_links", "Three old links were used this month.", "Write to their shops."),
-                          ("info", found[1].code, "For your information.", "Nothing.")])
+        found = self.lines(
+            [
+                {
+                    "what": "Three old links were used this month.",
+                    "do": "Write to their shops.",
+                    "level": "warning",
+                    "code": "old_links",
+                    "links": [
+                        {"text": "The list", "url": "/admin/"},
+                        {"text": "Outside", "url": "https://example.org/x"},
+                    ],
+                },
+                {"what": "For your information.", "do": "Nothing."},
+            ]
+        )
+        self.assertEqual(
+            [(item.level, item.code, item.what, item.do) for item in found],
+            [
+                ("warning", "community_old_links", "Three old links were used this month.", "Write to their shops."),
+                ("info", found[1].code, "For your information.", "Nothing."),
+            ],
+        )
         # A line without a code is named by its text: another text is another line for the morning message
         self.assertRegex(found[1].code, r"^community_[0-9a-f]{12}$")
         other = self.lines([{"what": "Something else.", "do": "Nothing."}])
         self.assertNotEqual(other[0].code, found[1].code)
-        self.assertEqual(found[0].links, [{"text": "The list", "url": "/admin/"}, {"text": "Outside", "url": "https://example.org/x"}])
+        self.assertEqual(
+            found[0].links,
+            [{"text": "The list", "url": "/admin/"}, {"text": "Outside", "url": "https://example.org/x"}],
+        )
         self.assertIsNone(found[0].shop)
 
     def test_what_cannot_be_shown_is_left_out(self):
-        found = self.lines(["a text", {"what": "", "do": "x"}, {"what": "x"}, {"what": 3, "do": 4},
-                            {"what": "Kept.", "do": "Look.", "level": "urgent", "code": "Bad Code!",
-                             "links": [{"text": "Script", "url": "javascript:alert(1)"}, {"text": "Elsewhere", "url": "//evil.example/"},
-                                       {"text": "Plain", "url": "http://example.org/"}, "nothing"]}])
+        found = self.lines(
+            [
+                "a text",
+                {"what": "", "do": "x"},
+                {"what": "x"},
+                {"what": 3, "do": 4},
+                {
+                    "what": "Kept.",
+                    "do": "Look.",
+                    "level": "urgent",
+                    "code": "Bad Code!",
+                    "links": [
+                        {"text": "Script", "url": "javascript:alert(1)"},
+                        {"text": "Elsewhere", "url": "//evil.example/"},
+                        {"text": "Plain", "url": "http://example.org/"},
+                        "nothing",
+                    ],
+                },
+            ]
+        )
         self.assertEqual([(item.level, item.what, item.links) for item in found], [("info", "Kept.", [])])
         self.assertRegex(found[0].code, r"^community_[0-9a-f]{12}$")
 
@@ -279,24 +332,43 @@ class DashboardLines(TestCase):
             found = self.lines([{"what": "Kept.", "do": "Look.", "links": links}])
             self.assertEqual([(item.what, item.links) for item in found], [("Kept.", [])], links)
         odd = ["/\\evil.example", "/\tx", "/ x", "https://", "https://a b", "/" + "x" * 600, "ftp://example.org/"]
-        found = self.lines([{"what": "Kept.", "do": "Look.",
-                             "links": [{"text": "x", "url": url} for url in odd] + [{"text": "Home", "url": "/"},
-                                                                                     {"text": "Page", "url": "/admin/today/"}]}])
+        found = self.lines(
+            [
+                {
+                    "what": "Kept.",
+                    "do": "Look.",
+                    "links": [{"text": "x", "url": url} for url in odd]
+                    + [{"text": "Home", "url": "/"}, {"text": "Page", "url": "/admin/today/"}],
+                }
+            ]
+        )
         self.assertEqual(found[0].links, [{"text": "Home", "url": "/"}, {"text": "Page", "url": "/admin/today/"}])
 
     def test_a_line_is_one_line_of_plain_text(self):
         """The lines also go to a terminal, an email and Telegram, where a new line or a control character is not harmless."""
-        found = self.lines([{"what": "First\nsecond\x1b[31m line\t here", "do": "  Do \r\n this  ",
-                             "links": [{"text": "A\nlink", "url": "/admin/"}]}])
+        found = self.lines(
+            [
+                {
+                    "what": "First\nsecond\x1b[31m line\t here",
+                    "do": "  Do \r\n this  ",
+                    "links": [{"text": "A\nlink", "url": "/admin/"}],
+                }
+            ]
+        )
         self.assertNotRegex(found[0].what + found[0].do + found[0].links[0]["text"], r"[\x00-\x1f]")
         self.assertEqual(found[0].do, "Do this")
 
     def test_whatever_the_lines_do_the_software_s_own_stay(self):
-        with Hooked(dashboard_items=lambda: []), patch("shops.dashboard.community_items", side_effect=RuntimeError("unexpected")), \
-                self.assertLogs("shops.dashboard", "ERROR"):
+        with (
+            Hooked(dashboard_items=lambda: []),
+            patch("shops.dashboard.community_items", side_effect=RuntimeError("unexpected")),
+            self.assertLogs("shops.dashboard", "ERROR"),
+        ):
             self.assertIn("items", dashboard.summary())
 
     def test_a_mistake_in_the_hook_leaves_the_list_as_it_is(self):
         for answer in (fails, lambda: "lines", lambda: {"what": "x", "do": "y"}):
             with self.subTest(answer), Hooked(dashboard_items=answer), self.assertLogs("config.hooks", "ERROR"):
-                self.assertEqual([item for item in dashboard.summary()["items"] if item.code.startswith("community")], [])
+                self.assertEqual(
+                    [item for item in dashboard.summary()["items"] if item.code.startswith("community")], []
+                )

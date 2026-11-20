@@ -1,4 +1,5 @@
 """Gunicorn behind Caddy. Processes and threads are changed from .env (WEB_CONCURRENCY, WEB_THREADS), without rebuilding the image."""
+
 import os
 import subprocess
 import sys
@@ -17,6 +18,9 @@ keepalive = 75
 # each have their own limit: Telegram and mail 10 seconds, Lightning addresses 10.
 timeout = 30
 graceful_timeout = 30
+# gunicorn's control socket (gunicornc, since 25.1) is on unless told otherwise: nobody uses it here, and a socket
+# that takes commands is one thing less to keep an eye on
+control_socket_disable = True
 accesslog = "-"
 access_log_format = '%(t)s "%(m)s %(U)s" %(s)s %(L)s'
 # The path is written without what opens something in it (the token of a team invite): config/quiet.py
@@ -28,7 +32,10 @@ def when_ready(server):
     a process of its own, which tells the moderators of a security setting changed since the previous start. The start
     waits for nothing, and nothing that goes wrong there stops it; gunicorn's master collects the process when it ends."""
     try:
-        subprocess.Popen([sys.executable, "manage.py", "settings_watch", "compare"],
-                         cwd=Path(__file__).resolve().parent.parent, stdin=subprocess.DEVNULL)
+        subprocess.Popen(
+            [sys.executable, "manage.py", "settings_watch", "compare"],
+            cwd=Path(__file__).resolve().parent.parent,
+            stdin=subprocess.DEVNULL,
+        )
     except OSError as error:
         server.log.warning("settings watch: it could not start (%s)", type(error).__name__)

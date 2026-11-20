@@ -1,6 +1,6 @@
 # Caddy with the software's rules inside the image, for whoever installs from the release images (compose.release.yml).
 # A community adds its own in /etc/caddy/local and its construction page in /srv/maintenance.
-FROM caddy:2.10-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+FROM caddy:2.11.9-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY caddy /etc/caddy/mode
 COPY maintenance /srv/maintenance

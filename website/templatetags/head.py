@@ -1,4 +1,5 @@
 """The head of the pages: what search engines and the apps that show a link preview read."""
+
 import json
 import locale
 import struct
@@ -104,13 +105,27 @@ def structured_data(data, slug, title, canonical, languages):
         profiles = [link["url"] for link in data.get("links") or [] if link.get("url")]
         if profiles:
             organization["sameAs"] = profiles
-        graph = [organization, {"@type": "WebSite", "@id": f"{root}#website", "name": data["name"], "url": root,
-                                "inLanguage": languages, "publisher": {"@id": f"{root}#organization"}}]
+        graph = [
+            organization,
+            {
+                "@type": "WebSite",
+                "@id": f"{root}#website",
+                "name": data["name"],
+                "url": root,
+                "inLanguage": languages,
+                "publisher": {"@id": f"{root}#organization"},
+            },
+        ]
     elif slug and title:
-        graph = [{"@type": "BreadcrumbList", "itemListElement": [
-            {"@type": "ListItem", "position": 1, "name": data["name"], "item": absolute(reverse("home"))},
-            {"@type": "ListItem", "position": 2, "name": title, "item": canonical},
-        ]}]
+        graph = [
+            {
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {"@type": "ListItem", "position": 1, "name": data["name"], "item": absolute(reverse("home"))},
+                    {"@type": "ListItem", "position": 2, "name": title, "item": canonical},
+                ],
+            }
+        ]
     else:
         return ""
     text = json.dumps({"@context": "https://schema.org", "@graph": graph}, ensure_ascii=False)
@@ -127,8 +142,11 @@ def page_meta(context):
     request = context["request"]
     data = community_config.community()
     language = get_language()
-    found = [(alternate["code"], absolute(escape_uri_path(alternate["href"])))
-             for alternate in context.get("alternates", []) if alternate["exists"]]
+    found = [
+        (alternate["code"], absolute(escape_uri_path(alternate["href"])))
+        for alternate in context.get("alternates", [])
+        if alternate["exists"]
+    ]
     default = dict(found).get(settings.LANGUAGE_CODE)
     # The image chosen by the page with `image:`, otherwise the community's, `share_image`
     image = context.get("page_image") or community_config.localized(data.get("share_image", ""), language)
@@ -146,6 +164,7 @@ def page_meta(context):
         "locale": og_locale(language),
         "other_locales": [og_locale(code) for code, _href in found if code != language],
         "image": {"url": absolute(iri_to_uri(image)), "width": width, "height": height} if image else None,
-        "structured": structured_data(data, context.get("slug"), context.get("page_title"), canonical,
-                                      [code for code, _href in found]),
+        "structured": structured_data(
+            data, context.get("slug"), context.get("page_title"), canonical, [code for code, _href in found]
+        ),
     }

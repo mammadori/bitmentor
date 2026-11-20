@@ -1,5 +1,6 @@
 """The merchant's path in the panel (shops/journey.py): each milestone in its states, the certificate and what it waits
 for, the map card, and a panel that asks no other server."""
+
 import re
 import socket
 from datetime import date
@@ -20,8 +21,10 @@ CALLED_OUT = AssertionError("The panel must not ask another server")
 
 def nobody_outside():
     """Any HTTP request or socket opened while the panel loads fails the test."""
-    return (patch("requests.sessions.Session.request", side_effect=CALLED_OUT),
-            patch.object(socket, "create_connection", side_effect=CALLED_OUT))
+    return (
+        patch("requests.sessions.Session.request", side_effect=CALLED_OUT),
+        patch.object(socket, "create_connection", side_effect=CALLED_OUT),
+    )
 
 
 def block(page, shop):
@@ -30,7 +33,7 @@ def block(page, shop):
     if start < 0:
         return ""
     # The path ends where the register for the staff begins: the first day inside it has its own <details>
-    return html[start:html.index('<details class="handover"', start)]
+    return html[start : html.index('<details class="handover"', start)]
 
 
 def milestones(html):
@@ -42,13 +45,18 @@ class Milestones(TestCase):
     def setUp(self):
         cache.clear()
         self.owner = get_user_model().objects.create(username="k")
-        self.shop = Shop.objects.create(owner=self.owner, name="Bar", 
-                                        lightning_address="bar@example.org", latitude=1, longitude=2)
+        self.shop = Shop.objects.create(
+            owner=self.owner, name="Bar", lightning_address="bar@example.org", latitude=1, longitude=2
+        )
 
     def watch_ok(self):
         now = timezone.now()
-        Shop.objects.filter(pk=self.shop.pk).update(lightning_status=LightningStatus.OK, lightning_checked=now,
-                                                    lightning_worked=now, lightning_checked_address="bar@example.org")
+        Shop.objects.filter(pk=self.shop.pk).update(
+            lightning_status=LightningStatus.OK,
+            lightning_checked=now,
+            lightning_worked=now,
+            lightning_checked_address="bar@example.org",
+        )
         self.shop.refresh_from_db()
 
     def steps(self, shop=None):
@@ -65,8 +73,9 @@ class Milestones(TestCase):
     def test_lightning_in_its_states(self):
         self.watch_ok()
         self.assertEqual(self.steps()[1]["lightning"], "done")
-        Shop.objects.filter(pk=self.shop.pk).update(lightning_status=LightningStatus.NO_ANSWER,
-                                                    lightning_since=timezone.now())
+        Shop.objects.filter(pk=self.shop.pk).update(
+            lightning_status=LightningStatus.NO_ANSWER, lightning_since=timezone.now()
+        )
         self.shop.refresh_from_db()
         self.assertEqual(self.steps()[1]["lightning"], "todo")
         Shop.objects.filter(pk=self.shop.pk).update(suspended=True)
@@ -97,7 +106,9 @@ class Milestones(TestCase):
 
     def test_the_certificate_says_what_it_waits_for(self):
         certificate = self.steps()[0]["steps"][2]
-        self.assertEqual((certificate["state"], certificate["needs_lightning"], certificate["needs_pass"]), ("todo", True, True))
+        self.assertEqual(
+            (certificate["state"], certificate["needs_lightning"], certificate["needs_pass"]), ("todo", True, True)
+        )
         self.watch_ok()
         certificate = self.steps()[0]["steps"][2]
         self.assertEqual((certificate["needs_lightning"], certificate["needs_pass"]), (False, True))
@@ -125,8 +136,11 @@ class Milestones(TestCase):
 
     def test_the_map_card(self):
         self.assertEqual(self.steps()[0]["card"]["on_map"], True)
-        for change, why in (({"latitude": None}, "position"), ({"listed": False}, "unlisted"),
-                            ({"suspended": True}, "suspended")):
+        for change, why in (
+            ({"latitude": None}, "position"),
+            ({"listed": False}, "unlisted"),
+            ({"suspended": True}, "suspended"),
+        ):
             Shop.objects.filter(pk=self.shop.pk).update(**change)
             self.shop.refresh_from_db()
             self.assertEqual(self.steps()[0]["card"], {"on_map": False, "why": why})
@@ -134,7 +148,9 @@ class Milestones(TestCase):
     def test_no_path_without_a_register_of_this_site_or_for_a_historic_shop(self):
         self.assertTrue(journey.applies(self.shop))
         self.assertFalse(journey.applies(Shop(name="Imported", lightning=True)))
-        self.assertFalse(journey.applies(Shop(name="Old", lightning_address="old@example.org", closed_on=date(2024, 6, 30))))
+        self.assertFalse(
+            journey.applies(Shop(name="Old", lightning_address="old@example.org", closed_on=date(2024, 6, 30)))
+        )
 
 
 @override_settings(TELEGRAM_BOT_TOKEN="")
@@ -143,9 +159,15 @@ class Panel(TestCase):
         cache.clear()
         self.owner = get_user_model().objects.create(username="k")
         self.client.force_login(self.owner)
-        self.shop = Shop.objects.create(owner=self.owner, name="Bar", 
-                                        lightning_address="bar@example.org", latitude=1, longitude=2, discount=10,
-                                        city="Town")
+        self.shop = Shop.objects.create(
+            owner=self.owner,
+            name="Bar",
+            lightning_address="bar@example.org",
+            latitude=1,
+            longitude=2,
+            discount=10,
+            city="Town",
+        )
 
     def panel(self, language="en"):
         """The panel as the owner sees it, asking no other server."""
@@ -177,9 +199,15 @@ class Panel(TestCase):
     def test_the_whole_path_folds(self):
         now = timezone.now()
         Shop.objects.filter(pk=self.shop.pk).update(
-            first_sale=now, sign_printed=now, register_shared=now, lightning_status=LightningStatus.OK,
-            lightning_checked=now, lightning_worked=now, lightning_checked_address="bar@example.org",
-            certified_month=date(2026, 10, 1))
+            first_sale=now,
+            sign_printed=now,
+            register_shared=now,
+            lightning_status=LightningStatus.OK,
+            lightning_checked=now,
+            lightning_worked=now,
+            lightning_checked_address="bar@example.org",
+            certified_month=date(2026, 10, 1),
+        )
         page = self.panel()
         html = block(page, self.shop)
         self.assertNotIn(" open", html.split(">")[0])
@@ -191,8 +219,11 @@ class Panel(TestCase):
 
     def test_a_broken_address_points_to_its_alert(self):
         Shop.objects.filter(pk=self.shop.pk).update(
-            lightning_status=LightningStatus.NO_ANSWER, lightning_checked=timezone.now(),
-            lightning_since=timezone.now(), lightning_checked_address="bar@example.org")
+            lightning_status=LightningStatus.NO_ANSWER,
+            lightning_checked=timezone.now(),
+            lightning_since=timezone.now(),
+            lightning_checked_address="bar@example.org",
+        )
         page = self.panel().content.decode()
         self.assertEqual(milestones(block(self.panel(), self.shop))["lightning"], "todo")
         self.assertIn("the message above says what to do", page)
@@ -210,16 +241,16 @@ class Panel(TestCase):
 
     def test_no_path_for_historic_or_imported_shops(self):
         imported = Shop.objects.create(owner=self.owner, name="Imported", lightning=True)
-        historic = Shop.objects.create(owner=self.owner, name="Old", lightning_address="old@example.org",
-                                       closed_on=date(2024, 6, 30))
+        historic = Shop.objects.create(
+            owner=self.owner, name="Old", lightning_address="old@example.org", closed_on=date(2024, 6, 30)
+        )
         page = self.panel()
         self.assertEqual(block(page, imported), "")
         self.assertEqual(block(page, historic), "")
 
     def test_nothing_about_other_shops(self):
         other = get_user_model().objects.create(username="other")
-        Shop.objects.create(owner=other, name="Rival", 
-                            lightning_address="rival@example.org", latitude=1, longitude=2)
+        Shop.objects.create(owner=other, name="Rival", lightning_address="rival@example.org", latitude=1, longitude=2)
         page = self.panel().content.decode()
         self.assertNotIn("Rival", page)
         self.assertNotIn("rival@example.org", page)
@@ -229,7 +260,9 @@ class Panel(TestCase):
         html = block(self.panel(), self.shop)
         self.assertNotIn('data-milestone="payments"', html)
         self.assertEqual(milestones(html)["certificate"], "todo")
-        self.assertIn("A shop is certified when its Lightning address works and its owner has earned the basic pass", html)
+        self.assertIn(
+            "A shop is certified when its Lightning address works and its owner has earned the basic pass", html
+        )
         self.assertIn("has not passed the site's check yet", html)
         self.assertIn("the badge also needs your basic pass", html)
         now = timezone.now()
@@ -249,8 +282,10 @@ class Panel(TestCase):
         # German is not among the example community's languages: the path rendered on its own
         self.shop.first_day = first_day.summary(self.shop)
         with override("de"):
-            html = render_to_string("shops/journey.html", {
-                "shop": self.shop, "path": journey.summary(self.shop), "community": {"email": "info@example.org"}})
+            html = render_to_string(
+                "shops/journey.html",
+                {"shop": self.shop, "path": journey.summary(self.shop), "community": {"email": "info@example.org"}},
+            )
         self.assertIn("Den Laden einrichten: 0 von 3 erledigt", html)
         self.assertIn("Ihr Eintrag auf der Karte, jetzt", html)
         self.assertIn("Nächster Schritt", html)

@@ -32,6 +32,11 @@ h3 { font-size: 21px; margin: 0 0 8px; }
 .langs { display: flex; margin-left: 6px; }
 .langs a { text-transform: uppercase; font-size: 13px; opacity: .7; }
 .langs a[aria-current] { opacity: 1; font-weight: 700; background: none; }
+/* The mark of a language no native speaker has read: the line that explains it shows when the switcher is pointed at or
+   reached with the keyboard, and always in the open menu of a small screen (below) */
+.langs { position: relative; }
+.langs-note { display: none; position: absolute; top: 100%; right: 0; padding: 6px 10px; border-radius: 0 0 8px 8px; background: var(--primary); color: var(--on-primary); font-size: 12px; white-space: nowrap; }
+.langs:hover .langs-note, .langs:focus-within .langs-note { display: block; }
 .menu-toggle { display: none; width: 44px; height: 44px; padding: 10px; border: 0; background: none; cursor: pointer; }
 .menu-toggle span { display: block; height: 2px; margin: 5px 0; background: var(--on-primary); transition: transform .2s, opacity .2s; }
 @media (max-width: 1020px) {
@@ -41,7 +46,8 @@ h3 { font-size: 21px; margin: 0 0 8px; }
   .menu-open .top nav { display: flex; }
   .top nav a { padding: 12px; font-size: 17px; }
   .top .nav-cta { margin: 8px 0 0; text-align: center; }
-  .langs { margin: 8px 0 0; justify-content: center; }
+  .langs { margin: 8px 0 0; justify-content: center; flex-wrap: wrap; }
+  .langs-note { display: block; position: static; flex: 1 0 100%; padding: 4px 0 0; text-align: center; white-space: normal; opacity: .8; }
   .menu-open .menu-toggle span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
   .menu-open .menu-toggle span:nth-child(2) { opacity: 0; }
   .menu-open .menu-toggle span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }

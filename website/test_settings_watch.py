@@ -1,5 +1,6 @@
 """The settings watch (website/settings_watch.py): the moderators hear when the site starts with a security setting
 different from the previous start."""
+
 import runpy
 from datetime import timedelta
 from io import StringIO
@@ -22,8 +23,14 @@ ROOT = Path(__file__).resolve().parent.parent
 TOKEN = "123456:secret-token-of-the-bot"
 KEY = "the-secret-key-of-the-site-long-enough-for-anything-at-all"
 # A site with a moderators' chat, as the tests start it
-CHANNEL = {"TELEGRAM_BOT_TOKEN": TOKEN, "TELEGRAM_MODERATION_CHAT": "11", "SECRET_KEY": KEY,
-           "ADMIN_SECOND_FACTOR": "passkey", "ADMIN_ALLOWED_IPS": "192.0.2.0/24", "DEBUG": False}
+CHANNEL = {
+    "TELEGRAM_BOT_TOKEN": TOKEN,
+    "TELEGRAM_MODERATION_CHAT": "11",
+    "SECRET_KEY": KEY,
+    "ADMIN_SECOND_FACTOR": "passkey",
+    "ADMIN_ALLOWED_IPS": "192.0.2.0/24",
+    "DEBUG": False,
+}
 
 
 def configured(**keys):
@@ -72,27 +79,44 @@ class FirstStartAndChanges(Base):
 
     def test_lowerings_come_first_and_are_marked(self):
         self.compare()
-        self.compare(TEAM_AREA=True, ADMIN_SECOND_FACTOR="optional", ADMIN_ALLOWED_IPS="", DEBUG=True,
-                     ADMIN_SESSION_HOURS=48, SITE_MODE="maintenance", ADMIN_WALLET_SIGN_IN=True, TEAM_ACCESS=True,
-                     REFUSE_PROBES="off", TRUSTED_PROXIES="10.0.0.0/8")
+        self.compare(
+            TEAM_AREA=True,
+            ADMIN_SECOND_FACTOR="optional",
+            ADMIN_ALLOWED_IPS="",
+            DEBUG=True,
+            ADMIN_SESSION_HOURS=48,
+            SITE_MODE="maintenance",
+            ADMIN_WALLET_SIGN_IN=True,
+            TEAM_ACCESS=True,
+            REFUSE_PROBES="off",
+            TRUSTED_PROXIES="10.0.0.0/8",
+        )
         lines = self.sent()[0].splitlines()
         changes = [line for line in lines if line.startswith(("⚠", "·"))]
-        self.assertEqual(changes, [
-            "⚠ lowered: ADMIN_SECOND_FACTOR: passkey → optional",
-            "⚠ lowered: ADMIN_ALLOWED_IPS: removed: 1, now empty",
-            "⚠ lowered: ADMIN_SESSION_HOURS: 24 → 48",
-            "⚠ lowered: ADMIN_WALLET_SIGN_IN: off → on",
-            "⚠ lowered: TEAM_ACCESS: off → on",
-            "⚠ lowered: TEAM_AREA: off → on",
-            "⚠ lowered: REFUSE_PROBES: on → off",
-            "⚠ lowered: TRUSTED_PROXIES: 127.0.0.1/32 → 10.0.0.0/8",
-            "⚠ lowered: DEBUG: off → on",
-            "· SITE_MODE: development → maintenance",
-        ])
+        self.assertEqual(
+            changes,
+            [
+                "⚠ lowered: ADMIN_SECOND_FACTOR: passkey → optional",
+                "⚠ lowered: ADMIN_ALLOWED_IPS: removed: 1, now empty",
+                "⚠ lowered: ADMIN_SESSION_HOURS: 24 → 48",
+                "⚠ lowered: ADMIN_WALLET_SIGN_IN: off → on",
+                "⚠ lowered: TEAM_ACCESS: off → on",
+                "⚠ lowered: TEAM_AREA: off → on",
+                "⚠ lowered: REFUSE_PROBES: on → off",
+                "⚠ lowered: TRUSTED_PROXIES: 127.0.0.1/32 → 10.0.0.0/8",
+                "⚠ lowered: DEBUG: off → on",
+                "· SITE_MODE: development → maintenance",
+            ],
+        )
 
     def test_the_way_back_up_is_not_a_lowering(self):
-        self.compare(ADMIN_SESSION_HOURS=48, ADMIN_WALLET_SIGN_IN=True, TEAM_ACCESS=True, REFUSE_PROBES="off",
-                     TRUSTED_PROXIES="10.0.0.0/8")
+        self.compare(
+            ADMIN_SESSION_HOURS=48,
+            ADMIN_WALLET_SIGN_IN=True,
+            TEAM_ACCESS=True,
+            REFUSE_PROBES="off",
+            TRUSTED_PROXIES="10.0.0.0/8",
+        )
         self.compare(ADMIN_SESSION_HOURS=8, TRUSTED_PROXIES="")
         self.assertNotIn("⚠", self.sent()[0])
         self.assertIn("· ADMIN_SESSION_HOURS: 48 → 8", self.sent()[0])
@@ -148,8 +172,9 @@ class FirstStartAndChanges(Base):
         others = [entry for entry in watch.WATCHED if entry.name != "TEAM_AREA"]
         with patch.object(watch, "WATCHED", (*others, broken)), self.assertLogs("website.settings_watch") as logs:
             self.assertEqual(self.compare(), "unchanged")
-        self.assertEqual(logs.output, [("WARNING:website.settings_watch:settings watch: TEAM_AREA cannot be read "
-                                        "(RuntimeError)")])
+        self.assertEqual(
+            logs.output, [("WARNING:website.settings_watch:settings watch: TEAM_AREA cannot be read (RuntimeError)")]
+        )
         self.assertEqual(json_of("TEAM_AREA"), "false")
 
 
@@ -172,8 +197,10 @@ class Secrets(Base):
         old_print = row.fingerprint
         new = "123456:another-token-entirely"
         # A message that does not leave writes its reasons in the log
-        with self.assertLogs("website.settings_watch") as logs, \
-                patch("shops.notifications.deliver_to_moderators", return_value=(None, ["Telegram did not take it"])):
+        with (
+            self.assertLogs("website.settings_watch") as logs,
+            patch("shops.notifications.deliver_to_moderators", return_value=(None, ["Telegram did not take it"])),
+        ):
             self.compare(TELEGRAM_BOT_TOKEN=new)
         with override_settings(**{**CHANNEL, "TELEGRAM_BOT_TOKEN": new}):
             watch.compare()
@@ -182,8 +209,16 @@ class Secrets(Base):
         self.assertNotEqual(old_print, new_print)
         self.assertIn("· TELEGRAM_BOT_TOKEN: changed", said)
         self.assertIn("TELEGRAM_BOT_TOKEN: recorded", said)
-        for secret in (TOKEN, new, KEY, old_print, new_print, old_print[:16], new_print[:16],
-                       WatchedSetting.objects.get(name="SECRET_KEY").fingerprint[:16]):
+        for secret in (
+            TOKEN,
+            new,
+            KEY,
+            old_print,
+            new_print,
+            old_print[:16],
+            new_print[:16],
+            WatchedSetting.objects.get(name="SECRET_KEY").fingerprint[:16],
+        ):
             self.assertNotIn(secret, said)
         self.assertNotIn(KEY, "".join(WatchedSetting.objects.values_list("value", "fingerprint").first()))
 
@@ -247,7 +282,9 @@ class Credentials(Base):
         self.assertEqual(self.compare(EMAIL_HOST="smtp://user:pw@mail.example.net", SECRET_KEY="y" * 60), "unchanged")
 
     def test_shown_never_writes_credentials(self):
-        self.assertEqual(watch.shown("https://u:p@a.example/x, smtp://q@b.example"), "https://a.example/x, smtp://b.example")
+        self.assertEqual(
+            watch.shown("https://u:p@a.example/x, smtp://q@b.example"), "https://a.example/x, smtp://b.example"
+        )
         self.assertEqual(watch.shown(["https://u:p@a.example"]), "https://a.example")
 
 
@@ -290,16 +327,21 @@ class Delivery(Base):
 
     def test_each_mail_holds_the_claim(self):
         self.compare()
-        with patch.object(watch.Claim, "hold") as hold, override_settings(EMAIL_HOST="mail.example.org"), \
-                configured(moderators_emails=["a@example.org", "b@example.org"]):
+        with (
+            patch.object(watch.Claim, "hold") as hold,
+            override_settings(EMAIL_HOST="mail.example.org"),
+            configured(moderators_emails=["a@example.org", "b@example.org"]),
+        ):
             self.compare()
         # The main delivery, then each address: the community's email before, the two new ones
         self.assertEqual(hold.call_count, 4)
 
     def test_an_unsent_message_is_sent_at_the_next_start_and_only_then_marked(self):
         self.compare()
-        with patch("shops.notifications.deliver_to_moderators", return_value=(None, ["Telegram did not take it (502)"])), \
-                self.assertLogs("website.settings_watch") as logs:
+        with (
+            patch("shops.notifications.deliver_to_moderators", return_value=(None, ["Telegram did not take it (502)"])),
+            self.assertLogs("website.settings_watch") as logs,
+        ):
             self.assertEqual(self.compare(TEAM_AREA=True), "not told")
         self.assertIn("the next start tries again (Telegram did not take it (502))", logs.output[0])
         self.assertEqual(json_of("TEAM_AREA"), "false")
@@ -333,9 +375,17 @@ class Delivery(Base):
             self.compare()
         # Telegram took the message; the addresses got it by email, old and new, each once
         self.assertEqual(len(self.sent()), 2)
-        self.assertEqual([message.to for message in mail.outbox],
-                         [["old@example.org"], ["new@example.org"], ["more@example.org"],
-                          ["new@example.org"], ["OLD@example.org"], ["more@example.org"]])
+        self.assertEqual(
+            [message.to for message in mail.outbox],
+            [
+                ["old@example.org"],
+                ["new@example.org"],
+                ["more@example.org"],
+                ["new@example.org"],
+                ["OLD@example.org"],
+                ["more@example.org"],
+            ],
+        )
         # The message names no address: each reads only how many went and came
         self.assertIn("· moderators_emails: removed: 0, added: 2", self.sent()[0])
         self.assertIn("· moderators_emails: removed: 2, added: 0", self.sent()[1])
@@ -376,8 +426,10 @@ class Quiet(Base):
     def test_switched_off_and_not_told_the_record_stays_until_it_is(self):
         self.compare()
         with configured(settings_watch={"enabled": False}):
-            with patch("shops.notifications.deliver_to_moderators", return_value=(None, ["Telegram did not take it"])), \
-                    self.assertLogs("website.settings_watch"):
+            with (
+                patch("shops.notifications.deliver_to_moderators", return_value=(None, ["Telegram did not take it"])),
+                self.assertLogs("website.settings_watch"),
+            ):
                 self.assertEqual(self.compare(), "off, not told")
             self.assertTrue(WatchedSetting.objects.exists())
             self.assertIsNone(SettingsWatch.objects.get(pk=1).claimed_until)
@@ -399,8 +451,11 @@ class Quiet(Base):
 
     def test_wrong_values_of_the_switch_leave_it_on_and_are_checked(self):
         self.assertEqual(wrong_settings_watch(None), [])
-        for value, problem in (("no", "is a block with the key enabled"), ({"enabled": "no"}, "must be true or false"),
-                               ({"enable": False}, "is not a setting of the settings watch")):
+        for value, problem in (
+            ("no", "is a block with the key enabled"),
+            ({"enabled": "no"}, "must be true or false"),
+            ({"enable": False}, "is not a setting of the settings watch"),
+        ):
             with self.subTest(value=value), configured(settings_watch=value):
                 self.assertTrue(watch.enabled())
                 found = wrong_settings_watch(None)
@@ -418,11 +473,20 @@ class Quiet(Base):
 
     def test_any_error_inside_is_caught_and_the_claim_let_go(self):
         self.compare()
-        with patch.object(watch, "changes_of", side_effect=RuntimeError(TOKEN)), \
-                self.assertLogs("website.settings_watch") as logs:
+        with (
+            patch.object(watch, "changes_of", side_effect=RuntimeError(TOKEN)),
+            self.assertLogs("website.settings_watch") as logs,
+        ):
             self.assertEqual(watch.at_start(), "failed")
-        self.assertEqual(logs.output, [("WARNING:website.settings_watch:settings watch: the comparison failed "
-                                        "(RuntimeError); the site starts all the same")])
+        self.assertEqual(
+            logs.output,
+            [
+                (
+                    "WARNING:website.settings_watch:settings watch: the comparison failed "
+                    "(RuntimeError); the site starts all the same"
+                )
+            ],
+        )
         self.assertIsNone(SettingsWatch.objects.get(pk=1).claimed_until)
         with patch.object(watch, "tables_ready", side_effect=OSError), self.assertLogs("website.settings_watch"):
             self.assertEqual(watch.at_start(), "failed")
@@ -453,9 +517,15 @@ class Command(Base):
 
 class Preflight(Base):
     def test_one_calm_note(self):
-        self.assertEqual(preflight.settings_watch_notes(), [(
-            "the settings watch is on: the moderators hear of a security setting changed between two starts (no change "
-            "told yet)")])
+        self.assertEqual(
+            preflight.settings_watch_notes(),
+            [
+                (
+                    "the settings watch is on: the moderators hear of a security setting changed between two starts (no change "
+                    "told yet)"
+                )
+            ],
+        )
         self.compare()
         self.compare(TEAM_AREA=True)
         self.assertIn("the last change was told on 20", preflight.settings_watch_notes()[0])
@@ -472,10 +542,25 @@ class Translations(Base):
     def test_the_message_in_the_sites_language(self):
         self.compare()
         for language, phrases in (
-                ("it", ["Se nessuno della squadra", "⚠ abbassato: ADMIN_SECOND_FACTOR: passkey → optional",
-                        "· TELEGRAM_BOT_TOKEN: cambiato", "ora vuoto"]),
-                ("de", ["Wenn niemand aus dem Team", "⚠ gesenkt: ADMIN_SECOND_FACTOR: passkey → optional",
-                        "· TELEGRAM_BOT_TOKEN: geändert", "jetzt leer"])):
+            (
+                "it",
+                [
+                    "Se nessuno della squadra",
+                    "⚠ abbassato: ADMIN_SECOND_FACTOR: passkey → optional",
+                    "· TELEGRAM_BOT_TOKEN: cambiato",
+                    "ora vuoto",
+                ],
+            ),
+            (
+                "de",
+                [
+                    "Wenn niemand aus dem Team",
+                    "⚠ gesenkt: ADMIN_SECOND_FACTOR: passkey → optional",
+                    "· TELEGRAM_BOT_TOKEN: geändert",
+                    "jetzt leer",
+                ],
+            ),
+        ):
             with self.subTest(language=language), override_settings(LANGUAGE_CODE=language):
                 self.telegram.reset_mock()
                 self.compare(ADMIN_SECOND_FACTOR="optional", TELEGRAM_BOT_TOKEN="1:x", ADMIN_ALLOWED_IPS="")
@@ -486,13 +571,25 @@ class Translations(Base):
 
     def test_the_new_lines_in_the_sites_language(self):
         for language, phrases in (
-                ("it", ["TELEGRAM_MODERATION_CHAT: tolti: 1, aggiunti: 1",
-                        "TELEGRAM_API: sono cambiate le credenziali nell'indirizzo",
-                        "Il controllo delle impostazioni è stato spento", "controlla community.yml sulla macchina"]),
-                ("de", ["TELEGRAM_MODERATION_CHAT: entfernt: 1, hinzugefügt: 1",
-                        "TELEGRAM_API: Die Zugangsdaten in der Adresse haben sich geändert",
-                        "Die Überwachung der Einstellungen wurde in community.yml ausgeschaltet",
-                        "prüfen Sie community.yml auf der Maschine"])):
+            (
+                "it",
+                [
+                    "TELEGRAM_MODERATION_CHAT: tolti: 1, aggiunti: 1",
+                    "TELEGRAM_API: sono cambiate le credenziali nell'indirizzo",
+                    "Il controllo delle impostazioni è stato spento",
+                    "controlla community.yml sulla macchina",
+                ],
+            ),
+            (
+                "de",
+                [
+                    "TELEGRAM_MODERATION_CHAT: entfernt: 1, hinzugefügt: 1",
+                    "TELEGRAM_API: Die Zugangsdaten in der Adresse haben sich geändert",
+                    "Die Überwachung der Einstellungen wurde in community.yml ausgeschaltet",
+                    "prüfen Sie community.yml auf der Maschine",
+                ],
+            ),
+        ):
             with self.subTest(language=language), override_settings(LANGUAGE_CODE=language):
                 self.telegram.reset_mock()
                 call_command("settings_watch", "forget", stdout=StringIO())

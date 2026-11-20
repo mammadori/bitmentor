@@ -1,4 +1,5 @@
 """Team access (team/, docs/features/team-access.md): the invite, the key, the pass, and everything that must not open."""
+
 import logging
 import re
 import threading
@@ -44,12 +45,30 @@ ROOT = Path(__file__).resolve().parent.parent
 User = get_user_model()
 # What Caddy writes on every request that comes in from the site's own address (Caddyfile)
 SITE = {"X-Entrance": "site"}
-TEAM_URLS = ("/team/login/", "/team/login/{k1}/", "/team/poll/", "/team/auth/", "/team/check/", "/team/join.js",
-             "/team/join/{token}/")
+TEAM_URLS = (
+    "/team/login/",
+    "/team/login/{k1}/",
+    "/team/poll/",
+    "/team/auth/",
+    "/team/check/",
+    "/team/join.js",
+    "/team/join/{token}/",
+)
 # The volunteers' area (TEAM_AREA, team/area.py): reached with a pass, never opened by Caddy from outside
-AREA_ROUTES = {"team/", "team/today/", "team/help/", "team/help/<int:number>/solved/", "team/help/<int:number>/waiting/",
-               "team/me/", "team/me/end/", "team/shops/", "team/shops/<uuid:shop>/approve/", "team/osm/",
-               "team/osm/<int:number>/done/", "team/changes/"}
+AREA_ROUTES = {
+    "team/",
+    "team/today/",
+    "team/help/",
+    "team/help/<int:number>/solved/",
+    "team/help/<int:number>/waiting/",
+    "team/me/",
+    "team/me/end/",
+    "team/shops/",
+    "team/shops/<uuid:shop>/approve/",
+    "team/osm/",
+    "team/osm/<int:number>/done/",
+    "team/changes/",
+}
 METHODS = ("get", "post", "put", "patch", "delete", "head", "options", "trace")
 
 
@@ -59,7 +78,12 @@ def wallet():
 
 def signed(k1, key):
     """What a wallet sends to the callback: a real secp256k1 signature of the challenge, DER, and the compressed key."""
-    return {"tag": "login", "k1": k1, "sig": key.sign(bytes.fromhex(k1), hasher=None).hex(), "key": key.public_key.format().hex()}
+    return {
+        "tag": "login",
+        "k1": k1,
+        "sig": key.sign(bytes.fromhex(k1), hasher=None).hex(),
+        "key": key.public_key.format().hex(),
+    }
 
 
 def lnurl_address(lnurl):
@@ -152,8 +176,9 @@ class TheWholeFlow(Base):
         phone = self.browser()
         self.assertEqual(phone.get("/team/auth/", signed(k1_of(lnurl), key)).json(), {"status": "OK"})
         team_key = TeamKey.objects.get()
-        self.assertEqual((team_key.name, team_key.role, team_key.linking_key),
-                         ("Anna", "moderator", key.public_key.format().hex()))
+        self.assertEqual(
+            (team_key.name, team_key.role, team_key.linking_key), ("Anna", "moderator", key.public_key.format().hex())
+        )
         invite.refresh_from_db()
         self.assertEqual(invite.key, team_key)
         self.assertIsNotNone(invite.used)
@@ -194,7 +219,9 @@ class TheWholeFlow(Base):
         self.assertTrue(code.json()["svg"].endswith("</svg>"))
         binding = code.cookies[views.K1_COOKIE]
         self.assertTrue(binding["httponly"])
-        self.assertEqual((binding["samesite"], binding["path"], binding["secure"], binding["domain"]), ("Lax", "/", True, ""))
+        self.assertEqual(
+            (binding["samesite"], binding["path"], binding["secure"], binding["domain"]), ("Lax", "/", True, "")
+        )
         self.assertEqual(views.K1_COOKIE, "__Host-team_k1")
         self.assertIn("&action=login&", lnurl_address(code.json()["lnurl"]))
         k1 = k1_of(code.json()["lnurl"])
@@ -256,9 +283,19 @@ class Off(Base):
 
     def test_the_walk_of_every_url_knows_these(self):
         found = set(routes(get_resolver().url_patterns))
-        self.assertEqual({route for route in found if route.startswith("team/")},
-                         {"team/login/", "team/login/<str:k1>/", "team/poll/", "team/auth/", "team/check/", "team/join.js",
-                          "team/join/<str:token>/"} | AREA_ROUTES)
+        self.assertEqual(
+            {route for route in found if route.startswith("team/")},
+            {
+                "team/login/",
+                "team/login/<str:k1>/",
+                "team/poll/",
+                "team/auth/",
+                "team/check/",
+                "team/join.js",
+                "team/join/<str:token>/",
+            }
+            | AREA_ROUTES,
+        )
 
     def test_the_admin_shows_nothing_of_it(self):
         boss = self.client_class()
@@ -270,7 +307,9 @@ class Off(Base):
                 self.assertEqual(boss.get(reverse(f"admin:team_{name}")).status_code, 403, name)
             key = TeamKey.objects.get()
             self.assertEqual(boss.get(reverse("admin:team_teamkey_change", args=[key.pk])).status_code, 403)
-            self.assertEqual(boss.post(reverse("admin:team_teaminvite_add"), {"name": "Eve", "role": "team"}).status_code, 403)
+            self.assertEqual(
+                boss.post(reverse("admin:team_teaminvite_add"), {"name": "Eve", "role": "team"}).status_code, 403
+            )
             self.assertEqual(boss.get("/admin/team/").status_code, 404)
         self.assertIn("/admin/team/", boss.get("/admin/").content.decode())
         self.assertEqual(TeamInvite.objects.count(), 1)
@@ -329,7 +368,9 @@ class OtherModes(Base):
         boss = self.client_class()
         sign_in_as_staff_session(boss, User.objects.create_superuser("boss"))
         with override_settings(SITE_MODE="production"):
-            self.assertEqual(boss.post(reverse("admin:team_teaminvite_add"), {"name": "Eve", "role": "team"}).status_code, 403)
+            self.assertEqual(
+                boss.post(reverse("admin:team_teaminvite_add"), {"name": "Eve", "role": "team"}).status_code, 403
+            )
             # The keys are still there to look at and to revoke
             self.assertEqual(boss.get(reverse("admin:team_teamkey_changelist")).status_code, 200)
         self.assertFalse(TeamInvite.objects.exists())
@@ -439,7 +480,9 @@ class Invites(Base):
     def test_a_wrong_token_is_the_same_page_and_makes_nothing(self):
         self.invite()
         for token in ("x" * 43, "short", "y" * 500, "%2e%2e"):
-            self.assertContains(self.client.get(f"/team/join/{token}/"), "This invitation is not valid", status_code=404)
+            self.assertContains(
+                self.client.get(f"/team/join/{token}/"), "This invitation is not valid", status_code=404
+            )
         self.assertFalse(TeamChallenge.objects.exists())
 
     def test_a_deleted_invite_is_revoked(self):
@@ -495,8 +538,10 @@ class SignIn(Base):
         answer = self.sign_in(self.client, wallet())
         self.assertEqual(answer.json(), {"state": "denied"})
         self.assertNotIn("team_pass", answer.cookies)
-        self.assertEqual((self.wallet_answer["status"], self.wallet_answer["reason"]),
-                         ("ERROR", "This wallet is not in the team of this site."))
+        self.assertEqual(
+            (self.wallet_answer["status"], self.wallet_answer["reason"]),
+            ("ERROR", "This wallet is not in the team of this site."),
+        )
         self.assertFalse(self.has_pass(self.client))
         self.assertNotIn("cake", self.client.get("/en/stories/").content.decode())
         self.assertEqual(mail.outbox, [])
@@ -559,11 +604,20 @@ class SignIn(Base):
         good = signed(k1, key)
         long_form = key.public_key.format(compressed=False).hex()
         other_k1 = k1_of(self.browser().get("/team/login/").json()["lnurl"])
-        for wrong in ({**good, "key": long_form}, {**good, "sig": signed(other_k1, key)["sig"]}, {**good, "sig": "zz"},
-                      {**good, "sig": ""}, {**good, "k1": "0" * 64}, {**good, "k1": k1.upper()},
-                      {**good, "key": team_key.linking_key[:2] + " " + team_key.linking_key[2:]},
-                      {**good, "sig": signed(k1, wallet())["sig"]}, {"tag": "login"}):
-            self.assertEqual(self.client.get("/team/auth/", wrong).json(), {"status": "ERROR", "reason": "Invalid sign-in"})
+        for wrong in (
+            {**good, "key": long_form},
+            {**good, "sig": signed(other_k1, key)["sig"]},
+            {**good, "sig": "zz"},
+            {**good, "sig": ""},
+            {**good, "k1": "0" * 64},
+            {**good, "k1": k1.upper()},
+            {**good, "key": team_key.linking_key[:2] + " " + team_key.linking_key[2:]},
+            {**good, "sig": signed(k1, wallet())["sig"]},
+            {"tag": "login"},
+        ):
+            self.assertEqual(
+                self.client.get("/team/auth/", wrong).json(), {"status": "ERROR", "reason": "Invalid sign-in"}
+            )
         self.assertEqual(self.client.get(f"/team/login/{k1}/").json(), {"state": "pending"})
         # Capitals are the same key
         self.assertEqual(self.client.get("/team/auth/", {**good, "key": good["key"].upper()}).json(), {"status": "OK"})
@@ -623,8 +677,11 @@ class Passes(Base):
         boss = self.client_class()
         sign_in_as_staff_session(boss, User.objects.create_superuser("boss"))
         self.assertIn("cake", self.client.get("/en/stories/").content.decode())
-        done = boss.post(reverse("admin:team_teamkey_changelist"),
-                         {"action": "revoke", "_selected_action": [self.team_key.pk]}, follow=True)
+        done = boss.post(
+            reverse("admin:team_teamkey_changelist"),
+            {"action": "revoke", "_selected_action": [self.team_key.pk]},
+            follow=True,
+        )
         self.assertContains(done, "1 key revoked.")
         self.assertFalse(self.has_pass(self.client))
         self.assertNotIn("cake", self.client.get("/en/stories/").content.decode())
@@ -649,12 +706,23 @@ class Passes(Base):
         done = boss.post(url, {"action": "revoke", "_selected_action": [self.team_key.pk, gone.pk]}, follow=True)
         # Carla was revoked already: nothing was done to her key, and nothing is written
         self.assertContains(done, "1 key revoked.")
-        entries = [(entry.object_id, entry.action_flag, entry.user_id, entry.get_change_message())
-                   for entry in LogEntry.objects.order_by("pk")]
-        self.assertEqual(entries, [
-            (str(self.team_key.pk), CHANGE, boss_user.pk, "Passes ended: every browser signs in again."),
-            (str(other_key.pk), CHANGE, boss_user.pk, "Passes ended: every browser signs in again."),
-            (str(self.team_key.pk), CHANGE, boss_user.pk, "Revoked: the wallet signs in no more, its passes stopped.")])
+        entries = [
+            (entry.object_id, entry.action_flag, entry.user_id, entry.get_change_message())
+            for entry in LogEntry.objects.order_by("pk")
+        ]
+        self.assertEqual(
+            entries,
+            [
+                (str(self.team_key.pk), CHANGE, boss_user.pk, "Passes ended: every browser signs in again."),
+                (str(other_key.pk), CHANGE, boss_user.pk, "Passes ended: every browser signs in again."),
+                (
+                    str(self.team_key.pk),
+                    CHANGE,
+                    boss_user.pk,
+                    "Revoked: the wallet signs in no more, its passes stopped.",
+                ),
+            ],
+        )
         history = boss.get(reverse("admin:team_teamkey_history", args=[self.team_key.pk]))
         self.assertContains(history, "Revoked: the wallet signs in no more")
         self.assertContains(history, "boss")
@@ -664,8 +732,11 @@ class Passes(Base):
         sign_in_as_staff_session(boss, User.objects.create_superuser("boss"))
         other_key, _wallet = self.member(name="Bruno")
         other = self.carrying(access.pass_for(other_key))
-        done = boss.post(reverse("admin:team_teamkey_changelist"),
-                         {"action": "end_passes", "_selected_action": [self.team_key.pk]}, follow=True)
+        done = boss.post(
+            reverse("admin:team_teamkey_changelist"),
+            {"action": "end_passes", "_selected_action": [self.team_key.pk]},
+            follow=True,
+        )
         self.assertContains(done, "The passes of 1 key ended.")
         self.assertFalse(self.has_pass(self.client))
         self.assertTrue(self.has_pass(other))
@@ -689,16 +760,27 @@ class Passes(Base):
         payload, stamp, signature = good.split(":")
         other_key, _wallet = self.member(name="Bruno")
         forged = {
-            "empty": "", "junk": "x" * 120, "a changed signature": f"{payload}:{stamp}:{signature[:-2]}AA",
+            "empty": "",
+            "junk": "x" * 120,
+            "a changed signature": f"{payload}:{stamp}:{signature[:-2]}AA",
             "a changed payload": f"{payload[:-2]}AA:{stamp}:{signature}",
-            "signed for something else": signing.dumps({"key": self.team_key.pk, "stamp": self.team_key.stamp}, salt="login"),
-            "signed with another secret": signing.dumps({"key": self.team_key.pk, "stamp": self.team_key.stamp},
-                                                         key="another", salt=access.PASS_SALT),
+            "signed for something else": signing.dumps(
+                {"key": self.team_key.pk, "stamp": self.team_key.stamp}, salt="login"
+            ),
+            "signed with another secret": signing.dumps(
+                {"key": self.team_key.pk, "stamp": self.team_key.stamp}, key="another", salt=access.PASS_SALT
+            ),
             "the cookie of the code": signing.get_cookie_signer(salt=views.K1_COOKIE + views.K1_SALT).sign("a" * 64),
-            "another key's stamp": signing.dumps({"key": other_key.pk, "stamp": self.team_key.stamp}, salt=access.PASS_SALT),
+            "another key's stamp": signing.dumps(
+                {"key": other_key.pk, "stamp": self.team_key.stamp}, salt=access.PASS_SALT
+            ),
             "no stamp": signing.dumps({"key": self.team_key.pk}, salt=access.PASS_SALT),
-            "a key that is not a number": signing.dumps({"key": True, "stamp": self.team_key.stamp}, salt=access.PASS_SALT),
-            "a key that does not exist": signing.dumps({"key": 10**9, "stamp": self.team_key.stamp}, salt=access.PASS_SALT),
+            "a key that is not a number": signing.dumps(
+                {"key": True, "stamp": self.team_key.stamp}, salt=access.PASS_SALT
+            ),
+            "a key that does not exist": signing.dumps(
+                {"key": 10**9, "stamp": self.team_key.stamp}, salt=access.PASS_SALT
+            ),
             "not a dictionary": signing.dumps([self.team_key.pk, self.team_key.stamp], salt=access.PASS_SALT),
         }
         for what, value in forged.items():
@@ -746,7 +828,9 @@ class Limits(Base):
     def test_signatures_by_address(self):
         _team_key, key = self.member()
         for _ in range(views.SIGNATURES[0]):
-            self.assertEqual(self.client.get("/team/auth/", {"k1": "0" * 64, "sig": "00", "key": "02" + "0" * 64}).status_code, 200)
+            self.assertEqual(
+                self.client.get("/team/auth/", {"k1": "0" * 64, "sig": "00", "key": "02" + "0" * 64}).status_code, 200
+            )
         k1 = k1_of(self.browser(**{"X-Forwarded-For": "203.0.113.9"}).get("/team/login/").json()["lnurl"])
         refused = self.client.get("/team/auth/", signed(k1, key))
         self.assertEqual(refused.status_code, 429)
@@ -777,12 +861,16 @@ class Limits(Base):
             for number in range(4):
                 browser = self.browser(**{"X-Forwarded-For": f"2001:db8:1:{number}::1"})
                 self.assertEqual(browser.get("/team/login/").status_code, 200)
-            self.assertEqual(self.browser(**{"X-Forwarded-For": "2001:db8:1:9::1"}).get("/team/login/").status_code, 429)
+            self.assertEqual(
+                self.browser(**{"X-Forwarded-For": "2001:db8:1:9::1"}).get("/team/login/").status_code, 429
+            )
 
     def test_the_table_of_challenges_cannot_grow_without_end(self):
         with patch("team.models.CHALLENGES_ALIVE", 3), self.assertLogs("team.models", "WARNING") as logs:
             for number in range(3):
-                self.assertEqual(self.browser(**{"X-Forwarded-For": f"203.0.113.{number}"}).get("/team/login/").status_code, 200)
+                self.assertEqual(
+                    self.browser(**{"X-Forwarded-For": f"203.0.113.{number}"}).get("/team/login/").status_code, 200
+                )
             full = self.browser(**{"X-Forwarded-For": "203.0.113.50"})
             refused = full.get("/team/login/")
             self.assertEqual(refused.status_code, 429)
@@ -797,10 +885,15 @@ class Limits(Base):
     def test_strangers_asking_for_sign_in_codes_cannot_keep_an_invited_person_out(self):
         """The codes of the invites' pages, which only whoever holds an open invite can make, are counted apart."""
         _invite, token = self.invite()
-        with patch("team.models.CHALLENGES_ALIVE", 2), patch("team.models.INVITE_CHALLENGES_ALIVE", 2), \
-                self.assertLogs("team.models", "WARNING") as logs:
+        with (
+            patch("team.models.CHALLENGES_ALIVE", 2),
+            patch("team.models.INVITE_CHALLENGES_ALIVE", 2),
+            self.assertLogs("team.models", "WARNING") as logs,
+        ):
             for number in range(2):
-                self.assertEqual(self.browser(**{"X-Forwarded-For": f"203.0.113.{number}"}).get("/team/login/").status_code, 200)
+                self.assertEqual(
+                    self.browser(**{"X-Forwarded-For": f"203.0.113.{number}"}).get("/team/login/").status_code, 200
+                )
             self.assertEqual(self.browser(**{"X-Forwarded-For": "203.0.113.9"}).get("/team/login/").status_code, 429)
             invited = self.browser(**{"X-Forwarded-For": "198.51.100.1"})
             page = invited.get(f"/team/join/{token}/")
@@ -811,8 +904,15 @@ class Limits(Base):
             # And the other way round: the pages of the invites have a most of their own
             _invite, other = self.invite(name="Bruno")
             for number in range(2):
-                self.assertEqual(self.browser(**{"X-Forwarded-For": f"198.51.100.{number + 2}"}).get(f"/team/join/{other}/").status_code, 200)
-            self.assertEqual(self.browser(**{"X-Forwarded-For": "198.51.100.9"}).get(f"/team/join/{other}/").status_code, 429)
+                self.assertEqual(
+                    self.browser(**{"X-Forwarded-For": f"198.51.100.{number + 2}"})
+                    .get(f"/team/join/{other}/")
+                    .status_code,
+                    200,
+                )
+            self.assertEqual(
+                self.browser(**{"X-Forwarded-For": "198.51.100.9"}).get(f"/team/join/{other}/").status_code, 429
+            )
         self.assertIn("codes of invite pages", logs.output[-1])
 
 
@@ -847,18 +947,31 @@ class Admin(Base):
         self.assertNotContains(page, team_key.stamp)
         # The name and the role can be put right; the key, its stamp and its revocation are not a form's to write
         other = "02" + "ab" * 32
-        self.boss.post(reverse("admin:team_teamkey_change", args=[team_key.pk]),
-                       {"name": "Anna B.", "role": "staff", "linking_key": other, "stamp": "x", "revoked_0": "2026-01-01",
-                        "revoked_1": "10:00"})
+        self.boss.post(
+            reverse("admin:team_teamkey_change", args=[team_key.pk]),
+            {
+                "name": "Anna B.",
+                "role": "staff",
+                "linking_key": other,
+                "stamp": "x",
+                "revoked_0": "2026-01-01",
+                "revoked_1": "10:00",
+            },
+        )
         fresh = TeamKey.objects.get(pk=team_key.pk)
-        self.assertEqual((fresh.name, fresh.role, fresh.linking_key, fresh.stamp, fresh.revoked),
-                         ("Anna B.", "staff", team_key.linking_key, team_key.stamp, None))
+        self.assertEqual(
+            (fresh.name, fresh.role, fresh.linking_key, fresh.stamp, fresh.revoked),
+            ("Anna B.", "staff", team_key.linking_key, team_key.stamp, None),
+        )
 
     def test_an_invite_is_shown_once_and_never_changed(self):
         made = self.boss.post(reverse("admin:team_teaminvite_add"), {"name": "Anna", "role": "team"})
         token = re.search(r"/team/join/([^/\"]+)/", made.content.decode())[1]
         invite = TeamInvite.objects.get()
-        for url in (reverse("admin:team_teaminvite_changelist"), reverse("admin:team_teaminvite_change", args=[invite.pk])):
+        for url in (
+            reverse("admin:team_teaminvite_changelist"),
+            reverse("admin:team_teaminvite_change", args=[invite.pk]),
+        ):
             page = self.boss.get(url)
             self.assertEqual(page.status_code, 200)
             self.assertNotContains(page, token)
@@ -881,17 +994,23 @@ class Admin(Base):
     def test_staff_without_the_rights_see_nothing(self):
         plain = User.objects.create_user("plain", is_staff=True)
         viewer = User.objects.create_user("viewer", is_staff=True)
-        viewer.user_permissions.add(*Permission.objects.filter(content_type__app_label="team", codename__startswith="view_"))
+        viewer.user_permissions.add(
+            *Permission.objects.filter(content_type__app_label="team", codename__startswith="view_")
+        )
         team_key, _key = self.member()
         browser = self.client_class()
         sign_in_as_staff_session(browser, plain)
         self.assertEqual(browser.get(reverse("admin:team_teamkey_changelist")).status_code, 403)
-        self.assertEqual(browser.post(reverse("admin:team_teaminvite_add"), {"name": "Eve", "role": "team"}).status_code, 403)
+        self.assertEqual(
+            browser.post(reverse("admin:team_teaminvite_add"), {"name": "Eve", "role": "team"}).status_code, 403
+        )
         sign_in_as_staff_session(browser, viewer)
         self.assertEqual(browser.get(reverse("admin:team_teamkey_changelist")).status_code, 200)
         # Whoever can only look cannot revoke
         browser.post(reverse("admin:team_teamkey_changelist"), {"action": "revoke", "_selected_action": [team_key.pk]})
-        browser.post(reverse("admin:team_teamkey_changelist"), {"action": "end_passes", "_selected_action": [team_key.pk]})
+        browser.post(
+            reverse("admin:team_teamkey_changelist"), {"action": "end_passes", "_selected_action": [team_key.pk]}
+        )
         fresh = TeamKey.objects.get(pk=team_key.pk)
         self.assertEqual((fresh.revoked, fresh.stamp), (None, team_key.stamp))
         self.assertFalse(TeamInvite.objects.exists())
@@ -905,8 +1024,10 @@ class Admin(Base):
 class Telling(Base):
     def test_telegram_first_when_the_site_has_it(self):
         _team_key, key = self.member(name="Anna @everyone http://evil.example")
-        with override_settings(TELEGRAM_BOT_TOKEN="t", TELEGRAM_MODERATION_CHAT="-100"), \
-                patch("shops.notifications.telegram", return_value=True) as telegram:
+        with (
+            override_settings(TELEGRAM_BOT_TOKEN="t", TELEGRAM_MODERATION_CHAT="-100"),
+            patch("shops.notifications.telegram", return_value=True) as telegram,
+        ):
             self.sign_in(self.client, key)
         self.assertEqual(mail.outbox, [])
         chat, text = telegram.call_args.args
@@ -928,7 +1049,10 @@ class Telling(Base):
         _team_key, key = self.member()
         for error in (RuntimeError("boom"), KeyError("x"), ValueError(), requests.Timeout()):
             browser = self.browser()
-            with patch("team.views.deliver_to_moderators", side_effect=error), self.assertLogs("team.views", "ERROR") as logs:
+            with (
+                patch("team.views.deliver_to_moderators", side_effect=error),
+                self.assertLogs("team.views", "ERROR") as logs,
+            ):
                 answer = self.sign_in(browser, key)
             self.assertEqual((answer.status_code, answer.json()), (200, {"state": "ok"}), error)
             self.assertIn("team_pass", answer.cookies)
@@ -938,7 +1062,10 @@ class Telling(Base):
         _invite, token = self.invite(name="Carla")
         page = self.client.get(f"/team/join/{token}/").content.decode()
         k1 = k1_of(re.search(r"lightning:(LNURL1[A-Z0-9]+)", page)[1])
-        with patch("team.views.deliver_to_moderators", side_effect=RuntimeError("boom")), self.assertLogs("team.views", "ERROR"):
+        with (
+            patch("team.views.deliver_to_moderators", side_effect=RuntimeError("boom")),
+            self.assertLogs("team.views", "ERROR"),
+        ):
             self.assertEqual(self.client.get("/team/auth/", signed(k1, wallet())).json(), {"status": "OK"})
         self.assertTrue(TeamKey.objects.filter(name="Carla").exists())
 
@@ -983,8 +1110,10 @@ class Preflight(Base):
         TeamKey.revoke(TeamKey.objects.filter(pk=self.member(name="Bruno")[0].pk))
         self.invite()
         with override_settings(ADMIN_ALLOWED_IPS="203.0.113.7", EMAIL_HOST="mail.example.org"):
-            self.assertEqual(preflight.team_notes(),
-                             ["team access is on (TEAM_ACCESS=on in the .env): 1 team keys, 1 open invites (/admin/team/)"])
+            self.assertEqual(
+                preflight.team_notes(),
+                ["team access is on (TEAM_ACCESS=on in the .env): 1 team keys, 1 open invites (/admin/team/)"],
+            )
             with override_settings(SITE_MODE="production"):
                 self.assertIn("with SITE_MODE production it does nothing", preflight.team_notes()[0])
             self.assertIn(preflight.team_notes()[0], preflight.feature_notes())
@@ -1008,16 +1137,24 @@ class Preflight(Base):
     def test_preflight_says_when_nobody_would_be_told(self):
         """Said once, with the other moderators' messages (preflight.moderators_notes), not among the team's notes."""
         on = override_settings(ADMIN_ALLOWED_IPS="203.0.113.7")
-        with on, override_settings(TELEGRAM_BOT_TOKEN="", TELEGRAM_MODERATION_CHAT="", EMAIL_HOST="", NETWORK="mainnet"):
+        with (
+            on,
+            override_settings(TELEGRAM_BOT_TOKEN="", TELEGRAM_MODERATION_CHAT="", EMAIL_HOST="", NETWORK="mainnet"),
+        ):
             self.assertEqual(len(preflight.team_notes()), 1)
             self.assertIn("team access notices of new keys and passes", preflight.moderators_notes()[0][0])
-        with on, override_settings(TELEGRAM_BOT_TOKEN="t", TELEGRAM_MODERATION_CHAT="", EMAIL_HOST="mail.example.org"), \
-                patch.dict(preflight.community(), {"email": ""}):
+        with (
+            on,
+            override_settings(TELEGRAM_BOT_TOKEN="t", TELEGRAM_MODERATION_CHAT="", EMAIL_HOST="mail.example.org"),
+            patch.dict(preflight.community(), {"email": ""}),
+        ):
             self.assertIn("team access notices", preflight.moderators_notes()[0][0])
         with override_settings(TEAM_ACCESS=False, TELEGRAM_BOT_TOKEN="", EMAIL_HOST=""):
             self.assertNotIn("team access", preflight.moderators_notes()[0][0])
-        for told in ({"TELEGRAM_BOT_TOKEN": "t", "TELEGRAM_MODERATION_CHAT": "-100", "EMAIL_HOST": ""},
-                     {"TELEGRAM_BOT_TOKEN": "", "EMAIL_HOST": "mail.example.org"}):
+        for told in (
+            {"TELEGRAM_BOT_TOKEN": "t", "TELEGRAM_MODERATION_CHAT": "-100", "EMAIL_HOST": ""},
+            {"TELEGRAM_BOT_TOKEN": "", "EMAIL_HOST": "mail.example.org"},
+        ):
             with on, override_settings(**told):
                 self.assertEqual(len(preflight.team_notes()), 1, told)
                 self.assertEqual(preflight.moderators_notes()[0], [], told)
@@ -1025,17 +1162,23 @@ class Preflight(Base):
 
 class Logs(Base):
     """The token of an invite is in a path, and paths are what logs write: every log of the stack cuts it."""
+
     TOKEN = "s3cr3t-Token_of-43-characters-000000000000"
 
     def test_django_writes_the_path_without_it(self):
-        record = logging.LogRecord("django.request", logging.WARNING, __file__, 1, "%s: %s",
-                                   ("Not Found", f"/team/join/{self.TOKEN}/"), None)
+        record = logging.LogRecord(
+            "django.request", logging.WARNING, __file__, 1, "%s: %s", ("Not Found", f"/team/join/{self.TOKEN}/"), None
+        )
         self.assertTrue(quiet.QuietPaths().filter(record))
         self.assertEqual(record.getMessage(), "Not Found: /team/join/-/")
-        record = logging.LogRecord("x", logging.ERROR, __file__, 1, f"Internal Server Error: /team/join/{self.TOKEN}/?a=1", None, None)
+        record = logging.LogRecord(
+            "x", logging.ERROR, __file__, 1, f"Internal Server Error: /team/join/{self.TOKEN}/?a=1", None, None
+        )
         quiet.QuietPaths().filter(record)
         self.assertEqual(record.getMessage(), "Internal Server Error: /team/join/-/?a=1")
-        record = logging.LogRecord("x", logging.ERROR, __file__, 1, "%(path)s %(n)d", ({"path": f"/team/join/{self.TOKEN}", "n": 3},), None)
+        record = logging.LogRecord(
+            "x", logging.ERROR, __file__, 1, "%(path)s %(n)d", ({"path": f"/team/join/{self.TOKEN}", "n": 3},), None
+        )
         quiet.QuietPaths().filter(record)
         self.assertEqual(record.getMessage(), "/team/join/- 3")
 
@@ -1071,10 +1214,21 @@ class Logs(Base):
         class Response:
             status, sent, headers = "404 Not Found", 10, []
 
-        environ = {"REQUEST_METHOD": "GET", "RAW_URI": f"/team/join/{self.TOKEN}/?x=1", "PATH_INFO": f"/team/join/{self.TOKEN}/",
-                   "QUERY_STRING": "x=1", "SERVER_PROTOCOL": "HTTP/1.1", "HTTP_REFERER": f"https://x/team/join/{self.TOKEN}/"}
-        atoms = cls.atoms(cls.__new__(cls), Response(), {"referer": f"https://x/team/join/{self.TOKEN}/"}.items(), environ,
-                          delta(seconds=1))
+        environ = {
+            "REQUEST_METHOD": "GET",
+            "RAW_URI": f"/team/join/{self.TOKEN}/?x=1",
+            "PATH_INFO": f"/team/join/{self.TOKEN}/",
+            "QUERY_STRING": "x=1",
+            "SERVER_PROTOCOL": "HTTP/1.1",
+            "HTTP_REFERER": f"https://x/team/join/{self.TOKEN}/",
+        }
+        atoms = cls.atoms(
+            cls.__new__(cls),
+            Response(),
+            {"referer": f"https://x/team/join/{self.TOKEN}/"}.items(),
+            environ,
+            delta(seconds=1),
+        )
         self.assertEqual(atoms["U"], "/team/join/-/")
         self.assertEqual(atoms["m"], "GET")
         self.assertEqual([name for name, value in atoms.items() if isinstance(value, str) and self.TOKEN in value], [])
@@ -1084,10 +1238,16 @@ class Logs(Base):
 
     def mangled(self, secret, word="join"):
         """The ways the reviewer found a secret in a path written whole, and a few more: (address, how it must be written)."""
-        return [(f"/team/{word}/{secret}/", f"/team/{word}/-/"), (f"/team/{word}/{secret}", f"/team/{word}/-"),
-                (f"/TEAM/{word.upper()}/{secret}/", f"/TEAM/{word.upper()}/-/"), (f"/Team/{word.title()}/{secret}/x/", f"/Team/{word.title()}/-/x/"),
-                (f"/team//{word}/{secret}/", f"/team//{word}/-/"), (f"//team/{word}//{secret}/", f"//team/{word}//-/"),
-                (f"/en/team/{word}/{secret}/", f"/en/team/{word}/-/"), (f"/it/x/team/{word}/{secret}/?a=b", f"/it/x/team/{word}/-/?a=b")]
+        return [
+            (f"/team/{word}/{secret}/", f"/team/{word}/-/"),
+            (f"/team/{word}/{secret}", f"/team/{word}/-"),
+            (f"/TEAM/{word.upper()}/{secret}/", f"/TEAM/{word.upper()}/-/"),
+            (f"/Team/{word.title()}/{secret}/x/", f"/Team/{word.title()}/-/x/"),
+            (f"/team//{word}/{secret}/", f"/team//{word}/-/"),
+            (f"//team/{word}//{secret}/", f"//team/{word}//-/"),
+            (f"/en/team/{word}/{secret}/", f"/en/team/{word}/-/"),
+            (f"/it/x/team/{word}/{secret}/?a=b", f"/it/x/team/{word}/-/?a=b"),
+        ]
 
     def test_no_way_of_writing_the_path_gets_a_token_or_a_challenge_into_the_log_of_web(self):
         k1 = "ab" * 32
@@ -1096,18 +1256,33 @@ class Logs(Base):
                 self.assertEqual(quiet.quiet(address), written)
                 self.assertEqual(quiet.quiet(f"Not Found: {address}"), f"Not Found: {written}")
         # Percent-encoded letters, which the site reads as the same path, are written decoded and cut
-        for address in (f"/team/%6Aoin/{self.TOKEN}/", f"/team/join/%73{self.TOKEN[1:]}/", f"/%74eam/login/{k1}/",
-                        f"/x?next=%2Fteam%2Fjoin%2F{self.TOKEN}%2F"):
+        for address in (
+            f"/team/%6Aoin/{self.TOKEN}/",
+            f"/team/join/%73{self.TOKEN[1:]}/",
+            f"/%74eam/login/{k1}/",
+            f"/x?next=%2Fteam%2Fjoin%2F{self.TOKEN}%2F",
+        ):
             written = quiet.quiet(address)
             self.assertNotIn(self.TOKEN, written)
             self.assertNotIn(self.TOKEN[1:], written)
             self.assertNotIn(k1, written)
         # The challenge in the query of the wallet's callback, wherever a whole address is written
-        self.assertEqual(quiet.quiet(f"GET /team/auth/?tag=login&k1={k1}&sig=00 HTTP/1.1"), "GET /team/auth/?tag=login&k1=-&sig=00 HTTP/1.1")
+        self.assertEqual(
+            quiet.quiet(f"GET /team/auth/?tag=login&k1={k1}&sig=00 HTTP/1.1"),
+            "GET /team/auth/?tag=login&k1=-&sig=00 HTTP/1.1",
+        )
         self.assertEqual(quiet.quiet(f"/team/auth/?K1={k1}"), "/team/auth/?K1=-")
         # What is not a secret stays as it is
-        for address in ("/team/login/", "/team/poll/", "/team/join.js", "/team/check/", "/en/shops/", "/en/shops/?next=%2Fen%2F",
-                        "/theme/logo.svg", "/team/auth/?tag=login&sig=00&key=02ab"):
+        for address in (
+            "/team/login/",
+            "/team/poll/",
+            "/team/join.js",
+            "/team/check/",
+            "/en/shops/",
+            "/en/shops/?next=%2Fen%2F",
+            "/theme/logo.svg",
+            "/team/auth/?tag=login&sig=00&key=02ab",
+        ):
             self.assertEqual(quiet.quiet(address), address)
 
     def gunicorn_writes(self, method, path, query=""):
@@ -1121,11 +1296,21 @@ class Logs(Base):
         settings_of = __import__("runpy").run_path(str(ROOT / "config" / "gunicorn.py"))
         self.assertEqual(settings_of["logger_class"], "config.quiet.AccessLog")
         raw = path + ("?" + query if query else "")
-        environ = {"REQUEST_METHOD": method, "RAW_URI": raw, "PATH_INFO": path, "QUERY_STRING": query,
-                   "SERVER_PROTOCOL": "HTTP/1.1", "HTTP_REFERER": f"https://{settings.SITE_HOST}{raw}"}
+        environ = {
+            "REQUEST_METHOD": method,
+            "RAW_URI": raw,
+            "PATH_INFO": path,
+            "QUERY_STRING": query,
+            "SERVER_PROTOCOL": "HTTP/1.1",
+            "HTTP_REFERER": f"https://{settings.SITE_HOST}{raw}",
+        }
         cls = quiet.AccessLog
-        atoms = cls.atoms(cls.__new__(cls), Response(), {"referer": environ["HTTP_REFERER"]}.items(), environ, delta(seconds=1))
-        return settings_of["access_log_format"] % atoms, " ".join(value for value in atoms.values() if isinstance(value, str))
+        atoms = cls.atoms(
+            cls.__new__(cls), Response(), {"referer": environ["HTTP_REFERER"]}.items(), environ, delta(seconds=1)
+        )
+        return settings_of["access_log_format"] % atoms, " ".join(
+            value for value in atoms.values() if isinstance(value, str)
+        )
 
     def test_a_whole_invite_and_a_whole_sign_in_leave_no_secret_in_the_log_of_web(self):
         """What the reviewer did by hand: read the log of web after an invite, find the challenge, sign it first. Every
@@ -1140,7 +1325,9 @@ class Logs(Base):
         for found in settings.LOGGING["handlers"]["console"]["filters"]:
             self.assertEqual(settings.LOGGING["filters"][found]["()"], "config.quiet.QuietPaths")
             handler.addFilter(quiet.QuietPaths())
-        watched = [logging.getLogger(name) for name in ("django", "django.request", "team", "config", "shops", "website")]
+        watched = [
+            logging.getLogger(name) for name in ("django", "django.request", "team", "config", "shops", "website")
+        ]
         for logger in watched:
             logger.addHandler(handler)
             self.addCleanup(logger.removeHandler, handler)
@@ -1161,8 +1348,8 @@ class Logs(Base):
         self.assertEqual(get(self.client, poll).json(), {"state": "pending"})
         self.assertEqual(get(self.browser(), "/team/auth/", signed(invite_k1, key)).json(), {"status": "OK"})
         self.assertEqual(get(self.client, poll).json(), {"state": "ok"})
-        get(self.client, f"/team/join/{token}/")                       # the link again: spent, a 404 Django logs
-        get(self.client, f"/team/join/{token}/", method="post")        # and a method it does not take
+        get(self.client, f"/team/join/{token}/")  # the link again: spent, a 404 Django logs
+        get(self.client, f"/team/join/{token}/", method="post")  # and a method it does not take
         # The ways of writing it that the review found logged whole, from an address that reaches Django
         for address, _written in self.mangled(token) + self.mangled(invite_k1, "login"):
             if not address.startswith("//"):  # the test client reads two slashes at the start as the name of a host
@@ -1227,10 +1414,15 @@ class Logs(Base):
                 in_access = access.sub(r"\g<1>\g<2>", address)
                 self.assertNotIn(secret, in_access)
                 self.assertEqual(in_access, written.replace("-", "").split("?")[0] + ("?" if "?" in address else ""))
-        for asked, written in (("/team/join.js", "/team/join.js"), ("/team/login/", "/team/login/"), ("/team/poll/", "/team/poll/"),
-                               ("/en/shops/?token=abc&k=1", "/en/shops/?"), ("/en/", "/en/"),
-                               (f"/team/auth/?tag=login&k1={k1}&sig=00", "/team/auth/?"),
-                               (f"/en/?next=/team/join/{self.TOKEN}/", "/en/?")):
+        for asked, written in (
+            ("/team/join.js", "/team/join.js"),
+            ("/team/login/", "/team/login/"),
+            ("/team/poll/", "/team/poll/"),
+            ("/en/shops/?token=abc&k=1", "/en/shops/?"),
+            ("/en/", "/en/"),
+            (f"/team/auth/?tag=login&k1={k1}&sig=00", "/team/auth/?"),
+            (f"/en/?next=/team/join/{self.TOKEN}/", "/en/?"),
+        ):
             self.assertEqual(access.sub(r"\g<1>\g<2>", asked), written, asked)
         # The error log's own filter of the query still deletes the challenge of the wallet's callback
         self.assertIn("delete k1\n", error_log.split("request>uri query {")[1].split("}")[0])
@@ -1285,15 +1477,29 @@ class CaddyRules(Base):
         for pk in (1, 7, 10**6, 2**62):
             team_key.pk = pk
             value = access.pass_for(team_key)
-            for header in (f"team_pass={value}", f"a=1; team_pass={value}", f"team_pass={value}; b=2", f"a=1; team_pass={value}; b=2"):
+            for header in (
+                f"team_pass={value}",
+                f"a=1; team_pass={value}",
+                f"team_pass={value}; b=2",
+                f"a=1; team_pass={value}; b=2",
+            ):
                 self.assertTrue(re.search(shape, header), header)
         self.assertTrue(re.search(shape, f"team_pass={cookie.value}"))
         # And what cannot be a pass asks Django nothing: no cookie, an empty or short one, one of another name
-        for header in ("", "a=1", "team_pass=", "team_pass=short", f"not_team_pass={cookie.value}", f"team_pass={'x' * 500}",
-                       "team_pass=<script>" + "a" * 60):
+        for header in (
+            "",
+            "a=1",
+            "team_pass=",
+            "team_pass=short",
+            f"not_team_pass={cookie.value}",
+            f"team_pass={'x' * 500}",
+            "team_pass=<script>" + "a" * 60,
+        ):
             self.assertFalse(re.search(shape, header), header)
         cleared = re.search(r'header Set-Cookie "([^"]+)"', rules)[1]
-        self.assertEqual(cleared, f"{access.PASS_COOKIE}=; Path={cookie['path']}; Max-Age=0; HttpOnly; Secure; SameSite=Lax")
+        self.assertEqual(
+            cleared, f"{access.PASS_COOKIE}=; Path={cookie['path']}; Max-Age=0; HttpOnly; Secure; SameSite=Lax"
+        )
         # Cleared only when Django refuses the pass, not when it does not answer
         refused = rules.split("handle_response @refused {")[1].split("}")[0]
         failed = rules.split("handle_response @failed {")[1].split("}")[0]
@@ -1322,7 +1528,9 @@ class CaddyRules(Base):
         # rest of the site (team/area.py)
         self.assertEqual(set(found) & AREA_ROUTES, AREA_ROUTES)
         for route in AREA_ROUTES:
-            url = "/" + route.replace("<int:number>", "1").replace("<uuid:shop>", "00000000-0000-0000-0000-000000000001")
+            url = "/" + route.replace("<int:number>", "1").replace(
+                "<uuid:shop>", "00000000-0000-0000-0000-000000000001"
+            )
             self.assertFalse(expression.search(url), url)
             self.assertFalse(expression.search(url + "?a=1"), url)
         found = [route for route in found if route not in AREA_ROUTES]
@@ -1337,12 +1545,42 @@ class CaddyRules(Base):
             self.assertTrue(expression.search(f"/team/join/{sample}/"))
         # Everything else under /team/, and every other way of writing those addresses, is a path like any other: the
         # under-construction page, not Django's 404 with the community's name, menu and email
-        for url in ("/team/", "/team", "/team/x/", "/team/login", "/team/login/x/", f"/team/login/{k1.upper()}/",
-                    f"/team/login/{k1}", f"/team/login/{k1}/x/", "/TEAM/login/", "/team/LOGIN/", "/Team/Auth/", "//team/login/",
-                    "/team//login/", "/x/../team/login/", "/team/./login/", "/team/%6Cogin/", "/team/login%2F", "/en/team/login/",
-                    "/team/join/", "/team/join/short/", f"/team/join/{token}", f"/team/join/{token}/x", f"/team/join/{token}//",
-                    f"/TEAM/JOIN/{token}/", f"/team//join/{token}/", f"/en/team/join/{token}/", "/team/join.js/", "/team/joinXjs",
-                    "/team/check", "/team/poll", "/team/auth", "/team/admin/", "http://x/team/login/", "/team/login/?a=1\n/x"):
+        for url in (
+            "/team/",
+            "/team",
+            "/team/x/",
+            "/team/login",
+            "/team/login/x/",
+            f"/team/login/{k1.upper()}/",
+            f"/team/login/{k1}",
+            f"/team/login/{k1}/x/",
+            "/TEAM/login/",
+            "/team/LOGIN/",
+            "/Team/Auth/",
+            "//team/login/",
+            "/team//login/",
+            "/x/../team/login/",
+            "/team/./login/",
+            "/team/%6Cogin/",
+            "/team/login%2F",
+            "/en/team/login/",
+            "/team/join/",
+            "/team/join/short/",
+            f"/team/join/{token}",
+            f"/team/join/{token}/x",
+            f"/team/join/{token}//",
+            f"/TEAM/JOIN/{token}/",
+            f"/team//join/{token}/",
+            f"/en/team/join/{token}/",
+            "/team/join.js/",
+            "/team/joinXjs",
+            "/team/check",
+            "/team/poll",
+            "/team/auth",
+            "/team/admin/",
+            "http://x/team/login/",
+            "/team/login/?a=1\n/x",
+        ):
             self.assertFalse(expression.search(url), url)
 
     def test_the_wallets_callback_is_not_taken_for_a_robot(self):
@@ -1362,7 +1600,9 @@ class CaddyRules(Base):
         services = yaml.safe_load((ROOT / "docker-compose.yml").read_text())["services"]
         for name in ("web", "caddy"):
             self.assertEqual(services[name]["environment"]["TEAM_ACCESS"], "${TEAM_ACCESS:-off}", name)
-        release = yaml.safe_load((ROOT / "compose.release.yml").read_text().replace("!reset", "").replace("!override", ""))
+        release = yaml.safe_load(
+            (ROOT / "compose.release.yml").read_text().replace("!reset", "").replace("!override", "")
+        )
         for name in ("web", "caddy"):
             self.assertNotIn("environment", release["services"][name], name)  # the release keeps the same environment
 
@@ -1376,8 +1616,16 @@ class Documents(Base):
             self.assertIn("| `TEAM_ACCESS` | `off` |", (ROOT / "docs" / "configuration.md").read_text())
             self.assertIn("(team-access.md)", (ROOT / "docs" / "features" / "README.md").read_text())
             page = (ROOT / "docs" / "features" / "team-access.md").read_text()
-            for word in ("TEAM_ACCESS=on", "/team/login/", "/team/check/", "/team/auth/", "/team/join/", "team_pass",
-                         "team_k1", "seven days"):
+            for word in (
+                "TEAM_ACCESS=on",
+                "/team/login/",
+                "/team/check/",
+                "/team/auth/",
+                "/team/join/",
+                "team_pass",
+                "team_k1",
+                "seven days",
+            ):
                 self.assertIn(word, page)
             self.assertIn("`team.TeamKey`", (ROOT / "docs" / "privacy.md").read_text())
         if (ROOT / ".dockerignore").is_file():

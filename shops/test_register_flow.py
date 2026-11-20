@@ -2,6 +2,7 @@
 on-chain sale of the owner's register from the key on the phone, and a staff register paired with the owner's code.
 What it checks is where the money goes: the address of each sale is the one the owner's key gives for its place, the
 discount is applied, and the explorer's answer ends the sale. The screens themselves are tried by hand in a browser."""
+
 import base64
 import hashlib
 import json
@@ -18,8 +19,15 @@ from django.test import SimpleTestCase
 from .test_register_chain import BIP84_ACCOUNT, BIP84_RECEIVE, REGISTER
 
 STATIC = settings.BASE_DIR / "static"
-FILES = ["vendor/qrcode/qrcode.js", "register-book.js", "register-derive.js", "register-chain.js", "register-pairing.js",
-         "register-nostr.js", "register-relays.js"]
+FILES = [
+    "vendor/qrcode/qrcode.js",
+    "register-book.js",
+    "register-derive.js",
+    "register-chain.js",
+    "register-pairing.js",
+    "register-nostr.js",
+    "register-relays.js",
+]
 RELAY = "wss://relay.example.org"
 # The owner's Nostr private key in these tests
 OWNER_SECRET = "11" * 32
@@ -394,66 +402,186 @@ class RegisterRun(SimpleTestCase):
             raise __import__("unittest").SkipTest("node is missing: NODE=/path/to/node to run the register")
 
     def derived(self, key, path):
-        script = ('const fs = require("fs"); eval(fs.readFileSync(process.argv[1], "utf8"));'
-                  f'registerDerive.addressAt({json.dumps(key)}, {json.dumps(path)}, "mainnet").then((a) => process.stdout.write(a));')
-        return subprocess.run([self.node, "-e", script, str(STATIC / "register-derive.js")], capture_output=True, text=True,
-                              timeout=60, check=True).stdout
+        script = (
+            'const fs = require("fs"); eval(fs.readFileSync(process.argv[1], "utf8"));'
+            f'registerDerive.addressAt({json.dumps(key)}, {json.dumps(path)}, "mainnet").then((a) => process.stdout.write(a));'
+        )
+        return subprocess.run(
+            [self.node, "-e", script, str(STATIC / "register-derive.js")],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=True,
+        ).stdout
 
     def derived_many(self, key, child, indexes):
-        script = ('const fs = require("fs"); eval(fs.readFileSync(process.argv[1], "utf8"));'
-                  f'Promise.all({json.dumps(list(indexes))}.map((i) => registerDerive.addressAt({json.dumps(key)}, '
-                  f'[{child}, i], "mainnet"))).then((a) => process.stdout.write(JSON.stringify(a)));')
-        return json.loads(subprocess.run([self.node, "-e", script, str(STATIC / "register-derive.js")], capture_output=True,
-                                         text=True, timeout=60, check=True).stdout)
+        script = (
+            'const fs = require("fs"); eval(fs.readFileSync(process.argv[1], "utf8"));'
+            f"Promise.all({json.dumps(list(indexes))}.map((i) => registerDerive.addressAt({json.dumps(key)}, "
+            f'[{child}, i], "mainnet"))).then((a) => process.stdout.write(JSON.stringify(a)));'
+        )
+        return json.loads(
+            subprocess.run(
+                [self.node, "-e", script, str(STATIC / "register-derive.js")],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=True,
+            ).stdout
+        )
 
     def chain_settings(self):
-        return {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "onchain": {"key": BIP84_ACCOUNT},
-                                                        "discount": 0})}
+        return {
+            "register-settings:shop-1": json.dumps(
+                {"lightning": ADDRESS, "onchain": {"key": BIP84_ACCOUNT}, "discount": 0}
+            )
+        }
 
     def chain_history(self, indexes, **fields):
         now = time.time() * 1000
         addresses = self.derived_many(BIP84_ACCOUNT, 0, indexes)
-        return [{"id": f"s{index}", "at": now - 3 * 86400000, "cents": 900, "currency": "EUR", "status": "paid",
-                 "method": "onchain", "sats": 9000, "address": address, "path": "0", "index": index, "till": "shop-1",
-                 **fields} for index, address in zip(indexes, addresses)]
+        return [
+            {
+                "id": f"s{index}",
+                "at": now - 3 * 86400000,
+                "cents": 900,
+                "currency": "EUR",
+                "status": "paid",
+                "method": "onchain",
+                "sats": 9000,
+                "address": address,
+                "path": "0",
+                "index": index,
+                "till": "shop-1",
+                **fields,
+            }
+            for index, address in zip(indexes, addresses)
+        ]
 
     def used_range(self, to, holes=()):
         """What the explorer answers for the addresses of the owner's chain below `to` (but `holes`): paid"""
         indexes = [index for index in range(to) if index not in holes]
-        return {address: [{"txid": "e" * 64, "status": {"confirmed": True},
-                           "vout": [{"scriptpubkey_address": address, "value": 5000}]}]
-                for address in self.derived_many(BIP84_ACCOUNT, 0, indexes)}
+        return {
+            address: [
+                {
+                    "txid": "e" * 64,
+                    "status": {"confirmed": True},
+                    "vout": [{"scriptpubkey_address": address, "value": 5000}],
+                }
+            ]
+            for address in self.derived_many(BIP84_ACCOUNT, 0, indexes)
+        }
 
-    def run_register(self, dataset, storage, import_sales=None, relay=None, pull=None, ln=None, copy=None, typed=None,
-                     import_till=None, confirm=True, no_subtle=False, clock_ahead=0, import_own=False, during_pull=None,
-                     pull_twice=False, reopen=None, reopen_wait=None, show_day=None, settings=None, open_settings=False,
-                     settings_tick=None, **extra):
-        data = {"address": ADDRESS, "domain": "ln.example.org", "currency": "EUR", "sources": SOURCES, "tolerance": 1.0,
-                "max_age": 120, "network": "mainnet", "explorers": ["https://mempool.example.org/api"], "discount": 10,
-                "confirm_above": 0, "shop": {"name": "Bar", "town": "Example", "colour": "#224455"}, "texts": texts(),
-                # On-chain turned on by the community (an experimental feature: shops/register.py, onchain_data); the
-                # register of a community that has not is in shops/test_experimental.py
-                "chain_on": True, "relays": [RELAY], "public_relays": [],
-                "chain_claim": {"url": "/en/shops/register/shop-1/chain/", "csrf": "token"}, **extra}
+    def run_register(
+        self,
+        dataset,
+        storage,
+        import_sales=None,
+        relay=None,
+        pull=None,
+        ln=None,
+        copy=None,
+        typed=None,
+        import_till=None,
+        confirm=True,
+        no_subtle=False,
+        clock_ahead=0,
+        import_own=False,
+        during_pull=None,
+        pull_twice=False,
+        reopen=None,
+        reopen_wait=None,
+        show_day=None,
+        settings=None,
+        open_settings=False,
+        settings_tick=None,
+        **extra,
+    ):
+        data = {
+            "address": ADDRESS,
+            "domain": "ln.example.org",
+            "currency": "EUR",
+            "sources": SOURCES,
+            "tolerance": 1.0,
+            "max_age": 120,
+            "network": "mainnet",
+            "explorers": ["https://mempool.example.org/api"],
+            "discount": 10,
+            "confirm_above": 0,
+            "shop": {"name": "Bar", "town": "Example", "colour": "#224455"},
+            "texts": texts(),
+            # On-chain turned on by the community (an experimental feature: shops/register.py, onchain_data); the
+            # register of a community that has not is in shops/test_experimental.py
+            "chain_on": True,
+            "relays": [RELAY],
+            "public_relays": [],
+            "chain_claim": {"url": "/en/shops/register/shop-1/chain/", "csrf": "token"},
+            **extra,
+        }
         with tempfile.TemporaryDirectory() as folder:
             harness, given = Path(folder) / "flow.js", Path(folder) / "given.json"
             harness.write_text(HARNESS)
-            given.write_text(json.dumps({"data": data, "dataset": dataset, "storage": storage, "importSales": import_sales,
-                                         "importTill": import_till, "confirm": confirm, "relay": relay, "pull": pull, "ln": ln,
-                                         "copy": copy, "typed": typed, "noSubtle": no_subtle,
-                                         "clockAhead": clock_ahead, "importOwn": import_own,
-                                         "duringPull": during_pull, "pullTwice": pull_twice, "reopen": reopen,
-                                         "reopenWait": reopen_wait, "showDay": show_day, "settings": settings,
-                                         "openSettings": open_settings, "settingsTick": settings_tick}))
-            result = subprocess.run([self.node, str(harness), str(given), *(str(STATIC / name) for name in FILES),
-                                     str(STATIC / "register.js")], capture_output=True, text=True, timeout=60)
+            given.write_text(
+                json.dumps(
+                    {
+                        "data": data,
+                        "dataset": dataset,
+                        "storage": storage,
+                        "importSales": import_sales,
+                        "importTill": import_till,
+                        "confirm": confirm,
+                        "relay": relay,
+                        "pull": pull,
+                        "ln": ln,
+                        "copy": copy,
+                        "typed": typed,
+                        "noSubtle": no_subtle,
+                        "clockAhead": clock_ahead,
+                        "importOwn": import_own,
+                        "duringPull": during_pull,
+                        "pullTwice": pull_twice,
+                        "reopen": reopen,
+                        "reopenWait": reopen_wait,
+                        "showDay": show_day,
+                        "settings": settings,
+                        "openSettings": open_settings,
+                        "settingsTick": settings_tick,
+                    }
+                )
+            )
+            result = subprocess.run(
+                [
+                    self.node,
+                    str(harness),
+                    str(given),
+                    *(str(STATIC / name) for name in FILES),
+                    str(STATIC / "register.js"),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
 
     def own_explorer_sale(self, **extra):
-        return self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {"register-settings:shop-1": json.dumps({
-            "lightning": ADDRESS, "onchain": {"key": BIP84_ACCOUNT}, "discount": 10, "confirmAbove": 0,
-            "currency": "EUR", "sources": ["kraken", "coinbase"]})}, own_explorer="https://node.example.org:4081/api", **extra)
+        return self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {
+                "register-settings:shop-1": json.dumps(
+                    {
+                        "lightning": ADDRESS,
+                        "onchain": {"key": BIP84_ACCOUNT},
+                        "discount": 10,
+                        "confirmAbove": 0,
+                        "currency": "EUR",
+                        "sources": ["kraken", "coinbase"],
+                    }
+                )
+            },
+            own_explorer="https://node.example.org:4081/api",
+            **extra,
+        )
 
 
 class SaleFlow(RegisterRun):
@@ -462,14 +590,29 @@ class SaleFlow(RegisterRun):
     def test_an_address_a_sale_on_this_phone_has_is_never_given_again(self):
         """A sale shown and not paid yet (another tab, a counter behind) keeps its address: the next sale skips it. A
         counter of another key, or of the old kind, starts from 0."""
-        settings = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "onchain": {"key": BIP84_ACCOUNT},
-                                                            "discount": 0})}
-        shown = {"id": "shown", "at": time.time() * 1000, "cents": 500, "currency": "EUR", "status": "pending",
-                 "method": "onchain", "sats": 500, "address": self.derived(BIP84_ACCOUNT, [0, 0]), "path": "0", "index": 0,
-                 "expires": time.time() * 1000 + 3600000}
+        settings = {
+            "register-settings:shop-1": json.dumps(
+                {"lightning": ADDRESS, "onchain": {"key": BIP84_ACCOUNT}, "discount": 0}
+            )
+        }
+        shown = {
+            "id": "shown",
+            "at": time.time() * 1000,
+            "cents": 500,
+            "currency": "EUR",
+            "status": "pending",
+            "method": "onchain",
+            "sats": 500,
+            "address": self.derived(BIP84_ACCOUNT, [0, 0]),
+            "path": "0",
+            "index": 0,
+            "expires": time.time() * 1000 + 3600000,
+        }
         for counter in (json.dumps({"of": "another key/0", "next": 9}), "5"):
-            out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-                **settings, "register-ledger:shop-1": json.dumps([shown]), "register-chain-next:shop-1": counter})
+            out = self.run_register(
+                {"ledger": "shop-1", "shop": "shop-1"},
+                {**settings, "register-ledger:shop-1": json.dumps([shown]), "register-chain-next:shop-1": counter},
+            )
             sale = out["sale"]
             self.assertNotEqual(sale["id"], "shown")
             self.assertEqual((sale["index"], sale["address"]), (1, self.derived(BIP84_ACCOUNT, [0, 1])))
@@ -481,17 +624,35 @@ class SaleFlow(RegisterRun):
         settings = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "onchain": {"key": BIP84_ACCOUNT}})}
         now = time.time() * 1000
         old, big, good = (self.derived(BIP84_ACCOUNT, [0, i]) for i in range(3))
-        base = {"at": now - 60000, "cents": 900, "currency": "EUR", "status": "pending", "method": "onchain", "sats": 9000,
-                "path": "0", "before": [], "wait": False, "expires": now + 3600000}
-        sales = [{**base, "id": "old", "address": old, "index": 0}, {**base, "id": "big", "address": big, "index": 1},
-                 {**base, "id": "good", "address": good, "index": 2}]
-        tx = lambda address, value, at: [{"txid": hashlib.sha256(address.encode()).hexdigest(),  # noqa: E731
-                                          "status": {"confirmed": True, "block_time": int(at / 1000)},
-                                          "vout": [{"scriptpubkey_address": address, "value": value}]}]
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"},
-                                {**settings, "register-ledger:shop-1": json.dumps(sales)},
-                                atStart={old: tx(old, 9000, now - 3 * 86400000), big: tx(big, 50000, now),
-                                         good: tx(good, 9000, now)})
+        base = {
+            "at": now - 60000,
+            "cents": 900,
+            "currency": "EUR",
+            "status": "pending",
+            "method": "onchain",
+            "sats": 9000,
+            "path": "0",
+            "before": [],
+            "wait": False,
+            "expires": now + 3600000,
+        }
+        sales = [
+            {**base, "id": "old", "address": old, "index": 0},
+            {**base, "id": "big", "address": big, "index": 1},
+            {**base, "id": "good", "address": good, "index": 2},
+        ]
+        tx = lambda address, value, at: [  # noqa: E731
+            {
+                "txid": hashlib.sha256(address.encode()).hexdigest(),
+                "status": {"confirmed": True, "block_time": int(at / 1000)},
+                "vout": [{"scriptpubkey_address": address, "value": value}],
+            }
+        ]
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**settings, "register-ledger:shop-1": json.dumps(sales)},
+            atStart={old: tx(old, 9000, now - 3 * 86400000), big: tx(big, 50000, now), good: tx(good, 9000, now)},
+        )
         by_id = {sale["id"]: sale["status"] for sale in out["ledger"]}
         self.assertEqual((by_id["old"], by_id["big"], by_id["good"]), ("pending", "pending", "paid"))
 
@@ -499,22 +660,51 @@ class SaleFlow(RegisterRun):
         settings = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "onchain": {"key": BIP84_ACCOUNT}})}
         address = self.derived(BIP84_ACCOUNT, [0, 0])
         now = time.time() * 1000
-        cancelled = {"id": "late", "at": now - 60000, "cents": 900, "currency": "EUR", "status": "cancelled",
-                     "method": "onchain", "sats": 9000, "address": address, "path": "0", "index": 0, "before": [],
-                     "wait": False, "expires": now + 3600000}
-        paid = [{"txid": "f" * 64, "status": {"confirmed": True, "block_time": int(now / 1000)},
-                 "vout": [{"scriptpubkey_address": address, "value": 9000}]}]
+        cancelled = {
+            "id": "late",
+            "at": now - 60000,
+            "cents": 900,
+            "currency": "EUR",
+            "status": "cancelled",
+            "method": "onchain",
+            "sats": 9000,
+            "address": address,
+            "path": "0",
+            "index": 0,
+            "before": [],
+            "wait": False,
+            "expires": now + 3600000,
+        }
+        paid = [
+            {
+                "txid": "f" * 64,
+                "status": {"confirmed": True, "block_time": int(now / 1000)},
+                "vout": [{"scriptpubkey_address": address, "value": 9000}],
+            }
+        ]
         # Days later: a payment the register saw in the mempool during the sale is still taken when its block comes, for
         # a week
         days_later = self.derived(BIP84_ACCOUNT, [0, 1])
         week = self.derived(BIP84_ACCOUNT, [0, 2])
         paid_later = [{**paid[0], "vout": [{"scriptpubkey_address": days_later, "value": 9000}]}]
-        sales = [cancelled, {**cancelled, "id": "days later", "address": days_later, "index": 1, "at": now - 4 * 86400000,
-                             "expires": now - 3 * 86400000, "seenAt": {"f" * 64: now - 3 * 86400000 - 60000}},
-                 {**cancelled, "id": "week", "address": week, "index": 2, "expires": now - 7 * 86400000}]
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"},
-                                {**settings, "register-ledger:shop-1": json.dumps(sales)},
-                                atStart={address: paid, days_later: paid_later})
+        sales = [
+            cancelled,
+            {
+                **cancelled,
+                "id": "days later",
+                "address": days_later,
+                "index": 1,
+                "at": now - 4 * 86400000,
+                "expires": now - 3 * 86400000,
+                "seenAt": {"f" * 64: now - 3 * 86400000 - 60000},
+            },
+            {**cancelled, "id": "week", "address": week, "index": 2, "expires": now - 7 * 86400000},
+        ]
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**settings, "register-ledger:shop-1": json.dumps(sales)},
+            atStart={address: paid, days_later: paid_later},
+        )
         by_id = {sale["id"]: sale for sale in out["ledger"]}
         late = by_id["late"]
         self.assertEqual((late["id"], late["status"], late["late"], late["txid"]), ("late", "paid", True, "f" * 64))
@@ -529,15 +719,39 @@ class SaleFlow(RegisterRun):
     def test_a_file_that_says_it_is_this_register_s_own_copy(self):
         """The encrypted file has no author: its sales are this register's own only on a phone with no sales yet, or when
         the merchant ticks that it is a copy of this register. Otherwise they are reported, and its closings stay out."""
-        mine = {"id": "here", "at": time.time() * 1000, "cents": 100, "currency": "EUR", "status": "paid", "till": "shop-1"}
-        theirs = [{"id": "claimed", "at": time.time() * 1000, "cents": 99900, "currency": "EUR", "status": "paid",
-                   "sats": 999000, "till": "shop-1"}]
+        mine = {
+            "id": "here",
+            "at": time.time() * 1000,
+            "cents": 100,
+            "currency": "EUR",
+            "status": "paid",
+            "till": "shop-1",
+        }
+        theirs = [
+            {
+                "id": "claimed",
+                "at": time.time() * 1000,
+                "cents": 99900,
+                "currency": "EUR",
+                "status": "paid",
+                "sats": 999000,
+                "till": "shop-1",
+            }
+        ]
         settings = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS})}
-        cases = [({"register-ledger:shop-1": json.dumps([mine])}, False, "shop-1"),
-                 ({"register-ledger:shop-1": json.dumps([mine])}, True, None), ({}, False, None)]
+        cases = [
+            ({"register-ledger:shop-1": json.dumps([mine])}, False, "shop-1"),
+            ({"register-ledger:shop-1": json.dumps([mine])}, True, None),
+            ({}, False, None),
+        ]
         for storage, ticked, reported in cases:
-            out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {**settings, **storage}, import_sales=theirs,
-                                    import_till="shop-1", import_own=ticked)
+            out = self.run_register(
+                {"ledger": "shop-1", "shop": "shop-1"},
+                {**settings, **storage},
+                import_sales=theirs,
+                import_till="shop-1",
+                import_own=ticked,
+            )
             claimed = next(sale for sale in out["afterImport"] if sale["id"] == "claimed")
             self.assertEqual(claimed.get("reported"), reported, (storage, ticked))
             self.assertEqual(out["closings"] is None, reported is not None)
@@ -545,37 +759,68 @@ class SaleFlow(RegisterRun):
         # The owner's own copy without the box ticked, on a phone with sales: the ones it has are left as they are, and
         # the message says how many and to tick the box
         changed = [{**mine, "status": "expired"}]
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {**settings, **cases[0][0]}, import_sales=changed,
-                                import_till="shop-1")
-        self.assertIn("Copy imported: 0 new sales, 0 updated. 1 sales of this register's own were left as they were. If "
-                      "the file is a copy of this register, and only if you made it yourself on this register, tick «It "
-                      "is a copy of this register»", out["imported"])
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**settings, **cases[0][0]},
+            import_sales=changed,
+            import_till="shop-1",
+        )
+        self.assertIn(
+            "Copy imported: 0 new sales, 0 updated. 1 sales of this register's own were left as they were. If "
+            "the file is a copy of this register, and only if you made it yourself on this register, tick «It "
+            "is a copy of this register»",
+            out["imported"],
+        )
         self.assertEqual(next(sale for sale in out["afterImport"] if sale["id"] == "here")["status"], "paid")
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {**settings, **cases[0][0]}, import_sales=changed,
-                                import_till="shop-1", import_own=True)
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**settings, **cases[0][0]},
+            import_sales=changed,
+            import_till="shop-1",
+            import_own=True,
+        )
         self.assertNotIn("left as they were", out["imported"])
         # Another register's copy: the «from» rule, whatever the box says
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, settings, import_sales=theirs, import_till="staff",
-                                import_own=True)
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"}, settings, import_sales=theirs, import_till="staff", import_own=True
+        )
         self.assertNotIn("claimed", [sale["id"] for sale in out["afterImport"]])
 
     def test_the_practice_and_the_real_register_do_not_take_each_other_s_copies(self):
         """The practice's pretend sales never come into the real register as collected, nor the other way round."""
         practice = "practice:/shops/practice/shop-1/"
-        pretend = [{"id": "pretend", "at": time.time() * 1000, "cents": 350, "currency": "EUR", "status": "paid",
-                    "sats": 3500, "till": practice}]
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {"register-settings:shop-1": json.dumps({"lightning": ADDRESS})},
-                                import_sales=pretend, import_till=practice)
+        pretend = [
+            {
+                "id": "pretend",
+                "at": time.time() * 1000,
+                "cents": 350,
+                "currency": "EUR",
+                "status": "paid",
+                "sats": 3500,
+                "till": practice,
+            }
+        ]
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {"register-settings:shop-1": json.dumps({"lightning": ADDRESS})},
+            import_sales=pretend,
+            import_till=practice,
+        )
         self.assertIn("copy of the practice register", out["imported"])
         self.assertEqual(out["afterImport"], [])
         real = [{**pretend[0], "id": "real", "till": "shop-1"}]
-        out = self.run_register({"ledger": practice, "shop": "shop-1", "practice": "1"}, {}, import_sales=real,
-                                import_till="shop-1")
+        out = self.run_register(
+            {"ledger": practice, "shop": "shop-1", "practice": "1"}, {}, import_sales=real, import_till="shop-1"
+        )
         self.assertIn("copy of a real register", out["imported"])
         self.assertEqual(out["afterImport"], [])
         # A pretend sale inside a real register's own copy stays out too
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {"register-settings:shop-1": json.dumps({"lightning": ADDRESS})},
-                                import_sales=[*pretend, *real], import_till="shop-1")
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {"register-settings:shop-1": json.dumps({"lightning": ADDRESS})},
+            import_sales=[*pretend, *real],
+            import_till="shop-1",
+        )
         self.assertEqual([sale["id"] for sale in out["afterImport"]], ["real"])
 
 
@@ -587,37 +832,68 @@ class ChainHistoryFlow(RegisterRun):
         starts after the newest paid sale of this key, or the newest address the explorer said was used."""
         settings = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "onchain": {"key": BIP84_ACCOUNT}})}
         now = time.time() * 1000
-        paid = {"id": "paid", "at": now - 60000, "cents": 900, "currency": "EUR", "status": "paid", "method": "onchain",
-                "sats": 9000, "address": self.derived(BIP84_ACCOUNT, [0, 3]), "path": "0", "index": 3}
+        paid = {
+            "id": "paid",
+            "at": now - 60000,
+            "cents": 900,
+            "currency": "EUR",
+            "status": "paid",
+            "method": "onchain",
+            "sats": 9000,
+            "address": self.derived(BIP84_ACCOUNT, [0, 3]),
+            "path": "0",
+            "index": 3,
+        }
         # A sale of an earlier key at a later index does not count as paid on this key's chain
         other_key = {**paid, "id": "other key", "index": 10, "address": "bc1qsomewhereelse"}
         counter = {"register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 17})}
         many = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {**settings, **counter})
         self.assertIn("not paid in a row: 17.", many["gap"])
         self.assertIn("gap limit", many["gap"])
-        few = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **settings, **counter, "register-ledger:shop-1": json.dumps([paid, other_key])})
+        few = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**settings, **counter, "register-ledger:shop-1": json.dumps([paid, other_key])},
+        )
         self.assertEqual(few["gap"], "")
         self.assertEqual(few["gapCount"], "On-chain addresses of this register not paid in a row: 13.")
         # Addresses skipped on the explorer's word (a `used` in the count kept on the phone) do not count: the owner's
         # starting number does
         skipped = {"register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 17, "used": 12})}
-        self.assertIn("not paid in a row: 17.", self.run_register({"ledger": "shop-1", "shop": "shop-1"},
-                                                                  {**settings, **skipped})["gap"])
+        self.assertIn(
+            "not paid in a row: 17.",
+            self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {**settings, **skipped})["gap"],
+        )
         started = {"register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 17, "start": 12})}
         out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {**settings, **started})
-        self.assertEqual((out["gap"], out["gapCount"]), ("", "On-chain addresses of this register not paid in a row: 5."))
+        self.assertEqual(
+            (out["gap"], out["gapCount"]), ("", "On-chain addresses of this register not paid in a row: 5.")
+        )
 
     def test_a_restored_history_does_not_use_up_the_tries_on_its_own_addresses(self):
         """A phone with the history of a copy and no count (or the count of the old kind, a number): the next sale starts
         after the history's highest index of the key, without asking the explorer about those addresses."""
         now = time.time() * 1000
-        sales = [{"id": f"s{i}", "at": now - 3 * 86400000, "cents": 900, "currency": "EUR", "status": "paid",
-                  "method": "onchain", "sats": 9000, "address": self.derived(BIP84_ACCOUNT, [0, i]), "path": "0", "index": i,
-                  "till": "shop-1"} for i in range(22)]
+        sales = [
+            {
+                "id": f"s{i}",
+                "at": now - 3 * 86400000,
+                "cents": 900,
+                "currency": "EUR",
+                "status": "paid",
+                "method": "onchain",
+                "sats": 9000,
+                "address": self.derived(BIP84_ACCOUNT, [0, i]),
+                "path": "0",
+                "index": i,
+                "till": "shop-1",
+            }
+            for i in range(22)
+        ]
         for counter in ({"register-chain-next:shop-1": "21"}, {}):
-            out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-                **self.chain_settings(), "register-ledger:shop-1": json.dumps(sales), **counter})
+            out = self.run_register(
+                {"ledger": "shop-1", "shop": "shop-1"},
+                {**self.chain_settings(), "register-ledger:shop-1": json.dumps(sales), **counter},
+            )
             self.assertEqual(out["chainError"], "", counter)
             self.assertEqual((out["sale"]["index"], out["sale"]["address"]), (22, self.derived(BIP84_ACCOUNT, [0, 22])))
             self.assertEqual(json.loads(out["next"]), {"of": f"{BIP84_ACCOUNT}/0", "next": 23})
@@ -627,17 +903,34 @@ class ChainHistoryFlow(RegisterRun):
         the number of sales in the history (a forged copy): the next payments stay within the wallet's gap limit. An
         index at the end of the key's chain, or a count past it, does not stop every sale."""
         now = time.time() * 1000
-        base = {"at": now - 3 * 86400000, "cents": 900, "currency": "EUR", "status": "paid", "method": "onchain",
-                "sats": 9000, "path": "0", "till": "shop-1"}
-        sales = [{**base, "id": "mine", "address": self.derived(BIP84_ACCOUNT, [0, 0]), "index": 0},
-                 {**base, "id": "reported", "address": self.derived(BIP84_ACCOUNT, [0, 30]), "index": 30,
-                  "reported": "shop-1:staff"},
-                 {**base, "id": "far", "address": self.derived(BIP84_ACCOUNT, [0, 200]), "index": 200},
-                 {**base, "id": "last", "address": "bc1qforged", "index": 0x7fffffff}]
-        counters = ({}, {"register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 2 ** 31 + 1})})
+        base = {
+            "at": now - 3 * 86400000,
+            "cents": 900,
+            "currency": "EUR",
+            "status": "paid",
+            "method": "onchain",
+            "sats": 9000,
+            "path": "0",
+            "till": "shop-1",
+        }
+        sales = [
+            {**base, "id": "mine", "address": self.derived(BIP84_ACCOUNT, [0, 0]), "index": 0},
+            {
+                **base,
+                "id": "reported",
+                "address": self.derived(BIP84_ACCOUNT, [0, 30]),
+                "index": 30,
+                "reported": "shop-1:staff",
+            },
+            {**base, "id": "far", "address": self.derived(BIP84_ACCOUNT, [0, 200]), "index": 200},
+            {**base, "id": "last", "address": "bc1qforged", "index": 0x7FFFFFFF},
+        ]
+        counters = ({}, {"register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 2**31 + 1})})
         for counter in counters:
-            out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-                **self.chain_settings(), "register-ledger:shop-1": json.dumps(sales), **counter})
+            out = self.run_register(
+                {"ledger": "shop-1", "shop": "shop-1"},
+                {**self.chain_settings(), "register-ledger:shop-1": json.dumps(sales), **counter},
+            )
             self.assertEqual(out["chainError"], "", counter)
             self.assertEqual((out["sale"]["index"], out["sale"]["address"]), (1, self.derived(BIP84_ACCOUNT, [0, 1])))
             self.assertEqual(json.loads(out["next"]), {"of": f"{BIP84_ACCOUNT}/0", "next": 2})
@@ -651,15 +944,23 @@ class ChainHistoryFlow(RegisterRun):
         sales = self.chain_history(range(40, 70))
         # The history, the addresses the explorer says were paid, and where the next sale goes: the newest sale that
         # expired unpaid keeps its address all the same
-        cases = [(sales, self.used_range(70), 70),
-                 ([*sales[:-1], {**sales[-1], "status": "expired"}], self.used_range(69), 70),
-                 ([], self.used_range(45, holes=[1, 20]), 45)]
+        cases = [
+            (sales, self.used_range(70), 70),
+            ([*sales[:-1], {**sales[-1], "status": "expired"}], self.used_range(69), 70),
+            ([], self.used_range(45, holes=[1, 20]), 45),
+        ]
         for history, used, expected in cases:
-            out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-                **settings, "register-ledger:shop-1": json.dumps(history)}, atStart=used)
+            out = self.run_register(
+                {"ledger": "shop-1", "shop": "shop-1"},
+                {**settings, "register-ledger:shop-1": json.dumps(history)},
+                atStart=used,
+            )
             self.assertEqual(out["chainError"], "", len(history))
-            self.assertEqual((out["sale"]["index"], out["sale"]["address"]),
-                             (expected, self.derived(BIP84_ACCOUNT, [0, expected])), len(history))
+            self.assertEqual(
+                (out["sale"]["index"], out["sale"]["address"]),
+                (expected, self.derived(BIP84_ACCOUNT, [0, expected])),
+                len(history),
+            )
             # Bounded: the sale's own address is then asked again and again, while it waits for its payment
             self.assertLess(len(set(out["asked"])), 100)
             next_ = json.loads(out["next"])
@@ -669,12 +970,21 @@ class ChainHistoryFlow(RegisterRun):
         """A history whose highest index is far past the number of its sales (470–499 for 30 sales), or no history and an
         explorer that says 300 addresses were paid: the register does not leap that far on the explorer's word (it may
         be wrong, or lie), nor does it save such a count. No on-chain sale: the merchant looks into it."""
-        for history, used in ((self.chain_history(range(470, 500)), self.used_range(500)), ([], self.used_range(300)),
-                              (self.chain_history(range(60, 100), reported="?"), self.used_range(100))):
-            out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-                **self.chain_settings(), "register-ledger:shop-1": json.dumps(history)}, atStart=used)
-            self.assertIn("look used (by the explorer's answers). If your wallet really used them, set the starting "
-                          "number in Settings", out["chainError"])
+        for history, used in (
+            (self.chain_history(range(470, 500)), self.used_range(500)),
+            ([], self.used_range(300)),
+            (self.chain_history(range(60, 100), reported="?"), self.used_range(100)),
+        ):
+            out = self.run_register(
+                {"ledger": "shop-1", "shop": "shop-1"},
+                {**self.chain_settings(), "register-ledger:shop-1": json.dumps(history)},
+                atStart=used,
+            )
+            self.assertIn(
+                "look used (by the explorer's answers). If your wallet really used them, set the starting "
+                "number in Settings",
+                out["chainError"],
+            )
             self.assertEqual(len(out["ledger"]), len(history))
             # Nothing saved: the count is as it was before the sale (none)
             self.assertIsNone(out.get("next"))
@@ -686,8 +996,9 @@ class ChainHistoryFlow(RegisterRun):
         counted = {"register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 5})}
         for counter, start in ((counted, 5), ({}, 0)):
             for lies in (3, 12, 30):
-                out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {**self.chain_settings(), **counter},
-                                        liar=lies)
+                out = self.run_register(
+                    {"ledger": "shop-1", "shop": "shop-1"}, {**self.chain_settings(), **counter}, liar=lies
+                )
                 if lies == 3:
                     self.assertEqual(out["chainError"], "", counter)
                     self.assertEqual(out["sale"]["index"], start + 3, counter)
@@ -697,8 +1008,9 @@ class ChainHistoryFlow(RegisterRun):
                     self.assertEqual(out["ledger"], [], (counter, lies))
                     # Refused: the count is back where it was before the sale, with none of the leaps
                     before = counter.get("register-chain-next:shop-1")
-                    self.assertEqual(out.get("next") and json.loads(out["next"]), before and json.loads(before),
-                                     (counter, lies))
+                    self.assertEqual(
+                        out.get("next") and json.loads(out["next"]), before and json.loads(before), (counter, lies)
+                    )
                 else:
                     self.assertLessEqual(out["sale"]["index"], start + 50, (counter, lies))
                     self.assertLessEqual(json.loads(out["next"])["next"], start + 51, (counter, lies))
@@ -706,8 +1018,10 @@ class ChainHistoryFlow(RegisterRun):
     def test_a_lying_explorer_does_not_creep_the_count_over_retries(self):
         """The same lying explorer, sale after sale: each refused sale leaves the count where it was, so retries do not
         move it a little further each time."""
-        storage = {**self.chain_settings(),
-                   "register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 5})}
+        storage = {
+            **self.chain_settings(),
+            "register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 5}),
+        }
         for _ in range(3):
             out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, storage, liar=30)
             self.assertIn("look used (by the explorer's answers)", out["chainError"])
@@ -720,13 +1034,18 @@ class ChainHistoryFlow(RegisterRun):
         to the explorer: no message blaming the explorer."""
         counted = {"register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 5})}
         own = self.chain_history(range(5, 81))
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.chain_settings(), **counted, "register-ledger:shop-1": json.dumps(own)}, atStart=self.used_range(81))
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**self.chain_settings(), **counted, "register-ledger:shop-1": json.dumps(own)},
+            atStart=self.used_range(81),
+        )
         self.assertEqual(out["chainError"], "")
         self.assertEqual(out["sale"]["index"], 81)
         reported = self.chain_history(range(5, 81), reported="shop-1:staff")
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.chain_settings(), **counted, "register-ledger:shop-1": json.dumps(reported)})
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**self.chain_settings(), **counted, "register-ledger:shop-1": json.dumps(reported)},
+        )
         self.assertNotIn("explorer's answers", out["chainError"])
         self.assertIn("did not find one that is surely unused", out["chainError"])
         self.assertEqual(out["asked"], [])
@@ -738,21 +1057,31 @@ class ChainStartFlow(RegisterRun):
 
     def test_the_owner_sets_the_path_of_the_addresses_after_seeing_its_first_one(self):
         fields = {"chain-key": BIP84_ACCOUNT, "currency": "EUR", "discount-percent": "0", "confirm-above": "0"}
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, self.chain_settings(),
-                                settings={**fields, "chain-path": " 0/5 "}, settings_tick="chain-confirm")
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            self.chain_settings(),
+            settings={**fields, "chain-path": " 0/5 "},
+            settings_tick="chain-confirm",
+        )
         self.assertEqual(out["firstSay"], "Tick the box to confirm.")
         self.assertIn(f"…/0/5/0: {self.derived(BIP84_ACCOUNT, [0, 5, 0])}", out["keyCheck"])
         self.assertEqual(out["settings"]["onchain"], {"key": BIP84_ACCOUNT, "path": "0/5"})
         # «0», or empty, is the receive chain: nothing to tick again for the same key
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, self.chain_settings(), settings={**fields, "chain-path": "0"})
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"}, self.chain_settings(), settings={**fields, "chain-path": "0"}
+        )
         self.assertEqual(out["settings"]["onchain"], {"key": BIP84_ACCOUNT})
         for typed in ("0'/5", "0h", "1/2/3/4/5", "2147483648", "a"):
-            out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, self.chain_settings(),
-                                    settings={**fields, "chain-path": typed})
+            out = self.run_register(
+                {"ledger": "shop-1", "shop": "shop-1"}, self.chain_settings(), settings={**fields, "chain-path": typed}
+            )
             self.assertIn("Not a path", out["settingsSay"], typed)
             self.assertNotIn("path", out["settings"]["onchain"], typed)
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, self.chain_settings(),
-                                settings={**fields, "chain-key": BIP84_RECEIVE[1], "chain-path": "0/5"})
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            self.chain_settings(),
+            settings={**fields, "chain-key": BIP84_RECEIVE[1], "chain-path": "0/5"},
+        )
         self.assertIn("needs an extended public key", out["settingsSay"])
 
     def test_the_owner_sets_where_the_on_chain_addresses_start(self):
@@ -760,8 +1089,12 @@ class ChainStartFlow(RegisterRun):
         wallet, sees the address there, ticks the box, and the count starts from it, sure, with the gap count from it."""
         counted = {"register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 5})}
         fields = {"chain-key": BIP84_ACCOUNT, "currency": "EUR", "discount-percent": "0", "confirm-above": "0"}
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {**self.chain_settings(), **counted},
-                                settings={**fields, "chain-start": " 120 "}, settings_tick="chain-start-confirm")
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**self.chain_settings(), **counted},
+            settings={**fields, "chain-start": " 120 "},
+            settings_tick="chain-start-confirm",
+        )
         self.assertEqual(out["firstSay"], "Tick the box to confirm.")
         self.assertIn(f"…/0/120 of your key: {self.derived(BIP84_ACCOUNT, [0, 120])}", out["startCheck"])
         # Not saved before the box is ticked (the sale on the screen took 5)
@@ -769,19 +1102,28 @@ class ChainStartFlow(RegisterRun):
         saved = json.loads(out["nextAfter"])
         self.assertEqual(saved, {"of": f"{BIP84_ACCOUNT}/0", "next": 120, "start": 120, "first": True})
         self.assertIn("The next on-chain sale uses the address …/0/120.", out["settingsSay"])
-        later = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.chain_settings(), "register-chain-next:shop-1": out["nextAfter"]}, atStart=self.used_range(120))
+        later = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**self.chain_settings(), "register-chain-next:shop-1": out["nextAfter"]},
+            atStart=self.used_range(120),
+        )
         self.assertEqual((later["gap"], later["chainError"], later["sale"]["index"]), ("", "", 120))
         self.assertEqual(json.loads(later["next"]), {"of": f"{BIP84_ACCOUNT}/0", "next": 121, "start": 120})
         # Not a number, past the key's chain: refused; with a fixed address, no start
         for typed in ("abc", "-1", "1.5", "2147483647"):
-            out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {**self.chain_settings(), **counted},
-                                    settings={**fields, "chain-start": typed})
+            out = self.run_register(
+                {"ledger": "shop-1", "shop": "shop-1"},
+                {**self.chain_settings(), **counted},
+                settings={**fields, "chain-start": typed},
+            )
             self.assertIn("whole number", out["settingsSay"], typed)
             self.assertEqual(json.loads(out["nextAfter"])["next"], 6, typed)
         fixed = {**fields, "chain-key": BIP84_RECEIVE[1], "chain-start": "120"}
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {"register-settings:shop-1": json.dumps(
-            {"lightning": ADDRESS, "onchain": {"address": BIP84_RECEIVE[1]}})}, settings=fixed)
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "onchain": {"address": BIP84_RECEIVE[1]}})},
+            settings=fixed,
+        )
         self.assertIn("needs an extended public key", out["settingsSay"])
 
     def test_a_new_key_starts_at_the_wallets_first_unused_address(self):
@@ -793,9 +1135,16 @@ class ChainStartFlow(RegisterRun):
         fields = {"chain-key": BIP84_ACCOUNT, "currency": "EUR", "discount-percent": "0", "confirm-above": "0"}
         dataset = {"ledger": "shop-1", "shop": "shop-1"}
         # A wallet that used 0-6 and 9 (a hole at 7 and 8): it goes on at 10
-        out = self.run_register(dataset, lightning_only, settings=fields, settings_tick="chain-confirm",
-                                atStart=self.used_range(10, holes=(7, 8)))
-        self.assertEqual(json.loads(out["nextAfter"]), {"of": f"{BIP84_ACCOUNT}/0", "next": 10, "start": 10, "first": True})
+        out = self.run_register(
+            dataset,
+            lightning_only,
+            settings=fields,
+            settings_tick="chain-confirm",
+            atStart=self.used_range(10, holes=(7, 8)),
+        )
+        self.assertEqual(
+            json.loads(out["nextAfter"]), {"of": f"{BIP84_ACCOUNT}/0", "next": 10, "start": 10, "first": True}
+        )
         self.assertIn("…/0/10", out["settingsSay"])
         self.assertEqual(out["settings"]["onchain"], {"key": BIP84_ACCOUNT})
         # A fresh wallet: from 0, nothing to keep
@@ -803,12 +1152,15 @@ class ChainStartFlow(RegisterRun):
         self.assertIsNone(out.get("nextAfter"))
         self.assertEqual(out["settings"]["onchain"], {"key": BIP84_ACCOUNT})
         # Far on: shown, and not saved before the box is ticked
-        out = self.run_register(dataset, lightning_only, settings=fields, settings_tick="chain-confirm",
-                                atStart=self.used_range(60))
+        out = self.run_register(
+            dataset, lightning_only, settings=fields, settings_tick="chain-confirm", atStart=self.used_range(60)
+        )
         self.assertIn("number 60", out["settingsSay"] + self.texts_of(out))
         self.assertIsNone(out.get("nextAfter"))
         # The explorer does not answer: the key is saved, the first sale looks
-        out = self.run_register(dataset, lightning_only, settings=fields, settings_tick="chain-confirm", explorerDown=True)
+        out = self.run_register(
+            dataset, lightning_only, settings=fields, settings_tick="chain-confirm", explorerDown=True
+        )
         self.assertIsNone(out.get("nextAfter"))
         self.assertEqual(out["settings"]["onchain"], {"key": BIP84_ACCOUNT})
         self.assertIn("first on-chain sale", out["settingsSay"])
@@ -824,19 +1176,24 @@ class ChainStartFlow(RegisterRun):
         dataset = {"ledger": "shop-1", "shop": "shop-1"}
         busy = {**self.used_range(120), self.derived(BIP84_ACCOUNT, [0, 119]): {"error": "busy"}}
         for down in ({"atStart": busy}, {"explorerDown": True}):
-            out = self.run_register(dataset, {**self.chain_settings(), "register-chain-next:shop-1": json.dumps(started)},
-                                    **down)
+            out = self.run_register(
+                dataset, {**self.chain_settings(), "register-chain-next:shop-1": json.dumps(started)}, **down
+            )
             self.assertIn("The block explorer does not answer", out["chainError"], down)
             self.assertEqual(out["ledger"], [], down)
             self.assertEqual(json.loads(out["next"]), started, down)
-        out = self.run_register(dataset, {**self.chain_settings(), "register-chain-next:shop-1": json.dumps(started)},
-                                atStart=self.used_range(120))
+        out = self.run_register(
+            dataset,
+            {**self.chain_settings(), "register-chain-next:shop-1": json.dumps(started)},
+            atStart=self.used_range(120),
+        )
         self.assertEqual((out["chainError"], out["sale"]["index"]), ("", 120))
         self.assertEqual(json.loads(out["next"]), {"of": f"{BIP84_ACCOUNT}/0", "next": 121, "start": 119})
         # The owner's register uses the wallet's receive chain: even with a count of its own, no address without the
         # explorer's answer (a payment of someone else to it may sit in the mempool)
-        later = self.run_register(dataset, {**self.chain_settings(), "register-chain-next:shop-1": out["next"]},
-                                  explorerDown=True)
+        later = self.run_register(
+            dataset, {**self.chain_settings(), "register-chain-next:shop-1": out["next"]}, explorerDown=True
+        )
         self.assertIn("Try again in a minute; meanwhile", later["chainError"])
         self.assertEqual(json.loads(later["next"])["next"], 121)
 
@@ -845,8 +1202,11 @@ class ChainStartFlow(RegisterRun):
         it), does not move the bound: a lying explorer still gets the refusal, and the count stays."""
         counted = {"register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 5})}
         forged = self.chain_history([5000], status="expired")
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.chain_settings(), **counted, "register-ledger:shop-1": json.dumps(forged)}, liar=16)
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**self.chain_settings(), **counted, "register-ledger:shop-1": json.dumps(forged)},
+            liar=16,
+        )
         self.assertIn("look used (by the explorer's answers)", out["chainError"])
         self.assertEqual(json.loads(out["next"]), {"of": f"{BIP84_ACCOUNT}/0", "next": 5})
 
@@ -856,8 +1216,11 @@ class ChainStartFlow(RegisterRun):
         dataset = {"ledger": "shop-1", "shop": "shop-1"}
         counted = {"register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 300})}
         history = self.chain_history(range(300)) + self.chain_history([650], status="expired")
-        out = self.run_register(dataset, {**self.chain_settings(), **counted,
-                                          "register-ledger:shop-1": json.dumps(history)}, atStart=self.used_range(690))
+        out = self.run_register(
+            dataset,
+            {**self.chain_settings(), **counted, "register-ledger:shop-1": json.dumps(history)},
+            atStart=self.used_range(690),
+        )
         self.assertIn("look used (by the explorer's answers)", out["chainError"])
         self.assertEqual(json.loads(out["next"]), {"of": f"{BIP84_ACCOUNT}/0", "next": 300})
 
@@ -868,13 +1231,21 @@ class ChainStartFlow(RegisterRun):
         key = "register-chain-next:shop-1"
         other = {"of": f"{BIP84_ACCOUNT}/0", "next": 9, "start": 9, "first": True}
         busy = {**self.used_range(6), self.derived(BIP84_ACCOUNT, [0, 9]): {"error": "busy"}}
-        out = self.run_register(dataset, {**self.chain_settings(), key: json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 5})},
-                                atStart=busy, chainMeanwhile={"at": 1, "key": key, "value": json.dumps(other)})
+        out = self.run_register(
+            dataset,
+            {**self.chain_settings(), key: json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 5})},
+            atStart=busy,
+            chainMeanwhile={"at": 1, "key": key, "value": json.dumps(other)},
+        )
         self.assertIn("The block explorer does not answer", out["chainError"])
         self.assertTrue(json.loads(out["next"])["first"])
         started = {"of": f"{BIP84_ACCOUNT}/0", "next": 5, "start": 5, "first": True}
-        out = self.run_register(dataset, {**self.chain_settings(), key: json.dumps(started)}, atStart=self.used_range(5),
-                                chainMeanwhile={"at": 1, "key": key, "value": json.dumps(other)})
+        out = self.run_register(
+            dataset,
+            {**self.chain_settings(), key: json.dumps(started)},
+            atStart=self.used_range(5),
+            chainMeanwhile={"at": 1, "key": key, "value": json.dumps(other)},
+        )
         self.assertEqual(out["sale"]["index"], 5)
         self.assertTrue(json.loads(out["next"])["first"])
         later = self.run_register(dataset, {**self.chain_settings(), key: out["next"]}, explorerDown=True)
@@ -888,18 +1259,26 @@ class ChainStartFlow(RegisterRun):
         key = "register-chain-next:shop-1"
         account = f"{BIP84_ACCOUNT}/0"
         nine = {"of": account, "next": 9, "start": 9, "first": True}
-        out = self.run_register(dataset, self.chain_settings(),
-                                chainMeanwhile={"at": 2, "key": key, "value": json.dumps(nine)})
+        out = self.run_register(
+            dataset, self.chain_settings(), chainMeanwhile={"at": 2, "key": key, "value": json.dumps(nine)}
+        )
         self.assertTrue(json.loads(out["next"])["first"])
         busy = {**self.used_range(5), self.derived(BIP84_ACCOUNT, [0, 5]): {"error": "busy"}}
-        out = self.run_register(dataset, {**self.chain_settings(), key: json.dumps({"of": account, "next": 5})},
-                                atStart=busy, chainMeanwhile={"at": 1, "key": key, "value": json.dumps(nine)})
+        out = self.run_register(
+            dataset,
+            {**self.chain_settings(), key: json.dumps({"of": account, "next": 5})},
+            atStart=busy,
+            chainMeanwhile={"at": 1, "key": key, "value": json.dumps(nine)},
+        )
         self.assertIn("The block explorer does not answer", out["chainError"])
         self.assertEqual(out["ledger"], [])
         hundred = {"of": account, "next": 100, "start": 100, "first": True}
-        out = self.run_register(dataset, {**self.chain_settings(), key: json.dumps({"of": account, "next": 5})},
-                                atStart=self.used_range(6),
-                                chainMeanwhile={"at": 1, "key": key, "value": json.dumps(hundred)})
+        out = self.run_register(
+            dataset,
+            {**self.chain_settings(), key: json.dumps({"of": account, "next": 5})},
+            atStart=self.used_range(6),
+            chainMeanwhile={"at": 1, "key": key, "value": json.dumps(hundred)},
+        )
         self.assertEqual(json.loads(out["next"])["start"], 100)
 
     def test_a_refused_sale_leaves_a_count_another_tab_wrote(self):
@@ -907,8 +1286,12 @@ class ChainStartFlow(RegisterRun):
         that took an index (or the owner who saved a starting number) meanwhile keeps its count."""
         counted = {"register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 5})}
         other = json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 9, "start": 9, "first": True})
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {**self.chain_settings(), **counted}, liar=30,
-                                chainMeanwhile={"at": 5, "key": "register-chain-next:shop-1", "value": other})
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**self.chain_settings(), **counted},
+            liar=30,
+            chainMeanwhile={"at": 5, "key": "register-chain-next:shop-1", "value": other},
+        )
         self.assertIn("look used (by the explorer's answers)", out["chainError"])
         self.assertEqual(json.loads(out["next"]), json.loads(other))
 
@@ -920,28 +1303,40 @@ class ChainStartFlow(RegisterRun):
         out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {**self.chain_settings(), **counted}, liar=8)
         self.assertEqual(out["sale"]["index"], 19)
         self.assertEqual(json.loads(out["next"]), {"of": f"{BIP84_ACCOUNT}/0", "next": 20})
-        later = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.chain_settings(), "register-chain-next:shop-1": out["next"]})
+        later = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"}, {**self.chain_settings(), "register-chain-next:shop-1": out["next"]}
+        )
         self.assertIn("not paid in a row: 20.", later["gap"])
         self.assertIn("gap limit", later["gap"])
         # Once the sale there is paid, the run starts after it
-        paid = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.chain_settings(), "register-chain-next:shop-1": out["next"],
-            "register-ledger:shop-1": json.dumps(out["ledger"])})
+        paid = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {
+                **self.chain_settings(),
+                "register-chain-next:shop-1": out["next"],
+                "register-ledger:shop-1": json.dumps(out["ledger"]),
+            },
+        )
         self.assertEqual(paid["gap"], "")
 
     def test_a_history_brought_back_from_strangers_copies(self):
         """After losing the phone, the owner's own months come back as reported (their key was on the old phone): the
         highest of them counts once the explorer says its address was paid."""
         sales = self.chain_history(range(40), reported="?")
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.chain_settings(), "register-ledger:shop-1": json.dumps(sales)}, atStart=self.used_range(40))
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**self.chain_settings(), "register-ledger:shop-1": json.dumps(sales)},
+            atStart=self.used_range(40),
+        )
         self.assertEqual(out["chainError"], "")
         self.assertEqual(out["sale"]["index"], 40)
         # A reported far index that the explorer does not know (a forged copy) moves nothing
         forged = [*self.chain_history([0, 1, 2]), *self.chain_history([100000], reported="?")]
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.chain_settings(), "register-ledger:shop-1": json.dumps(forged)}, atStart=self.used_range(3))
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**self.chain_settings(), "register-ledger:shop-1": json.dumps(forged)},
+            atStart=self.used_range(3),
+        )
         self.assertEqual(out["chainError"], "")
         self.assertEqual(out["sale"]["index"], 3)
         self.assertEqual(json.loads(out["next"]), {"of": f"{BIP84_ACCOUNT}/0", "next": 4})
@@ -951,23 +1346,38 @@ class ChainStartFlow(RegisterRun):
         says, and the sale stays to take with Lightning. A count of this phone's own still gives its next address."""
         sales = self.chain_history(range(470, 500))
         for history in (sales, self.chain_history(range(40), reported="?"), []):
-            out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-                **self.chain_settings(), "register-ledger:shop-1": json.dumps(history)}, explorerDown=True)
+            out = self.run_register(
+                {"ledger": "shop-1", "shop": "shop-1"},
+                {**self.chain_settings(), "register-ledger:shop-1": json.dumps(history)},
+                explorerDown=True,
+            )
             self.assertIn("Try again in a minute; meanwhile", out["chainError"])
             self.assertEqual(len(out["ledger"]), len(history))
             self.assertTrue(json.loads(out["next"])["unsure"])
             # Still not: the count it took is not a count of its own
-            again = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-                **self.chain_settings(), "register-ledger:shop-1": json.dumps(history),
-                "register-chain-next:shop-1": out["next"]}, explorerDown=True)
+            again = self.run_register(
+                {"ledger": "shop-1", "shop": "shop-1"},
+                {
+                    **self.chain_settings(),
+                    "register-ledger:shop-1": json.dumps(history),
+                    "register-chain-next:shop-1": out["next"],
+                },
+                explorerDown=True,
+            )
             self.assertIn("Try again in a minute; meanwhile", again["chainError"])
         # An explorer that drops the first two questions answers the third: the register asks again by itself, twice
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.chain_settings(), "register-ledger:shop-1": json.dumps([])}, explorerFlaky=2)
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**self.chain_settings(), "register-ledger:shop-1": json.dumps([])},
+            explorerFlaky=2,
+        )
         self.assertFalse(out.get("chainError"))
         counted = {"register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 500})}
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.chain_settings(), "register-ledger:shop-1": json.dumps(sales), **counted}, explorerDown=True)
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**self.chain_settings(), "register-ledger:shop-1": json.dumps(sales), **counted},
+            explorerDown=True,
+        )
         self.assertIn("Try again in a minute; meanwhile", out["chainError"])
         self.assertEqual((len(out["ledger"]), json.loads(out["next"])["next"]), (len(sales), 500))
 
@@ -981,64 +1391,147 @@ class ChainSaleFlow(RegisterRun):
         to check in the wallet after its day, and is not looked at every minute for ever."""
         now = time.time() * 1000
         addresses = [self.derived(BIP84_ACCOUNT, [0, i]) for i in range(4)]
-        base = {"at": now - 2 * 86400000, "cents": 900, "currency": "EUR", "method": "onchain", "sats": 9000, "path": "0",
-                "before": [], "wait": True, "expires": now - 86400000, "till": "shop-1"}
-        sales = [{**base, "id": "seen down", "status": "seen", "address": addresses[0], "index": 0, "txid": "b" * 64},
-                 {**base, "id": "seen a week", "status": "seen", "address": addresses[1], "index": 1, "txid": "b" * 64,
-                  "at": now - 8 * 86400000, "expires": now - 7 * 86400000},
-                 {**base, "id": "partial", "status": "pending", "address": addresses[2], "index": 2},
-                 {**base, "id": "never", "status": "pending", "address": addresses[3], "index": 3}]
-        mempool = lambda address, value: [{"txid": "b" * 64, "status": {"confirmed": False},  # noqa: E731
-                                           "vout": [{"scriptpubkey_address": address, "value": value}]}]
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.chain_settings(), "register-ledger:shop-1": json.dumps(sales),
-            "register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 4})},
-            atStart={addresses[0]: {"error": "busy"}, addresses[1]: mempool(addresses[1], 9000),
-                     addresses[2]: mempool(addresses[2], 4000)})
+        base = {
+            "at": now - 2 * 86400000,
+            "cents": 900,
+            "currency": "EUR",
+            "method": "onchain",
+            "sats": 9000,
+            "path": "0",
+            "before": [],
+            "wait": True,
+            "expires": now - 86400000,
+            "till": "shop-1",
+        }
+        sales = [
+            {**base, "id": "seen down", "status": "seen", "address": addresses[0], "index": 0, "txid": "b" * 64},
+            {
+                **base,
+                "id": "seen a week",
+                "status": "seen",
+                "address": addresses[1],
+                "index": 1,
+                "txid": "b" * 64,
+                "at": now - 8 * 86400000,
+                "expires": now - 7 * 86400000,
+            },
+            {**base, "id": "partial", "status": "pending", "address": addresses[2], "index": 2},
+            {**base, "id": "never", "status": "pending", "address": addresses[3], "index": 3},
+        ]
+        mempool = lambda address, value: [  # noqa: E731
+            {
+                "txid": "b" * 64,
+                "status": {"confirmed": False},
+                "vout": [{"scriptpubkey_address": address, "value": value}],
+            }
+        ]
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {
+                **self.chain_settings(),
+                "register-ledger:shop-1": json.dumps(sales),
+                "register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 4}),
+            },
+            atStart={
+                addresses[0]: {"error": "busy"},
+                addresses[1]: mempool(addresses[1], 9000),
+                addresses[2]: mempool(addresses[2], 4000),
+            },
+        )
         by_id = {sale["id"]: sale["status"] for sale in out["ledger"]}
-        self.assertEqual([by_id[name] for name in ("seen down", "seen a week", "partial", "never")],
-                         ["seen", "unchecked", "unchecked", "expired"])
+        self.assertEqual(
+            [by_id[name] for name in ("seen down", "seen a week", "partial", "never")],
+            ["seen", "unchecked", "unchecked", "expired"],
+        )
 
     def test_the_sale_on_the_screen(self):
         """The explorer comes back: the button to confirm by hand goes away. At the end of its day, a payment seen in the
         mempool is left to its confirmation, not «not checked»."""
         now = time.time() * 1000
         address = self.derived(BIP84_ACCOUNT, [0, 0])
-        sale = {"id": "open", "at": now, "cents": 900, "currency": "EUR", "status": "pending", "method": "onchain",
-                "sats": 9000, "address": address, "path": "0", "index": 0, "before": [], "wait": True, "label": "9.00 EUR",
-                "rate": 100000, "sources": [], "expires": now + 3600000, "till": "shop-1"}
-        storage = {**self.chain_settings(), "register-open:shop-1": json.dumps("open"),
-                   "register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 1})}
-        seen = [{"txid": "b" * 64, "status": {"confirmed": False}, "vout": [{"scriptpubkey_address": address, "value": 9000}]}]
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {**storage, "register-ledger:shop-1": json.dumps([sale])},
-                                atStart={address: {"error": "busy"}}, reopen={address: seen})
+        sale = {
+            "id": "open",
+            "at": now,
+            "cents": 900,
+            "currency": "EUR",
+            "status": "pending",
+            "method": "onchain",
+            "sats": 9000,
+            "address": address,
+            "path": "0",
+            "index": 0,
+            "before": [],
+            "wait": True,
+            "label": "9.00 EUR",
+            "rate": 100000,
+            "sources": [],
+            "expires": now + 3600000,
+            "till": "shop-1",
+        }
+        storage = {
+            **self.chain_settings(),
+            "register-open:shop-1": json.dumps("open"),
+            "register-chain-next:shop-1": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 1}),
+        }
+        seen = [
+            {
+                "txid": "b" * 64,
+                "status": {"confirmed": False},
+                "vout": [{"scriptpubkey_address": address, "value": 9000}],
+            }
+        ]
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**storage, "register-ledger:shop-1": json.dumps([sale])},
+            atStart={address: {"error": "busy"}},
+            reopen={address: seen},
+        )
         self.assertTrue(out["seenBefore"])
         self.assertIn("explorer does not answer", out["errorBefore"])
         self.assertFalse(out["seenAfter"])
         self.assertEqual(out["errorAfter"], "")
         ending = {**sale, "expires": now + 2500}
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {**storage, "register-ledger:shop-1": json.dumps([ending])},
-                                atStart={address: seen}, reopen={address: seen}, reopen_wait=3000)
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**storage, "register-ledger:shop-1": json.dumps([ending])},
+            atStart={address: seen},
+            reopen={address: seen},
+            reopen_wait=3000,
+        )
         self.assertEqual(out["ledger"][0]["status"], "seen")
 
     def test_the_confirmation_threshold_is_saved_as_typed_or_refused(self):
         storage = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "confirmAbove": 5000})}
         fields = {"currency": "EUR", "discount-percent": "0", "chain-key": ""}
-        for typed, saved in (("49,90", 4990), ("49.9", 4990), (" 100 ", 10000), ("", 0), ("50.", 5000), (".5", 50),
-                             (",05", 5), ("10000000.00", 1000000000), ("99999999,99", 9999999999)):
-            out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, storage,
-                                    settings={**fields, "confirm-above": typed})
-            self.assertEqual((out["settingsSay"], out["settings"]["confirmAbove"]),
-                             ("Saved on this phone. Staff registers get the new settings only with a new pairing code.", saved))
+        for typed, saved in (
+            ("49,90", 4990),
+            ("49.9", 4990),
+            (" 100 ", 10000),
+            ("", 0),
+            ("50.", 5000),
+            (".5", 50),
+            (",05", 5),
+            ("10000000.00", 1000000000),
+            ("99999999,99", 9999999999),
+        ):
+            out = self.run_register(
+                {"ledger": "shop-1", "shop": "shop-1"}, storage, settings={**fields, "confirm-above": typed}
+            )
+            self.assertEqual(
+                (out["settingsSay"], out["settings"]["confirmAbove"]),
+                ("Saved on this phone. Staff registers get the new settings only with a new pairing code.", saved),
+            )
         # A threshold saved past what the field takes is shown at the most it takes: the other settings still save
-        big = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "confirmAbove": 2 * 10 ** 12})}
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, big, settings={"discount-percent": "5"},
-                                open_settings=True)
+        big = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "confirmAbove": 2 * 10**12})}
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"}, big, settings={"discount-percent": "5"}, open_settings=True
+        )
         self.assertEqual(out["shownThreshold"], "99999999.99")
         self.assertEqual((out["settings"]["confirmAbove"], out["settings"]["discount"]), (9999999999, 5))
         for typed in ("fifty", "1.000,50", "-5", "1e3", ".", "1.234", "100000000"):
-            out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, storage,
-                                    settings={**fields, "confirm-above": typed})
+            out = self.run_register(
+                {"ledger": "shop-1", "shop": "shop-1"}, storage, settings={**fields, "confirm-above": typed}
+            )
             self.assertIn("Write the amount as a number", out["settingsSay"], typed)
             self.assertEqual(out["settings"]["confirmAbove"], 5000)
 
@@ -1054,19 +1547,41 @@ class ChainSaleFlow(RegisterRun):
         """A fixed address: another tab's sale already ended with this transaction. It does not close this one too."""
         fixed = BIP84_RECEIVE[1]
         settings = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "onchain": {"address": fixed}})}
-        other = {"id": "other", "at": time.time() * 1000, "cents": 900, "currency": "EUR", "status": "paid",
-                 "method": "onchain", "sats": 9000, "address": fixed, "txid": "a" * 64}
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"},
-                                {**settings, "register-ledger:shop-1": json.dumps([other])})
+        other = {
+            "id": "other",
+            "at": time.time() * 1000,
+            "cents": 900,
+            "currency": "EUR",
+            "status": "paid",
+            "method": "onchain",
+            "sats": 9000,
+            "address": fixed,
+            "txid": "a" * 64,
+        }
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"}, {**settings, "register-ledger:shop-1": json.dumps([other])}
+        )
         self.assertEqual((out["sale"]["address"], out["sale"]["sats"]), (fixed, 9000))
         self.assertEqual(out["final"]["status"], "pending")
         self.assertEqual(out["seen"], "")
 
     def test_the_owner_takes_an_on_chain_sale_into_the_next_address_of_the_key(self):
         settings_key = "register-settings:shop-1"
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {settings_key: json.dumps({
-            "lightning": ADDRESS, "onchain": {"key": BIP84_ACCOUNT}, "discount": 10, "confirmAbove": 0,
-            "currency": "EUR", "sources": ["kraken", "coinbase"]})})
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {
+                settings_key: json.dumps(
+                    {
+                        "lightning": ADDRESS,
+                        "onchain": {"key": BIP84_ACCOUNT},
+                        "discount": 10,
+                        "confirmAbove": 0,
+                        "currency": "EUR",
+                        "sources": ["kraken", "coinbase"],
+                    }
+                )
+            },
+        )
         self.assertEqual(out["blocked"], "")
         self.assertFalse(out["chainHidden"])
         # The owner did not let the registers remove the discount: a line to read, not a button
@@ -1074,7 +1589,10 @@ class ChainSaleFlow(RegisterRun):
         sale = out["sale"]
         # 10.00 typed, 10% off, at 100,000 EUR per bitcoin: 9,000 sats into …/0/0 of the key, the wallet's own receive
         # chain, so that the payment shows in any wallet
-        self.assertEqual((sale["method"], sale["cents"], sale["list"], sale["discount"], sale["sats"]), ("onchain", 900, 1000, 10, 9000))
+        self.assertEqual(
+            (sale["method"], sale["cents"], sale["list"], sale["discount"], sale["sats"]),
+            ("onchain", 900, 1000, 10, 9000),
+        )
         first = self.derived(BIP84_ACCOUNT, [0, 0])
         self.assertEqual(first, BIP84_RECEIVE[0])
         self.assertEqual((sale["address"], sale["index"], sale["path"]), (first, 0, "0"))
@@ -1115,9 +1633,21 @@ class ChainSaleFlow(RegisterRun):
         self.assertEqual(out["why"][-1], "answered by mempool.example.org")
 
     def test_without_an_own_explorer_the_reasons_name_the_community_one(self):
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {"register-settings:shop-1": json.dumps({
-            "lightning": ADDRESS, "onchain": {"key": BIP84_ACCOUNT}, "discount": 10, "confirmAbove": 0,
-            "currency": "EUR", "sources": ["kraken", "coinbase"]})})
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {
+                "register-settings:shop-1": json.dumps(
+                    {
+                        "lightning": ADDRESS,
+                        "onchain": {"key": BIP84_ACCOUNT},
+                        "discount": 10,
+                        "confirmAbove": 0,
+                        "currency": "EUR",
+                        "sources": ["kraken", "coinbase"],
+                    }
+                )
+            },
+        )
         self.assertEqual(out["why"][-1], "answered by mempool.example.org")
 
 
@@ -1128,7 +1658,8 @@ class StaffChainFlow(RegisterRun):
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
         harness = Path(folder.name) / "code.js"
-        harness.write_text(r"""
+        harness.write_text(
+            r"""
 const fs = require("fs");
 for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
 (async () => {
@@ -1138,9 +1669,21 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
     ["kraken", "coinbase", "bitstamp"]);
   process.stdout.write(JSON.stringify({ code, key }));
 })();
-""" % (REGISTER, ADDRESS))
-        made = subprocess.run([self.node, str(harness), BIP84_ACCOUNT, str(STATIC / "register-derive.js"),
-                               str(STATIC / "register-pairing.js")], capture_output=True, text=True, timeout=60)
+"""
+            % (REGISTER, ADDRESS)
+        )
+        made = subprocess.run(
+            [
+                self.node,
+                str(harness),
+                BIP84_ACCOUNT,
+                str(STATIC / "register-derive.js"),
+                str(STATIC / "register-pairing.js"),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
         self.assertEqual(made.returncode, 0, made.stderr)
         made = json.loads(made.stdout)
         ledger = f"shop-1:{REGISTER}"
@@ -1170,26 +1713,40 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
         self.assertIn("no longer matches", broken["blocked"])
         self.assertIsNone(broken.get("sale"))
         # A pairing for another register is not taken
-        other = {"register-pairing-pending": json.dumps({"register": "11111111-1111-4111-8111-111111111111",
-                                                         "code": made["code"], "at": time.time() * 1000})}
+        other = {
+            "register-pairing-pending": json.dumps(
+                {"register": "11111111-1111-4111-8111-111111111111", "code": made["code"], "at": time.time() * 1000}
+            )
+        }
         self.assertFalse(self.run_register(dataset, other)["paired"])
 
     def test_the_owners_register_takes_its_index_from_the_site_and_follows_the_path(self):
         settings_key = "register-settings:shop-1"
-        on_phone = {"lightning": ADDRESS, "onchain": {"key": BIP84_ACCOUNT}, "confirmAbove": 0, "currency": "EUR",
-                    "sources": ["kraken", "coinbase"]}
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {settings_key: json.dumps(on_phone)}, shopCount=5)
+        on_phone = {
+            "lightning": ADDRESS,
+            "onchain": {"key": BIP84_ACCOUNT},
+            "confirmAbove": 0,
+            "currency": "EUR",
+            "sources": ["kraken", "coinbase"],
+        }
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"}, {settings_key: json.dumps(on_phone)}, shopCount=5
+        )
         self.assertEqual((out["sale"]["address"], out["sale"]["index"]), (self.derived(BIP84_ACCOUNT, [0, 5]), 5))
         # The phone's count follows the site's
         self.assertEqual(json.loads(out["next"])["next"], 6)
         # Another path set in the settings: …/0/5/n, its own count
         custom = {**on_phone, "onchain": {"key": BIP84_ACCOUNT, "path": "0/5"}}
         out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {settings_key: json.dumps(custom)})
-        self.assertEqual((out["sale"]["address"], out["sale"]["index"], out["sale"]["path"]),
-                         (self.derived(BIP84_ACCOUNT, [0, 5, 0]), 0, "0/5"))
+        self.assertEqual(
+            (out["sale"]["address"], out["sale"]["index"], out["sale"]["path"]),
+            (self.derived(BIP84_ACCOUNT, [0, 5, 0]), 0, "0/5"),
+        )
         self.assertIn("…/0/5/0 of your key", out["to"])
         # Not signed in: no page token, no address, and the register says why
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {settings_key: json.dumps(on_phone)}, chain_claim=None)
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"}, {settings_key: json.dumps(on_phone)}, chain_claim=None
+        )
         self.assertIsNone(out.get("sale"))
         self.assertIn("sign in", out["chainError"])
 
@@ -1197,45 +1754,79 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
         from .test_register_chain import BIP84_CHANGE
 
         owner = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "onchain": {"key": BIP84_ACCOUNT}})}
-        sale = {"at": 1762700000000, "cents": 500, "currency": "EUR", "status": "paid", "method": "onchain", "sats": 5000,
-                "label": "5.00 EUR"}
+        sale = {
+            "at": 1762700000000,
+            "cents": 500,
+            "currency": "EUR",
+            "status": "paid",
+            "method": "onchain",
+            "sats": 5000,
+            "label": "5.00 EUR",
+        }
         # …/0/1 of the key is BIP84_RECEIVE[1]: right; the change address given as …/0/0 is not
         sale["till"] = "staff"
-        sales = [{**sale, "id": "good", "address": BIP84_RECEIVE[1], "path": "0", "index": 1},
-                 {**sale, "id": "bad", "address": BIP84_CHANGE, "path": "0", "index": 0},
-                 # Exported while waiting: the customer of a changed page may have paid it just then
-                 {**sale, "id": "waiting", "status": "pending", "address": BIP84_CHANGE, "path": "0", "index": 3},
-                 # Never paid: no money went anywhere, no alarm
-                 {**sale, "id": "unpaid", "status": "expired", "address": BIP84_CHANGE, "path": "0", "index": 2},
-                 {**sale, "id": "lightning", "method": "lightning"},
-                 # A sale the staff register's file says is the owner's own stays out
-                 {**sale, "id": "forged", "method": "lightning", "till": "shop-1"},
-                 # and so does an on-chain one: refused, it is no alarm either
-                 {**sale, "id": "forged chain", "till": "shop-1", "address": BIP84_CHANGE, "path": "0", "index": 4}]
+        sales = [
+            {**sale, "id": "good", "address": BIP84_RECEIVE[1], "path": "0", "index": 1},
+            {**sale, "id": "bad", "address": BIP84_CHANGE, "path": "0", "index": 0},
+            # Exported while waiting: the customer of a changed page may have paid it just then
+            {**sale, "id": "waiting", "status": "pending", "address": BIP84_CHANGE, "path": "0", "index": 3},
+            # Never paid: no money went anywhere, no alarm
+            {**sale, "id": "unpaid", "status": "expired", "address": BIP84_CHANGE, "path": "0", "index": 2},
+            {**sale, "id": "lightning", "method": "lightning"},
+            # A sale the staff register's file says is the owner's own stays out
+            {**sale, "id": "forged", "method": "lightning", "till": "shop-1"},
+            # and so does an on-chain one: refused, it is no alarm either
+            {**sale, "id": "forged chain", "till": "shop-1", "address": BIP84_CHANGE, "path": "0", "index": 4},
+        ]
         out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, owner, sales)
         self.assertIn("Copy imported: 5 new sales", out["imported"])
         ids = {entry["id"] for entry in out["afterImport"]}
         self.assertLessEqual({"bad", "good", "lightning", "unpaid", "waiting"}, ids)
         self.assertNotIn("forged", ids)
         self.assertNotIn("forged chain", ids)
-        self.assertIn("2 on-chain sales of this copy were paid or asked for payment to addresses that are not of your current "
-                      "key", out["imported"])
+        self.assertIn(
+            "2 on-chain sales of this copy were paid or asked for payment to addresses that are not of your current "
+            "key",
+            out["imported"],
+        )
         self.assertIn("only the wallet shows that a payment really arrived", out["imported"])
         # This register's own copy, after the key changed: its sales of the earlier key are no alarm
-        own = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, owner,
-                                [{**sale, "id": "earlier key", "till": "shop-1", "address": BIP84_CHANGE, "path": "0", "index": 0},
-                                 {**sale, "id": "earlier waiting", "status": "pending", "till": "shop-1",
-                                  "address": BIP84_CHANGE, "path": "0", "index": 1}],
-                                import_till="shop-1", import_own=True)
+        own = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            owner,
+            [
+                {**sale, "id": "earlier key", "till": "shop-1", "address": BIP84_CHANGE, "path": "0", "index": 0},
+                {
+                    **sale,
+                    "id": "earlier waiting",
+                    "status": "pending",
+                    "till": "shop-1",
+                    "address": BIP84_CHANGE,
+                    "path": "0",
+                    "index": 1,
+                },
+            ],
+            import_till="shop-1",
+            import_own=True,
+        )
         self.assertIn("Copy imported: 2 new sales", own["imported"])
         self.assertNotIn("Careful", own["imported"])
         # A staff copy that first brought a sale as expired with another address, then as paid with the right one: the
         # book keeps the first address, and that is the one compared with the key
-        first = {**sale, "id": "switched", "status": "expired", "address": BIP84_CHANGE, "path": "0", "index": 5,
-                 "reported": "staff"}
-        again = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **owner, "register-ledger:shop-1": json.dumps([first])},
-            [{**first, "status": "paid", "address": self.derived(BIP84_ACCOUNT, [0, 5])}])
+        first = {
+            **sale,
+            "id": "switched",
+            "status": "expired",
+            "address": BIP84_CHANGE,
+            "path": "0",
+            "index": 5,
+            "reported": "staff",
+        }
+        again = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**owner, "register-ledger:shop-1": json.dumps([first])},
+            [{**first, "status": "paid", "address": self.derived(BIP84_ACCOUNT, [0, 5])}],
+        )
         self.assertIn("updated", again["imported"])
         stored = next(entry for entry in again["afterImport"] if entry["id"] == "switched")
         self.assertEqual((stored["status"], stored["address"]), ("paid", BIP84_CHANGE))
@@ -1249,16 +1840,38 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
         at = time.mktime((2026, 11, 9, 12, 0, 0, 0, 0, -1)) * 1000
         later = time.time() * 1000 + 3600000
         base = {"currency": "EUR", "sats": 9000, "cents": 900, "label": "9.00 EUR"}
-        sales = [{**base, "id": "chain", "at": at, "status": "paid", "method": "onchain"},
-                 {**base, "id": "anna", "at": at + 1000, "status": "confirmed", "till": "shop-1:anna", "who": "Anna",
-                  "reported": "shop-1:anna"},
-                 {**base, "id": "copy", "at": at + 2000, "status": "confirmed", "till": "shop-1", "reported": "shop-1"},
-                 {**base, "id": "waiting", "at": at + 3000, "status": "pending", "expires": later},
-                 {**base, "id": "mempool", "at": at + 4000, "status": "seen", "method": "onchain", "expires": later,
-                  "address": BIP84_RECEIVE[0], "before": []}]
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            "register-settings:shop-1": json.dumps({"lightning": ADDRESS}), "register-ledger:shop-1": json.dumps(sales)},
-            show_day="2026-11-09")
+        sales = [
+            {**base, "id": "chain", "at": at, "status": "paid", "method": "onchain"},
+            {
+                **base,
+                "id": "anna",
+                "at": at + 1000,
+                "status": "confirmed",
+                "till": "shop-1:anna",
+                "who": "Anna",
+                "reported": "shop-1:anna",
+            },
+            {**base, "id": "copy", "at": at + 2000, "status": "confirmed", "till": "shop-1", "reported": "shop-1"},
+            {**base, "id": "waiting", "at": at + 3000, "status": "pending", "expires": later},
+            {
+                **base,
+                "id": "mempool",
+                "at": at + 4000,
+                "status": "seen",
+                "method": "onchain",
+                "expires": later,
+                "address": BIP84_RECEIVE[0],
+                "before": [],
+            },
+        ]
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {
+                "register-settings:shop-1": json.dumps({"lightning": ADDRESS}),
+                "register-ledger:shop-1": json.dumps(sales),
+            },
+            show_day="2026-11-09",
+        )
         totals = "\n".join(out["dayTotals"])
         self.assertIn("On-chain: 1 paid", totals)
         self.assertNotIn("onchain", totals)
@@ -1271,17 +1884,43 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
     def test_the_day_closing_splits_the_totals_by_register_only_with_several(self):
         at = time.mktime((2026, 11, 9, 12, 0, 0, 0, 0, -1)) * 1000
         base = {"currency": "EUR", "status": "paid", "label": "x"}
-        own = [{**base, "id": "o1", "at": at, "cents": 350, "sats": 3500},
-               {**base, "id": "o2", "at": at + 1000, "cents": 125, "sats": 1250, "method": "onchain"}]
-        staff = [{**base, "id": "a1", "at": at + 2000, "cents": 1000, "sats": 10000, "who": "Anna", "till": "shop-1:anna",
-                  "reported": "shop-1:anna"},
-                 {**base, "id": "a2", "at": at + 3000, "cents": 99, "sats": 990, "who": "Anna", "till": "shop-1:anna",
-                  "reported": "shop-1:anna", "status": "expired"}]
+        own = [
+            {**base, "id": "o1", "at": at, "cents": 350, "sats": 3500},
+            {**base, "id": "o2", "at": at + 1000, "cents": 125, "sats": 1250, "method": "onchain"},
+        ]
+        staff = [
+            {
+                **base,
+                "id": "a1",
+                "at": at + 2000,
+                "cents": 1000,
+                "sats": 10000,
+                "who": "Anna",
+                "till": "shop-1:anna",
+                "reported": "shop-1:anna",
+            },
+            {
+                **base,
+                "id": "a2",
+                "at": at + 3000,
+                "cents": 99,
+                "sats": 990,
+                "who": "Anna",
+                "till": "shop-1:anna",
+                "reported": "shop-1:anna",
+                "status": "expired",
+            },
+        ]
 
         def closing(sales):
-            out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-                "register-settings:shop-1": json.dumps({"lightning": ADDRESS}),
-                "register-ledger:shop-1": json.dumps(sales)}, show_day="2026-11-09")
+            out = self.run_register(
+                {"ledger": "shop-1", "shop": "shop-1"},
+                {
+                    "register-settings:shop-1": json.dumps({"lightning": ADDRESS}),
+                    "register-ledger:shop-1": json.dumps(sales),
+                },
+                show_day="2026-11-09",
+            )
             return out["dayTotals"]
 
         # The owner's sales only: the closing as before
@@ -1294,14 +1933,24 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
         start = both.index("The same, by register:")
         self.assertEqual(start, 3, both)  # the two lines of the day and what was not paid come first
         self.assertEqual(len(both), start + 4, both)  # and nothing follows the registers
-        self.assertEqual(both[:2], [
-            ("Lightning: 2 paid, €13.50 (13,500 sat) Of these, 1 reported by a staff register: check them in your "
-             "wallet."),
-            "On-chain: 1 paid, €1.25 (1,250 sat)"])
-        self.assertEqual(both[start + 1:start + 4], [
-            "Your own register · Lightning: 1 paid, €3.50 (3,500 sat)",
-            "Your own register · On-chain: 1 paid, €1.25 (1,250 sat)",
-            "Anna · Lightning: 1 paid, €10.00 (10,000 sat)"])
+        self.assertEqual(
+            both[:2],
+            [
+                (
+                    "Lightning: 2 paid, €13.50 (13,500 sat) Of these, 1 reported by a staff register: check them in your "
+                    "wallet."
+                ),
+                "On-chain: 1 paid, €1.25 (1,250 sat)",
+            ],
+        )
+        self.assertEqual(
+            both[start + 1 : start + 4],
+            [
+                "Your own register · Lightning: 1 paid, €3.50 (3,500 sat)",
+                "Your own register · On-chain: 1 paid, €1.25 (1,250 sat)",
+                "Anna · Lightning: 1 paid, €10.00 (10,000 sat)",
+            ],
+        )
         # A register whose sales were not collected makes no group: one register collected, no split
         self.assertNotIn("The same, by register:", closing(own + [{**staff[1]}]))
 
@@ -1314,7 +1963,8 @@ class NostrFlow(RegisterRun):
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
         harness = Path(folder.name) / "code.js"
-        harness.write_text(r"""
+        harness.write_text(
+            r"""
 const fs = require("fs");
 for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
 (async () => {
@@ -1326,18 +1976,32 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
     nostr: { owner, secret, relays: ["wss://nos.lol"] } }, ["kraken", "coinbase", "bitstamp"], ["wss://nos.lol"]);
   process.stdout.write(JSON.stringify({ code, owner, till: registerNostr.publicKey(secret) }));
 })();
-""" % (OWNER_SECRET, REGISTER, ADDRESS))
-        made = subprocess.run([self.node, str(harness), BIP84_ACCOUNT, str(STATIC / "register-derive.js"),
-                               str(STATIC / "register-nostr.js"), str(STATIC / "register-pairing.js")],
-                              capture_output=True, text=True, timeout=60)
+"""
+            % (OWNER_SECRET, REGISTER, ADDRESS)
+        )
+        made = subprocess.run(
+            [
+                self.node,
+                str(harness),
+                BIP84_ACCOUNT,
+                str(STATIC / "register-derive.js"),
+                str(STATIC / "register-nostr.js"),
+                str(STATIC / "register-pairing.js"),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
         self.assertEqual(made.returncode, 0, made.stderr)
         made = json.loads(made.stdout)
         ledger = f"shop-1:{REGISTER}"
         pending = json.dumps({"register": REGISTER, "code": made["code"], "at": time.time() * 1000})
         # Paired with a public relay the community has dropped since: still paired, the community's relay only
-        staff = self.run_register({"ledger": ledger, "shop": "shop-1", "staff": REGISTER, "tillName": "Anna"},
-                                  {"register-pairing-pending": pending},
-                                  chain_claim={"url": f"/en/shops/register/p/{REGISTER}/chain/", "key": "k" * 40})
+        staff = self.run_register(
+            {"ledger": ledger, "shop": "shop-1", "staff": REGISTER, "tillName": "Anna"},
+            {"register-pairing-pending": pending},
+            chain_claim={"url": f"/en/shops/register/p/{REGISTER}/chain/", "key": "k" * 40},
+        )
         self.assertEqual(staff["blocked"], "")
         self.assertEqual(staff["final"]["status"], "paid")
         # One event, the day's, from the register's key, encrypted to the owner, on the community's relay only
@@ -1354,13 +2018,16 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
             plain_hash = hashlib.sha256(f"bitmentor-register:{name}".encode()).hexdigest()[:32]
             self.assertNotIn(plain_hash, event["tags"][0][1])
         # The owner's register, with the owner's key in the settings and the staff register's key known on this phone
-        owner = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "nostr": {"owner": made["owner"]}}),
-                 "register-nostr-tills:shop-1": json.dumps({REGISTER: [made["till"]]})}
+        owner = {
+            "register-settings:shop-1": json.dumps({"lightning": ADDRESS, "nostr": {"owner": made["owner"]}}),
+            "register-nostr-tills:shop-1": json.dumps({REGISTER: [made["till"]]}),
+        }
         out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, owner, relay=staff["relay"], pull=OWNER_SECRET)
         self.assertIn("1 new sales", out["pulled"])
         [sale] = [entry for entry in out["after"] if entry["till"] == ledger]
-        self.assertEqual((sale["id"], sale["status"], sale["who"], sale["reported"]),
-                         (staff["final"]["id"], "paid", "Anna", ledger))
+        self.assertEqual(
+            (sale["id"], sale["status"], sale["who"], sale["reported"]), (staff["final"]["id"], "paid", "Anna", ledger)
+        )
         # Another private key opens nothing and changes nothing
         other = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, owner, relay=staff["relay"], pull="22" * 32)
         self.assertIn("not the one", other["pulled"])
@@ -1385,11 +2052,27 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
   process.stdout.write(JSON.stringify({ events, owner, conversation }));
 })();
 """)
-        given = {"ownerSecret": OWNER_SECRET, "secret": secret, "ledger": ledger, "sales": sales,
-                 "period": period or time.strftime("%Y-%m-%d"), "created": created or int(time.time())}
+        given = {
+            "ownerSecret": OWNER_SECRET,
+            "secret": secret,
+            "ledger": ledger,
+            "sales": sales,
+            "period": period or time.strftime("%Y-%m-%d"),
+            "created": created or int(time.time()),
+        }
         (Path(folder.name) / "given.json").write_text(json.dumps(given))
-        made = subprocess.run([self.node, str(harness), str(Path(folder.name) / "given.json"), str(STATIC / "register-derive.js"),
-                               str(STATIC / "register-nostr.js")], capture_output=True, text=True, timeout=60)
+        made = subprocess.run(
+            [
+                self.node,
+                str(harness),
+                str(Path(folder.name) / "given.json"),
+                str(STATIC / "register-derive.js"),
+                str(STATIC / "register-nostr.js"),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
         self.assertEqual(made.returncode, 0, made.stderr)
         made = json.loads(made.stdout)
         self.owner_public = made["owner"]
@@ -1397,8 +2080,10 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
         return made["events"]
 
     def owner_storage(self, tills):
-        return {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "nostr": {"owner": self.owner_public}}),
-                "register-nostr-tills:shop-1": json.dumps(tills)}
+        return {
+            "register-settings:shop-1": json.dumps({"lightning": ADDRESS, "nostr": {"owner": self.owner_public}}),
+            "register-nostr-tills:shop-1": json.dumps(tills),
+        }
 
     def test_a_staff_register_key_cannot_add_the_owner_s_own_sales(self):
         staff_secret = "33" * 32
@@ -1406,10 +2091,17 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
         now = int(time.time() * 1000)
         sale = {"at": now, "cents": 100000, "currency": "EUR", "status": "paid", "label": "1000.00 EUR"}
         # A staff phone in someone's control writes a sale «of the owner's register» (its till is the shop's id, public)
-        events = self.copy_events(staff_secret, ledger, [{**sale, "id": "forged", "till": "shop-1"},
-                                                         {**sale, "id": "honest", "till": ledger, "cents": 100}])
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, self.owner_storage({REGISTER: [events[0]["pubkey"]]}),
-                                relay=events, pull=OWNER_SECRET)
+        events = self.copy_events(
+            staff_secret,
+            ledger,
+            [{**sale, "id": "forged", "till": "shop-1"}, {**sale, "id": "honest", "till": ledger, "cents": 100}],
+        )
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            self.owner_storage({REGISTER: [events[0]["pubkey"]]}),
+            relay=events,
+            pull=OWNER_SECRET,
+        )
         by_id = {entry["id"]: entry for entry in out["after"]}
         self.assertNotIn("forged", by_id)
         self.assertEqual((by_id["honest"]["status"], by_id["honest"]["reported"]), ("paid", ledger))
@@ -1422,12 +2114,25 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
 
         staff_secret = "33" * 32
         ledger = f"shop-1:{REGISTER}"
-        sale = {"at": int(time.time() * 1000), "cents": 500, "currency": "EUR", "status": "paid", "method": "onchain",
-                "sats": 5000, "till": ledger, "label": "5.00 EUR"}
-        events = self.copy_events(staff_secret, ledger, [
-            {**sale, "id": "good", "address": BIP84_RECEIVE[1], "path": "0", "index": 1},
-            {**sale, "id": "bad", "address": BIP84_CHANGE, "path": "0", "index": 0},
-            {**sale, "id": "forged", "till": "shop-1", "address": BIP84_CHANGE, "path": "0", "index": 2}])
+        sale = {
+            "at": int(time.time() * 1000),
+            "cents": 500,
+            "currency": "EUR",
+            "status": "paid",
+            "method": "onchain",
+            "sats": 5000,
+            "till": ledger,
+            "label": "5.00 EUR",
+        }
+        events = self.copy_events(
+            staff_secret,
+            ledger,
+            [
+                {**sale, "id": "good", "address": BIP84_RECEIVE[1], "path": "0", "index": 1},
+                {**sale, "id": "bad", "address": BIP84_CHANGE, "path": "0", "index": 0},
+                {**sale, "id": "forged", "till": "shop-1", "address": BIP84_CHANGE, "path": "0", "index": 2},
+            ],
+        )
         storage = self.owner_storage({REGISTER: [events[0]["pubkey"]]})
         settings = json.loads(storage["register-settings:shop-1"])
         storage["register-settings:shop-1"] = json.dumps({**settings, "onchain": {"key": BIP84_ACCOUNT}})
@@ -1435,8 +2140,11 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
         ids = {entry["id"] for entry in out["after"]}
         self.assertLessEqual({"good", "bad"}, ids)
         self.assertNotIn("forged", ids)
-        self.assertIn("1 on-chain sales of this copy were paid or asked for payment to addresses that are not of your "
-                      "current key", out["pulled"])
+        self.assertIn(
+            "1 on-chain sales of this copy were paid or asked for payment to addresses that are not of your "
+            "current key",
+            out["pulled"],
+        )
 
     def test_a_staff_copy_on_nostr_that_switches_the_address_is_checked_on_the_stored_one(self):
         """A staff register's copy that first said a sale ended unpaid with another address, then paid with the right
@@ -1445,31 +2153,49 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
 
         staff_secret = "33" * 32
         ledger = f"shop-1:{REGISTER}"
-        sale = {"id": "switched", "at": int(time.time() * 1000), "cents": 500, "currency": "EUR", "status": "paid",
-                "method": "onchain", "sats": 5000, "till": ledger, "label": "5.00 EUR", "path": "0", "index": 1,
-                "address": BIP84_RECEIVE[1]}
+        sale = {
+            "id": "switched",
+            "at": int(time.time() * 1000),
+            "cents": 500,
+            "currency": "EUR",
+            "status": "paid",
+            "method": "onchain",
+            "sats": 5000,
+            "till": ledger,
+            "label": "5.00 EUR",
+            "path": "0",
+            "index": 1,
+            "address": BIP84_RECEIVE[1],
+        }
         events = self.copy_events(staff_secret, ledger, [sale])
         storage = self.owner_storage({REGISTER: [events[0]["pubkey"]]})
         settings = json.loads(storage["register-settings:shop-1"])
         storage["register-settings:shop-1"] = json.dumps({**settings, "onchain": {"key": BIP84_ACCOUNT}})
-        storage["register-ledger:shop-1"] = json.dumps([{**sale, "status": "expired", "address": BIP84_CHANGE,
-                                                         "reported": ledger}])
+        storage["register-ledger:shop-1"] = json.dumps(
+            [{**sale, "status": "expired", "address": BIP84_CHANGE, "reported": ledger}]
+        )
         out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, storage, relay=events, pull=OWNER_SECRET)
         stored = next(entry for entry in out["after"] if entry["id"] == "switched")
         self.assertEqual((stored["status"], stored["address"]), ("paid", BIP84_CHANGE))
-        self.assertIn("1 on-chain sales of this copy were paid or asked for payment to addresses that are not of your "
-                      "current key", out["pulled"])
+        self.assertIn(
+            "1 on-chain sales of this copy were paid or asked for payment to addresses that are not of your "
+            "current key",
+            out["pulled"],
+        )
 
     def test_copies_of_keys_this_phone_does_not_know_stay_out_unless_the_owner_takes_them(self):
         stranger = "44" * 32
         now = int(time.time() * 1000)
-        sales = [{"id": f"s{i}", "at": now, "cents": 100, "currency": "EUR", "status": "paid", "till": "shop-1"}
-                 for i in range(5001)]
+        sales = [
+            {"id": f"s{i}", "at": now, "cents": 100, "currency": "EUR", "status": "paid", "till": "shop-1"}
+            for i in range(5001)
+        ]
         events = self.copy_events(stranger, "shop-1", sales)
         storage = self.owner_storage({})
         # Asked, the owner says no: nothing of it in the book, only counted
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, storage, relay=events, pull=OWNER_SECRET,
-                                confirm=False)
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"}, storage, relay=events, pull=OWNER_SECRET, confirm=False
+        )
         self.assertFalse([entry for entry in out["after"] if entry["id"].startswith("s")])
         self.assertIn("1 copies from keys this phone does not know were left out", out["pulled"])
         [question] = out["confirmed"]
@@ -1484,12 +2210,30 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
     def test_the_keys_of_a_register_turned_off_for_good_are_forgotten(self):
         staff_secret = "33" * 32
         ledger = f"shop-1:{REGISTER}"
-        events = self.copy_events(staff_secret, ledger, [{"id": "late", "at": int(time.time() * 1000), "cents": 100,
-                                                          "currency": "EUR", "status": "paid", "till": ledger}])
+        events = self.copy_events(
+            staff_secret,
+            ledger,
+            [
+                {
+                    "id": "late",
+                    "at": int(time.time() * 1000),
+                    "cents": 100,
+                    "currency": "EUR",
+                    "status": "paid",
+                    "till": ledger,
+                }
+            ],
+        )
         other = "11111111-1111-4111-8111-111111111111"
         storage = self.owner_storage({REGISTER: [events[0]["pubkey"]], other: ["ab" * 32]})
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, storage, relay=events, pull=OWNER_SECRET,
-                                confirm=False, gone_tills=[REGISTER])
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            storage,
+            relay=events,
+            pull=OWNER_SECRET,
+            confirm=False,
+            gone_tills=[REGISTER],
+        )
         self.assertEqual(json.loads(out["tills"]), {other: ["ab" * 32]})
         self.assertNotIn("late", [entry["id"] for entry in out["after"]])
         self.assertIn("1 copies from keys this phone does not know were left out", out["pulled"])
@@ -1498,12 +2242,18 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
         staff_secret = "33" * 32
         ledger = f"shop-1:{REGISTER}"
         sale = {"at": int(time.time() * 1000), "cents": 100, "currency": "EUR", "status": "paid", "till": ledger}
-        soon = self.copy_events(staff_secret, ledger, [{**sale, "id": "soon"}], period="2026-01-01",
-                                created=int(time.time()) + 3600)
-        later = self.copy_events(staff_secret, ledger, [{**sale, "id": "later"}], period="2026-01-02",
-                                 created=int(time.time()) + 3 * 86400)
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, self.owner_storage({REGISTER: [soon[0]["pubkey"]]}),
-                                relay=soon + later, pull=OWNER_SECRET)
+        soon = self.copy_events(
+            staff_secret, ledger, [{**sale, "id": "soon"}], period="2026-01-01", created=int(time.time()) + 3600
+        )
+        later = self.copy_events(
+            staff_secret, ledger, [{**sale, "id": "later"}], period="2026-01-02", created=int(time.time()) + 3 * 86400
+        )
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            self.owner_storage({REGISTER: [soon[0]["pubkey"]]}),
+            relay=soon + later,
+            pull=OWNER_SECRET,
+        )
         ids = [entry["id"] for entry in out["after"]]
         self.assertIn("soon", ids)
         self.assertNotIn("later", ids)
@@ -1513,36 +2263,63 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
         staff_secret = "33" * 32
         ledger = f"shop-1:{REGISTER}"
         now = int(time.time() * 1000)
-        events = self.copy_events(staff_secret, ledger, [{"id": "staff", "at": now, "cents": 100, "currency": "EUR",
-                                                          "status": "paid", "till": ledger}])
+        events = self.copy_events(
+            staff_secret,
+            ledger,
+            [{"id": "staff", "at": now, "cents": 100, "currency": "EUR", "status": "paid", "till": ledger}],
+        )
         meanwhile = {"id": "meanwhile", "at": now, "cents": 250, "currency": "EUR", "status": "paid", "till": "shop-1"}
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, self.owner_storage({REGISTER: [events[0]["pubkey"]]}),
-                                relay=events, pull=OWNER_SECRET, during_pull=meanwhile)
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            self.owner_storage({REGISTER: [events[0]["pubkey"]]}),
+            relay=events,
+            pull=OWNER_SECRET,
+            during_pull=meanwhile,
+        )
         ids = [entry["id"] for entry in out["after"]]
         self.assertIn("staff", ids)
         self.assertIn("meanwhile", ids)
 
     def tills_and_keys(self, register_key, conversation, owner=None):
         """The owner's phone after pairing a staff register: its public key and the conversation key it made for it."""
-        return {"register-nostr-tillkeys:shop-1": json.dumps({register_key: {"owner": owner or self.owner_public,
-                                                                             "key": conversation}})}
+        return {
+            "register-nostr-tillkeys:shop-1": json.dumps(
+                {register_key: {"owner": owner or self.owner_public, "key": conversation}}
+            )
+        }
 
     def test_the_owner_reads_the_staff_copies_with_no_nsec_when_the_phone_holds_their_keys(self):
         staff_secret = "33" * 32
         ledger = f"shop-1:{REGISTER}"
         now = int(time.time() * 1000)
-        events = self.copy_events(staff_secret, ledger, [{"id": "staff", "at": now, "cents": 100, "currency": "EUR",
-                                                          "status": "paid", "till": ledger, "who": "Anna"}])
-        storage = {**self.owner_storage({REGISTER: [events[0]["pubkey"]]}),
-                   **self.tills_and_keys(events[0]["pubkey"], self.conversation)}
+        events = self.copy_events(
+            staff_secret,
+            ledger,
+            [
+                {
+                    "id": "staff",
+                    "at": now,
+                    "cents": 100,
+                    "currency": "EUR",
+                    "status": "paid",
+                    "till": ledger,
+                    "who": "Anna",
+                }
+            ],
+        )
+        storage = {
+            **self.owner_storage({REGISTER: [events[0]["pubkey"]]}),
+            **self.tills_and_keys(events[0]["pubkey"], self.conversation),
+        }
         # No pull button pressed, no nsec: the sale arrives by itself, reported by that register
         out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, storage, relay=events)
         [sale] = [entry for entry in out["ledger"] if entry["id"] == "staff"]
         self.assertEqual((sale["status"], sale["reported"], sale["who"]), ("paid", ledger, "Anna"))
         self.assertNotIn("cannot be read", out["nostrState"])
         # The same phone with the old storage (the public keys only): nothing arrives, and the owner is told
-        old = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, self.owner_storage({REGISTER: [events[0]["pubkey"]]}),
-                                relay=events)
+        old = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"}, self.owner_storage({REGISTER: [events[0]["pubkey"]]}), relay=events
+        )
         self.assertNotIn("staff", [entry["id"] for entry in old["ledger"]])
         self.assertIn("1 copies of staff registers cannot be read on this phone", old["nostrState"])
 
@@ -1556,33 +2333,51 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
         conversation = self.conversation
         tills = {REGISTER: [pub]}
         # A key made for another owner's public key says nothing
-        other = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.owner_storage(tills), **self.tills_and_keys(pub, conversation, owner="ab" * 32)}, relay=events)
+        other = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**self.owner_storage(tills), **self.tills_and_keys(pub, conversation, owner="ab" * 32)},
+            relay=events,
+        )
         self.assertNotIn("staff", [entry["id"] for entry in other["ledger"]])
         # A key no longer listed in the register's keys (forgotten) says nothing either
-        forgotten = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.owner_storage({}), **self.tills_and_keys(pub, conversation)}, relay=events)
+        forgotten = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**self.owner_storage({}), **self.tills_and_keys(pub, conversation)},
+            relay=events,
+        )
         self.assertNotIn("staff", [entry["id"] for entry in forgotten["ledger"]])
         # A garbage key opens nothing
-        bad = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.owner_storage(tills), **self.tills_and_keys(pub, "zz" * 32)}, relay=events)
+        bad = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**self.owner_storage(tills), **self.tills_and_keys(pub, "zz" * 32)},
+            relay=events,
+        )
         self.assertNotIn("staff", [entry["id"] for entry in bad["ledger"]])
         # A copy of that key naming another register in its d tag is not taken, whatever it opens with
         wrong = self.copy_events(staff_secret, "shop-1:other", [{**sale, "id": "elsewhere"}])
-        refused = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.owner_storage(tills), **self.tills_and_keys(pub, self.conversation)}, relay=wrong)
+        refused = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**self.owner_storage(tills), **self.tills_and_keys(pub, self.conversation)},
+            relay=wrong,
+        )
         self.assertNotIn("elsewhere", [entry["id"] for entry in refused["ledger"]])
         # A sale of the owner's own register in a staff copy is left out, as with the nsec
         forged = self.copy_events(staff_secret, ledger, [{**sale, "id": "forged", "till": "shop-1"}])
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, {
-            **self.owner_storage(tills), **self.tills_and_keys(pub, self.conversation)}, relay=forged)
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {**self.owner_storage(tills), **self.tills_and_keys(pub, self.conversation)},
+            relay=forged,
+        )
         self.assertNotIn("forged", [entry["id"] for entry in out["ledger"]])
 
     def test_the_owner_s_own_copies_and_strangers_still_need_the_nsec(self):
         stranger = "44" * 32
         now = int(time.time() * 1000)
-        events = self.copy_events(stranger, "shop-1", [{"id": "s", "at": now, "cents": 100, "currency": "EUR",
-                                                        "status": "paid", "till": "shop-1"}])
+        events = self.copy_events(
+            stranger,
+            "shop-1",
+            [{"id": "s", "at": now, "cents": 100, "currency": "EUR", "status": "paid", "till": "shop-1"}],
+        )
         # The stranger's key has a conversation key on this phone, but is not one this phone made for a register
         storage = {**self.owner_storage({}), **self.tills_and_keys(events[0]["pubkey"], self.conversation)}
         out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, storage, relay=events)
@@ -1591,12 +2386,31 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
     def test_the_keys_of_a_register_turned_off_go_with_its_conversation_key(self):
         staff_secret = "33" * 32
         ledger = f"shop-1:{REGISTER}"
-        events = self.copy_events(staff_secret, ledger, [{"id": "late", "at": int(time.time() * 1000), "cents": 100,
-                                                          "currency": "EUR", "status": "paid", "till": ledger}])
+        events = self.copy_events(
+            staff_secret,
+            ledger,
+            [
+                {
+                    "id": "late",
+                    "at": int(time.time() * 1000),
+                    "cents": 100,
+                    "currency": "EUR",
+                    "status": "paid",
+                    "till": ledger,
+                }
+            ],
+        )
         pub = events[0]["pubkey"]
         other = "11111111-1111-4111-8111-111111111111"
-        storage = {**self.owner_storage({REGISTER: [pub], other: ["ab" * 32]}), "register-nostr-tillkeys:shop-1": json.dumps(
-            {pub: {"owner": self.owner_public, "key": self.conversation}, "ab" * 32: {"owner": self.owner_public, "key": "cd" * 32}})}
+        storage = {
+            **self.owner_storage({REGISTER: [pub], other: ["ab" * 32]}),
+            "register-nostr-tillkeys:shop-1": json.dumps(
+                {
+                    pub: {"owner": self.owner_public, "key": self.conversation},
+                    "ab" * 32: {"owner": self.owner_public, "key": "cd" * 32},
+                }
+            ),
+        }
         out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, storage, relay=events, gone_tills=[REGISTER])
         self.assertEqual(list(json.loads(out["tillkeys"])), ["ab" * 32])
         self.assertNotIn("late", [entry["id"] for entry in out["ledger"]])
@@ -1608,16 +2422,30 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
         pr2, hash2 = invoice(20000, preimage="01" * 32)
         now = int(time.time() * 1000)
         sale = {"at": now, "cents": 1000, "currency": "EUR", "status": "paid", "till": ledger, "sats": 10000}
-        events = self.copy_events(staff_secret, ledger, [
-            {**sale, "id": "good", "hash": payment_hash, "verify": "https://ln.example.org/verify/0"},
-            {**sale, "id": "lying", "hash": hash2, "verify": "https://ln.example.org/verify/1"}])
-        storage = {**self.owner_storage({REGISTER: [events[0]["pubkey"]]}),
-                   **self.tills_and_keys(events[0]["pubkey"], self.conversation)}
-        verify = {0: {"status": "OK", "settled": True, "preimage": "00" * 32, "pr": pr},
-                  # settled, but its invoice is for 20000 sats and the copy says 10000
-                  1: {"status": "OK", "settled": True, "preimage": "01" * 32, "pr": pr2}}
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, storage, relay=events,
-                                ln={"invoices": [pr, pr2], "verify": verify}, typed=[])
+        events = self.copy_events(
+            staff_secret,
+            ledger,
+            [
+                {**sale, "id": "good", "hash": payment_hash, "verify": "https://ln.example.org/verify/0"},
+                {**sale, "id": "lying", "hash": hash2, "verify": "https://ln.example.org/verify/1"},
+            ],
+        )
+        storage = {
+            **self.owner_storage({REGISTER: [events[0]["pubkey"]]}),
+            **self.tills_and_keys(events[0]["pubkey"], self.conversation),
+        }
+        verify = {
+            0: {"status": "OK", "settled": True, "preimage": "00" * 32, "pr": pr},
+            # settled, but its invoice is for 20000 sats and the copy says 10000
+            1: {"status": "OK", "settled": True, "preimage": "01" * 32, "pr": pr2},
+        }
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            storage,
+            relay=events,
+            ln={"invoices": [pr, pr2], "verify": verify},
+            typed=[],
+        )
         await_ledger = {entry["id"]: entry for entry in out["ledger"]}
         self.assertEqual((await_ledger["good"]["reported"], await_ledger["good"].get("verified")), (ledger, True))
         self.assertEqual((await_ledger["lying"]["reported"], await_ledger["lying"].get("verified")), (ledger, None))
@@ -1628,16 +2456,38 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
         ledger = f"shop-1:{REGISTER}"
         pr, payment_hash = invoice(10000)
         now = int(time.time() * 1000)
-        sale = {"at": now, "cents": 1000, "currency": "EUR", "status": "paid", "till": ledger, "sats": 10000,
-                "label": "10.00 EUR", "hash": payment_hash, "verify": "https://ln.example.org/verify/0"}
+        sale = {
+            "at": now,
+            "cents": 1000,
+            "currency": "EUR",
+            "status": "paid",
+            "till": ledger,
+            "sats": 10000,
+            "label": "10.00 EUR",
+            "hash": payment_hash,
+            "verify": "https://ln.example.org/verify/0",
+        }
         verify = {0: {"status": "OK", "settled": True, "preimage": "00" * 32, "pr": pr}}
-        sales = [{**sale, "id": "checked"}, {**sale, "id": "forged claim", "hash": "ab" * 32, "verified": True,
-                                              "verify": "https://ln.example.org/verify/1"}]
+        sales = [
+            {**sale, "id": "checked"},
+            {
+                **sale,
+                "id": "forged claim",
+                "hash": "ab" * 32,
+                "verified": True,
+                "verify": "https://ln.example.org/verify/1",
+            },
+        ]
         verify[1] = {"status": "OK", "settled": False, "pr": pr}
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"},
-                                {"register-settings:shop-1": json.dumps({"lightning": ADDRESS})},
-                                import_sales=sales, import_till=ledger, relays=[], ln={"invoices": [pr], "verify": verify},
-                                typed=[])
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            {"register-settings:shop-1": json.dumps({"lightning": ADDRESS})},
+            import_sales=sales,
+            import_till=ledger,
+            relays=[],
+            ln={"invoices": [pr], "verify": verify},
+            typed=[],
+        )
         # In the file: «reported», and a `verified` the file brings is not believed
         right = {entry["id"]: entry for entry in out["afterImport"]}
         self.assertEqual((right["checked"]["reported"], right["checked"].get("verified")), (ledger, None))
@@ -1648,10 +2498,28 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
 
     def test_the_pull_button_pressed_twice_pulls_once(self):
         stranger = "44" * 32
-        events = self.copy_events(stranger, "shop-1", [{"id": "s", "at": int(time.time() * 1000), "cents": 100,
-                                                        "currency": "EUR", "status": "paid", "till": "shop-1"}])
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, self.owner_storage({}), relay=events,
-                                pull=OWNER_SECRET, confirm=False, pull_twice=True)
+        events = self.copy_events(
+            stranger,
+            "shop-1",
+            [
+                {
+                    "id": "s",
+                    "at": int(time.time() * 1000),
+                    "cents": 100,
+                    "currency": "EUR",
+                    "status": "paid",
+                    "till": "shop-1",
+                }
+            ],
+        )
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            self.owner_storage({}),
+            relay=events,
+            pull=OWNER_SECRET,
+            confirm=False,
+            pull_twice=True,
+        )
         # One request to the one relay, one question about the copies of unknown keys
         self.assertEqual(out["relayAsked"], 1)
         self.assertEqual(len(out["confirmed"]), 1)
@@ -1660,10 +2528,26 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
         staff_secret = "33" * 32
         now = int(time.time() * 1000)
         # The copy says, in its d tag, it is of the owner's register: not the register that key is for
-        events = self.copy_events(staff_secret, "shop-1", [{"id": "forged", "at": now, "cents": 100, "currency": "EUR",
-                                                            "status": "paid", "till": f"shop-1:{REGISTER}"}])
-        out = self.run_register({"ledger": "shop-1", "shop": "shop-1"}, self.owner_storage({REGISTER: [events[0]["pubkey"]]}),
-                                relay=events, pull=OWNER_SECRET)
+        events = self.copy_events(
+            staff_secret,
+            "shop-1",
+            [
+                {
+                    "id": "forged",
+                    "at": now,
+                    "cents": 100,
+                    "currency": "EUR",
+                    "status": "paid",
+                    "till": f"shop-1:{REGISTER}",
+                }
+            ],
+        )
+        out = self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1"},
+            self.owner_storage({REGISTER: [events[0]["pubkey"]]}),
+            relay=events,
+            pull=OWNER_SECRET,
+        )
         self.assertNotIn("forged", [entry["id"] for entry in out["after"]])
         self.assertIn("0 new sales", out["pulled"])
         self.assertIn("1 copies that are not yours", out["pulled"])
@@ -1691,14 +2575,29 @@ def invoice(sats, preimage="00" * 32, made=None, prefix="lnbc", expiry=600, extr
 
 class LightningFlow(RegisterRun):
     """A Lightning sale of the owner's register against a provider answered here: one payment closes one sale only."""
+
     owner = {"ledger": "shop-1", "shop": "shop-1"}
 
-    def sell(self, invoices, verify=None, typed=("1000",), network="mainnet", storage=None, whole=False, ln_meanwhile=None,
-             **extra):
+    def sell(
+        self,
+        invoices,
+        verify=None,
+        typed=("1000",),
+        network="mainnet",
+        storage=None,
+        whole=False,
+        ln_meanwhile=None,
+        **extra,
+    ):
         storage = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS}), **(storage or {})}
-        out = self.run_register(self.owner, storage, ln={"typed": list(typed), "invoices": invoices, "verify": verify or {},
-                                                         "meanwhile": ln_meanwhile},
-                                discount=0, network=network, **extra)
+        out = self.run_register(
+            self.owner,
+            storage,
+            ln={"typed": list(typed), "invoices": invoices, "verify": verify or {}, "meanwhile": ln_meanwhile},
+            discount=0,
+            network=network,
+            **extra,
+        )
         return out if whole else out["sales"]
 
     def quick(self, typed, ledger=(), **extra):
@@ -1708,14 +2607,31 @@ class LightningFlow(RegisterRun):
         # 100,000 EUR per bitcoin: one cent is 10 sats
         invoices = [invoice(int(amount) * 10)[0] for amount in typed]
         words = {**texts(), **{key: str(value) for key, value in quick_texts().items()}}
-        return self.sell(invoices, typed=typed, whole=True, storage={"register-ledger:shop-1": json.dumps(list(ledger))},
-                         quick_start={"cents": 2000, "currency": "EUR"}, texts=words, **extra)
+        return self.sell(
+            invoices,
+            typed=typed,
+            whole=True,
+            storage={"register-ledger:shop-1": json.dumps(list(ledger))},
+            quick_start={"cents": 2000, "currency": "EUR"},
+            texts=words,
+            **extra,
+        )
 
     def test_the_quick_start_stops_a_sale_over_what_is_left(self):
-        before = {"id": "a", "at": time.time() * 1000 - 60000, "cents": 1500, "currency": "EUR", "status": "paid", "sats": 15000}
+        before = {
+            "id": "a",
+            "at": time.time() * 1000 - 60000,
+            "cents": 1500,
+            "currency": "EUR",
+            "status": "paid",
+            "sats": 15000,
+        }
         out = self.quick(("600",), [before])
-        self.assertEqual(out["sales"][0]["error"], "This sale is 6.00 EUR and only 5.00 EUR of the quick start is left. "
-                                                   "Type less, or finish the training to take any amount.")
+        self.assertEqual(
+            out["sales"][0]["error"],
+            "This sale is 6.00 EUR and only 5.00 EUR of the quick start is left. "
+            "Type less, or finish the training to take any amount.",
+        )
         self.assertEqual([sale["id"] for sale in out["ledger"]], ["a"])
         # What is left is taken, to the last cent
         out = self.quick(("500",), [before])
@@ -1724,18 +2640,33 @@ class LightningFlow(RegisterRun):
 
     def test_the_quick_start_counts_what_is_paid_and_not_an_unpaid_qr(self):
         now = time.time() * 1000 - 60000
-        sale = lambda name, cents, status, currency="EUR": {"id": name, "at": now, "cents": cents, "currency": currency,  # noqa: E731
-                                                            "status": status, "sats": 1000}
-        book = [sale("a", 500, "paid"), sale("b", 300, "confirmed"), sale("c", 200, "pending"), sale("d", 100, "unchecked"),
-                sale("e", 400, "seen"),
-                # Not taken: a QR still open or left unpaid with nothing to check it, cancelled, expired, another currency
-                sale("f", 700, "cancelled"), sale("g", 700, "expired"), sale("h", 700, "paid", "USD")]
+        sale = lambda name, cents, status, currency="EUR": {  # noqa: E731
+            "id": name,
+            "at": now,
+            "cents": cents,
+            "currency": currency,
+            "status": status,
+            "sats": 1000,
+        }
+        book = [
+            sale("a", 500, "paid"),
+            sale("b", 300, "confirmed"),
+            sale("c", 200, "pending"),
+            sale("d", 100, "unchecked"),
+            sale("e", 400, "seen"),
+            # Not taken: a QR still open or left unpaid with nothing to check it, cancelled, expired, another currency
+            sale("f", 700, "cancelled"),
+            sale("g", 700, "expired"),
+            sale("h", 700, "paid", "USD"),
+        ]
         # 500+300+400 = 1200: 8.00 left
         self.assertEqual(self.quick(("801",), book)["sales"][0]["error"][:37], "This sale is 8.01 EUR and only 8.00 E")
         self.assertEqual(self.quick(("800",), book)["sales"][0]["error"], "")
 
     def test_the_quick_start_used_up_says_so_and_a_history_brought_back_counts(self):
-        book = [{"id": "a", "at": time.time() * 1000 - 60000, "cents": 2000, "currency": "EUR", "status": "paid", "sats": 1}]
+        book = [
+            {"id": "a", "at": time.time() * 1000 - 60000, "cents": 2000, "currency": "EUR", "status": "paid", "sats": 1}
+        ]
         out = self.quick(("100",), book)
         self.assertEqual(out["sales"][0]["error"], "Quick start used up. Finish the training to keep taking payments.")
         self.assertEqual(len(out["ledger"]), 1)
@@ -1744,15 +2675,32 @@ class LightningFlow(RegisterRun):
         from .views import quick_texts
 
         out = self.sell(
-            [invoice(10000)[0]], typed=("100",), whole=True, quick_start={"cents": 2000, "currency": "EUR"},
+            [invoice(10000)[0]],
+            typed=("100",),
+            whole=True,
+            quick_start={"cents": 2000, "currency": "EUR"},
             texts={**texts(), **{key: str(value) for key, value in quick_texts().items()}},
-            storage={"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "currency": "USD", "sources": SOURCES})})
+            storage={
+                "register-settings:shop-1": json.dumps({"lightning": ADDRESS, "currency": "USD", "sources": SOURCES})
+            },
+        )
         self.assertEqual(out["sales"][0]["error"], "The quick start counts in EUR: set that currency in the settings.")
         self.assertEqual(out["ledger"], [])
 
     def test_without_a_quick_start_nothing_is_counted(self):
-        book = [{"id": "a", "at": time.time() * 1000 - 60000, "cents": 99900, "currency": "EUR", "status": "paid", "sats": 1}]
-        out = self.sell([invoice(5000)[0]], typed=("500",), whole=True, storage={"register-ledger:shop-1": json.dumps(book)})
+        book = [
+            {
+                "id": "a",
+                "at": time.time() * 1000 - 60000,
+                "cents": 99900,
+                "currency": "EUR",
+                "status": "paid",
+                "sats": 1,
+            }
+        ]
+        out = self.sell(
+            [invoice(5000)[0]], typed=("500",), whole=True, storage={"register-ledger:shop-1": json.dumps(book)}
+        )
         self.assertEqual(out["sales"][0]["error"], "")
 
     def test_a_payment_after_cancel_is_paid_and_marked(self):
@@ -1760,8 +2708,18 @@ class LightningFlow(RegisterRun):
         paid, marked as paid after it was cancelled. Once the invoice is over, it keeps only what the history needs."""
         pr, _hash = invoice(10000)
         now = time.time() * 1000
-        cancelled = {"id": "late", "at": now - 60000, "cents": 1000, "currency": "EUR", "status": "cancelled", "sats": 10000,
-                     "pr": pr, "hash": _hash, "verify": "https://ln.example.org/verify/0", "expires": now + 600000}
+        cancelled = {
+            "id": "late",
+            "at": now - 60000,
+            "cents": 1000,
+            "currency": "EUR",
+            "status": "cancelled",
+            "sats": 10000,
+            "pr": pr,
+            "hash": _hash,
+            "verify": "https://ln.example.org/verify/0",
+            "expires": now + 600000,
+        }
         verify = lambda at: f"https://ln.example.org/verify/{at}"  # noqa: E731
         paid = {"status": "OK", "settled": True, "preimage": "00" * 32, "pr": pr}
         down = {"status": "ERROR", "reason": "down"}
@@ -1777,8 +2735,13 @@ class LightningFlow(RegisterRun):
             # A day after its end the provider still does not answer: dropped, to look for in the wallet
             {**cancelled, "id": "gone", "expires": now - 25 * 3600000, "verify": verify(4)},
         ]
-        out = self.sell([pr] * 5, {0: paid, 1: unpaid, 2: down, 3: paid, 4: down}, typed=(), whole=True,
-                        storage={"register-ledger:shop-1": json.dumps(sales)})
+        out = self.sell(
+            [pr] * 5,
+            {0: paid, 1: unpaid, 2: down, 3: paid, 4: down},
+            typed=(),
+            whole=True,
+            storage={"register-ledger:shop-1": json.dumps(sales)},
+        )
         by_id = {sale["id"]: sale for sale in out["ledger"]}
         self.assertEqual((by_id["late"]["status"], by_id["late"]["late"]), ("paid", True))
         self.assertNotIn("verify", by_id["late"])
@@ -1793,11 +2756,26 @@ class LightningFlow(RegisterRun):
         paid», and the invoice over) does not put it back as expired."""
         pr, _hash = invoice(10000)
         now = time.time() * 1000
-        waiting = {"id": "w", "at": now - 900000, "cents": 1000, "currency": "EUR", "status": "pending", "sats": 10000,
-                   "pr": pr, "hash": _hash, "verify": "https://ln.example.org/verify/0", "expires": now - 1000}
-        out = self.sell([pr], {0: {"status": "OK", "settled": False, "pr": pr}}, typed=(), whole=True,
-                        storage={"register-ledger:shop-1": json.dumps([waiting])},
-                        ln_meanwhile={"at": 0, "entry": {**waiting, "status": "paid"}})
+        waiting = {
+            "id": "w",
+            "at": now - 900000,
+            "cents": 1000,
+            "currency": "EUR",
+            "status": "pending",
+            "sats": 10000,
+            "pr": pr,
+            "hash": _hash,
+            "verify": "https://ln.example.org/verify/0",
+            "expires": now - 1000,
+        }
+        out = self.sell(
+            [pr],
+            {0: {"status": "OK", "settled": False, "pr": pr}},
+            typed=(),
+            whole=True,
+            storage={"register-ledger:shop-1": json.dumps([waiting])},
+            ln_meanwhile={"at": 0, "entry": {**waiting, "status": "paid"}},
+        )
         self.assertEqual([sale["status"] for sale in out["ledger"] if sale["id"] == "w"], ["paid"])
 
     def test_a_late_paid_answer_moves_forward_a_sale_nobody_knew_about_but_not_one_the_merchant_decided(self):
@@ -1805,22 +2783,42 @@ class LightningFlow(RegisterRun):
         the merchant cancelled, or confirmed by hand, in the meantime is left as it is."""
         pr, _hash = invoice(10000)
         now = time.time() * 1000
-        waiting = {"id": "w", "at": now - 900000, "cents": 1000, "currency": "EUR", "status": "pending", "sats": 10000,
-                   "pr": pr, "hash": _hash, "verify": "https://ln.example.org/verify/0", "expires": now - 1000}
+        waiting = {
+            "id": "w",
+            "at": now - 900000,
+            "cents": 1000,
+            "currency": "EUR",
+            "status": "pending",
+            "sats": 10000,
+            "pr": pr,
+            "hash": _hash,
+            "verify": "https://ln.example.org/verify/0",
+            "expires": now - 1000,
+        }
         paid = {"status": "OK", "settled": True, "preimage": "00" * 32, "pr": pr}
-        for meanwhile, expected in (("unchecked", "paid"), ("expired", "paid"), ("cancelled", "cancelled"),
-                                    ("confirmed", "confirmed")):
+        for meanwhile, expected in (
+            ("unchecked", "paid"),
+            ("expired", "paid"),
+            ("cancelled", "cancelled"),
+            ("confirmed", "confirmed"),
+        ):
             with self.subTest(meanwhile=meanwhile):
-                out = self.sell([pr], {0: paid}, typed=(), whole=True,
-                                storage={"register-ledger:shop-1": json.dumps([waiting])},
-                                ln_meanwhile={"at": 0, "entry": {**waiting, "status": meanwhile}})
+                out = self.sell(
+                    [pr],
+                    {0: paid},
+                    typed=(),
+                    whole=True,
+                    storage={"register-ledger:shop-1": json.dumps([waiting])},
+                    ln_meanwhile={"at": 0, "entry": {**waiting, "status": meanwhile}},
+                )
                 self.assertEqual([sale["status"] for sale in out["ledger"] if sale["id"] == "w"], [expected])
 
     def test_an_invoice_served_again_does_not_close_a_second_sale(self):
         # 10.00 EUR at 100,000 EUR per bitcoin: 10,000 sats, twice; the provider (or a cache) gives the same invoice again
         pr, _hash = invoice(10000)
-        first, second = self.sell([pr], {0: {"status": "OK", "settled": True, "preimage": "00" * 32, "pr": pr}},
-                                  typed=("1000", "1000"))
+        first, second = self.sell(
+            [pr], {0: {"status": "OK", "settled": True, "preimage": "00" * 32, "pr": pr}}, typed=("1000", "1000")
+        )
         self.assertEqual([(sale["status"], sale["hash"]) for sale in first["ledger"]], [("paid", _hash)])
         self.assertIn("already used", second["error"])
         self.assertEqual(len(second["ledger"]), 1)
@@ -1843,14 +2841,22 @@ class LightningFlow(RegisterRun):
         cases = {
             # Some providers leave the invoice out: the preimage of the sale's payment hash is proof enough
             "no invoice in the answer": ({"status": "OK", "settled": True, "preimage": "AB" * 32}, "paid"),
-            "no invoice, preimage in base64": ({"status": "OK", "settled": True,
-                                                "preimage": base64.b64encode(bytes.fromhex("ab" * 32)).decode()}, "paid"),
+            "no invoice, preimage in base64": (
+                {"status": "OK", "settled": True, "preimage": base64.b64encode(bytes.fromhex("ab" * 32)).decode()},
+                "paid",
+            ),
             "no invoice, another preimage": ({"status": "OK", "settled": True, "preimage": "cd" * 32}, "pending"),
             "no invoice, no preimage": ({"status": "OK", "settled": True}, "pending"),
             "another preimage": ({"status": "OK", "settled": True, "preimage": "cd" * 32, "pr": pr}, "pending"),
-            "a preimage of another size": ({"status": "OK", "settled": True, "preimage": "ab" * 31, "pr": pr}, "pending"),
+            "a preimage of another size": (
+                {"status": "OK", "settled": True, "preimage": "ab" * 31, "pr": pr},
+                "pending",
+            ),
             "an error": ({"status": "ERROR", "reason": "x", "settled": True, "pr": pr}, "pending"),
-            "another invoice": ({"status": "OK", "settled": True, "pr": invoice(10000, preimage="cd" * 32)[0]}, "pending"),
+            "another invoice": (
+                {"status": "OK", "settled": True, "pr": invoice(10000, preimage="cd" * 32)[0]},
+                "pending",
+            ),
             "right": ({"status": "OK", "settled": True, "preimage": "AB" * 32, "pr": pr.upper()}, "paid"),
             "right, no preimage": ({"status": "OK", "settled": True, "pr": pr}, "paid"),
         }
@@ -1865,7 +2871,9 @@ class LightningFlow(RegisterRun):
 
     def test_without_webcrypto_only_the_invoice_in_the_answer_proves_the_payment(self):
         pr, _hash = invoice(10000, preimage="ab" * 32)
-        [with_pr] = self.sell([pr], {0: {"status": "OK", "settled": True, "preimage": "ab" * 32, "pr": pr}}, no_subtle=True)
+        [with_pr] = self.sell(
+            [pr], {0: {"status": "OK", "settled": True, "preimage": "ab" * 32, "pr": pr}}, no_subtle=True
+        )
         self.assertEqual(with_pr["ledger"][0]["status"], "paid")
         [without] = self.sell([pr], {0: {"status": "OK", "settled": True, "preimage": "ab" * 32}}, no_subtle=True)
         self.assertEqual(without["ledger"][0]["status"], "pending")
@@ -1875,10 +2883,25 @@ class LightningFlow(RegisterRun):
     def test_a_sale_left_waiting_without_a_good_answer_ends_not_checked(self):
         pr, _hash = invoice(10000)
         now = time.time() * 1000
-        waiting = {"id": "w", "at": now - 7200000, "cents": 1000, "currency": "EUR", "status": "pending", "sats": 10000,
-                   "pr": pr, "hash": _hash, "verify": "https://ln.example.org/verify/0", "expires": now - 1000}
-        out = self.sell([pr], {0: {"status": "ERROR", "reason": "down"}}, typed=(), whole=True,
-                        storage={"register-ledger:shop-1": json.dumps([waiting])})
+        waiting = {
+            "id": "w",
+            "at": now - 7200000,
+            "cents": 1000,
+            "currency": "EUR",
+            "status": "pending",
+            "sats": 10000,
+            "pr": pr,
+            "hash": _hash,
+            "verify": "https://ln.example.org/verify/0",
+            "expires": now - 1000,
+        }
+        out = self.sell(
+            [pr],
+            {0: {"status": "ERROR", "reason": "down"}},
+            typed=(),
+            whole=True,
+            storage={"register-ledger:shop-1": json.dumps([waiting])},
+        )
         self.assertEqual(out["ledger"][0]["status"], "unchecked")
         # Looked at again for a day: what the check needs stays
         self.assertEqual(out["ledger"][0]["verify"], "https://ln.example.org/verify/0")
@@ -1889,13 +2912,28 @@ class LightningFlow(RegisterRun):
         pr, _hash = invoice(10000)
         now = time.time() * 1000
         verify = lambda at: f"https://ln.example.org/verify/{at}"  # noqa: E731
-        base = {"at": now - 7200000, "cents": 1000, "currency": "EUR", "status": "unchecked", "sats": 10000, "pr": pr,
-                "hash": _hash, "expires": now - 3600000}
-        sales = [{**base, "id": "paid", "verify": verify(0)}, {**base, "id": "unpaid", "verify": verify(1)},
-                 {**base, "id": "silent", "verify": verify(2)},
-                 {**base, "id": "old", "verify": verify(3), "expires": now - 25 * 3600000}]
-        answers = {0: {"status": "OK", "settled": True, "preimage": "00" * 32, "pr": pr},
-                   1: {"status": "OK", "settled": False, "pr": pr}, 2: {"status": "ERROR"}, 3: {"status": "ERROR"}}
+        base = {
+            "at": now - 7200000,
+            "cents": 1000,
+            "currency": "EUR",
+            "status": "unchecked",
+            "sats": 10000,
+            "pr": pr,
+            "hash": _hash,
+            "expires": now - 3600000,
+        }
+        sales = [
+            {**base, "id": "paid", "verify": verify(0)},
+            {**base, "id": "unpaid", "verify": verify(1)},
+            {**base, "id": "silent", "verify": verify(2)},
+            {**base, "id": "old", "verify": verify(3), "expires": now - 25 * 3600000},
+        ]
+        answers = {
+            0: {"status": "OK", "settled": True, "preimage": "00" * 32, "pr": pr},
+            1: {"status": "OK", "settled": False, "pr": pr},
+            2: {"status": "ERROR"},
+            3: {"status": "ERROR"},
+        }
         out = self.sell([pr] * 4, answers, typed=(), whole=True, storage={"register-ledger:shop-1": json.dumps(sales)})
         by_id = {sale["id"]: sale for sale in out["ledger"]}
         self.assertEqual((by_id["paid"]["status"], by_id["paid"].get("late")), ("paid", None))
@@ -1912,12 +2950,28 @@ class LightningFlow(RegisterRun):
         ledger = f"shop-1:{REGISTER}"
         url = lambda at: f"https://ln.example.org/verify/{at}"  # noqa: E731
         made = {n: invoice(10000, preimage=f"{n:02x}" * 32) for n in range(1, 16)}
-        settled = lambda n, **change: {"status": "OK", "settled": True, "preimage": f"{n:02x}" * 32,  # noqa: E731
-                                       "pr": made[n][0], **change}
+        settled = lambda n, **change: {  # noqa: E731
+            "status": "OK",
+            "settled": True,
+            "preimage": f"{n:02x}" * 32,
+            "pr": made[n][0],
+            **change,
+        }
 
         def staff_sale(name, n, **change):
-            return {"id": name, "at": now - 60000, "cents": 1000, "currency": "EUR", "status": "paid", "sats": 10000,
-                    "till": ledger, "reported": ledger, "hash": made[n][1], "verify": url(n), **change}
+            return {
+                "id": name,
+                "at": now - 60000,
+                "cents": 1000,
+                "currency": "EUR",
+                "status": "paid",
+                "sats": 10000,
+                "till": ledger,
+                "reported": ledger,
+                "hash": made[n][1],
+                "verify": url(n),
+                **change,
+            }
 
         sales = [
             staff_sale("ok", 1),
@@ -1936,22 +2990,57 @@ class LightningFlow(RegisterRun):
             staff_sale("by hand", 9, status="confirmed"),
             {k: v for k, v in staff_sale("no url", 10).items() if k != "verify"},
             # Two sales with one hash: one payment cannot confirm both
-            staff_sale("twin 1", 11), staff_sale("twin 2", 11),
+            staff_sale("twin 1", 11),
+            staff_sale("twin 2", 11),
             # Already verified: not asked again
             staff_sale("done", 12, verified=True),
             # This register's own sale is not touched
-            {"id": "own", "at": now - 30000, "cents": 100, "currency": "EUR", "status": "paid", "sats": 10000,
-             "till": "shop-1", "hash": made[13][1], "verify": url(13)}]
-        answers = {1: settled(1), 2: {k: v for k, v in settled(2).items() if k != "pr"},
-                   3: settled(3), 4: settled(15), 5: settled(5, settled=False),
-                   6: settled(6, preimage="aa" * 32), 7: settled(7), 8: settled(8), 9: settled(9),
-                   11: settled(11), 12: {"status": "ERROR"}, 13: settled(13)}
-        out = self.sell([made[1][0]], answers, typed=(), whole=True, storage={"register-ledger:shop-1": json.dumps(sales)})
+            {
+                "id": "own",
+                "at": now - 30000,
+                "cents": 100,
+                "currency": "EUR",
+                "status": "paid",
+                "sats": 10000,
+                "till": "shop-1",
+                "hash": made[13][1],
+                "verify": url(13),
+            },
+        ]
+        answers = {
+            1: settled(1),
+            2: {k: v for k, v in settled(2).items() if k != "pr"},
+            3: settled(3),
+            4: settled(15),
+            5: settled(5, settled=False),
+            6: settled(6, preimage="aa" * 32),
+            7: settled(7),
+            8: settled(8),
+            9: settled(9),
+            11: settled(11),
+            12: {"status": "ERROR"},
+            13: settled(13),
+        }
+        out = self.sell(
+            [made[1][0]], answers, typed=(), whole=True, storage={"register-ledger:shop-1": json.dumps(sales)}
+        )
         by_id = {sale["id"]: sale for sale in out["ledger"]}
         self.assertTrue(by_id["ok"]["verified"])
         self.assertTrue(by_id["done"]["verified"])
-        for name in ("no invoice", "other amount", "other hash", "not settled", "wrong preimage", "elsewhere", "http",
-                     "by hand", "no url", "twin 1", "twin 2", "own"):
+        for name in (
+            "no invoice",
+            "other amount",
+            "other hash",
+            "not settled",
+            "wrong preimage",
+            "elsewhere",
+            "http",
+            "by hand",
+            "no url",
+            "twin 1",
+            "twin 2",
+            "own",
+        ):
             self.assertIsNone(by_id[name].get("verified"), name)
             self.assertEqual(by_id[name].get("reported"), None if name == "own" else ledger, name)
         self.assertEqual(by_id["by hand"]["status"], "confirmed")
@@ -1970,9 +3059,20 @@ class LightningFlow(RegisterRun):
         answers = {}
         for n in range(20):
             sale_pr, sale_hash = invoice(10000, preimage=f"{n + 1:02x}" * 32)
-            sales.append({"id": f"s{n}", "at": now - 60000 + n, "cents": 1000, "currency": "EUR", "status": "paid",
-                          "sats": 10000, "till": ledger, "reported": ledger, "hash": sale_hash,
-                          "verify": f"https://ln.example.org/verify/{n}"})
+            sales.append(
+                {
+                    "id": f"s{n}",
+                    "at": now - 60000 + n,
+                    "cents": 1000,
+                    "currency": "EUR",
+                    "status": "paid",
+                    "sats": 10000,
+                    "till": ledger,
+                    "reported": ledger,
+                    "hash": sale_hash,
+                    "verify": f"https://ln.example.org/verify/{n}",
+                }
+            )
             answers[n] = {"status": "OK", "settled": True, "preimage": f"{n + 1:02x}" * 32, "pr": sale_pr}
         out = self.sell([pr] * 20, answers, typed=(), whole=True, storage={"register-ledger:shop-1": json.dumps(sales)})
         # One round asks for at most eight; the rest waits for the next round (every minute)
@@ -2070,10 +3170,20 @@ eval(fs.readFileSync(process.argv[2], "utf8"));
 })();
 """
 
-PAGE = {"status": 200, "body": "register", "headers": {"Content-Type": "text/html; charset=utf-8",
-                                                       "Content-Security-Policy": "default-src 'self'", "X-Register": "1"}}
-SCRIPT = {"status": 200, "body": "script", "headers": {"Content-Type": "text/javascript",
-                                                       "Content-Security-Policy": "default-src 'self'"}}
+PAGE = {
+    "status": 200,
+    "body": "register",
+    "headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Content-Security-Policy": "default-src 'self'",
+        "X-Register": "1",
+    },
+}
+SCRIPT = {
+    "status": 200,
+    "body": "script",
+    "headers": {"Content-Type": "text/javascript", "Content-Security-Policy": "default-src 'self'"},
+}
 # Caddy's works page: maintenance, or an address outside the whitelist. The same page for every path, without the CSP
 WORKS = {"status": 200, "body": "works", "headers": {"Content-Type": "text/html; charset=utf-8"}}
 
@@ -2083,9 +3193,15 @@ class OfflineCopy(RegisterRun):
 
     def keep(self, page, script, before=None):
         storage = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS})}
-        return self.run_register({"ledger": "shop-1", "shop": "shop-1", "worker": "/register/sw.js"}, storage, copy={
-            "files": {"/register/": page, "/static/register.js": script}, "scripts": ["https://example.org/static/register.js"],
-            "before": before or {}})
+        return self.run_register(
+            {"ledger": "shop-1", "shop": "shop-1", "worker": "/register/sw.js"},
+            storage,
+            copy={
+                "files": {"/register/": page, "/static/register.js": script},
+                "scripts": ["https://example.org/static/register.js"],
+                "before": before or {},
+            },
+        )
 
     def test_the_page_keeps_only_the_site_own_register(self):
         self.assertEqual(self.keep(PAGE, SCRIPT), {"/register/": "register", "/static/register.js": "script"})
@@ -2099,24 +3215,52 @@ class OfflineCopy(RegisterRun):
         self.assertEqual(self.keep({**PAGE, "redirected": True}, {**SCRIPT, "status": 404}, before), before)
 
     def test_the_service_worker_serves_the_copy_in_place_of_the_works_page(self):
-        saved = {"/register/": {**PAGE, "body": "saved register"}, "/static/register.js": {**SCRIPT, "body": "saved script"}}
+        saved = {
+            "/register/": {**PAGE, "body": "saved register"},
+            "/static/register.js": {**SCRIPT, "body": "saved script"},
+        }
         missing = {"status": 404, "body": "not found", "headers": {**PAGE["headers"]}}
-        cases = [["/register/", "navigate", WORKS], ["/static/register.js", "no-cors", WORKS],
-                 ["/static/register.js", "no-cors", PAGE], ["/static/register.js", "no-cors", SCRIPT],
-                 ["/register/", "navigate", PAGE], ["/register/", "navigate", missing],
-                 ["/static/register.js", "no-cors", {**SCRIPT, "status": 502}],
-                 # The staff rules or an expired login: the site sends elsewhere, and the browser follows
-                 ["/register/", "navigate", {"status": 0, "type": "opaqueredirect", "body": "", "headers": {}}],
-                 ["/register/", "navigate", {**PAGE, "body": "rules", "redirected": True, "url": "https://example.org/rules/"}],
-                 # A script is never a navigation: the saved one stays
-                 ["/static/register.js", "no-cors", {"status": 0, "type": "opaqueredirect", "body": "", "headers": {}}]]
+        cases = [
+            ["/register/", "navigate", WORKS],
+            ["/static/register.js", "no-cors", WORKS],
+            ["/static/register.js", "no-cors", PAGE],
+            ["/static/register.js", "no-cors", SCRIPT],
+            ["/register/", "navigate", PAGE],
+            ["/register/", "navigate", missing],
+            ["/static/register.js", "no-cors", {**SCRIPT, "status": 502}],
+            # The staff rules or an expired login: the site sends elsewhere, and the browser follows
+            ["/register/", "navigate", {"status": 0, "type": "opaqueredirect", "body": "", "headers": {}}],
+            [
+                "/register/",
+                "navigate",
+                {**PAGE, "body": "rules", "redirected": True, "url": "https://example.org/rules/"},
+            ],
+            # A script is never a navigation: the saved one stays
+            ["/static/register.js", "no-cors", {"status": 0, "type": "opaqueredirect", "body": "", "headers": {}}],
+        ]
         with tempfile.TemporaryDirectory() as folder:
             harness, given = Path(folder) / "sw.js", Path(folder) / "given.json"
             harness.write_text(SW_HARNESS)
             given.write_text(json.dumps({"saved": saved, "cases": cases}))
-            result = subprocess.run([self.node, str(harness), str(STATIC / "register-sw.js"), str(given)],
-                                    capture_output=True, text=True, timeout=60)
+            result = subprocess.run(
+                [self.node, str(harness), str(STATIC / "register-sw.js"), str(given)],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout), ["saved register", "saved script", "saved script", "script", "register",
-                                                     "not found", "saved script", "",
-                                                     "redirect to https://example.org/rules/", "saved script"])
+        self.assertEqual(
+            json.loads(result.stdout),
+            [
+                "saved register",
+                "saved script",
+                "saved script",
+                "script",
+                "register",
+                "not found",
+                "saved script",
+                "",
+                "redirect to https://example.org/rules/",
+                "saved script",
+            ],
+        )

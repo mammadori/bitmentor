@@ -1,5 +1,6 @@
 """The example hook examples/git-hooks/commit-msg: where the «Block height» line goes, and that nothing waits for
 the network. No source is asked here."""
+
 import importlib.machinery
 import importlib.util
 import os
@@ -30,18 +31,23 @@ class BlockHeight(SimpleTestCase):
 
     def test_the_line_goes_at_the_end(self):
         self.assertEqual(self.hook.with_height("Title\n", 900000), "Title\n\nBlock height: 900000\n")
-        self.assertEqual(self.hook.with_height("Title\n\nA body.\n\n\n# a comment of git\n", 900000),
-                         "Title\n\nA body.\n\nBlock height: 900000\n")
+        self.assertEqual(
+            self.hook.with_height("Title\n\nA body.\n\n\n# a comment of git\n", 900000),
+            "Title\n\nA body.\n\nBlock height: 900000\n",
+        )
 
     def test_before_the_trailers(self):
         message = "Title\n\nA body.\n\nSigned-off-by: A <a@example.org>\nReviewed-by: B <b@example.org>\n"
-        self.assertEqual(self.hook.with_height(message, 900000),
-                         "Title\n\nA body.\n\nBlock height: 900000\n\n"
-                         "Signed-off-by: A <a@example.org>\nReviewed-by: B <b@example.org>\n")
+        self.assertEqual(
+            self.hook.with_height(message, 900000),
+            "Title\n\nA body.\n\nBlock height: 900000\n\n"
+            "Signed-off-by: A <a@example.org>\nReviewed-by: B <b@example.org>\n",
+        )
         # a title that looks like a trailer is the title, and a list is not a block of trailers
         self.assertEqual(self.hook.with_height("Fix: the thing\n", 1), "Fix: the thing\n\nBlock height: 1\n")
-        self.assertEqual(self.hook.with_height("Title\n\n- one: a\n- two\n", 1),
-                         "Title\n\n- one: a\n- two\n\nBlock height: 1\n")
+        self.assertEqual(
+            self.hook.with_height("Title\n\n- one: a\n- two\n", 1), "Title\n\n- one: a\n- two\n\nBlock height: 1\n"
+        )
 
     def test_a_message_with_the_line_or_empty_is_left_alone(self):
         self.assertIsNone(self.hook.with_height("Title\n\nblock height: 5\n", 900000))
@@ -64,8 +70,10 @@ class BlockHeight(SimpleTestCase):
         with patch.dict(os.environ, {"BLOCK_HEIGHT_URLS": ""}):
             self.assertEqual(self.hook.sources(), self.hook.SOURCES)
         # an address that is not http(s) is never opened, and no answer is no height
-        with patch.dict(os.environ, {"BLOCK_HEIGHT_URLS": "file:///etc/hostname ftp://x.example.org"}), patch.object(
-                self.hook.urllib.request, "urlopen") as opened:
+        with (
+            patch.dict(os.environ, {"BLOCK_HEIGHT_URLS": "file:///etc/hostname ftp://x.example.org"}),
+            patch.object(self.hook.urllib.request, "urlopen") as opened,
+        ):
             self.assertIsNone(self.hook.height())
             opened.assert_not_called()
 

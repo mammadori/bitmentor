@@ -1,6 +1,7 @@
 """The walk (shops/details.py): every route of the site, as a stranger and as the owner, with a shop whose every detail is
 hidden and written as a word nobody else uses. Whatever a page, a JSON or a file says, the words must not be in it, except on
 the owner's own pages, which are the ones that show them. A page added tomorrow is walked without anyone remembering it."""
+
 import re
 from collections import defaultdict
 from datetime import timedelta
@@ -16,17 +17,35 @@ from .test_details import an_owner
 from .test_guard import routes
 from .tests import reset_limits
 
-SENTINELS = {"address": "SENTADDR91", "phone": "SENTPHONE92", "email": "sentemail93@example.org", "legal_name": "SENTLEGAL94",
-             "vat_number": "ITSENTVAT95", "website": "https://sentweb96.example.org"}
+SENTINELS = {
+    "address": "SENTADDR91",
+    "phone": "SENTPHONE92",
+    "email": "sentemail93@example.org",
+    "legal_name": "SENTLEGAL94",
+    "vat_number": "ITSENTVAT95",
+    "website": "https://sentweb96.example.org",
+}
 # The pages of the owner that show the owner's own details, hidden or not, to the owner only
 OWNER_PAGES = {"en/shops/edit/<uuid:shop>/", "en/shops/preview/<uuid:shop>/"}
 
 
 def sentinel_shop(owner, **fields):
-    values = dict(name="Probe", city="Example", latitude=41.9, longitude=12.5, lightning=True,
-                  lightning_address="probe@wallet.example.org", description="A shop",
-                  show_website=False, show_address=False, show_phone=False, show_email=False, show_legal_name=False,
-                  show_vat_number=False, **SENTINELS)
+    values = dict(
+        name="Probe",
+        city="Example",
+        latitude=41.9,
+        longitude=12.5,
+        lightning=True,
+        lightning_address="probe@wallet.example.org",
+        description="A shop",
+        show_website=False,
+        show_address=False,
+        show_phone=False,
+        show_email=False,
+        show_legal_name=False,
+        show_vat_number=False,
+        **SENTINELS,
+    )
     values.update(fields)
     return Shop.objects.create(owner=owner, **values)
 
@@ -42,18 +61,34 @@ class Walk(TestCase):
         self.shops = {
             "plain": sentinel_shop(self.owner, name="Plain"),
             "suspended": sentinel_shop(None, name="Susp", suspended=True, external_id="7"),
-            "historic": sentinel_shop(None, name="Hist", closed_on=timezone.localdate() - timedelta(days=30), external_id="8"),
+            "historic": sentinel_shop(
+                None, name="Hist", closed_on=timezone.localdate() - timedelta(days=30), external_id="8"
+            ),
             "waiting": sentinel_shop(self.owner, name="Wait", awaiting_wallet=True, lightning_address=""),
             "unlisted": sentinel_shop(None, name="Unl", listed=False, external_id="9"),
         }
         self.shop = self.shops["plain"]
-        self.register = StaffRegister.objects.create(shop=self.shop, name="Anna", code="c" * 32,
-                                                     code_until=timezone.now() + timedelta(hours=1))
+        self.register = StaffRegister.objects.create(
+            shop=self.shop, name="Anna", code="c" * 32, code_until=timezone.now() + timedelta(hours=1)
+        )
 
     def url(self, route, shop):
-        values = {"shop": str(shop.id), "register": str(self.register.id), "invoice": "inv1", "external": shop.external_id or "7",
-                  "pk": "00000000-0000-0000-0000-000000000001", "slug": "home", "path": "x", "year": "2026", "month": "10",
-                  "number": "1", "key": "k" * 32, "code": "c" * 32, "name": "x", "token": "t"}
+        values = {
+            "shop": str(shop.id),
+            "register": str(self.register.id),
+            "invoice": "inv1",
+            "external": shop.external_id or "7",
+            "pk": "00000000-0000-0000-0000-000000000001",
+            "slug": "home",
+            "path": "x",
+            "year": "2026",
+            "month": "10",
+            "number": "1",
+            "key": "k" * 32,
+            "code": "c" * 32,
+            "name": "x",
+            "token": "t",
+        }
         try:
             return "/" + re.sub(r"<(?:\w+:)?(\w+)>", lambda found: values[found.group(1)], route)
         except KeyError:
@@ -108,6 +143,13 @@ class Walk(TestCase):
     def test_the_walk_sees_the_pages_that_could_leak(self):
         with translation.override("en"):
             found = set(routes(get_resolver().url_patterns))
-        for route in ("en/shops/s/<uuid:shop>/", "en/shops/map/", "en/shops/sign/<uuid:shop>/", "en/shops/card/<uuid:shop>/",
-                      "en/shops/customer-card/<uuid:shop>/", "en/shops/preview/<uuid:shop>/", "shops.json"):
+        for route in (
+            "en/shops/s/<uuid:shop>/",
+            "en/shops/map/",
+            "en/shops/sign/<uuid:shop>/",
+            "en/shops/card/<uuid:shop>/",
+            "en/shops/customer-card/<uuid:shop>/",
+            "en/shops/preview/<uuid:shop>/",
+            "shops.json",
+        ):
             self.assertIn(route, found)

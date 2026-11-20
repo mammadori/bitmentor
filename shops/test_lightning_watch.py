@@ -1,5 +1,6 @@
 """The guardian of the Lightning addresses (shops/lightning_watch.py), against a fake LNURL provider that answers well,
 badly, slowly or not at all. Nothing here talks to a real provider."""
+
 import json
 from datetime import date, timedelta
 from io import StringIO
@@ -24,8 +25,15 @@ from .tests import admin_session, public_names, steady_limits
 
 COMMAND = "shops.management.commands.preflight"
 # The settings of a site ready for production, as in test_preflight
-PREFLIGHT = {"SITE_SCHEME": "https", "NETWORK": "mainnet", "DEBUG": False, "SECRET_KEY": "x" * 60, "EMAIL_HOST": "mail",
-             "DEFAULT_FROM_EMAIL": "Community <noreply@community.example.net>", "SECURE_HSTS_SECONDS": 31536000}
+PREFLIGHT = {
+    "SITE_SCHEME": "https",
+    "NETWORK": "mainnet",
+    "DEBUG": False,
+    "SECRET_KEY": "x" * 60,
+    "EMAIL_HOST": "mail",
+    "DEFAULT_FROM_EMAIL": "Community <noreply@community.example.net>",
+    "SECURE_HSTS_SECONDS": 31536000,
+}
 PANEL = "/en/shops/"
 
 
@@ -63,7 +71,10 @@ class FakeProvider:
             if self.mode == "not_lnurl":
                 return self.reply({"status": "ERROR", "reason": "not found"})
             if self.mode == "infinite":
-                return self.reply(None, chunks=[b'{"tag": "payRequest", "callback": "https://pay.example.org/cb", "minSendable": 1e400}'])
+                return self.reply(
+                    None,
+                    chunks=[b'{"tag": "payRequest", "callback": "https://pay.example.org/cb", "minSendable": 1e400}'],
+                )
             # The provider of each address answers from a subdomain of the address's own domain, as the register asks
             host = "elsewhere.example" if self.mode == "callback_elsewhere" else urlsplit(url).hostname
             return self.reply({"tag": "payRequest", "callback": f"https://pay.{host}/cb", "minSendable": 1000})
@@ -82,8 +93,11 @@ class FakeProvider:
 
 def provider(mode="ok"):
     fake = FakeProvider(mode)
-    patches = [public_names(), patch("shops.lnaddress.missing", return_value=False),
-               patch("shops.lnaddress.requests.Session.get", side_effect=fake)]
+    patches = [
+        public_names(),
+        patch("shops.lnaddress.missing", return_value=False),
+        patch("shops.lnaddress.requests.Session.get", side_effect=fake),
+    ]
     if mode == "slow":
         # Each chunk takes a second: past MAX_SECONDS the answer does not count
         clock = iter(range(0, 10000))
@@ -109,18 +123,31 @@ class Provider:
 
 class Probe(TestCase):
     def test_what_the_probe_finds(self):
-        for mode, found in (("ok", OK), ("silent", NO_ANSWER), ("error", NO_ANSWER), ("slow", NO_ANSWER),
-                            ("not_lnurl", NO_ANSWER), ("no_invoice", NO_ANSWER), ("no_verify", NO_CONFIRMATION),
-                            ("infinite", NO_ANSWER), ("callback_elsewhere", NO_ANSWER),
-                            ("verify_elsewhere", NO_CONFIRMATION)):
+        for mode, found in (
+            ("ok", OK),
+            ("silent", NO_ANSWER),
+            ("error", NO_ANSWER),
+            ("slow", NO_ANSWER),
+            ("not_lnurl", NO_ANSWER),
+            ("no_invoice", NO_ANSWER),
+            ("no_verify", NO_CONFIRMATION),
+            ("infinite", NO_ANSWER),
+            ("callback_elsewhere", NO_ANSWER),
+            ("verify_elsewhere", NO_CONFIRMATION),
+        ):
             with self.subTest(mode), Provider(mode):
                 self.assertEqual(probe("bar@example.org"), found)
 
     def test_what_the_guardian_reads(self):
         """One probe for the form and the guardian: OK is None for the guardian, and a provider whose name is gone a fault
         like one that does not answer."""
-        for found, read in ((OK, None), (UNKNOWN_DOMAIN, NO_ANSWER), (NO_ANSWER, NO_ANSWER),
-                            (NO_CONFIRMATION, NO_CONFIRMATION), (lightning_watch.UNSURE, lightning_watch.UNSURE)):
+        for found, read in (
+            (OK, None),
+            (UNKNOWN_DOMAIN, NO_ANSWER),
+            (NO_ANSWER, NO_ANSWER),
+            (NO_CONFIRMATION, NO_CONFIRMATION),
+            (lightning_watch.UNSURE, lightning_watch.UNSURE),
+        ):
             with self.subTest(found), patch("shops.lnaddress.probe", return_value=found) as asked:
                 self.assertEqual(lightning_watch.watch_probe("bar@example.org"), read)
             asked.assert_called_once_with("bar@example.org", busy=lightning_watch.UNSURE)
@@ -133,23 +160,48 @@ class Probe(TestCase):
         self.assertEqual(fake.urls, ["https://example.org/.well-known/lnurlp/bar"])
         with Provider("verify_elsewhere") as fake:
             self.assertEqual(probe("bar@example.org"), NO_CONFIRMATION)
-        self.assertEqual(fake.urls, ["https://example.org/.well-known/lnurlp/bar", "https://pay.example.org/cb?amount=1000"])
+        self.assertEqual(
+            fake.urls, ["https://example.org/.well-known/lnurlp/bar", "https://pay.example.org/cb?amount=1000"]
+        )
 
     def test_what_counts_as_the_address_s_own_provider(self):
         from .lnaddress import same_provider
-        for url in ("https://example.org/cb", "https://pay.example.org/cb", "https://a.b.example.org:443/cb", "https://EXAMPLE.org/cb"):
+
+        for url in (
+            "https://example.org/cb",
+            "https://pay.example.org/cb",
+            "https://a.b.example.org:443/cb",
+            "https://EXAMPLE.org/cb",
+        ):
             self.assertTrue(same_provider(url, "example.org"), url)
-        for url in ("http://example.org/cb", "https://example.org:8443/cb", "https://notexample.org/cb",
-                    "https://example.org.evil.example/cb", "https://evil.example/?example.org", "https://user@evil.example/example.org",
-                    "https://example.org@evil.example/cb", "//example.org/cb", "", None, 7, "https://[::1/cb"):
+        for url in (
+            "http://example.org/cb",
+            "https://example.org:8443/cb",
+            "https://notexample.org/cb",
+            "https://example.org.evil.example/cb",
+            "https://evil.example/?example.org",
+            "https://user@evil.example/example.org",
+            "https://example.org@evil.example/cb",
+            "//example.org/cb",
+            "",
+            None,
+            7,
+            "https://[::1/cb",
+        ):
             self.assertFalse(same_provider(url, "example.org"), url)
 
     def test_the_same_requests_as_when_the_shop_is_created(self):
         """Metadata, an invoice of the smallest amount that nobody pays, its verify URL: nothing more."""
         with Provider() as fake:
             probe("bar@example.org")
-        self.assertEqual(fake.urls, ["https://example.org/.well-known/lnurlp/bar", "https://pay.example.org/cb?amount=1000",
-                                     "https://pay.example.org/verify/abc"])
+        self.assertEqual(
+            fake.urls,
+            [
+                "https://example.org/.well-known/lnurlp/bar",
+                "https://pay.example.org/cb?amount=1000",
+                "https://pay.example.org/verify/abc",
+            ],
+        )
 
 
 @override_settings(TELEGRAM_BOT_TOKEN="", TELEGRAM_MODERATION_CHAT="")
@@ -157,8 +209,7 @@ class Watch(TestCase):
     def setUp(self):
         self.owner = get_user_model().objects.create(username="k")
         Profile.objects.create(user=self.owner, email="mario@example.org")
-        self.shop = Shop.objects.create(owner=self.owner, name="Central Bar",
-                                        lightning_address="bar@example.org")
+        self.shop = Shop.objects.create(owner=self.owner, name="Central Bar", lightning_address="bar@example.org")
         self.now = timezone.now()
 
     def run_check(self, mode, after=timedelta(0), by_owner=False):
@@ -238,6 +289,7 @@ class Watch(TestCase):
         def changed(*args, **kwargs):
             Shop.objects.filter(pk=self.shop.pk).update(lightning_address="new@example.net")
             return NO_ANSWER
+
         with patch("shops.lightning_watch.lnaddress.probe", side_effect=changed):
             self.assertEqual(check(self.shop.pk)[1], None)
         self.shop.refresh_from_db()
@@ -263,8 +315,15 @@ class Watch(TestCase):
         message = mail.outbox[0]
         self.assertIn("Central Bar", message.subject)
         self.assertIn("cannot take Lightning payments", message.subject)
-        for text in ("bar@example.org", "did not answer", "What your customers see", "What to do now",
-                     "Open your wallet", f"{settings.PUBLIC_URL}/en/shops/", "change it from your shop's page"):
+        for text in (
+            "bar@example.org",
+            "did not answer",
+            "What your customers see",
+            "What to do now",
+            "Open your wallet",
+            f"{settings.PUBLIC_URL}/en/shops/",
+            "change it from your shop's page",
+        ):
             self.assertIn(text, message.body)
         for jargon in ("LNURL", "LUD", "webhook", "store"):
             self.assertNotIn(jargon, message.body)
@@ -323,18 +382,37 @@ class Watched(TestCase):
     def test_who_is_due(self):
         now = timezone.now()
         never = self.shop()
-        recent = self.shop(lightning_checked=now - timedelta(hours=1), lightning_checked_address="bar@example.org",
-                           lightning_status="ok")
-        old = self.shop(lightning_checked=now - timedelta(hours=7), lightning_checked_address="bar@example.org",
-                        lightning_status="ok")
-        failing = self.shop(lightning_checked=now - timedelta(hours=1), lightning_checked_address="bar@example.org",
-                            lightning_status="ok", lightning_failures=1)
-        broken = self.shop(lightning_checked=now - timedelta(hours=1), lightning_checked_address="bar@example.org",
-                           lightning_status="no_answer")
-        just_failed = self.shop(lightning_checked=now - timedelta(minutes=10), lightning_checked_address="bar@example.org",
-                                lightning_status="no_answer")
-        other_address = self.shop(lightning_checked=now - timedelta(minutes=10), lightning_checked_address="old@example.org",
-                                  lightning_status="ok")
+        recent = self.shop(
+            lightning_checked=now - timedelta(hours=1),
+            lightning_checked_address="bar@example.org",
+            lightning_status="ok",
+        )
+        old = self.shop(
+            lightning_checked=now - timedelta(hours=7),
+            lightning_checked_address="bar@example.org",
+            lightning_status="ok",
+        )
+        failing = self.shop(
+            lightning_checked=now - timedelta(hours=1),
+            lightning_checked_address="bar@example.org",
+            lightning_status="ok",
+            lightning_failures=1,
+        )
+        broken = self.shop(
+            lightning_checked=now - timedelta(hours=1),
+            lightning_checked_address="bar@example.org",
+            lightning_status="no_answer",
+        )
+        just_failed = self.shop(
+            lightning_checked=now - timedelta(minutes=10),
+            lightning_checked_address="bar@example.org",
+            lightning_status="no_answer",
+        )
+        other_address = self.shop(
+            lightning_checked=now - timedelta(minutes=10),
+            lightning_checked_address="old@example.org",
+            lightning_status="ok",
+        )
         due = list(lightning_watch.due(now))
         self.assertEqual(set(due), {never, old, failing, broken, other_address})
         self.assertEqual(due[0], never)
@@ -342,9 +420,16 @@ class Watched(TestCase):
         self.assertNotIn(just_failed, due)
 
     def test_a_shop_no_longer_watched_forgets_its_status(self):
-        shop = self.shop(suspended=True, lightning_status="no_answer", lightning_checked=timezone.now(),
-                         lightning_checked_address="bar@example.org", lightning_failures=2)
-        kept = self.shop(lightning_status="no_answer", lightning_checked=timezone.now(), lightning_checked_address="bar@example.org")
+        shop = self.shop(
+            suspended=True,
+            lightning_status="no_answer",
+            lightning_checked=timezone.now(),
+            lightning_checked_address="bar@example.org",
+            lightning_failures=2,
+        )
+        kept = self.shop(
+            lightning_status="no_answer", lightning_checked=timezone.now(), lightning_checked_address="bar@example.org"
+        )
         self.assertEqual(lightning_watch.forget_unwatched(), 1)
         shop.refresh_from_db()
         self.assertEqual((shop.lightning_status, shop.lightning_checked, shop.lightning_failures), ("", None, 0))
@@ -364,13 +449,18 @@ class Watched(TestCase):
 class Command(TestCase):
     def setUp(self):
         self.owner = get_user_model().objects.create(username="k")
-        self.shops = [Shop.objects.create(owner=self.owner, name=f"Bar {n}",
-                                          lightning_address=f"bar{n}@example.org") for n in range(3)]
+        self.shops = [
+            Shop.objects.create(owner=self.owner, name=f"Bar {n}", lightning_address=f"bar{n}@example.org")
+            for n in range(3)
+        ]
 
     def run_it(self, mode="ok", *args, now=None, clock=None):
         out = StringIO()
-        with Provider(mode) as fake, patch("shops.management.commands.check_lightning.time") as command_time, \
-                patch("shops.notifications.requests.post") as post:
+        with (
+            Provider(mode) as fake,
+            patch("shops.management.commands.check_lightning.time") as command_time,
+            patch("shops.notifications.requests.post") as post,
+        ):
             command_time.monotonic.side_effect = clock or (lambda: 0)
             sleep = command_time.sleep
             post.return_value.status_code = 200
@@ -378,8 +468,10 @@ class Command(TestCase):
             network.start()
             self.addCleanup(network.stop)
             if now:
-                with patch("shops.lightning_watch.timezone.now", return_value=now), \
-                        patch("shops.management.commands.check_lightning.timezone.now", return_value=now):
+                with (
+                    patch("shops.lightning_watch.timezone.now", return_value=now),
+                    patch("shops.management.commands.check_lightning.timezone.now", return_value=now),
+                ):
                     call_command("check_lightning", *args, stdout=out)
             else:
                 call_command("check_lightning", *args, stdout=out)
@@ -462,9 +554,12 @@ class Command(TestCase):
             if pk == broken:
                 raise RuntimeError("unexpected")
             return original(pk)
-        with patch("shops.lightning_watch.probe_shop", side_effect=probe_shop), \
-                self.assertLogs("shops.management.commands.check_lightning", "ERROR") as logs, \
-                self.assertRaisesRegex(CommandError, "1 shops raised an error"):
+
+        with (
+            patch("shops.lightning_watch.probe_shop", side_effect=probe_shop),
+            self.assertLogs("shops.management.commands.check_lightning", "ERROR") as logs,
+            self.assertRaisesRegex(CommandError, "1 shops raised an error"),
+        ):
             self.run_it()
         self.assertIn(str(broken), logs.output[0])
         # The others were probed and recorded before the run ended as failed, which is what makes the unit's alarm ring
@@ -474,9 +569,11 @@ class Command(TestCase):
     def test_an_owner_who_cannot_be_told_does_not_stop_the_run(self):
         now = timezone.now()
         self.run_it("silent", now=now)
-        with patch("shops.lightning_watch.tell_owner", side_effect=RuntimeError("unexpected")), \
-                self.assertLogs("shops.management.commands.check_lightning", "ERROR"), \
-                self.assertRaisesRegex(CommandError, "3 shops raised an error"):
+        with (
+            patch("shops.lightning_watch.tell_owner", side_effect=RuntimeError("unexpected")),
+            self.assertLogs("shops.management.commands.check_lightning", "ERROR"),
+            self.assertRaisesRegex(CommandError, "3 shops raised an error"),
+        ):
             self.run_it("silent", now=now + timedelta(hours=1))
         self.assertEqual(Shop.objects.filter(lightning_status="no_answer").count(), 3)
 
@@ -488,6 +585,7 @@ class Command(TestCase):
             if Shop.objects.count() == 3:
                 Shop.objects.exclude(pk=pk).first().delete()
             return original(pk)
+
         with patch("shops.lightning_watch.probe_shop", side_effect=probe_shop):
             fake, sleep, post, out = self.run_it()
         self.assertIn("2 probed", out)
@@ -500,10 +598,17 @@ class Panel(TestCase):
         self.owner = get_user_model().objects.create(username="k")
         self.client.force_login(self.owner)
         now = timezone.now()
-        self.shop = Shop.objects.create(owner=self.owner, name="Bar", lightning_address="bar@example.org",
-                                        lightning_status="no_answer", lightning_since=now - timedelta(hours=2),
-                                        lightning_checked=now - timedelta(hours=1), lightning_checked_address="bar@example.org",
-                                        lightning_failures=2, lightning_worked=now - timedelta(hours=3))
+        self.shop = Shop.objects.create(
+            owner=self.owner,
+            name="Bar",
+            lightning_address="bar@example.org",
+            lightning_status="no_answer",
+            lightning_since=now - timedelta(hours=2),
+            lightning_checked=now - timedelta(hours=1),
+            lightning_checked_address="bar@example.org",
+            lightning_failures=2,
+            lightning_worked=now - timedelta(hours=3),
+        )
         self.retry = f"/en/shops/lightning/{self.shop.id}/"
 
     def page(self):
@@ -515,8 +620,8 @@ class Panel(TestCase):
         self.assertContains(page, "Lightning: your address does not answer")
         self.assertContains(page, "Open your wallet")
         html = page.content.decode()
-        form = html[html.index(f'action="{self.retry}"'):]
-        self.assertIn("csrfmiddlewaretoken", form[:form.index("</form>")])
+        form = html[html.index(f'action="{self.retry}"') :]
+        self.assertIn("csrfmiddlewaretoken", form[: form.index("</form>")])
         # The register stays: the guardian only warns
         self.assertContains(page, f"/en/shops/register/{self.shop.id}/")
 
@@ -526,21 +631,31 @@ class Panel(TestCase):
 
     def test_a_working_address_is_one_quiet_line(self):
         # Checked just now: an hour ago is yesterday between midnight and one in the community's time zone
-        Shop.objects.filter(pk=self.shop.pk).update(lightning_status="ok", lightning_failures=0, lightning_checked=timezone.now(),
-                                                    lightning_worked=timezone.now())
+        Shop.objects.filter(pk=self.shop.pk).update(
+            lightning_status="ok",
+            lightning_failures=0,
+            lightning_checked=timezone.now(),
+            lightning_worked=timezone.now(),
+        )
         page = self.page()
         self.assertNotContains(page, "lightning-alert")
         # Said in the merchant's path (shops/journey.py), once
         self.assertContains(page, "Your Lightning address works: checked today at", count=1)
 
     def test_nothing_for_a_shop_not_watched(self):
-        for change in ({"suspended": True}, {"closed_on": date(2020, 1, 1)}, {"lightning_address": "other@example.org"}):
+        for change in (
+            {"suspended": True},
+            {"closed_on": date(2020, 1, 1)},
+            {"lightning_address": "other@example.org"},
+        ):
             with self.subTest(change):
                 Shop.objects.filter(pk=self.shop.pk).update(**change)
                 page = self.page()
                 self.assertNotContains(page, "lightning-alert")
                 self.assertNotContains(page, "Lightning address checked")
-                Shop.objects.filter(pk=self.shop.pk).update(suspended=False, closed_on=None, lightning_address="bar@example.org")
+                Shop.objects.filter(pk=self.shop.pk).update(
+                    suspended=False, closed_on=None, lightning_address="bar@example.org"
+                )
 
     def test_try_again_and_it_works(self):
         with Provider("ok"), patch("shops.notifications.requests.post") as post:
@@ -611,8 +726,9 @@ class Admin(TestCase):
     def setUp(self):
         admin_session(self.client)
         now = timezone.now()
-        self.broken = Shop.objects.create(name="Broken", lightning_address="a@example.org",
-                                          lightning_status="no_answer", lightning_since=now)
+        self.broken = Shop.objects.create(
+            name="Broken", lightning_address="a@example.org", lightning_status="no_answer", lightning_since=now
+        )
         self.fine = Shop.objects.create(name="Healthy", lightning_address="b@example.org", lightning_status="ok")
         self.unknown = Shop.objects.create(name="Brand new", lightning_address="c@example.org")
 
@@ -637,25 +753,34 @@ class Admin(TestCase):
 class PreflightNotes(TestCase):
     def test_broken_addresses_are_counted_not_a_stop(self):
         now = timezone.now()
-        Shop.objects.create(name="A", lightning_address="a@example.org", lightning_status="no_answer",
-                            lightning_checked=now)
-        Shop.objects.create(name="B", lightning_address="b@example.org", lightning_status="no_confirmation",
-                            lightning_checked=now)
-        Shop.objects.create(name="C", lightning_address="c@example.org", lightning_status="no_answer",
-                            suspended=True)
-        self.assertEqual(lightning_notes(), ["2 shops with a Lightning address that does not work: /admin/shops/shop/?lightning=broken"])
+        Shop.objects.create(
+            name="A", lightning_address="a@example.org", lightning_status="no_answer", lightning_checked=now
+        )
+        Shop.objects.create(
+            name="B", lightning_address="b@example.org", lightning_status="no_confirmation", lightning_checked=now
+        )
+        Shop.objects.create(name="C", lightning_address="c@example.org", lightning_status="no_answer", suspended=True)
+        self.assertEqual(
+            lightning_notes(),
+            ["2 shops with a Lightning address that does not work: /admin/shops/shop/?lightning=broken"],
+        )
 
     def test_a_guardian_that_stopped(self):
-        Shop.objects.create(name="A", lightning_address="a@example.org", lightning_status="ok",
-                            lightning_checked=timezone.now() - timedelta(days=1))
+        Shop.objects.create(
+            name="A",
+            lightning_address="a@example.org",
+            lightning_status="ok",
+            lightning_checked=timezone.now() - timedelta(days=1),
+        )
         self.assertIn("timer", lightning_notes()[0])
 
     def test_nothing_to_say(self):
         self.assertEqual(lightning_notes(), [])
 
     def test_preflight_says_it_and_passes(self):
-        Shop.objects.create(name="A", lightning_address="a@example.org", lightning_status="no_answer",
-                            lightning_checked=timezone.now())
+        Shop.objects.create(
+            name="A", lightning_address="a@example.org", lightning_status="no_answer", lightning_checked=timezone.now()
+        )
         out = StringIO()
         with override_settings(**PREFLIGHT), patch(f"{COMMAND}.get_connection"):
             call_command("preflight", stdout=out, stderr=StringIO())
@@ -670,17 +795,22 @@ class NotTheShopsFault(TestCase):
     def setUp(self):
         self.owner = get_user_model().objects.create(username="k")
         Profile.objects.create(user=self.owner, email="mario@example.org")
-        self.shops = [Shop.objects.create(owner=self.owner, name=f"Bar {n}",
-                                          lightning_address=f"bar{n}@example.org") for n in range(5)]
+        self.shops = [
+            Shop.objects.create(owner=self.owner, name=f"Bar {n}", lightning_address=f"bar{n}@example.org")
+            for n in range(5)
+        ]
         self.now = timezone.now()
 
     def run_it(self, mode, *args, after=timedelta(0), network=True):
         self.now += after
         out = StringIO()
-        with Provider(mode) as fake, patch("shops.management.commands.check_lightning.time") as command_time, \
-                patch("shops.notifications.requests.post") as post, \
-                patch("shops.lightning_watch.network_ok", return_value=network), \
-                patch("shops.lightning_watch.timezone.now", return_value=self.now):
+        with (
+            Provider(mode) as fake,
+            patch("shops.management.commands.check_lightning.time") as command_time,
+            patch("shops.notifications.requests.post") as post,
+            patch("shops.lightning_watch.network_ok", return_value=network),
+            patch("shops.lightning_watch.timezone.now", return_value=self.now),
+        ):
             command_time.monotonic.return_value = 0
             post.return_value.status_code = 200
             call_command("check_lightning", *args, stdout=out, stderr=out)
@@ -715,16 +845,21 @@ class NotTheShopsFault(TestCase):
         broken = self.shops[:2]
         # Two of five fail: not a network problem
         fake_ok, fake_bad = FakeProvider("ok"), FakeProvider("silent")
-        router = lambda url, **kwargs: (fake_bad if any(f"lnurlp/{s.lightning_address.split('@')[0]}" in url
-                                                         for s in broken) else fake_ok)(url, **kwargs)
+
+        def router(url, **kwargs):
+            bad = any(f"lnurlp/{s.lightning_address.split('@')[0]}" in url for s in broken)
+            return (fake_bad if bad else fake_ok)(url, **kwargs)
+
         for after in (timedelta(hours=6), timedelta(hours=1)):
             self.now += after
-            with public_names(), \
-                    patch("shops.lnaddress.requests.Session.get", side_effect=router), \
-                    patch("shops.management.commands.check_lightning.time") as command_time, \
-                    patch("shops.notifications.requests.post") as post, \
-                    patch("shops.lightning_watch.network_ok", return_value=True), \
-                    patch("shops.lightning_watch.timezone.now", return_value=self.now):
+            with (
+                public_names(),
+                patch("shops.lnaddress.requests.Session.get", side_effect=router),
+                patch("shops.management.commands.check_lightning.time") as command_time,
+                patch("shops.notifications.requests.post") as post,
+                patch("shops.lightning_watch.network_ok", return_value=True),
+                patch("shops.lightning_watch.timezone.now", return_value=self.now),
+            ):
                 command_time.monotonic.return_value = 0
                 post.return_value.status_code = 200
                 call_command("check_lightning", "--all", stdout=StringIO())
@@ -747,12 +882,17 @@ class NotTheShopsFault(TestCase):
             self.assertTrue(lightning_watch.network_ok(shops))
         # Each name within a bound: a DNS that never answers for a shop's domain does not hold the run
         from config.network import SlowName
+
         with patch("shops.lightning_watch.resolve", side_effect=SlowName("slow")) as lookup:
             self.assertFalse(lightning_watch.network_ok(shops))
         self.assertTrue(lookup.call_args_list)
-        self.assertTrue(all(0 < call.kwargs["seconds"] <= lightning_watch.NAME_SECONDS for call in lookup.call_args_list))
-        with patch("shops.lightning_watch.resolve", side_effect=SlowName("slow")) as lookup, \
-                patch("shops.lightning_watch.monotonic", side_effect=[0, 0, 100, 100]):
+        self.assertTrue(
+            all(0 < call.kwargs["seconds"] <= lightning_watch.NAME_SECONDS for call in lookup.call_args_list)
+        )
+        with (
+            patch("shops.lightning_watch.resolve", side_effect=SlowName("slow")) as lookup,
+            patch("shops.lightning_watch.monotonic", side_effect=[0, 0, 100, 100]),
+        ):
             self.assertFalse(lightning_watch.network_ok(shops))
         self.assertEqual(lookup.call_count, 1)
 
@@ -760,7 +900,10 @@ class NotTheShopsFault(TestCase):
         shop = self.shops[0]
         with Provider("silent"), patch("shops.lightning_watch.timezone.now", return_value=self.now):
             check(shop.pk)
-        with Provider("silent"), patch("shops.lightning_watch.timezone.now", return_value=self.now + timedelta(hours=1)):
+        with (
+            Provider("silent"),
+            patch("shops.lightning_watch.timezone.now", return_value=self.now + timedelta(hours=1)),
+        ):
             self.assertEqual(check(shop.pk)[1], BROKE)
         self.assertIn("and it did not answer", mail.outbox[0].body)
         self.assertNotIn("stopped", mail.outbox[0].body)
@@ -773,7 +916,11 @@ class NotTheShopsFault(TestCase):
         self.enterContext(steady_limits())
         shop = self.shops[0]
         for _ in range(4):
-            for mode, after in (("ok", timedelta(hours=1)), ("silent", timedelta(hours=1)), ("silent", timedelta(hours=1))):
+            for mode, after in (
+                ("ok", timedelta(hours=1)),
+                ("silent", timedelta(hours=1)),
+                ("silent", timedelta(hours=1)),
+            ):
                 with Provider(mode), patch("shops.lightning_watch.timezone.now", return_value=self.now + after):
                     self.now += after
                     check(shop.pk)
@@ -783,8 +930,11 @@ class NotTheShopsFault(TestCase):
         from django.db import DatabaseError
 
         out = StringIO()
-        with override_settings(**PREFLIGHT), patch(f"{COMMAND}.lightning_notes", side_effect=DatabaseError("no such column")), \
-                patch(f"{COMMAND}.get_connection"):
+        with (
+            override_settings(**PREFLIGHT),
+            patch(f"{COMMAND}.lightning_notes", side_effect=DatabaseError("no such column")),
+            patch(f"{COMMAND}.get_connection"),
+        ):
             call_command("preflight", stdout=out, stderr=StringIO())
         self.assertIn("is migrate missing?", out.getvalue())
         self.assertIn("All ready", out.getvalue())
@@ -795,10 +945,16 @@ class RetryLimits(TestCase):
     def setUp(self):
         self.owner = get_user_model().objects.create(username="k")
         self.client.force_login(self.owner)
-        self.shop = Shop.objects.create(owner=self.owner, name="Bar",
-                                        lightning_address="bar@example.org", lightning_status="no_answer",
-                                        lightning_since=timezone.now(), lightning_checked=timezone.now(),
-                                        lightning_checked_address="bar@example.org", lightning_failures=2)
+        self.shop = Shop.objects.create(
+            owner=self.owner,
+            name="Bar",
+            lightning_address="bar@example.org",
+            lightning_status="no_answer",
+            lightning_since=timezone.now(),
+            lightning_checked=timezone.now(),
+            lightning_checked_address="bar@example.org",
+            lightning_failures=2,
+        )
         self.retry = f"/en/shops/lightning/{self.shop.id}/"
 
     def notes(self):
@@ -806,11 +962,13 @@ class RetryLimits(TestCase):
 
     def test_a_probe_past_its_time_is_do_not_know(self):
         import threading
+
         release = threading.Event()
 
         def slow(address, **kwargs):
             release.wait(5)
             return None
+
         with patch("shops.views.RETRY_SECONDS", 0.2), patch("shops.lightning_watch.lnaddress.probe", side_effect=slow):
             self.client.post(self.retry)
             self.shop.refresh_from_db()
@@ -830,6 +988,7 @@ class RetryLimits(TestCase):
             Shop.objects.filter(pk=self.shop.pk).update(lightning_address="new@example.net")
             done()
             return None
+
         with patch("shops.views.lightning_watch.probe_within", side_effect=changed):
             self.client.post(self.retry)
         self.shop.refresh_from_db()
@@ -841,12 +1000,14 @@ class RetryLimits(TestCase):
 class OwnerChats(TestCase):
     """The owner hears of a fault, and of the repair, in the shop's own Telegram chats too: the same notice as the email,
     under the same rule of when and how often, each chat on its own."""
+
     def setUp(self):
         self.enterContext(steady_limits())
         self.owner = get_user_model().objects.create(username="k")
         Profile.objects.create(user=self.owner, email="mario@example.org")
-        self.shop = Shop.objects.create(owner=self.owner, name="Central Bar", lightning_address="bar@example.org",
-                                        telegram_chat="11111")
+        self.shop = Shop.objects.create(
+            owner=self.owner, name="Central Bar", lightning_address="bar@example.org", telegram_chat="11111"
+        )
         self.now = timezone.now()
         self.posts = []
         self.answers = {}
@@ -863,8 +1024,11 @@ class OwnerChats(TestCase):
 
     def run_check(self, mode, after=timedelta(0)):
         self.now += after
-        with Provider(mode), patch("shops.lightning_watch.timezone.now", return_value=self.now), \
-                patch("shops.notifications.requests.post", side_effect=self.post):
+        with (
+            Provider(mode),
+            patch("shops.lightning_watch.timezone.now", return_value=self.now),
+            patch("shops.notifications.requests.post", side_effect=self.post),
+        ):
             change = check(self.shop.pk)[1]
         self.shop.refresh_from_db()
         return change
@@ -962,28 +1126,39 @@ class OwnerChats(TestCase):
         # Without a bot there are no chats to tell: nothing tried, nothing logged, and for a shop with no email the daily
         # counter is not touched
         Profile.objects.filter(user=self.owner).update(email="")
-        with override_settings(TELEGRAM_BOT_TOKEN=""), self.assertNoLogs("shops.lightning_watch"), \
-                patch("shops.lightning_watch.allowed", wraps=lightning_watch.allowed) as allowed:
+        with (
+            override_settings(TELEGRAM_BOT_TOKEN=""),
+            self.assertNoLogs("shops.lightning_watch"),
+            patch("shops.lightning_watch.allowed", wraps=lightning_watch.allowed) as allowed,
+        ):
             self.assertEqual(self.run_check("ok", timedelta(hours=1)), FIXED)
             self.assertEqual(self.run_check("silent", timedelta(hours=1)), None)
             self.assertEqual(self.run_check("silent", timedelta(hours=1)), BROKE)
         self.assertEqual(self.posts, [])
         allowed.assert_not_called()
 
-    @override_settings(EMAIL_BACKEND="config.mailbudget.CountingBackend",
-                       EMAIL_REAL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    @override_settings(
+        EMAIL_BACKEND="config.mailbudget.CountingBackend",
+        EMAIL_REAL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    )
     def test_an_email_kept_back_by_the_budget_is_not_told(self):
         Shop.objects.filter(pk=self.shop.pk).update(telegram_chat="")
         self.break_it()
         self.shop.lightning_status = LightningStatus.NO_ANSWER
-        with patch("config.mailbudget.blocked", return_value="limits.emails_per_month"), \
-                self.assertLogs("shops.lightning_watch", "ERROR"):
+        with (
+            patch("config.mailbudget.blocked", return_value="limits.emails_per_month"),
+            self.assertLogs("shops.lightning_watch", "ERROR"),
+        ):
             self.assertFalse(lightning_watch.tell_owner(self.shop, BROKE))
         self.assertEqual(len(mail.outbox), 1)
 
     def test_up_and_down_is_told_a_few_times_a_day_on_both(self):
         for _ in range(4):
-            for mode, after in (("ok", timedelta(hours=1)), ("silent", timedelta(hours=1)), ("silent", timedelta(hours=1))):
+            for mode, after in (
+                ("ok", timedelta(hours=1)),
+                ("silent", timedelta(hours=1)),
+                ("silent", timedelta(hours=1)),
+            ):
                 self.run_check(mode, after)
         self.assertEqual(len(mail.outbox), lightning_watch.ALERTS_PER_DAY)
         self.assertEqual(len(self.posts), lightning_watch.ALERTS_PER_DAY)

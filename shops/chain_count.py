@@ -20,6 +20,7 @@ register, or the owner's phone when it draws a pairing code); a staff register o
 
 On-chain at the register is an experimental feature (config/features.py): while the community has not turned it on, the
 addresses of these views answer 404 to everybody (shops/urls.py), and the counts already made stay in the database."""
+
 import json
 import re
 
@@ -30,11 +31,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from config import ratelimit
+
 from .models import HAS_REGISTER, ChainCount, Shop
 
 CHAIN = re.compile(r"[0-9a-f]{64}\Z")
 # The last index of a chain (BIP32: from 2^31 on they are hardened)
-MAX_INDEX = 0x7fffffff
+MAX_INDEX = 0x7FFFFFFF
 # How far past the count a staff register may ask to start (its own count, or used addresses the explorer showed): within
 # the wallet's gap limit of 20. The owner may set any start (the settings)
 STAFF_AHEAD = 19
@@ -109,7 +111,9 @@ def answer(shop, body, who, owner):
                 return JsonResponse({"error": "owner"}, status=403)
             open_chain(shop, body["chain"])
             return JsonResponse({})
-        return JsonResponse({"index": claim(shop, body["chain"], body["at_least"], None if owner else STAFF_AHEAD, owner)})
+        return JsonResponse(
+            {"index": claim(shop, body["chain"], body["at_least"], None if owner else STAFF_AHEAD, owner)}
+        )
     except Far:
         return JsonResponse({"error": "far"}, status=409)
     except Unknown:

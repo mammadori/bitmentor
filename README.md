@@ -230,6 +230,9 @@ The documents have a check of their own, without Django: every relative link poi
 python3 deploy/tests/test_documents.py
 ```
 
+The Python code is formatted and checked with [ruff](https://docs.astral.sh/ruff/), as [ruff.toml](ruff.toml) says:
+`ruff format` and `ruff check` before a commit.
+
 [examples/ci/gitlab-ci.yml](examples/ci/gitlab-ci.yml) is an example CI that runs both and publishes the images on a tag.
 
 [examples/git-hooks/commit-msg](examples/git-hooks/commit-msg) is an example git hook, off until you link it: each commit

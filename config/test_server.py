@@ -1,4 +1,5 @@
 """The server side: headers, request limits, gunicorn and Caddy agreeing with each other."""
+
 import os
 import re
 import runpy
@@ -56,8 +57,11 @@ class RequestBodies(TestCase):
 
     def test_a_form_over_the_limit_is_refused(self):
         with self.assertLogs("django.security.RequestDataTooBig", "ERROR"):
-            response = self.client.post("/it/shops/recovery/", "email=" + "x" * settings.DATA_UPLOAD_MAX_MEMORY_SIZE,
-                                        content_type="application/x-www-form-urlencoded")
+            response = self.client.post(
+                "/it/shops/recovery/",
+                "email=" + "x" * settings.DATA_UPLOAD_MAX_MEMORY_SIZE,
+                content_type="application/x-www-form-urlencoded",
+            )
         self.assertEqual(response.status_code, 400)
 
     def test_caddy_and_django_have_the_same_limit(self):
@@ -74,6 +78,10 @@ class Gunicorn(TestCase):
     def test_defaults_fit_a_four_cpu_machine(self):
         config = self.load(WEB_CONCURRENCY="", WEB_THREADS="")
         self.assertEqual((config["workers"], config["threads"]), (3, 8))
+
+    def test_no_control_socket(self):
+        """gunicorn opens a socket that takes commands unless told otherwise: nobody uses it here."""
+        self.assertIs(self.load()["control_socket_disable"], True)
 
     def test_workers_and_threads_come_from_the_environment(self):
         config = self.load(WEB_CONCURRENCY="5", WEB_THREADS="2")
@@ -96,13 +104,23 @@ class ComposeEnvironment(TestCase):
     # others are for development and tests
     # OSM_TOKEN is the OpenStreetMap account's token for manage.py osm_upload: it is passed for that one run (`docker compose exec
     # -e OSM_TOKEN=… web …`, docs/features/openstreetmap.md), never kept in the .env that feeds the container that serves the site
-    NOT_FROM_THE_ENV = {"BITMENTOR_VERSION", "SITE_VERSION", "DEBUG", "POSTGRES_DB", "SQLITE_PATH", "TELEGRAM_API", "OSM_TOKEN"}
+    NOT_FROM_THE_ENV = {
+        "BITMENTOR_VERSION",
+        "SITE_VERSION",
+        "DEBUG",
+        "POSTGRES_DB",
+        "SQLITE_PATH",
+        "TELEGRAM_API",
+        "OSM_TOKEN",
+    }
 
     def test_web_gets_every_setting_the_env_file_can_set(self):
         # A variable that settings.py reads and compose does not hand to web can be written in the .env and never arrives (the
         # key of the Telegram bot was one: the alerts never went out)
         web = yaml.safe_load((ROOT / "docker-compose.yml").read_text())["services"]["web"]["environment"]
-        read = set(re.findall(r'os\.environ(?:\.get)?[(\[]"([A-Z0-9_]+)"', (ROOT / "config" / "settings.py").read_text()))
+        read = set(
+            re.findall(r'os\.environ(?:\.get)?[(\[]"([A-Z0-9_]+)"', (ROOT / "config" / "settings.py").read_text())
+        )
         self.assertEqual(sorted(read - set(web) - self.NOT_FROM_THE_ENV), [])
         self.assertGreater(len(read & set(web)), 20)  # the pattern still finds the settings
 
@@ -147,8 +165,9 @@ class Probes(TestCase):
 
     def refused(self, path):
         taken, left = self.patterns()
-        return (any(self.matches(pattern, path) for pattern in taken)
-                and not any(self.matches(pattern, path) for pattern in left))
+        return any(self.matches(pattern, path) for pattern in taken) and not any(
+            self.matches(pattern, path) for pattern in left
+        )
 
     def test_the_rule_is_written_in_the_shapes_this_test_reads(self):
         taken, left = self.patterns()
@@ -158,13 +177,33 @@ class Probes(TestCase):
             self.assertTrue(pattern.strip("*").startswith(("/", ".")), pattern)
 
     def test_the_probes_are_refused(self):
-        for path in ("/wp-login.php", "/index.php", "/.env", "/.env.local", "/x/.git/config", "/.git", "/wp-admin/",
-                     "/phpmyadmin/index", "/cgi-bin/luci", "/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php",
-                     "/actuator/health", "/backup.sql", "/WP-LOGIN.PHP", "/server-status", "/xmlrpc.php",
-                     # as a real site saw them in a day: doubled slashes, folders repeated, PHP with a path after it
-                     "//images/images/images/cache.php", "//cgi-bin/cgi-bin/cache.php", "/k.php", "/wp-content/uploads/",
-                     "//wp-content/plugins/plugins/cache.php", "/index.php/x", "/blog/wp-admin/setup-config.php",
-                     "/old/phpMyAdmin/", "/a/vendor/phpunit/phpunit/x"):
+        for path in (
+            "/wp-login.php",
+            "/index.php",
+            "/.env",
+            "/.env.local",
+            "/x/.git/config",
+            "/.git",
+            "/wp-admin/",
+            "/phpmyadmin/index",
+            "/cgi-bin/luci",
+            "/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php",
+            "/actuator/health",
+            "/backup.sql",
+            "/WP-LOGIN.PHP",
+            "/server-status",
+            "/xmlrpc.php",
+            # as a real site saw them in a day: doubled slashes, folders repeated, PHP with a path after it
+            "//images/images/images/cache.php",
+            "//cgi-bin/cgi-bin/cache.php",
+            "/k.php",
+            "/wp-content/uploads/",
+            "//wp-content/plugins/plugins/cache.php",
+            "/index.php/x",
+            "/blog/wp-admin/setup-config.php",
+            "/old/phpMyAdmin/",
+            "/a/vendor/phpunit/phpunit/x",
+        ):
             self.assertTrue(self.refused(path), path)
 
     def test_no_address_of_the_site_is_taken(self):
@@ -182,19 +221,50 @@ class Probes(TestCase):
         self.assertGreater(len(found), 80)
         for route in found:
             # A route with its parameters filled by a harmless word, and bare: neither is a probe
-            for path in ("/" + re.sub(r"<[^>]+>|\(\?P<[^)]*\)|[\^$]", "x", route), "/" + re.sub(r"<[^>]+>.*", "", route)):
+            for path in (
+                "/" + re.sub(r"<[^>]+>|\(\?P<[^)]*\)|[\^$]", "x", route),
+                "/" + re.sub(r"<[^>]+>.*", "", route),
+            ):
                 self.assertFalse(self.refused(path), f"{route}: {path}")
-        for path in ("/", "/en/", "/it/shops/map/", "/shops.json", "/meetups.ics", "/sitemap.xml", "/robots.txt",
-                     "/.well-known/lnurlp/bar", "/.well-known/nostr.json", "/health/", "/admin/", "/team/",
-                     "/en/wordpress/", "/en/vendor/", "/static/vendor/leaflet/leaflet.js", "/theme/logo.svg",
-                     # a bare word can be a community's page (/wp is one on a real site)
-                     "/wp", "/wp/", "/it/wp/", "/vendor/", "/vendor/list/", "/php/", "/en/php/"):
+        for path in (
+            "/",
+            "/en/",
+            "/it/shops/map/",
+            "/shops.json",
+            "/meetups.ics",
+            "/sitemap.xml",
+            "/robots.txt",
+            "/.well-known/lnurlp/bar",
+            "/.well-known/nostr.json",
+            "/health/",
+            "/admin/",
+            "/team/",
+            "/en/wordpress/",
+            "/en/vendor/",
+            "/static/vendor/leaflet/leaflet.js",
+            "/theme/logo.svg",
+            # a bare word can be a community's page (/wp is one on a real site)
+            "/wp",
+            "/wp/",
+            "/it/wp/",
+            "/vendor/",
+            "/vendor/list/",
+            "/php/",
+            "/en/php/",
+        ):
             self.assertFalse(self.refused(path), path)
 
     def test_no_file_the_site_serves_is_taken(self):
-        files = [f"/static/{path.relative_to(ROOT / 'static').as_posix()}" for path in (ROOT / "static").rglob("*") if path.is_file()]
-        files += [f"/theme/{path.relative_to(ROOT / 'examples/community/theme').as_posix()}"
-                  for path in (ROOT / "examples/community/theme").rglob("*") if path.is_file()]
+        files = [
+            f"/static/{path.relative_to(ROOT / 'static').as_posix()}"
+            for path in (ROOT / "static").rglob("*")
+            if path.is_file()
+        ]
+        files += [
+            f"/theme/{path.relative_to(ROOT / 'examples/community/theme').as_posix()}"
+            for path in (ROOT / "examples/community/theme").rglob("*")
+            if path.is_file()
+        ]
         self.assertGreater(len(files), 30)
         for path in files:
             self.assertFalse(self.refused(path), path)
@@ -216,9 +286,14 @@ class HeadRequests(TestCase):
 
     def reply(self, view, method="head"):
         from django.http import FileResponse, HttpResponse
+
         from config.middleware import HeadWithoutBody
+
         request = getattr(RequestFactory(), method)("/theme/x")
-        make = {"file": lambda r: FileResponse(open(ROOT / "manage.py", "rb")), "page": lambda r: HttpResponse(b"hello")}[view]
+        make = {
+            "file": lambda r: FileResponse(open(ROOT / "manage.py", "rb")),
+            "page": lambda r: HttpResponse(b"hello"),
+        }[view]
         return HeadWithoutBody(make)(request)
 
     def test_a_file_answers_head_with_headers_and_no_body(self):
@@ -280,9 +355,9 @@ class CaddyErrorLog(TestCase):
         """If a link changes the name of its parameter, the Caddyfile must change too: the names are read from the code."""
         source = " ".join((ROOT / "shops" / name).read_text() for name in ("views.py", "staff.py"))
         self.assertIn('request.GET.get("token"', source)
-        self.assertIn('urlencode({\'token\': token})', source)
+        self.assertIn("urlencode({'token': token})", source)
         self.assertIn('request.GET.get("code"', source)
-        self.assertIn("request.GET.get(\"c\"", source)
+        self.assertIn('request.GET.get("c"', source)
 
     # Query parameters the site reads that carry nothing that opens something. A new one is a decision: either the
     # Caddyfile drops it from the error log, or it goes here with the reason.
@@ -308,7 +383,10 @@ class CaddyErrorLog(TestCase):
                     continue
                 read |= set(re.findall(r"request\.GET(?:\.get\(|\[)[\"']([A-Za-z0-9_]+)[\"']", path.read_text()))
         self.assertTrue({"k", "c", "code", "token", "next"} <= read, read)
-        self.assertEqual(read - deleted - set(self.HARMLESS), set(),
-                         "a query parameter the site reads is neither dropped by the Caddyfile nor known harmless")
+        self.assertEqual(
+            read - deleted - set(self.HARMLESS),
+            set(),
+            "a query parameter the site reads is neither dropped by the Caddyfile nor known harmless",
+        )
         # And the harmless ones are still read: a name nobody reads any more leaves the list
         self.assertEqual(set(self.HARMLESS) - read, set())

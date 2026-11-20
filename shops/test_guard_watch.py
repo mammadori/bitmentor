@@ -1,5 +1,6 @@
 """The changes to the account of a shop's owner (shops/guard.py): written in a register, told to the owner and to the
 association, shown to the owner's panel."""
+
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -22,6 +23,7 @@ User = get_user_model()
 
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 def in_admin(user=None, path="/admin/auth/user/1/change/"):
     """Code that runs as if a page of the admin was being served, with this staff user signed in."""
     request = RequestFactory().post(path)
@@ -40,8 +42,9 @@ class _InRequest:
         current_request.reset(self.token)
 
 
-@override_settings(LANGUAGE_CODE="en", TELEGRAM_BOT_TOKEN="1:x", TELEGRAM_MODERATION_CHAT="-100",
-                   PUBLIC_URL="https://site.example.org")
+@override_settings(
+    LANGUAGE_CODE="en", TELEGRAM_BOT_TOKEN="1:x", TELEGRAM_MODERATION_CHAT="-100", PUBLIC_URL="https://site.example.org"
+)
 class Watch(Base):
     def setUp(self):
         super().setUp()
@@ -67,6 +70,7 @@ class Watch(Base):
             with in_admin():
                 self.owner.set_password("a password nobody told the owner")
                 self.owner.save()
+
         self.run_commit(change)
         row = self.only()
         self.assertEqual((row.changed, row.via, row.actor, row.user), ("password", "admin", "boss", self.owner))
@@ -99,14 +103,21 @@ class Watch(Base):
         self.assertIn("evil.example", self.only().shops)
 
     def test_each_watched_field(self):
-        for field, value, code in (("is_staff", True, "is_staff"), ("is_superuser", True, "is_superuser"),
-                                   ("is_active", False, "is_active"), ("username", "other-key", "username")):
+        for field, value, code in (
+            ("is_staff", True, "is_staff"),
+            ("is_superuser", True, "is_superuser"),
+            ("is_active", False, "is_active"),
+            ("username", "other-key", "username"),
+        ):
             AccountChange.objects.all().delete()
             with self.subTest(field):
-                self.run_commit(lambda: (setattr(self.owner, field, value), self.owner.save()))
+                self.run_commit(lambda field=field, value=value: (setattr(self.owner, field, value), self.owner.save()))
                 self.assertEqual(self.only().changed, code)
-                setattr(self.owner, field, {"is_staff": False, "is_superuser": False, "is_active": True,
-                                            "username": "key1"}[field])
+                setattr(
+                    self.owner,
+                    field,
+                    {"is_staff": False, "is_superuser": False, "is_active": True, "username": "key1"}[field],
+                )
                 User.objects.filter(pk=self.owner.pk).update(**{field: getattr(self.owner, field)})
 
     def test_a_save_that_changes_nothing_watched_says_nothing(self):
@@ -182,6 +193,7 @@ class Watch(Base):
                 self.owner.set_password("some password again")
                 self.owner.save()
                 self.owner.groups.add(group)
+
         self.run_commit(change)
         row = self.only()
         self.assertEqual(row.changed, "groups,is_staff,password")
@@ -205,6 +217,7 @@ class Watch(Base):
         def change():
             self.owner.is_active = False
             self.owner.save()
+
         self.run_commit(change)
         row = self.only()
         self.assertEqual(row.changed, "is_active")
@@ -214,15 +227,22 @@ class Watch(Base):
         self.run_commit(lambda: (setattr(self.owner, "username", "new-key"), self.owner.save()))
         row = self.only()
         self.assertEqual((row.via, row.actor), ("command", ""))
-        self.assertIn("From a command or the shell.", next(
-            call.args[1] for call in self.telegram.call_args_list if call.args[0] == "-100"))
+        self.assertIn(
+            "From a command or the shell.",
+            next(call.args[1] for call in self.telegram.call_args_list if call.args[0] == "-100"),
+        )
 
     def test_the_password_page_of_the_admin_end_to_end(self):
         admin_session(self.client)
         with self.captureOnCommitCallbacks(execute=True):
-            response = self.client.post(f"/admin/auth/user/{self.owner.pk}/password/", {
-                "usable_password": "true", "password1": "correct-horse-battery-staple-9",
-                "password2": "correct-horse-battery-staple-9"})
+            response = self.client.post(
+                f"/admin/auth/user/{self.owner.pk}/password/",
+                {
+                    "usable_password": "true",
+                    "password1": "correct-horse-battery-staple-9",
+                    "password2": "correct-horse-battery-staple-9",
+                },
+            )
         self.assertEqual(response.status_code, 302)
         row = self.only()
         self.assertEqual((row.changed, row.via, row.actor), ("password", "admin", "boss"))
@@ -232,8 +252,13 @@ class Watch(Base):
     def test_the_form_of_the_user_in_the_admin_end_to_end(self):
         admin_session(self.client)
         url = f"/admin/auth/user/{self.owner.pk}/change/"
-        data = {"username": "key1", "is_active": "on", "is_staff": "on", "date_joined_0": "2026-01-01",
-                "date_joined_1": "10:00:00"}
+        data = {
+            "username": "key1",
+            "is_active": "on",
+            "is_staff": "on",
+            "date_joined_0": "2026-01-01",
+            "date_joined_1": "10:00:00",
+        }
         with self.captureOnCommitCallbacks(execute=True):
             response = self.client.post(url, {**data, "_save": "Save"})
         self.assertEqual(response.status_code, 302)
@@ -247,6 +272,7 @@ class Watch(Base):
             with in_admin():
                 self.shop.owner = thief
                 self.shop.save()
+
         self.run_commit(change)
         row = self.only()
         self.assertEqual((row.user, row.changed, row.shops, row.via), (self.owner, "shop_owner", "Bar", "admin"))
@@ -259,6 +285,7 @@ class Watch(Base):
             with in_admin():
                 self.shop.telegram_chat = "999"
                 self.shop.save()
+
         self.run_commit(change)
         row = self.only()
         self.assertEqual((row.changed, row.shops), ("shop_chat", "Bar"))
@@ -378,8 +405,10 @@ class Watch(Base):
         self.assertEqual(AccountChange.objects.count(), 1)
 
     def test_the_owner_is_told_in_the_language_of_the_community(self):
-        for language, expected in (("it", "Qualcuno che gestisce il sito ha cambiato il tuo account su Example community:"),
-                                   ("de", "Jemand, der die Website betreibt, hat Ihr Konto auf Example community geändert:")):
+        for language, expected in (
+            ("it", "Qualcuno che gestisce il sito ha cambiato il tuo account su Example community:"),
+            ("de", "Jemand, der die Website betreibt, hat Ihr Konto auf Example community geändert:"),
+        ):
             mail.outbox.clear()
             AccountChange.objects.all().delete()
             with self.subTest(language), override_settings(LANGUAGE_CODE=language):
@@ -433,9 +462,13 @@ class Register(Base):
     def test_nobody_adds_changes_or_deletes_there_not_even_the_superuser(self):
         self.assertEqual(self.client.get("/admin/shops/accountchange/add/").status_code, 403)
         self.assertEqual(self.client.get(f"/admin/shops/accountchange/{self.row.pk}/delete/").status_code, 403)
-        self.assertEqual(self.client.post(f"/admin/shops/accountchange/{self.row.pk}/delete/", {"post": "yes"}).status_code, 403)
-        self.client.post("/admin/shops/accountchange/", {"action": "delete_selected", "_selected_action": [self.row.pk],
-                                                          "post": "yes"})
+        self.assertEqual(
+            self.client.post(f"/admin/shops/accountchange/{self.row.pk}/delete/", {"post": "yes"}).status_code, 403
+        )
+        self.client.post(
+            "/admin/shops/accountchange/",
+            {"action": "delete_selected", "_selected_action": [self.row.pk], "post": "yes"},
+        )
         self.client.post(f"/admin/shops/accountchange/{self.row.pk}/change/", {"actor": "someone else"})
         self.row.refresh_from_db()
         self.assertEqual((AccountChange.objects.count(), self.row.actor), (1, "boss"))
@@ -443,7 +476,9 @@ class Register(Base):
         self.assertNotIn("delete_selected", page)
 
     def test_the_dashboard_says_how_many_lately(self):
-        self.assertContains(self.client.get("/admin/today/"), "1 change to the account of a shop's owner in the last two weeks")
+        self.assertContains(
+            self.client.get("/admin/today/"), "1 change to the account of a shop's owner in the last two weeks"
+        )
         AccountChange.objects.update(created=timezone.now() - timedelta(days=20))
         self.assertNotContains(self.client.get("/admin/today/"), "in the last two weeks")
 

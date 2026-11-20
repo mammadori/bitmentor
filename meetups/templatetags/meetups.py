@@ -2,7 +2,8 @@ from django import template
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from .. import board as boards, conf
+from .. import board as boards
+from .. import conf
 
 register = template.Library()
 
@@ -37,10 +38,20 @@ def meetup_board(context, upcoming=None, past=None, level=2, full=False):
     level = level if level in (2, 3, 4) else 2
     found = boards.board(upcoming, past)
     # The board is cached as it is: the copies are made inert here, for this page
-    found = {**found, "upcoming": [inert(entry) for entry in found["upcoming"]],
-             "past": [inert(entry) for entry in found["past"]]}
-    return {"empty": False, "board": found, "open": mark_safe(f"<h{level}>"), "close": mark_safe(f"</h{level}>"),
-            "page": reverse("meetups"), "full": full, "feed": reverse("meetups_feed")}
+    found = {
+        **found,
+        "upcoming": [inert(entry) for entry in found["upcoming"]],
+        "past": [inert(entry) for entry in found["past"]],
+    }
+    return {
+        "empty": False,
+        "board": found,
+        "open": mark_safe(f"<h{level}>"),
+        "close": mark_safe(f"</h{level}>"),
+        "page": reverse("meetups"),
+        "full": full,
+        "feed": reverse("meetups_feed"),
+    }
 
 
 @register.inclusion_tag("meetups/next.html", takes_context=True)

@@ -1,3 +1,5 @@
 # Only for the checks image (Dockerfile.test), never in production: readable tracebacks from the workers of
 # `manage.py test --parallel`, which otherwise end in «cannot pickle traceback»
 tblib
+# The style and the lint of the code, checked by internal/ci-checks.sh with the repository's ruff.toml
+ruff==0.17.*

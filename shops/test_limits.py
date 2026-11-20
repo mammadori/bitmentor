@@ -1,5 +1,6 @@
 """The limits of growth (config/limits.py): defaults and what `community.yml` changes, what is refused at a limit and what
 is kept, and where the staff sees the usage (the dashboard, `manage.py preflight`, `manage.py check`)."""
+
 from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
@@ -56,8 +57,10 @@ class Values(TestCase):
         for wrong in (0, 73, 1000, -1, "48", True, 2.5):
             with set_limits(staff_code_hours=wrong):
                 self.assertEqual(limits.get("staff_code_hours"), 24)
-                self.assertEqual(limits.problems(), [
-                    f"`limits.staff_code_hours` is a whole number from 1 to 72: {wrong!r}; the default 24 counts"])
+                self.assertEqual(
+                    limits.problems(),
+                    [f"`limits.staff_code_hours` is a whole number from 1 to 72: {wrong!r}; the default 24 counts"],
+                )
         # The other limits keep 0 as no limit
         with set_limits(staff_registers_per_shop=0):
             self.assertEqual(limits.get("staff_registers_per_shop"), 0)
@@ -85,9 +88,15 @@ class Refusals(TestCase):
 
     def test_a_full_site_refuses_a_new_shop_and_keeps_the_others(self):
         Shop.objects.create(name="Old", owner=self.owner)
-        with set_limits(shops=1), patch("shops.views.refusal", return_value=None), \
-                patch("shops.forms.public_host", return_value=True), self.assertLogs("config.limits", "WARNING") as logged:
-            response = self.client.post("/en/shops/new/", {"name": "New", "lightning_address": "a@example.org", "discount": 0})
+        with (
+            set_limits(shops=1),
+            patch("shops.views.refusal", return_value=None),
+            patch("shops.forms.public_host", return_value=True),
+            self.assertLogs("config.limits", "WARNING") as logged,
+        ):
+            response = self.client.post(
+                "/en/shops/new/", {"name": "New", "lightning_address": "a@example.org", "discount": 0}
+            )
         self.assertContains(response, "cannot take more")
         self.assertEqual(list(Shop.objects.values_list("name", flat=True)), ["Old"])
         self.assertIn("limits.shops", logged.output[0])
@@ -150,8 +159,10 @@ class Reports(TestCase):
 
     def test_rows_say_used_limit_and_level(self):
         with set_limits(shops=5):
-            self.assertEqual((row("shops")["used"], row("shops")["limit"], row("shops")["level"], row("shops")["default"]),
-                             (4, 5, "near", False))
+            self.assertEqual(
+                (row("shops")["used"], row("shops")["limit"], row("shops")["level"], row("shops")["default"]),
+                (4, 5, "near", False),
+            )
         with set_limits(shops=4):
             self.assertEqual(row("shops")["level"], "full")
         self.assertEqual(row("shops")["level"], "")

@@ -2,6 +2,7 @@
 again» (the checks that ask the Lightning provider), and «Ask the association for help». Only the shop's owner; the pages
 that change anything are POSTs with the CSRF token and a limit of requests; nothing here touches the register or where
 the money goes. The staff and the sessions of /admin/ are visitors here (config/guard.py)."""
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
@@ -43,9 +44,20 @@ def kind_or_404(key):
 def page(request, shop, found, look, form=None, status=200):
     """The page of a symptom: what the site knows (`look`), the steps, the form to ask."""
     form = form or helpdesk.AskForm(initial={"symptom": found.key}, shop=shop)
-    return render(request, "shops/help_symptom.html", {
-        "shop": shop, "kind": found, "look": look, "form": form, "open_request": helpdesk.open_request(shop),
-        "can_look": shop.has_register and bool(found.deep), "community_email": community()["email"]}, status=status)
+    return render(
+        request,
+        "shops/help_symptom.html",
+        {
+            "shop": shop,
+            "kind": found,
+            "look": look,
+            "form": form,
+            "open_request": helpdesk.open_request(shop),
+            "can_look": shop.has_register and bool(found.deep),
+            "community_email": community()["email"],
+        },
+        status=status,
+    )
 
 
 @not_indexed
@@ -53,8 +65,11 @@ def page(request, shop, found, look, form=None, status=200):
 def home(request, shop):
     """The symptoms as big buttons, and the requests already made."""
     shop = owned(request, shop)
-    return render(request, "shops/help_home.html", {
-        "shop": shop, "kinds": list(helpdesk.KINDS.values()), "requests": helpdesk.history(shop)})
+    return render(
+        request,
+        "shops/help_home.html",
+        {"shop": shop, "kinds": list(helpdesk.KINDS.values()), "requests": helpdesk.history(shop)},
+    )
 
 
 @not_indexed
@@ -76,10 +91,16 @@ def again(request, shop, slug):
     found = kind_or_404(slug)
     if not shop.has_register or not found.deep:
         return redirect("help_symptom", shop.pk, found.key)
-    if (ratelimit.over_limit(f"help-look-shop:{shop.pk}", LOOKS_PER_SHOP, LOOK_WINDOW)
-            or ratelimit.over_limit(f"help-look-user:{request.user.pk}", LOOKS_PER_USER, LOOK_WINDOW)):
-        messages.error(request, _("You have looked many times in a short while: wait a few minutes. Meanwhile, you "
-                                  "can ask the association for help."))
+    if ratelimit.over_limit(f"help-look-shop:{shop.pk}", LOOKS_PER_SHOP, LOOK_WINDOW) or ratelimit.over_limit(
+        f"help-look-user:{request.user.pk}", LOOKS_PER_USER, LOOK_WINDOW
+    ):
+        messages.error(
+            request,
+            _(
+                "You have looked many times in a short while: wait a few minutes. Meanwhile, you "
+                "can ask the association for help."
+            ),
+        )
         return redirect("help_symptom", shop.pk, found.key)
     return page(request, shop, found, helpdesk.look(shop, found, deep=True))
 
@@ -104,13 +125,21 @@ def ask(request, shop):
     try:
         row, state = helpdesk.create(shop, found.key, data["note"], data["channel"], request.user)
     except helpdesk.TooMany:
-        messages.error(request, _("You have already asked {count} times today, and the association has your "
-                                  "requests: we answer them one by one. If it is urgent, write to {email}.").format(
-                                      count=limits.get("help_requests_per_shop_day"), email=community()["email"]))
+        messages.error(
+            request,
+            _(
+                "You have already asked {count} times today, and the association has your "
+                "requests: we answer them one by one. If it is urgent, write to {email}."
+            ).format(count=limits.get("help_requests_per_shop_day"), email=community()["email"]),
+        )
         return redirect("help_symptom", shop.pk, found.key)
     except helpdesk.Full:
-        messages.error(request, _("The association cannot take more requests here right now. Please write to {email}.").format(
-            email=community()["email"]))
+        messages.error(
+            request,
+            _("The association cannot take more requests here right now. Please write to {email}.").format(
+                email=community()["email"]
+            ),
+        )
         return redirect("help_symptom", shop.pk, found.key)
     if state == helpdesk.ADDED:
         messages.success(request, _("You asked a moment ago: we added what you wrote to your request."))
@@ -119,14 +148,25 @@ def ask(request, shop):
         messages.success(request, _("You asked a moment ago, and we have your request."))
         return redirect("help_home", shop.pk)
     # Both counted, so that each limit sees every request
-    spent = [ratelimit.over_limit("help-moderators", MESSAGES_IN_ALL, MESSAGE_WINDOW),
-             ratelimit.over_limit(f"help-moderators-ip:{ratelimit.client_ip(request)}", MESSAGES_PER_IP, MESSAGE_WINDOW)]
+    spent = [
+        ratelimit.over_limit("help-moderators", MESSAGES_IN_ALL, MESSAGE_WINDOW),
+        ratelimit.over_limit(f"help-moderators-ip:{ratelimit.client_ip(request)}", MESSAGES_PER_IP, MESSAGE_WINDOW),
+    ]
     helpdesk.finish(row, notify=not any(spent))
     if row.delivery == helpdesk.SENT:
-        messages.success(request, _("We have your request. The association has been told, and has what the site knows "
-                                    "about your shop in front of it."))
+        messages.success(
+            request,
+            _(
+                "We have your request. The association has been told, and has what the site knows "
+                "about your shop in front of it."
+            ),
+        )
     else:
-        messages.success(request, _("We have your request and it is saved: the association sees it in its list. The "
-                                    "message to them did not go out right now, so if it is urgent write to {email}.")
-                         .format(email=community()["email"]))
+        messages.success(
+            request,
+            _(
+                "We have your request and it is saved: the association sees it in its list. The "
+                "message to them did not go out right now, so if it is urgent write to {email}."
+            ).format(email=community()["email"]),
+        )
     return redirect("help_home", shop.pk)

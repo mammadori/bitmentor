@@ -24,7 +24,9 @@ LIGHTNING_ADDRESS = re.compile(r"^[a-z0-9._+-]+@((?!-)[a-z0-9-]{1,63}(?<!-)\.)+[
 # What comes around an address copied from a message or a page, and the prefix of a `lightning:` link
 PASTED_AROUND = "\"'`«»“”„‘’‚‹›<>()[]{}.,;:!?"
 LIGHTNING_PREFIX = re.compile(r"^lightning:(//)?", re.I)
-LNURLP_URL = re.compile(r"(?:https|lnurlp)://(?P<host>[^/?#:@]+)/\.well-known/lnurlp/(?P<name>[^/?#@]+)/?(?:[?#].*)?", re.I)
+LNURLP_URL = re.compile(
+    r"(?:https|lnurlp)://(?P<host>[^/?#:@]+)/\.well-known/lnurlp/(?P<name>[^/?#@]+)/?(?:[?#].*)?", re.I
+)
 # A BOLT11 invoice: in the wallet it sits next to the address, under Receive, and gets copied instead of it
 LIGHTNING_INVOICE = re.compile(r"^ln(?:bc|tb|tbs|bcrt)[0-9]*[munp]?1[02-9ac-hj-np-z]{6,}$", re.I)
 PRIVATE_NAMES = (".local", ".internal", ".intranet", ".lan", ".home", ".corp", ".localhost", ".onion")
@@ -67,16 +69,28 @@ def validate_lightning_address(value):
     """The shape of the address, before asking anything to its provider. Each error has its code, which the live check
     of the form gives the page."""
     if value.startswith("₿") or value.startswith("lno1"):
-        raise forms.ValidationError(format_lazy(
-            _("This address uses BOLT12, like the ones from Phoenix, and this register cannot read it. "
-              "Use a wallet with a different Lightning address, or write to {email}."), email=community()["email"]),
-            code="bolt12")
+        raise forms.ValidationError(
+            format_lazy(
+                _(
+                    "This address uses BOLT12, like the ones from Phoenix, and this register cannot read it. "
+                    "Use a wallet with a different Lightning address, or write to {email}."
+                ),
+                email=community()["email"],
+            ),
+            code="bolt12",
+        )
     if LIGHTNING_INVOICE.match(value):
-        raise forms.ValidationError(_("This is a request for one payment, not your Lightning address: in your wallet, "
-                                      "look for the address that looks like an email, name@provider."), code="invoice")
+        raise forms.ValidationError(
+            _(
+                "This is a request for one payment, not your Lightning address: in your wallet, "
+                "look for the address that looks like an email, name@provider."
+            ),
+            code="invoice",
+        )
     if not LIGHTNING_ADDRESS.match(value):
-        raise forms.ValidationError(_("This is not a Lightning address: it should look like name@provider.com."),
-                                    code="shape")
+        raise forms.ValidationError(
+            _("This is not a Lightning address: it should look like name@provider.com."), code="shape"
+        )
     domain = value.rpartition("@")[2].lower()
     if domain.endswith(PRIVATE_NAMES) or not public_host(domain):
         raise forms.ValidationError(_("This Lightning address cannot be reached from the internet."), code="private")
@@ -139,6 +153,7 @@ class VatNumberMixin:
 
 class ShopAdminForm(VatNumberMixin, forms.ModelForm):
     """The form of /admin/shops/shop/: the model's fields, with the VAT number kept as the owner's form keeps it."""
+
     vat_number = vat_number_field(widget=forms.TextInput(attrs={"class": "vTextField"}))
 
     class Meta:
@@ -175,29 +190,59 @@ def same_chat(chat):
 
 class ShopDetailsForm(VatNumberMixin, forms.ModelForm):
     """The shop data the owner can change: the destination of the funds is not among them."""
+
     # Plain text: whoever writes www.example.it must not see the form refused by the browser
-    website = forms.URLField(label=_("website"), required=False, assume_scheme="https", max_length=200,
-                             widget=plain_input(inputmode="url", placeholder="www.example.com"))
+    website = forms.URLField(
+        label=_("website"),
+        required=False,
+        assume_scheme="https",
+        max_length=200,
+        widget=plain_input(inputmode="url", placeholder="www.example.com"),
+    )
     vat_number = vat_number_field(widget=plain_input(autocomplete="off", autocapitalize="characters"))
 
     class Meta:
         model = Shop
-        fields = ["name", "description", "address", "city", "latitude", "longitude", "website", "email", "phone",
-                  "legal_name", "vat_number", "discount", "nostr_pubkey", "nip05_name", "telegram_chat"]
+        fields = [
+            "name",
+            "description",
+            "address",
+            "city",
+            "latitude",
+            "longitude",
+            "website",
+            "email",
+            "phone",
+            "legal_name",
+            "vat_number",
+            "discount",
+            "nostr_pubkey",
+            "nip05_name",
+            "telegram_chat",
+        ]
         field_classes = {"latitude": CoordinateField, "longitude": CoordinateField}
-        widgets = {"description": forms.Textarea(attrs={"rows": 3}), "phone": forms.TextInput(attrs={"inputmode": "tel"}),
-                   "nostr_pubkey": plain_input(), "nip05_name": plain_input(), "telegram_chat": plain_input()}
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 3}),
+            "phone": forms.TextInput(attrs={"inputmode": "tel"}),
+            "nostr_pubkey": plain_input(),
+            "nip05_name": plain_input(),
+            "telegram_chat": plain_input(),
+        }
         help_texts = {
             "description": _("Public: it appears on the shop page."),
             "website": _("Customers see your website unless you hide it: see «What customers see»."),
             "email": _("Customers see your email only if you turn it on: see «What customers see»."),
             "phone": _("Customers see your phone number only if you turn it on: see «What customers see»."),
             "legal_name": _("The name of the business, as on your invoices. Customers see it only if you turn it on."),
-            "vat_number": _("With the two letters of the country, like IT01234567890. Customers see it only if you turn it on."),
+            "vat_number": _(
+                "With the two letters of the country, like IT01234567890. Customers see it only if you turn it on."
+            ),
             "discount": _("Leave it at 0 if you do not offer one."),
             "nostr_pubkey": _("Only if you use Nostr: your public key in hex format, not the npub."),
             "nip05_name": _("The name for your Nostr address on this site."),
-            "telegram_chat": _("The chat number or @name where the site writes to you: account changes, a Lightning address that stops working, help answers, the reopening after a closure. Up to three, separated by commas: each chat gets its own copy."),
+            "telegram_chat": _(
+                "The chat number or @name where the site writes to you: account changes, a Lightning address that stops working, help answers, the reopening after a closure. Up to three, separated by commas: each chat gets its own copy."
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -229,7 +274,9 @@ class ShopDetailsForm(VatNumberMixin, forms.ModelForm):
         client would show as the association's own (info@, admin@, the community name) are not shops."""
         name = self.cleaned_data["nip05_name"].lower()
         reserved = RESERVED_NIP05 | {slugify(community().get("name", "")), slugify(settings.SITE_HOST.split(".")[0])}
-        if name in reserved or (name and Shop.objects.filter(nip05_name__iexact=name).exclude(pk=self.instance.pk).exists()):
+        if name in reserved or (
+            name and Shop.objects.filter(nip05_name__iexact=name).exclude(pk=self.instance.pk).exists()
+        ):
             raise forms.ValidationError(_("This name is already taken."))
         return name
 
@@ -250,6 +297,7 @@ class ShopDetailsForm(VatNumberMixin, forms.ModelForm):
 class ShopDisplayForm(forms.ModelForm):
     """What customers see of the shop's details (shops/details.py): one tick for each, and nothing else. Apart from the
     details form on purpose: a form that did not carry the ticks would switch them all off when saved."""
+
     class Meta:
         model = Shop
         fields = [details.flag(name) for name in details.CHOICES]
@@ -259,10 +307,17 @@ class ShopForm(ShopDetailsForm):
     class Meta(ShopDetailsForm.Meta):
         # On-chain too: a sign for the map that the owner gives; not in ShopDetailsForm, which a move between sites carries
         fields = [*ShopDetailsForm.Meta.fields, "lightning_address", "onchain"]
-        help_texts = {**ShopDetailsForm.Meta.help_texts, "onchain": _(
-            "Only a sign for customers, on the map and on your page. Where on-chain payments go is set in your register, "
-            "on your phone: the site never sees it.")}
-        widgets = {**ShopDetailsForm.Meta.widgets, "lightning_address": plain_input(inputmode="email", autocomplete="off")}
+        help_texts = {
+            **ShopDetailsForm.Meta.help_texts,
+            "onchain": _(
+                "Only a sign for customers, on the map and on your page. Where on-chain payments go is set in your register, "
+                "on your phone: the site never sees it."
+            ),
+        }
+        widgets = {
+            **ShopDetailsForm.Meta.widgets,
+            "lightning_address": plain_input(inputmode="email", autocomplete="off"),
+        }
 
     # Shops of one owner may share a Lightning address, shops of different owners never (shops/certified.py): which shop
     # has it, and whose, is not said
@@ -275,8 +330,10 @@ class ShopForm(ShopDetailsForm):
         # sign, and what the shop had ticked stays in the database untouched
         if not features.enabled(features.ONCHAIN):
             self.fields.pop("onchain", None)
-        self.fields["lightning_address"].help_text = _("It looks like an email: name@provider. You find it in your wallet, usually under Receive. "
-                                                     "Phoenix addresses, the ones with the ₿ sign, do not work here.")
+        self.fields["lightning_address"].help_text = _(
+            "It looks like an email: name@provider. You find it in your wallet, usually under Receive. "
+            "Phoenix addresses, the ones with the ₿ sign, do not work here."
+        )
 
     def clean(self):
         data = super().clean()
@@ -310,14 +367,19 @@ class NewShopForm(ShopForm):
     """The new shop form, which can also save a shop whose owner has no wallet yet: ticked, and with no address written,
     the shop is saved waiting for its wallet (Shop.awaiting_wallet). A written address always counts and is checked as
     usual, ticked or not."""
-    later = forms.BooleanField(label=_("I do not have a wallet yet: save my shop, I add the wallet afterwards"),
-                               required=False, widget=forms.CheckboxInput(attrs={"aria-describedby": "later-help"}))
+
+    later = forms.BooleanField(
+        label=_("I do not have a wallet yet: save my shop, I add the wallet afterwards"),
+        required=False,
+        widget=forms.CheckboxInput(attrs={"aria-describedby": "later-help"}),
+    )
 
 
 class WalletForm(ShopForm):
     """Where the money goes, for a shop of the owner that has no register yet: one saved before having a wallet, one
     moved from another site, or one of the directory given to its owner. Only the address: the details have
     their own page, and `website` and `vat_number`, declared on ShopDetailsForm, are not among them."""
+
     website = None
     vat_number = None
 
@@ -339,9 +401,37 @@ def prefill(query):
     return {name: value for name, value in values.items() if value}
 
 
-RESERVED_NIP05 = {"_", "admin", "administrator", "info", "contact", "contatti", "help", "support", "staff", "moderator",
-                  "mod", "root", "webmaster", "postmaster", "abuse", "security", "noreply", "news", "press", "stampa",
-                  "official", "team", "board", "association", "associazione", "verein", "community", "comunita", "bitcoin"}
+RESERVED_NIP05 = {
+    "_",
+    "admin",
+    "administrator",
+    "info",
+    "contact",
+    "contatti",
+    "help",
+    "support",
+    "staff",
+    "moderator",
+    "mod",
+    "root",
+    "webmaster",
+    "postmaster",
+    "abuse",
+    "security",
+    "noreply",
+    "news",
+    "press",
+    "stampa",
+    "official",
+    "team",
+    "board",
+    "association",
+    "associazione",
+    "verein",
+    "community",
+    "comunita",
+    "bitcoin",
+}
 
 
 class CanonicalEmailField(forms.EmailField):
@@ -365,12 +455,16 @@ OWN_EMAIL = forms.EmailInput(attrs={"autocomplete": "email"})
 
 
 class ProfileForm(FocusOnFirstError, forms.Form):
-    email = CanonicalEmailField(label=_("Email to get back in"), required=False, widget=OWN_EMAIL,
-                             help_text=_("We send a link to confirm it. It is used to get back into your account, and to tell you if "
-                                         "your register stops taking Lightning payments."))
+    email = CanonicalEmailField(
+        label=_("Email to get back in"),
+        required=False,
+        widget=OWN_EMAIL,
+        help_text=_(
+            "We send a link to confirm it. It is used to get back into your account, and to tell you if "
+            "your register stops taking Lightning payments."
+        ),
+    )
 
 
 class RecoveryForm(FocusOnFirstError, forms.Form):
     email = CanonicalEmailField(label=_("Your email"), widget=OWN_EMAIL)
-
-

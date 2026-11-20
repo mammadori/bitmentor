@@ -1,6 +1,7 @@
 """The register's pages for whoever uses them with a screen reader, a keyboard or a finger: each field has its label,
 each button a name, the status lines are live regions, the screens have where focus goes, and the language is the
 page's. The register itself, in node, in test_register_a11y_flow.py."""
+
 from html.parser import HTMLParser
 
 from django.conf import settings
@@ -82,22 +83,32 @@ class Accessible(TestCase):
 
     def registers(self):
         register, phone = self.staff()
-        return {"owner": self.page(f"/en/shops/register/{self.shop.id}/"), "staff": self.page(staff_page(register), phone),
-                "practice": self.page(f"/en/shops/practice/{self.shop.id}/")}
+        return {
+            "owner": self.page(f"/en/shops/register/{self.shop.id}/"),
+            "staff": self.page(staff_page(register), phone),
+            "practice": self.page(f"/en/shops/practice/{self.shop.id}/"),
+        }
 
     def assert_fields_and_buttons_named(self, page, where):
         labelled = {element.attrs.get("for") for element in page.all("label")}
         for field in page.all("input") + page.all("select") + page.all("textarea"):
             if field.attrs.get("type") == "hidden":
                 continue
-            named = (field.attrs.get("id") in labelled or field.attrs.get("aria-label")
-                     or any(node.tag == "label" for node in field.ancestors()))
+            named = (
+                field.attrs.get("id") in labelled
+                or field.attrs.get("aria-label")
+                or any(node.tag == "label" for node in field.ancestors())
+            )
             self.assertTrue(named, f"{where}: a field without a label: {field.attrs}")
         for button in page.all("button"):
-            self.assertTrue(button.all_text().strip() or button.attrs.get("aria-label")
-                            # Filled by the script before it is shown
-                            or "hidden" in button.attrs or button.attrs.get("id") in {"discount"},
-                            f"{where}: a button without a name: {button.attrs}")
+            self.assertTrue(
+                button.all_text().strip()
+                or button.attrs.get("aria-label")
+                # Filled by the script before it is shown
+                or "hidden" in button.attrs
+                or button.attrs.get("id") in {"discount"},
+                f"{where}: a button without a name: {button.attrs}",
+            )
         # Nothing clickable that is not a control
         for element in page.elements:
             if element.tag in {"div", "span", "p", "li"}:

@@ -1,6 +1,7 @@
 """The switches of the optional features (config/features.py): the badge of the certified shops, the shops closed for a
 while and the practice register. Each one on and
 off: the merchant's panel, the public pages, the URLs, the commands and the notices; and what must never be lost."""
+
 import json
 from datetime import date, timedelta
 from io import StringIO
@@ -35,8 +36,16 @@ class Base(TestCase):
         cache.clear()
         reset_limits()
         self.owner = get_user_model().objects.create_user("merchant")
-        self.shop = Shop.objects.create(name="Bakery", owner=self.owner, lightning_address="bar@example.org",
-                                        latitude=41.9, longitude=12.5, lightning=True, discount=10, city="Town")
+        self.shop = Shop.objects.create(
+            name="Bakery",
+            owner=self.owner,
+            lightning_address="bar@example.org",
+            latitude=41.9,
+            longitude=12.5,
+            lightning=True,
+            discount=10,
+            city="Town",
+        )
         Shop.objects.filter(pk=self.shop.pk).update(created=timezone.now() - timedelta(days=200))
         self.shop.refresh_from_db()
 
@@ -90,10 +99,13 @@ class TheBlock(TestCase):
     def test_the_pages_know_the_switches(self):
         with off(features.PRACTICE):
             response = self.client.get("/en/shops/map/")
-        self.assertEqual(response.context["features"], {**{name: True for name in features.FEATURES}, "practice": False})
+        self.assertEqual(
+            response.context["features"], {**{name: True for name in features.FEATURES}, "practice": False}
+        )
 
     def test_the_example_community_documents_every_switch_and_its_block_is_valid_once_uncommented(self):
         import yaml
+
         from config.community import COMMUNITY_DIR
 
         lines = (COMMUNITY_DIR / "community.yml").read_text().splitlines()
@@ -153,7 +165,9 @@ class Practice(Base):
             self.assertNotIn("Practise", html)
             self.assertNotIn("/practice/", html)
             self.assertEqual(self.client.get(f"/en/shops/practice/{self.shop.id}/").status_code, 404)
-            self.assertEqual(self.client.get(f"/en/shops/register/p/{self.staff.id}/practice/?k={self.staff.key}").status_code, 404)
+            self.assertEqual(
+                self.client.get(f"/en/shops/register/p/{self.staff.id}/practice/?k={self.staff.key}").status_code, 404
+            )
             # Not for a visitor either, signed in or not
             self.client.logout()
             self.assertEqual(self.client.get(f"/en/shops/practice/{self.shop.id}/").status_code, 404)
@@ -274,15 +288,23 @@ class ClosedWhenItIsTurnedOff(Base):
         super().setUp()
         now = timezone.now()
         self.today = test_vacation.today()
-        self.update(lightning_status=LightningStatus.NO_ANSWER, lightning_since=now - timedelta(hours=30), lightning_checked=now,
-                    lightning_worked=now - timedelta(days=3), lightning_checked_address="bar@example.org",
-                    lightning_address="bar@example.org", first_sale=now - timedelta(days=100))
+        self.update(
+            lightning_status=LightningStatus.NO_ANSWER,
+            lightning_since=now - timedelta(hours=30),
+            lightning_checked=now,
+            lightning_worked=now - timedelta(days=3),
+            lightning_checked_address="bar@example.org",
+            lightning_address="bar@example.org",
+            first_sale=now - timedelta(days=100),
+        )
 
     def alarms(self):
         found = dashboard.summary()
         return {item.code for item in found["items"] if item.shop and item.shop.pk == self.shop.pk}, found["closed"]
 
-    def test_a_closure_with_a_day_to_open_again_keeps_the_alarms_quiet_until_that_day_and_says_only_the_address_is_broken(self):
+    def test_a_closure_with_a_day_to_open_again_keeps_the_alarms_quiet_until_that_day_and_says_only_the_address_is_broken(
+        self,
+    ):
         test_vacation.make(self.shop, self.today - timedelta(days=2), self.today + timedelta(days=5))
         self.assertEqual(self.alarms(), ({"closed_lightning"}, 1))
         with off(features.VACATION):
@@ -315,14 +337,18 @@ class ClosedWhenItIsTurnedOff(Base):
         told.assert_not_called()
 
     def test_the_quiet_of_a_closure_that_is_off_lasts_at_most_the_budget_days_from_its_first_day(self):
-        test_vacation.make(self.shop, self.today - timedelta(days=vacation.MAX_CREDIT + 5), self.today + timedelta(days=200))
+        test_vacation.make(
+            self.shop, self.today - timedelta(days=vacation.MAX_CREDIT + 5), self.today + timedelta(days=200)
+        )
         fresh = test_vacation.fresh(self.shop)
         self.assertTrue(vacation.is_quiet(fresh))
         with off(features.VACATION):
             self.assertFalse(vacation.is_quiet(fresh))
             self.assertIn("lightning_no_answer", self.alarms()[0])
         Closure.objects.all().delete()
-        test_vacation.make(self.shop, self.today - timedelta(days=vacation.MAX_CREDIT), self.today + timedelta(days=200))
+        test_vacation.make(
+            self.shop, self.today - timedelta(days=vacation.MAX_CREDIT), self.today + timedelta(days=200)
+        )
         with off(features.VACATION):
             self.assertTrue(vacation.is_quiet(test_vacation.fresh(self.shop)))
 
@@ -336,9 +362,15 @@ class ClosedWhenItIsTurnedOff(Base):
 
     def broken_once(self):
         now = timezone.now()
-        self.update(lightning_status=LightningStatus.OK, lightning_since=now - timedelta(days=2), lightning_checked=now,
-                    lightning_worked=now - timedelta(hours=3), lightning_failures=1,
-                    lightning_failing_since=now - timedelta(hours=2), lightning_checked_address="bar@example.org")
+        self.update(
+            lightning_status=LightningStatus.OK,
+            lightning_since=now - timedelta(days=2),
+            lightning_checked=now,
+            lightning_worked=now - timedelta(hours=3),
+            lightning_failures=1,
+            lightning_failing_since=now - timedelta(hours=2),
+            lightning_checked_address="bar@example.org",
+        )
 
     def test_the_guardian_tells_nobody_about_a_fault_during_a_dated_closure_but_tells_it_during_an_undated_one(self):
         from . import lightning_watch
@@ -348,7 +380,9 @@ class ClosedWhenItIsTurnedOff(Base):
             self.broken_once()
             test_vacation.make(self.shop, self.today - timedelta(days=1), back)
             with off(features.VACATION):
-                shop, change, recorded = lightning_watch.record(self.shop.pk, "bar@example.org", lightning_watch.NO_ANSWER_STATUS)
+                shop, change, recorded = lightning_watch.record(
+                    self.shop.pk, "bar@example.org", lightning_watch.NO_ANSWER_STATUS
+                )
             self.assertEqual((change, recorded), (told, True))
             # Either way the guardian keeps what it found on the shop, and the panel shows it
             shop.refresh_from_db()
@@ -358,8 +392,11 @@ class ClosedWhenItIsTurnedOff(Base):
 class Certified(Base):
     def setUp(self):
         super().setUp()
-        self.update(certified_month=date(2026, 9, 1), lightning_worked=timezone.now() - timedelta(days=2),
-                    first_sale=timezone.now())
+        self.update(
+            certified_month=date(2026, 9, 1),
+            lightning_worked=timezone.now() - timedelta(days=2),
+            first_sale=timezone.now(),
+        )
 
     def test_on_the_page_the_map_the_json_and_the_path_have_the_badge(self):
         page = self.client.get(f"/en/shops/s/{self.shop.id}/").content.decode()
@@ -406,7 +443,10 @@ class Certified(Base):
             self.assertNotIn("revoke_certificate", page)
             self.assertNotIn("column-certified_column", page)
             self.assertNotIn("certified shop", page.lower().replace("certified shops", ""))
-            self.assertNotIn("certified_month", self.client.get(reverse("admin:shops_shop_change", args=[self.shop.pk])).content.decode())
+            self.assertNotIn(
+                "certified_month",
+                self.client.get(reverse("admin:shops_shop_change", args=[self.shop.pk])).content.decode(),
+            )
 
     def test_the_diagnosis_does_not_talk_about_the_certificate(self):
         self.update(certified_month=None)
@@ -429,9 +469,15 @@ class EverythingOff(Base):
         test_vacation.make(self.shop, test_vacation.today(), None)
         with off(*features.FEATURES):
             self.client.force_login(self.owner)
-            for url in ("/en/shops/", "/en/shops/map/", f"/en/shops/s/{self.shop.id}/", f"/en/shops/register/{self.shop.id}/",
-                        f"/en/shops/edit/{self.shop.id}/",
-                        f"/en/shops/help/{self.shop.id}/", f"/en/shops/sign/{self.shop.id}/"):
+            for url in (
+                "/en/shops/",
+                "/en/shops/map/",
+                f"/en/shops/s/{self.shop.id}/",
+                f"/en/shops/register/{self.shop.id}/",
+                f"/en/shops/edit/{self.shop.id}/",
+                f"/en/shops/help/{self.shop.id}/",
+                f"/en/shops/sign/{self.shop.id}/",
+            ):
                 self.assertEqual(self.client.get(url).status_code, 200, url)
             admin_session(self.client)
             for url in ("/admin/shops/shop/", f"/admin/shops/shop/{self.shop.pk}/change/", "/admin/today/"):

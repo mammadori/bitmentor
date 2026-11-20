@@ -23,6 +23,7 @@ What it never does:
 Everything it makes is marked: a shop by an `external_id` that starts with PREFIX, an owner by the user name
 `demo:<name>` (the names of the demo owners, and no others). Running it again puts all of it back as it was, with the dates moved to today. `--remove` touches nothing
 else."""
+
 import hashlib
 from datetime import timedelta
 
@@ -59,9 +60,13 @@ def foreign():
     from django.contrib.auth import get_user_model
 
     demo_owners = get_user_model().objects.filter(username__in=usernames())
-    found = {"shops": Shop.objects.exclude(external_id__startswith=PREFIX).count(),
-             "accounts": get_user_model().objects.filter(is_staff=False, is_superuser=False)
-             .exclude(pk__in=demo_owners.values("pk")).count()}
+    found = {
+        "shops": Shop.objects.exclude(external_id__startswith=PREFIX).count(),
+        "accounts": get_user_model()
+        .objects.filter(is_staff=False, is_superuser=False)
+        .exclude(pk__in=demo_owners.values("pk"))
+        .count(),
+    }
     return {name: count for name, count in found.items() if count}
 
 
@@ -78,11 +83,15 @@ def refuse():
     others = foreign()
     if others:
         what = ", ".join(f"{count} {name}" for name, count in others.items())
-        raise Refused(f"This site is not empty: {what} that are not demo ones. Demo shops go only on an installation "
-                      "made for training, which starts empty (staff accounts are fine).")
+        raise Refused(
+            f"This site is not empty: {what} that are not demo ones. Demo shops go only on an installation "
+            "made for training, which starts empty (staff accounts are fine)."
+        )
     if settings.SITE_MODE != "development" and not settings.DEMO_ALLOWED:
-        raise Refused(f"SITE_MODE is {settings.SITE_MODE}: demo shops go on a development site, or here only with "
-                      "BITMENTOR_DEMO=1 in the environment, on a site that is empty.")
+        raise Refused(
+            f"SITE_MODE is {settings.SITE_MODE}: demo shops go on a development site, or here only with "
+            "BITMENTOR_DEMO=1 in the environment, on a site that is empty."
+        )
 
 
 def claim_code(slug):
@@ -95,8 +104,10 @@ def point(slug_index):
     """Where on the map: around the community's centre, on a small grid. Without a centre, around 0, 0."""
     centre = community().get("map") or {}
     row, column = divmod(slug_index, 4)
-    return (float(centre.get("latitude", 0)) + (row - 1) * 0.0035,
-            float(centre.get("longitude", 0)) + (column - 1.5) * 0.0045)
+    return (
+        float(centre.get("latitude", 0)) + (row - 1) * 0.0035,
+        float(centre.get("longitude", 0)) + (column - 1.5) * 0.0045,
+    )
 
 
 class Plan:
@@ -119,30 +130,75 @@ class Plan:
 # One entry per shop. `owner` is the name of the account (several shops may share one); `story` is what the shop is
 # for in the training, in a line, for the summary the command prints and for the guide.
 SHOPS = [
-    {"slug": "loaf", "name": "The Daily Loaf", "story": "certified, with a staff register",
-     "description": "Bread baked every morning, and a counter where bitcoin has been welcome for months."},
-    {"slug": "door", "name": "Blue Door Cafe", "owner": "door",
-     "story": "the Lightning address works, the certificate waits for the owner's basic pass; owner of two shops",
-     "description": "Coffee, cake and a blue door. Pay with bitcoin at the till."},
-    {"slug": "books", "name": "Paper & Ink Books", "owner": "door",
-     "story": "first day half done: the register is ready, the sign printed, the first sale not ticked yet",
-     "description": "New and second-hand books, a corner for children."},
-    {"slug": "petals", "name": "Petal Flowers", "story": "just signed up, no wallet yet: the page is ready, the shop is not on the map",
-     "description": "Flowers for every day and for the days that count."},
-    {"slug": "hardware", "name": "Hardware Hub", "story": "certified long ago",
-     "description": "Screws, paint and good advice."},
-    {"slug": "gelato", "name": "Moonlight Gelato", "story": "the Lightning address stopped answering three days ago",
-     "description": "Ice cream made on the spot, open until late."},
-    {"slug": "tailor", "name": "Needle & Thread Tailor", "story": "a staff register in use, and one turned off",
-     "description": "Repairs and alterations while you wait."},
-    {"slug": "herbs", "name": "Chamomile Herbalist", "story": "everything in order, without the certificate",
-     "description": "Teas, herbs and natural remedies."},
-    {"slug": "kitchen", "name": "Grandma's Kitchen", "owner": None, "story": "moved here from another site, waiting for its owner to take it",
-     "description": "Home cooking, three tables and a lot of patience."},
-    {"slug": "pencil", "name": "Pencil Stationery", "story": "moved here, the owner took it but has not connected a wallet",
-     "description": "Notebooks, pens and everything for school."},
-    {"slug": "records", "name": "The Old Record Shop", "story": "historic: closed, certified when it traded",
-     "description": "Vinyl and stories. Closed now; the page stays as a memory."},
+    {
+        "slug": "loaf",
+        "name": "The Daily Loaf",
+        "story": "certified, with a staff register",
+        "description": "Bread baked every morning, and a counter where bitcoin has been welcome for months.",
+    },
+    {
+        "slug": "door",
+        "name": "Blue Door Cafe",
+        "owner": "door",
+        "story": "the Lightning address works, the certificate waits for the owner's basic pass; owner of two shops",
+        "description": "Coffee, cake and a blue door. Pay with bitcoin at the till.",
+    },
+    {
+        "slug": "books",
+        "name": "Paper & Ink Books",
+        "owner": "door",
+        "story": "first day half done: the register is ready, the sign printed, the first sale not ticked yet",
+        "description": "New and second-hand books, a corner for children.",
+    },
+    {
+        "slug": "petals",
+        "name": "Petal Flowers",
+        "story": "just signed up, no wallet yet: the page is ready, the shop is not on the map",
+        "description": "Flowers for every day and for the days that count.",
+    },
+    {
+        "slug": "hardware",
+        "name": "Hardware Hub",
+        "story": "certified long ago",
+        "description": "Screws, paint and good advice.",
+    },
+    {
+        "slug": "gelato",
+        "name": "Moonlight Gelato",
+        "story": "the Lightning address stopped answering three days ago",
+        "description": "Ice cream made on the spot, open until late.",
+    },
+    {
+        "slug": "tailor",
+        "name": "Needle & Thread Tailor",
+        "story": "a staff register in use, and one turned off",
+        "description": "Repairs and alterations while you wait.",
+    },
+    {
+        "slug": "herbs",
+        "name": "Chamomile Herbalist",
+        "story": "everything in order, without the certificate",
+        "description": "Teas, herbs and natural remedies.",
+    },
+    {
+        "slug": "kitchen",
+        "name": "Grandma's Kitchen",
+        "owner": None,
+        "story": "moved here from another site, waiting for its owner to take it",
+        "description": "Home cooking, three tables and a lot of patience.",
+    },
+    {
+        "slug": "pencil",
+        "name": "Pencil Stationery",
+        "story": "moved here, the owner took it but has not connected a wallet",
+        "description": "Notebooks, pens and everything for school.",
+    },
+    {
+        "slug": "records",
+        "name": "The Old Record Shop",
+        "story": "historic: closed, certified when it traded",
+        "description": "Vinyl and stories. Closed now; the page stays as a memory.",
+    },
 ]
 
 
@@ -167,8 +223,9 @@ def ensure_user(name):
     user, created = User.objects.get_or_create(username=f"{USERNAME_PREFIX}{name}")
     if created or user.has_usable_password() or user.is_staff or user.is_superuser or not user.is_active:
         # Back to what it was made as. A demo account is never staff: staff accounts cannot sign in from the site
-        User.objects.filter(pk=user.pk).update(password="!" + hashlib.sha256(name.encode()).hexdigest(), is_staff=False,
-                                               is_superuser=False, is_active=True)
+        User.objects.filter(pk=user.pk).update(
+            password="!" + hashlib.sha256(name.encode()).hexdigest(), is_staff=False, is_superuser=False, is_active=True
+        )
         user.refresh_from_db()
     # update(), not save(): the recovery email is what the guardian watches over
     profile, _made = Profile.objects.get_or_create(user=user, defaults={"email": email_of(name)})
@@ -177,9 +234,14 @@ def ensure_user(name):
 
 
 def lightning_ok(plan, spec_hours=2):
-    return {"lightning_status": "ok", "lightning_checked": plan.ago(hours=spec_hours),
-            "lightning_worked": plan.ago(hours=spec_hours), "lightning_since": plan.ago(days=60),
-            "lightning_failures": 0, "lightning_failing_since": None}
+    return {
+        "lightning_status": "ok",
+        "lightning_checked": plan.ago(hours=spec_hours),
+        "lightning_worked": plan.ago(hours=spec_hours),
+        "lightning_since": plan.ago(days=60),
+        "lightning_failures": 0,
+        "lightning_failing_since": None,
+    }
 
 
 def states(plan):
@@ -188,40 +250,96 @@ def states(plan):
     both = lightning = {"lightning": True}
     return {
         "loaf": {
-            **both, "created": plan.ago(days=110), "first_sale": plan.ago(days=108), "sign_printed": plan.ago(days=109),
-            "register_shared": plan.ago(days=100), "discount": 5, **lightning_ok(plan),
-            "certified_month": plan.month_start(2)},
+            **both,
+            "created": plan.ago(days=110),
+            "first_sale": plan.ago(days=108),
+            "sign_printed": plan.ago(days=109),
+            "register_shared": plan.ago(days=100),
+            "discount": 5,
+            **lightning_ok(plan),
+            "certified_month": plan.month_start(2),
+        },
         "door": {
-            **lightning, "created": plan.ago(days=40), "first_sale": plan.ago(days=38), "sign_printed": plan.ago(days=39),
-            "register_shared": None, **lightning_ok(plan, 3)},
+            **lightning,
+            "created": plan.ago(days=40),
+            "first_sale": plan.ago(days=38),
+            "sign_printed": plan.ago(days=39),
+            "register_shared": None,
+            **lightning_ok(plan, 3),
+        },
         "books": {
-            **lightning, "created": plan.ago(days=2), "sign_printed": plan.ago(days=1), "register_shared": None,
-            "lightning_status": "ok", "lightning_checked": plan.ago(minutes=30), "lightning_worked": plan.ago(minutes=30),
-            "lightning_since": plan.ago(days=2), "lightning_failures": 0, "lightning_failing_since": None},
+            **lightning,
+            "created": plan.ago(days=2),
+            "sign_printed": plan.ago(days=1),
+            "register_shared": None,
+            "lightning_status": "ok",
+            "lightning_checked": plan.ago(minutes=30),
+            "lightning_worked": plan.ago(minutes=30),
+            "lightning_since": plan.ago(days=2),
+            "lightning_failures": 0,
+            "lightning_failing_since": None,
+        },
         "petals": {"created": plan.ago(days=1), "awaiting_wallet": True},
         "hardware": {
-            **both, "created": plan.ago(days=200), "first_sale": plan.ago(days=198), "sign_printed": plan.ago(days=199),
-            "register_shared": plan.ago(days=190), **lightning_ok(plan, 4),
-            "certified_month": plan.month_start(6)},
+            **both,
+            "created": plan.ago(days=200),
+            "first_sale": plan.ago(days=198),
+            "sign_printed": plan.ago(days=199),
+            "register_shared": plan.ago(days=190),
+            **lightning_ok(plan, 4),
+            "certified_month": plan.month_start(6),
+        },
         "gelato": {
-            **lightning, "created": plan.ago(days=90), "first_sale": plan.ago(days=88), "sign_printed": plan.ago(days=89),
-            "register_shared": plan.ago(days=80), "lightning_status": "no_answer", "lightning_since": plan.ago(days=3),
-            "lightning_checked": plan.ago(hours=1), "lightning_worked": plan.ago(days=3, hours=2),
-            "lightning_failures": 3, "lightning_failing_since": plan.ago(days=3)},
+            **lightning,
+            "created": plan.ago(days=90),
+            "first_sale": plan.ago(days=88),
+            "sign_printed": plan.ago(days=89),
+            "register_shared": plan.ago(days=80),
+            "lightning_status": "no_answer",
+            "lightning_since": plan.ago(days=3),
+            "lightning_checked": plan.ago(hours=1),
+            "lightning_worked": plan.ago(days=3, hours=2),
+            "lightning_failures": 3,
+            "lightning_failing_since": plan.ago(days=3),
+        },
         "tailor": {
-            **lightning, "created": plan.ago(days=60), "first_sale": plan.ago(days=57), "sign_printed": plan.ago(days=58),
-            "register_shared": plan.ago(days=50), **lightning_ok(plan)},
+            **lightning,
+            "created": plan.ago(days=60),
+            "first_sale": plan.ago(days=57),
+            "sign_printed": plan.ago(days=58),
+            "register_shared": plan.ago(days=50),
+            **lightning_ok(plan),
+        },
         "herbs": {
-            **both, "created": plan.ago(days=75), "first_sale": plan.ago(days=70), "sign_printed": plan.ago(days=72),
-            "register_shared": plan.ago(days=60), **lightning_ok(plan)},
-        "kitchen": {"created": plan.ago(days=3), "moved_in": plan.ago(days=3), "moved_register": True,
-                    "moved_from": "demo-old-site-kitchen", "claim_hash": claim_digest(claim_code("kitchen"))},
-        "pencil": {"created": plan.ago(days=6), "moved_in": plan.ago(days=6), "moved_register": True,
-                   "moved_from": "demo-old-site-pencil"},
+            **both,
+            "created": plan.ago(days=75),
+            "first_sale": plan.ago(days=70),
+            "sign_printed": plan.ago(days=72),
+            "register_shared": plan.ago(days=60),
+            **lightning_ok(plan),
+        },
+        "kitchen": {
+            "created": plan.ago(days=3),
+            "moved_in": plan.ago(days=3),
+            "moved_register": True,
+            "moved_from": "demo-old-site-kitchen",
+            "claim_hash": claim_digest(claim_code("kitchen")),
+        },
+        "pencil": {
+            "created": plan.ago(days=6),
+            "moved_in": plan.ago(days=6),
+            "moved_register": True,
+            "moved_from": "demo-old-site-pencil",
+        },
         "records": {
-            **lightning, "created": plan.ago(days=400), "first_sale": plan.ago(days=395), "sign_printed": plan.ago(days=399),
-            "register_shared": plan.ago(days=390), "closed_on": plan.now.date() - timedelta(days=70),
-            "certified_month": plan.month_start(10)},
+            **lightning,
+            "created": plan.ago(days=400),
+            "first_sale": plan.ago(days=395),
+            "sign_printed": plan.ago(days=399),
+            "register_shared": plan.ago(days=390),
+            "closed_on": plan.now.date() - timedelta(days=70),
+            "certified_month": plan.month_start(10),
+        },
     }
 
 
@@ -231,17 +349,49 @@ def fields_of(spec, index, plan, state):
     latitude, longitude = point(index)
     taking_lightning = state.get("lightning", False)
     base = {
-        "name": spec["name"], "description": spec["description"], "address": f"{index + 1} {LOOKS['street']}",
-        "city": LOOKS["town"], "latitude": latitude, "longitude": longitude, "website": "", "email": "", "phone": "",
-        "legal_name": "", "vat_number": "", "show_website": True, "show_address": True, "show_phone": False,
-        "show_email": False, "show_legal_name": False, "show_vat_number": False,
-        "discount": 0, "listed": True, "lightning": False, "lightning_address": "",
-        "nostr_pubkey": "", "nip05_name": "", "telegram_chat": "",
-        "suspended": False, "closed_on": None, "first_sale": None, "sign_printed": None, "register_shared": None,
-        "awaiting_wallet": False, "moved_in": None, "moved_from": "",
-        "moved_register": False, "claim_hash": "", "lightning_status": "", "lightning_since": None,
-        "lightning_checked": None, "lightning_worked": None, "lightning_failures": 0, "lightning_failing_since": None,
-        "lightning_checked_address": "", "certified_month": None, "certified_revoked": False,
+        "name": spec["name"],
+        "description": spec["description"],
+        "address": f"{index + 1} {LOOKS['street']}",
+        "city": LOOKS["town"],
+        "latitude": latitude,
+        "longitude": longitude,
+        "website": "",
+        "email": "",
+        "phone": "",
+        "legal_name": "",
+        "vat_number": "",
+        "show_website": True,
+        "show_address": True,
+        "show_phone": False,
+        "show_email": False,
+        "show_legal_name": False,
+        "show_vat_number": False,
+        "discount": 0,
+        "listed": True,
+        "lightning": False,
+        "lightning_address": "",
+        "nostr_pubkey": "",
+        "nip05_name": "",
+        "telegram_chat": "",
+        "suspended": False,
+        "closed_on": None,
+        "first_sale": None,
+        "sign_printed": None,
+        "register_shared": None,
+        "awaiting_wallet": False,
+        "moved_in": None,
+        "moved_from": "",
+        "moved_register": False,
+        "claim_hash": "",
+        "lightning_status": "",
+        "lightning_since": None,
+        "lightning_checked": None,
+        "lightning_worked": None,
+        "lightning_failures": 0,
+        "lightning_failing_since": None,
+        "lightning_checked_address": "",
+        "certified_month": None,
+        "certified_revoked": False,
     }
     base.update(state)
     if taking_lightning:
@@ -256,7 +406,9 @@ def make_shop(spec, index, plan, state, owner):
     shop = Shop.objects.filter(external_id=external).first()
     created = shop is None
     if created:
-        shop = Shop.objects.create(external_id=external, name=values["name"], approved_on=timezone.now(), approved_by="demo")
+        shop = Shop.objects.create(
+            external_id=external, name=values["name"], approved_on=timezone.now(), approved_by="demo"
+        )
     # update(): no signal sees a demo shop change hands or an owner's chat change. Back to the start, on every run
     Shop.objects.filter(pk=shop.pk).update(owner=owner, **values)
     # A made-up shop is always approved, even one an older image made while put back (docs/releases.md, "Going back")
@@ -268,11 +420,17 @@ def make_shop(spec, index, plan, state, owner):
 
 
 def make_staff(shop, name, plan, retired=None, opened=True):
-    register = StaffRegister.objects.filter(shop=shop, name=name).first() or StaffRegister.objects.create(shop=shop, name=name)
+    register = StaffRegister.objects.filter(shop=shop, name=name).first() or StaffRegister.objects.create(
+        shop=shop, name=name
+    )
     # The one-time code of a register is made by the owner when it is handed over: here it starts without one
-    StaffRegister.objects.filter(pk=register.pk).update(retired=retired, code="", code_until=None,
-                                                         opened=plan.ago(days=25) if opened else None,
-                                                         created=plan.ago(days=30))
+    StaffRegister.objects.filter(pk=register.pk).update(
+        retired=retired,
+        code="",
+        code_until=None,
+        opened=plan.ago(days=25) if opened else None,
+        created=plan.ago(days=30),
+    )
     register.refresh_from_db()
     return register
 
@@ -300,8 +458,12 @@ def populate(now=None):
 def staff(shops, plan):
     """The staff registers that tell each shop's story."""
     loaf, tailor = shops["loaf"], shops["tailor"]
-    kept = [make_staff(loaf, "Anna", plan).pk, make_staff(loaf, "Evening shift", plan, retired=plan.ago(days=20)).pk,
-            make_staff(tailor, "Sam", plan).pk, make_staff(tailor, "Weekend help", plan, retired=plan.ago(days=6)).pk]
+    kept = [
+        make_staff(loaf, "Anna", plan).pk,
+        make_staff(loaf, "Evening shift", plan, retired=plan.ago(days=20)).pk,
+        make_staff(tailor, "Sam", plan).pk,
+        make_staff(tailor, "Weekend help", plan, retired=plan.ago(days=6)).pk,
+    ]
     # The registers the training added are gone; the ones above keep their keys
     StaffRegister.objects.filter(shop__external_id__startswith=PREFIX).exclude(pk__in=kept).delete()
 
@@ -311,8 +473,9 @@ def passes(shops, plan):
     for slug in ("loaf", "hardware", "records"):
         owner = shops[slug].owner
         if owner is not None:
-            Trainee.objects.update_or_create(user=owner, defaults={"base_earned": plan.ago(days=100),
-                                                                   "reviewed": plan.ago(days=100)})
+            Trainee.objects.update_or_create(
+                user=owner, defaults={"base_earned": plan.ago(days=100), "reviewed": plan.ago(days=100)}
+            )
 
 
 def links(now=None):
@@ -333,7 +496,9 @@ def links(now=None):
             continue
         token = signing.dumps({"email": email, "state": login_state(email), "next": reverse("shops")}, salt="recovery")
         shops = [spec["name"] for spec in SHOPS if owner_name(spec) == name]
-        found["owners"].append({"name": name, "shops": shops, "email": email, "url": site_link("recovery_login", token)})
+        found["owners"].append(
+            {"name": name, "shops": shops, "email": email, "url": site_link("recovery_login", token)}
+        )
     for spec in SHOPS:
         if owner_name(spec) is not None:
             continue
@@ -341,8 +506,13 @@ def links(now=None):
         if shop is not None and shop.claim_hash:
             from django.utils.http import urlencode
 
-            found["claim"].append({"shop": shop.name, "url": f"{settings.PUBLIC_URL}{reverse('claim_shop')}?"
-                                                              f"{urlencode({'code': claim_code(spec['slug'])})}"})
+            found["claim"].append(
+                {
+                    "shop": shop.name,
+                    "url": f"{settings.PUBLIC_URL}{reverse('claim_shop')}?"
+                    f"{urlencode({'code': claim_code(spec['slug'])})}",
+                }
+            )
     return found
 
 

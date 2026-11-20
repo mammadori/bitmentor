@@ -5,6 +5,7 @@ both read 9 and both write 10. The address is the last one of X-Forwarded-For, w
 (`header_up X-Forwarded-For {client_ip}`, with what it trusts from TRUSTED_PROXIES): web is reachable only through
 Caddy, so whatever a visitor sends in that header is replaced. For IPv6 the network counts, a /64, and with
 `over_address_limits` its /48 too, which a tunnel or a VPS gives for free with 65,536 /64 networks inside."""
+
 import hashlib
 import ipaddress
 import secrets
@@ -78,13 +79,17 @@ def over_limit(name, limit, seconds):
     if not RequestCount.objects.filter(key=key).update(count=F("count") + 1):
         try:
             with transaction.atomic():
-                RequestCount.objects.create(key=key, expires=datetime.fromtimestamp((window + 1) * seconds, dt_timezone.utc))
+                RequestCount.objects.create(
+                    key=key, expires=datetime.fromtimestamp((window + 1) * seconds, dt_timezone.utc)
+                )
         except IntegrityError:
             RequestCount.objects.filter(key=key).update(count=F("count") + 1)
     if secrets.randbelow(50) == 0:
         # The same clock as the window, and never the count just made: with two clocks (tests move timezone.now) the
         # row just counted could look expired, and the get below would find nothing
-        RequestCount.objects.filter(expires__lt=datetime.fromtimestamp(time.time(), dt_timezone.utc)).exclude(key=key).delete()
+        RequestCount.objects.filter(expires__lt=datetime.fromtimestamp(time.time(), dt_timezone.utc)).exclude(
+            key=key
+        ).delete()
     return RequestCount.objects.get(key=key).count > limit
 
 
@@ -98,5 +103,6 @@ def give_back_address(request, name, seconds):
 def over_address_limits(request, name, per_address, per_network, seconds):
     """Counts a request of `name` for the visitor's address (`name:<address>`) and, if that one is not over, for its
     widest network (`name-net:<network>`); True when one of them went over."""
-    return (over_limit(f"{name}:{client_ip(request)}", per_address, seconds)
-            or over_limit(f"{name}-net:{client_network(request)}", per_network, seconds))
+    return over_limit(f"{name}:{client_ip(request)}", per_address, seconds) or over_limit(
+        f"{name}-net:{client_network(request)}", per_network, seconds
+    )

@@ -1,4 +1,5 @@
 """TELEGRAM_MODERATION_CHAT with several chats separated by commas: each moderator in a chat of their own."""
+
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -20,11 +21,13 @@ POST = "shops.notifications.requests.post"
 
 def answers(by_chat):
     """A Telegram that answers each chat with its status, or raises its exception."""
+
     def post(url, json, timeout):
         answer = by_chat[json["chat_id"]]
         if isinstance(answer, Exception):
             raise answer
         return SimpleNamespace(status_code=answer)
+
     return post
 
 
@@ -48,12 +51,16 @@ class SeveralChats(TestCase):
         with patch(POST) as post:
             post.return_value.status_code = 200
             self.assertIs(telegram("11, 22,33", "hello"), True)
-        self.assertEqual([call.kwargs["json"] for call in post.call_args_list],
-                         [{"chat_id": chat, "text": "hello"} for chat in ("11", "22", "33")])
+        self.assertEqual(
+            [call.kwargs["json"] for call in post.call_args_list],
+            [{"chat_id": chat, "text": "hello"} for chat in ("11", "22", "33")],
+        )
 
     def test_one_chat_that_takes_it_is_enough_and_the_others_are_in_the_log(self):
-        with patch(POST, side_effect=answers({"11": 403, "22": 502, "33": 200})) as post, \
-                self.assertLogs("shops.notifications", "ERROR") as log:
+        with (
+            patch(POST, side_effect=answers({"11": 403, "22": 502, "33": 200})) as post,
+            self.assertLogs("shops.notifications", "ERROR") as log,
+        ):
             self.assertIs(telegram("11,22,33", "hello"), True)
         self.assertEqual(post.call_count, 3)  # the first failures do not stop the others
         text = "\n".join(log.output)
@@ -64,27 +71,37 @@ class SeveralChats(TestCase):
         with patch(POST, side_effect=answers({"11": 403, "22": 400})), self.assertLogs("shops.notifications", "ERROR"):
             self.assertIs(telegram("11,22", "hello"), False)
         # trying again may work for one of them: the caller tries again
-        with patch(POST, side_effect=answers({"11": 403, "22": 502})), self.assertLogs("shops.notifications", "ERROR"), \
-                self.assertRaises(NotificationFailed):
+        with (
+            patch(POST, side_effect=answers({"11": 403, "22": 502})),
+            self.assertLogs("shops.notifications", "ERROR"),
+            self.assertRaises(NotificationFailed),
+        ):
             telegram("11,22", "hello")
 
     def test_a_telegram_that_cannot_be_reached_is_asked_once(self):
         """Ten seconds of waiting for each chat would hold the merchant's page: the list stops at the first one."""
         broken = requests.ConnectionError("https://api/bott/x")
-        with patch(POST, side_effect=answers({"11": broken, "22": 200, "33": 200})) as post, \
-                self.assertLogs("shops.notifications", "ERROR") as log, self.assertRaises(NotificationFailed) as raised:
+        with (
+            patch(POST, side_effect=answers({"11": broken, "22": 200, "33": 200})) as post,
+            self.assertLogs("shops.notifications", "ERROR") as log,
+            self.assertRaises(NotificationFailed) as raised,
+        ):
             telegram("11,22,33", "hello")
         self.assertEqual(post.call_count, 1)
         self.assertNotIn("bott", "\n".join(log.output) + str(raised.exception))  # the URL holds the token
         # the ones before it have the message: no second try, nothing repeated
-        with patch(POST, side_effect=answers({"11": 200, "22": broken, "33": 200})) as post, \
-                self.assertLogs("shops.notifications", "ERROR"):
+        with (
+            patch(POST, side_effect=answers({"11": 200, "22": broken, "33": 200})) as post,
+            self.assertLogs("shops.notifications", "ERROR"),
+        ):
             self.assertIs(telegram("11,22,33", "hello"), True)
         self.assertEqual(post.call_count, 2)
 
     def test_a_busy_telegram_does_not_stop_the_list(self):
-        with patch(POST, side_effect=answers({"11": 429, "22": 502, "33": 200})) as post, \
-                self.assertLogs("shops.notifications", "ERROR"):
+        with (
+            patch(POST, side_effect=answers({"11": 429, "22": 502, "33": 200})) as post,
+            self.assertLogs("shops.notifications", "ERROR"),
+        ):
             self.assertIs(telegram("11,22,33", "hello"), True)
         self.assertEqual(post.call_count, 3)
 
@@ -104,10 +121,16 @@ class SeveralChats(TestCase):
     @override_settings(TELEGRAM_MODERATION_CHAT="11,22")
     def test_the_email_is_used_only_when_no_chat_took_it(self):
         with patch("config.community.community", return_value={"name": "X", "email": "staff@example.org"}):
-            with patch(POST, side_effect=answers({"11": 403, "22": 200})), self.assertLogs("shops.notifications", "ERROR"):
+            with (
+                patch(POST, side_effect=answers({"11": 403, "22": 200})),
+                self.assertLogs("shops.notifications", "ERROR"),
+            ):
                 self.assertEqual(deliver_to_moderators("Subject", "hello"), ("TELEGRAM_MODERATION_CHAT", []))
             self.assertEqual(mail.outbox, [])
-            with patch(POST, side_effect=answers({"11": 403, "22": 403})), self.assertLogs("shops.notifications", "ERROR"):
+            with (
+                patch(POST, side_effect=answers({"11": 403, "22": 403})),
+                self.assertLogs("shops.notifications", "ERROR"),
+            ):
                 where, problems = deliver_to_moderators("Subject", "hello")
             self.assertEqual(where, "the community's email")
             self.assertEqual(len(problems), 1)
@@ -186,8 +209,9 @@ class ShopChats(TestCase):
                 self.assertEqual("telegram_chat" not in form.errors, valid)
 
 
-@override_settings(LANGUAGE_CODE="en", TELEGRAM_BOT_TOKEN="1:x", TELEGRAM_MODERATION_CHAT="-100",
-                   PUBLIC_URL="https://site.example.org")
+@override_settings(
+    LANGUAGE_CODE="en", TELEGRAM_BOT_TOKEN="1:x", TELEGRAM_MODERATION_CHAT="-100", PUBLIC_URL="https://site.example.org"
+)
 class GuardTellsEachChat(TestCase):
     """shops/guard.py writes to each chat of a shop on its own, so that «told» means that every one of them took it."""
 

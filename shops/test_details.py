@@ -1,6 +1,7 @@
 """The shop's business details and what its owner shows of them (shops/details.py): the business name and VAT number,
 the ticks of «What customers see», every public output that must leave out what is hidden, and the places where the
 details travel (the migration, the import, the move to another site)."""
+
 import io
 import json
 import logging
@@ -51,9 +52,21 @@ HIDDEN = {"address": ADDRESS, "phone": PHONE, "email": EMAIL, "legal_name": LEGA
 
 
 def make_shop(owner=None, **fields):
-    values = dict(name=NAME, address=ADDRESS, city=CITY, website=WEBSITE, phone=PHONE, email=EMAIL, legal_name=LEGAL,
-                  vat_number=VAT, latitude=41.9, longitude=12.5, lightning=True,
-                  lightning_address="bar@wallet.example.org", external_id="")
+    values = dict(
+        name=NAME,
+        address=ADDRESS,
+        city=CITY,
+        website=WEBSITE,
+        phone=PHONE,
+        email=EMAIL,
+        legal_name=LEGAL,
+        vat_number=VAT,
+        latitude=41.9,
+        longitude=12.5,
+        lightning=True,
+        lightning_address="bar@wallet.example.org",
+        external_id="",
+    )
     values.update(fields)
     return Shop.objects.create(owner=owner, **values)
 
@@ -87,8 +100,16 @@ class Vat(SimpleTestCase):
         self.assertNotEqual(details.vat_doubt("IT12345678900"), "")
 
     def test_another_country_is_looked_at_for_its_letters_only(self):
-        for number in ("DE123456789", "FR12345678901", "ATU12345678", "IE1234567T", "EL123456789", "XI123456789", "NL123456789B01",
-                       "ESX1234567X"):
+        for number in (
+            "DE123456789",
+            "FR12345678901",
+            "ATU12345678",
+            "IE1234567T",
+            "EL123456789",
+            "XI123456789",
+            "NL123456789B01",
+            "ESX1234567X",
+        ):
             self.assertEqual(details.vat_doubt(number), "", number)
         self.assertIn("not those of a country of the EU", details.vat_doubt("US123456789"))
         self.assertIn("not those of a country of the EU", details.vat_doubt("GB123456789"))
@@ -105,8 +126,14 @@ class Vat(SimpleTestCase):
         self.assertEqual(details.vat_doubt("  "), "")
 
     def test_control_and_invisible_characters_never_stay_in_the_number(self):
-        for text in ("IT01234567890\x00", "\u202eIT01234567890", "IT\u200b01234567890", "I\ufeffT01234567890", "IT\n01234567890",
-                     "IT\u2060012\u200d34567890"):
+        for text in (
+            "IT01234567890\x00",
+            "\u202eIT01234567890",
+            "IT\u200b01234567890",
+            "I\ufeffT01234567890",
+            "IT\n01234567890",
+            "IT\u2060012\u200d34567890",
+        ):
             self.assertEqual(details.normalize_vat(text), "IT01234567890", repr(text))
 
     def test_a_capital_that_is_two_letters_is_measured_after_it_grows(self):
@@ -121,13 +148,17 @@ class Defaults(TestCase):
     def test_the_website_and_the_address_are_shown_and_the_rest_is_not(self):
         shop = make_shop()
         self.assertEqual(sorted(details.shown(shop)), ["address", "website"])
-        self.assertEqual([details.chosen(shop, name) for name in details.CHOICES], [True, True, False, False, False, False])
+        self.assertEqual(
+            [details.chosen(shop, name) for name in details.CHOICES], [True, True, False, False, False, False]
+        )
         self.assertEqual(shop.public_details, {"website": WEBSITE, "address": ADDRESS})
 
     def test_a_detail_shown_but_empty_is_not_a_line(self):
         shop = make_shop(website="", phone="", show_phone=True)
         self.assertEqual(details.shown(shop), {"address": ADDRESS})
-        self.assertEqual(details.rows(shop, details.shown(shop)), [{"name": "address", "value": ADDRESS, "hidden": False}])
+        self.assertEqual(
+            details.rows(shop, details.shown(shop)), [{"name": "address", "value": ADDRESS, "hidden": False}]
+        )
 
     def test_the_place_is_the_address_or_the_town(self):
         shop = make_shop()
@@ -173,7 +204,9 @@ class PublicOutputs(TestCase):
         self.assertIn(WEBSITE, self.everywhere()["json"])
 
     def test_the_page_shows_what_is_chosen_with_its_names(self):
-        Shop.objects.filter(pk=self.shop.pk).update(show_phone=True, show_email=True, show_legal_name=True, show_vat_number=True)
+        Shop.objects.filter(pk=self.shop.pk).update(
+            show_phone=True, show_email=True, show_legal_name=True, show_vat_number=True
+        )
         page = Client().get(f"/en/shops/s/{self.shop.id}/").content.decode()
         self.assertIn(f'<a href="tel:{PHONE}">{PHONE}</a>', page)
         self.assertIn(f'<a href="mailto:{EMAIL}">{EMAIL}</a>', page)
@@ -210,7 +243,9 @@ class PublicOutputs(TestCase):
         self.assertEqual((row["address"], row["website"]), ("", ""))
 
     def test_the_json_never_carries_the_phone_the_email_the_business_name_or_the_vat_number(self):
-        Shop.objects.filter(pk=self.shop.pk).update(show_phone=True, show_email=True, show_legal_name=True, show_vat_number=True)
+        Shop.objects.filter(pk=self.shop.pk).update(
+            show_phone=True, show_email=True, show_legal_name=True, show_vat_number=True
+        )
         text = Client().get("/shops.json").content.decode()
         for name in ("phone", "email", "legal_name", "vat_number"):
             self.assertNotIn(HIDDEN[name], text)
@@ -227,15 +262,18 @@ class PublicOutputs(TestCase):
             self.assertNotIn(value, text)
 
     def test_the_nostr_event_never_carries_the_contacts_or_the_business_details_even_when_they_are_shown(self):
-        Shop.objects.filter(pk=self.shop.pk).update(show_phone=True, show_email=True, show_legal_name=True, show_vat_number=True)
+        Shop.objects.filter(pk=self.shop.pk).update(
+            show_phone=True, show_email=True, show_legal_name=True, show_vat_number=True
+        )
         self.shop.refresh_from_db()
         text = json.dumps(shop_event("01" * 32, self.shop, "https://example.org/s/x/"), ensure_ascii=False)
         for name in ("phone", "email", "legal_name", "vat_number"):
             self.assertNotIn(HIDDEN[name], text)
 
     def test_a_suspended_shop_keeps_only_its_address(self):
-        Shop.objects.filter(pk=self.shop.pk).update(suspended=True, show_phone=True, show_email=True, show_legal_name=True,
-                                                    show_vat_number=True)
+        Shop.objects.filter(pk=self.shop.pk).update(
+            suspended=True, show_phone=True, show_email=True, show_legal_name=True, show_vat_number=True
+        )
         page = Client().get(f"/en/shops/s/{self.shop.id}/").content.decode()
         for name in ("phone", "email", "legal_name", "vat_number"):
             self.assertNotIn(HIDDEN[name], page)
@@ -246,9 +284,16 @@ class PublicOutputs(TestCase):
 
     def test_the_printed_sheets_and_the_sign_say_only_the_name(self):
         self.client.force_login(self.owner)
-        Shop.objects.filter(pk=self.shop.pk).update(show_phone=True, show_email=True, show_legal_name=True, show_vat_number=True)
-        for name, args in (("shop_sign", [self.shop.id]), ("till_card", [self.shop.id]), ("customer_card", [self.shop.id]),
-                           ("customer", [self.shop.id]), ("customer_help", [self.shop.id])):
+        Shop.objects.filter(pk=self.shop.pk).update(
+            show_phone=True, show_email=True, show_legal_name=True, show_vat_number=True
+        )
+        for name, args in (
+            ("shop_sign", [self.shop.id]),
+            ("till_card", [self.shop.id]),
+            ("customer_card", [self.shop.id]),
+            ("customer", [self.shop.id]),
+            ("customer_help", [self.shop.id]),
+        ):
             response = self.client.get(reverse(name, args=args))
             self.assertEqual(response.status_code, 200, name)
             text = response.content.decode()
@@ -275,26 +320,58 @@ class PublicOutputs(TestCase):
         page that reads `shop.phone` directly shows it whatever the owner chose, and fails here."""
         root = Path(__file__).resolve().parent.parent
         pattern = re.compile(r"""([\w\])"']+(?:\.\w+)*)\.(phone|email|legal_name|vat_number|address|website)\b""")
-        not_shops = {"self", "profile", "community", "form", "outcome", "drill", "data", "answer", "onchain", "delivery", "say",
-                     # A sale of the register and its on-chain address, a destination pasted in the settings (static/register*.js)
-                     "entry", "sale", "mine", "place", "pasted"}
+        not_shops = {
+            "self",
+            "profile",
+            "community",
+            "form",
+            "outcome",
+            "drill",
+            "data",
+            "answer",
+            "onchain",
+            "delivery",
+            "say",
+            # A sale of the register and its on-chain address, a destination pasted in the settings (static/register*.js)
+            "entry",
+            "sale",
+            "mine",
+            "place",
+            "pasted",
+        }
         # (file, receiver, detail): the owner's callback phone, the admin's own columns, the map's JSON, the comments that
         # name what must not be written
-        named = {("shops/admin.py", "obj", "vat_number"), ("shops/admin.py", "row.shop", "phone"),
-                 ("shops/helpdesk.py", "shop", "phone"), ("shops/details.py", "shop", "phone"),
-                 ("static/map.js", "shop", "address"), ("static/map.js", "shop", "website"),
-                 ("website/views.py", "shop.shop", "phone"), ("static/register-derive.js", "found", "address"),
-                 # OpenStreetMap fills a field only when the shop has it empty: it reads the column to see that it is empty
-                 ("shops/osm.py", "shop", "address"), ("shops/osm.py", "shop", "website"), ("shops/osm.py", "shop", "phone"),
-                 # The approval's signals compare the contacts of two shops for the association and name only the kind
-                 *(("shops/approval_signals.py", receiver, detail) for receiver in ("shop", "other")
-                   for detail in ("website", "phone", "email"))}
+        named = {
+            ("shops/admin.py", "obj", "vat_number"),
+            ("shops/admin.py", "row.shop", "phone"),
+            ("shops/helpdesk.py", "shop", "phone"),
+            ("shops/details.py", "shop", "phone"),
+            ("static/map.js", "shop", "address"),
+            ("static/map.js", "shop", "website"),
+            ("website/views.py", "shop.shop", "phone"),
+            ("static/register-derive.js", "found", "address"),
+            # OpenStreetMap fills a field only when the shop has it empty: it reads the column to see that it is empty
+            ("shops/osm.py", "shop", "address"),
+            ("shops/osm.py", "shop", "website"),
+            ("shops/osm.py", "shop", "phone"),
+            # The approval's signals compare the contacts of two shops for the association and name only the kind
+            *(
+                ("shops/approval_signals.py", receiver, detail)
+                for receiver in ("shop", "other")
+                for detail in ("website", "phone", "email")
+            ),
+        }
         found = []
         for folder in ("shops", "website", "templates", "config", "static"):
             for path in (root / folder).rglob("*"):
                 relative = path.relative_to(root).as_posix()
-                if (not path.is_file() or path.suffix not in (".py", ".html", ".txt", ".js") or "/vendor/" in relative
-                        or "/migrations/" in relative or "/test" in relative):
+                if (
+                    not path.is_file()
+                    or path.suffix not in (".py", ".html", ".txt", ".js")
+                    or "/vendor/" in relative
+                    or "/migrations/" in relative
+                    or "/test" in relative
+                ):
                     continue
                 for number, line in enumerate(path.read_text().splitlines(), 1):
                     for receiver, detail in pattern.findall(line):
@@ -333,7 +410,7 @@ class DisplayPage(TestCase):
         self.assertRegex(text, r'name="show_address"[^>]*checked')
         self.assertNotRegex(text, r'name="show_phone"[^>]*checked')
         # The preview has no links that leave the page
-        preview = text[text.index('id="preview-facts"'):text.index("</ul>", text.index('id="preview-facts"'))]
+        preview = text[text.index('id="preview-facts"') : text.index("</ul>", text.index('id="preview-facts"'))]
         self.assertNotIn("<a ", preview)
 
     def test_saving_changes_the_six_ticks_and_nothing_else(self):
@@ -344,7 +421,9 @@ class DisplayPage(TestCase):
         changed = {key for key in before if before[key] != after[key]}
         self.assertEqual(changed, {"show_website", "show_address", "show_phone", "show_vat_number"})
         self.shop.refresh_from_db()
-        self.assertEqual([details.chosen(self.shop, name) for name in details.CHOICES], [False, False, True, False, False, True])
+        self.assertEqual(
+            [details.chosen(self.shop, name) for name in details.CHOICES], [False, False, True, False, False, True]
+        )
         page = self.client.get(self.url)
         self.assertContains(page, "Saved. This is what your customers see now.")
         self.assertRegex(page.content.decode(), r'<li data-detail="phone">')
@@ -421,17 +500,37 @@ class DisplayPage(TestCase):
         guarded.force_login(self.owner)
         guarded.get(self.url)
         token = guarded.cookies["csrftoken"].value
-        guarded.post(self.url, {"csrfmiddlewaretoken": token, "show_phone": "on", "name": "Hacked", "phone": "000", "owner": "",
-                                "suspended": "on", "listed": "", "show_website": "false"})
+        guarded.post(
+            self.url,
+            {
+                "csrfmiddlewaretoken": token,
+                "show_phone": "on",
+                "name": "Hacked",
+                "phone": "000",
+                "owner": "",
+                "suspended": "on",
+                "listed": "",
+                "show_website": "false",
+            },
+        )
         self.shop.refresh_from_db()
-        self.assertEqual((self.shop.name, self.shop.phone, self.shop.suspended, self.shop.listed, self.shop.owner_id),
-                         (NAME, PHONE, False, True, self.owner.pk))
-        self.assertEqual([details.chosen(self.shop, name) for name in details.CHOICES], [False, False, True, False, False, False])
+        self.assertEqual(
+            (self.shop.name, self.shop.phone, self.shop.suspended, self.shop.listed, self.shop.owner_id),
+            (NAME, PHONE, False, True, self.owner.pk),
+        )
+        self.assertEqual(
+            [details.chosen(self.shop, name) for name in details.CHOICES], [False, False, True, False, False, False]
+        )
 
     def test_html_in_the_values_is_escaped_for_the_owner_and_for_everybody(self):
-        Shop.objects.filter(pk=self.shop.pk).update(legal_name="<script>alert(1)</script>", vat_number="<b>x</b>",
-                                                    phone='"><img src=x onerror=1>', show_legal_name=True, show_vat_number=True,
-                                                    show_phone=True)
+        Shop.objects.filter(pk=self.shop.pk).update(
+            legal_name="<script>alert(1)</script>",
+            vat_number="<b>x</b>",
+            phone='"><img src=x onerror=1>',
+            show_legal_name=True,
+            show_vat_number=True,
+            show_phone=True,
+        )
         for page in (self.client.get(self.url), Client().get(f"/en/shops/s/{self.shop.id}/")):
             text = page.content.decode()
             for raw in ("<script>alert(1)", "<img src=x", "<b>x</b>"):
@@ -445,8 +544,11 @@ class DisplayPage(TestCase):
     def test_every_language_has_it(self):
         self.assertContains(self.client.get(f"/it/shops/preview/{self.shop.id}/"), "Cosa vedono i clienti")
         with override("de"):
-            for english, german in (("What customers see", "Was Ihre Kunden sehen"), ("VAT number", "USt-IdNr."),
-                                    ("Business name", "Firmenname")):
+            for english, german in (
+                ("What customers see", "Was Ihre Kunden sehen"),
+                ("VAT number", "USt-IdNr."),
+                ("Business name", "Firmenname"),
+            ):
                 self.assertEqual(gettext(english), german)
 
 
@@ -533,14 +635,23 @@ class OwnerForm(TestCase):
 
     def test_a_new_shop_takes_them_too(self):
         with patch("shops.views.refusal", return_value=None):
-            response = self.client.post("/en/shops/new/", {
-                "name": "Second", "lightning_address": "mario@example.org", "legal_name": LEGAL, "vat_number": "12 34"},
-                follow=True)
+            response = self.client.post(
+                "/en/shops/new/",
+                {
+                    "name": "Second",
+                    "lightning_address": "mario@example.org",
+                    "legal_name": LEGAL,
+                    "vat_number": "12 34",
+                },
+                follow=True,
+            )
         shop = Shop.objects.get(name="Second")
         self.assertEqual((shop.legal_name, shop.vat_number), (LEGAL, "1234"))
         self.assertContains(response, "may have a mistake")
         # A new shop starts with the starting values
-        self.assertEqual([details.chosen(shop, name) for name in details.CHOICES], [True, True, False, False, False, False])
+        self.assertEqual(
+            [details.chosen(shop, name) for name in details.CHOICES], [True, True, False, False, False, False]
+        )
 
 
 def admin_post_data(response):
@@ -554,8 +665,16 @@ def admin_post_data(response):
                 data[name] = "on"
         elif value is not None:
             data[name] = str(value)
-    data.update({"closures-TOTAL_FORMS": "0", "closures-INITIAL_FORMS": "0", "places-TOTAL_FORMS": "0", "places-INITIAL_FORMS": "0", "closures-MIN_NUM_FORMS": "0",
-                 "closures-MAX_NUM_FORMS": "1000"})
+    data.update(
+        {
+            "closures-TOTAL_FORMS": "0",
+            "closures-INITIAL_FORMS": "0",
+            "places-TOTAL_FORMS": "0",
+            "places-INITIAL_FORMS": "0",
+            "closures-MIN_NUM_FORMS": "0",
+            "closures-MAX_NUM_FORMS": "1000",
+        }
+    )
     return data
 
 
@@ -603,7 +722,9 @@ class AdminForm(TestCase):
         loaded = make_shop(name="Loaded")
         owned = make_shop(owner=an_owner(), name="Owned", show_phone=False, show_email=False)
         both = [loaded.id, owned.id]
-        response = self.client.post("/admin/shops/shop/", {"action": "show_contacts", "_selected_action": both}, follow=True)
+        response = self.client.post(
+            "/admin/shops/shop/", {"action": "show_contacts", "_selected_action": both}, follow=True
+        )
         self.assertContains(response, "1 shops now show their phone and email.")
         loaded.refresh_from_db()
         owned.refresh_from_db()
@@ -648,8 +769,11 @@ class ViewOnlyStaff(TestCase):
     """The actions of the shop list change shops: a staff account that can only look at them cannot run any."""
 
     def post(self, client, action, *shops):
-        return client.post("/admin/shops/shop/", {"action": action, "_selected_action": [shop.id for shop in shops], "index": "0"},
-                           follow=True)
+        return client.post(
+            "/admin/shops/shop/",
+            {"action": action, "_selected_action": [shop.id for shop in shops], "index": "0"},
+            follow=True,
+        )
 
     def test_an_account_that_can_only_view_cannot_show_or_hide_the_contacts(self):
         loaded = make_shop(name="Loaded")
@@ -733,9 +857,20 @@ class AdminVat(TestCase):
 
     def test_a_tick_in_the_list_does_not_repeat_the_warning_about_the_number(self):
         shop = make_shop(name="Loaded", vat_number="123")
-        response = self.client.post("/admin/shops/shop/", {
-            "form-TOTAL_FORMS": "1", "form-INITIAL_FORMS": "1", "form-MIN_NUM_FORMS": "0", "form-MAX_NUM_FORMS": "1000",
-            "form-0-id": str(shop.pk), "form-0-suspended": "on", "form-0-closed_on": "", "_save": "Save"}, follow=True)
+        response = self.client.post(
+            "/admin/shops/shop/",
+            {
+                "form-TOTAL_FORMS": "1",
+                "form-INITIAL_FORMS": "1",
+                "form-MIN_NUM_FORMS": "0",
+                "form-MAX_NUM_FORMS": "1000",
+                "form-0-id": str(shop.pk),
+                "form-0-suspended": "on",
+                "form-0-closed_on": "",
+                "_save": "Save",
+            },
+            follow=True,
+        )
         shop.refresh_from_db()
         self.assertTrue(shop.suspended)
         self.assertNotContains(response, "may have a mistake")
@@ -757,12 +892,15 @@ class InertShopForPages(TestCase):
 
     def test_the_shop_behind_it_is_out_of_reach(self):
         shop = make_shop(owner=an_owner())
-        text = self.render("[{{ shop.shop.phone }}][{{ shop.owner.username }}][{{ shop.owner }}][{{ shop.staff_registers }}]"
-                           "[{{ shop.get_mode_display }}]", shop)
+        text = self.render(
+            "[{{ shop.shop.phone }}][{{ shop.owner.username }}][{{ shop.owner }}][{{ shop.staff_registers }}]"
+            "[{{ shop.get_mode_display }}]",
+            shop,
+        )
         self.assertEqual(text, "[][][][][]")
         # What starts with an underscore is not passed on, from Python either: the shop behind is not an attribute to read
         with self.assertRaises(AttributeError):
-            InertShop(shop)._anything
+            InertShop(shop)._anything  # noqa: B018 (reading it is the test)
         self.assertNotIn("0461", text)
 
     def test_public_details_arrive_inert(self):
@@ -776,7 +914,10 @@ class InertShopForPages(TestCase):
 
     def test_what_the_pages_use_still_works(self):
         shop = make_shop(discount=7, show_phone=False)
-        text = self.render("{{ shop.name }}|{{ shop.city }}|{{ shop.discount }}|{{ shop.id }}|{{ shop.external_id }}|{{ shop.phone }}", shop)
+        text = self.render(
+            "{{ shop.name }}|{{ shop.city }}|{{ shop.discount }}|{{ shop.id }}|{{ shop.external_id }}|{{ shop.phone }}",
+            shop,
+        )
         self.assertEqual(text, f"{NAME}|{CITY}|7|{shop.id}||")
 
 
@@ -784,6 +925,7 @@ class GoingBack(TestCase):
     """deploy/release.sh puts the previous image back on a database this release migrated (shops/test_going_back.py): that
     image writes a shop without naming the new columns, so each of them, NOT NULL as it is, says its starting value in the
     database too, the same as the one a new shop gets."""
+
     NEW = ("legal_name", "vat_number", *moving.SHOWN)
 
     def test_each_new_column_has_a_db_default_equal_to_its_python_default(self):
@@ -794,7 +936,9 @@ class GoingBack(TestCase):
 
     def test_the_database_itself_holds_the_default_of_each(self):
         with connection.cursor() as cursor:
-            columns = {column.name: column for column in connection.introspection.get_table_description(cursor, "shops_shop")}
+            columns = {
+                column.name: column for column in connection.introspection.get_table_description(cursor, "shops_shop")
+            }
         for name in self.NEW:
             self.assertIsNotNone(columns[name].default, name)
             self.assertFalse(columns[name].null_ok, name)
@@ -809,13 +953,19 @@ class GoingBack(TestCase):
         values = {"id": Shop._meta.pk.get_db_prep_save(uuid.uuid4(), connection), "name": "Written by the old image"}
         for name in named:
             field = next(field for field in Shop._meta.concrete_fields if field.column == name)
-            values.setdefault(name, field.get_db_prep_save(timezone.now() if name == "created" else field.get_default(), connection))
+            values.setdefault(
+                name, field.get_db_prep_save(timezone.now() if name == "created" else field.get_default(), connection)
+            )
         with connection.cursor() as cursor:
-            cursor.execute(f"INSERT INTO shops_shop ({', '.join(map(quote, values))}) VALUES ({', '.join(['%s'] * len(values))})",
-                           list(values.values()))
+            cursor.execute(
+                f"INSERT INTO shops_shop ({', '.join(map(quote, values))}) VALUES ({', '.join(['%s'] * len(values))})",
+                list(values.values()),
+            )
         shop = Shop.objects.get(name="Written by the old image")
         self.assertEqual((shop.legal_name, shop.vat_number), ("", ""))
-        self.assertEqual([details.chosen(shop, name) for name in details.CHOICES], [True, True, False, False, False, False])
+        self.assertEqual(
+            [details.chosen(shop, name) for name in details.CHOICES], [True, True, False, False, False, False]
+        )
 
 
 class ImportShops(TestCase):
@@ -828,12 +978,16 @@ class ImportShops(TestCase):
         return out.getvalue()
 
     def test_the_two_fields_go_in_with_the_others(self):
-        out = self.run_file([{"external_id": 1, "name": "Loaded", "legal_name": LEGAL, "vat_number": "it 01234 567 897"}])
+        out = self.run_file(
+            [{"external_id": 1, "name": "Loaded", "legal_name": LEGAL, "vat_number": "it 01234 567 897"}]
+        )
         shop = Shop.objects.get(external_id="1")
         self.assertEqual((shop.legal_name, shop.vat_number), (LEGAL, "IT01234567897"))
         self.assertNotIn("mistake", out)
         # Loaded shops start with the starting values: the number is not shown
-        self.assertEqual([details.chosen(shop, name) for name in details.CHOICES], [True, True, False, False, False, False])
+        self.assertEqual(
+            [details.chosen(shop, name) for name in details.CHOICES], [True, True, False, False, False, False]
+        )
 
     def test_running_it_again_updates_and_does_not_duplicate(self):
         self.run_file([{"external_id": 1, "name": "Loaded", "vat_number": "DE123456789"}])
@@ -882,7 +1036,9 @@ class Moving(TestCase):
         source = Path(folder.name) / "in.json"
         source.write_text(json.dumps(document))
         out = io.StringIO()
-        call_command("import_moved_shops", str(source), *options, "--owners", str(Path(folder.name) / "owners.csv"), stdout=out)
+        call_command(
+            "import_moved_shops", str(source), *options, "--owners", str(Path(folder.name) / "owners.csv"), stdout=out
+        )
         return out.getvalue()
 
     def test_the_file_is_version_2_and_carries_the_details_and_the_choices(self):
@@ -891,9 +1047,17 @@ class Moving(TestCase):
         self.assertEqual(document["version"], 2)
         row = document["shops"][0]
         self.assertEqual((row["legal_name"], row["vat_number"]), (LEGAL, VAT))
-        self.assertEqual({key: row[key] for key in moving.SHOWN},
-                         {"show_website": True, "show_address": False, "show_phone": True, "show_email": False,
-                          "show_legal_name": False, "show_vat_number": False})
+        self.assertEqual(
+            {key: row[key] for key in moving.SHOWN},
+            {
+                "show_website": True,
+                "show_address": False,
+                "show_phone": True,
+                "show_email": False,
+                "show_legal_name": False,
+                "show_vat_number": False,
+            },
+        )
 
     def test_the_move_brings_the_details_and_the_choices(self):
         make_shop(owner=an_owner(), show_phone=True, show_address=False, show_vat_number=True)
@@ -902,7 +1066,9 @@ class Moving(TestCase):
         self.importing(document, "--apply")
         shop = Shop.objects.get()
         self.assertEqual((shop.legal_name, shop.vat_number), (LEGAL, VAT))
-        self.assertEqual([details.chosen(shop, name) for name in details.CHOICES], [True, False, True, False, False, True])
+        self.assertEqual(
+            [details.chosen(shop, name) for name in details.CHOICES], [True, False, True, False, False, True]
+        )
 
     def test_export_import_export_gives_the_same_details(self):
         make_shop(owner=an_owner(), show_email=True, show_legal_name=True)
@@ -926,8 +1092,12 @@ class Moving(TestCase):
         self.assertIn("2 moved", out)
         owned, loaded = Shop.objects.get(name="Owned"), Shop.objects.get(name="Loaded")
         self.assertEqual((owned.legal_name, owned.vat_number), ("", ""))
-        self.assertEqual([details.chosen(owned, name) for name in details.CHOICES], [True, True, True, True, False, False])
-        self.assertEqual([details.chosen(loaded, name) for name in details.CHOICES], [True, True, False, False, False, False])
+        self.assertEqual(
+            [details.chosen(owned, name) for name in details.CHOICES], [True, True, True, True, False, False]
+        )
+        self.assertEqual(
+            [details.chosen(loaded, name) for name in details.CHOICES], [True, True, False, False, False, False]
+        )
 
     def test_a_file_of_version_2_needs_every_key_and_a_file_of_version_1_none_of_the_new(self):
         make_shop(owner=an_owner())
@@ -1002,8 +1172,9 @@ class Privacy(TestCase):
 
     def setUp(self):
         self.owner = an_owner()
-        self.shop = make_shop(owner=self.owner, lightning_address="", lightning=False,
-                              show_legal_name=True, show_vat_number=True)
+        self.shop = make_shop(
+            owner=self.owner, lightning_address="", lightning=False, show_legal_name=True, show_vat_number=True
+        )
         self.records = []
 
         class Collect(logging.Handler):
@@ -1041,7 +1212,9 @@ class Privacy(TestCase):
 
     def test_nothing_the_site_does_with_the_details_writes_them_in_a_log(self):
         self.client.force_login(self.owner)
-        self.client.post(f"/en/shops/edit/{self.shop.id}/", {"name": NAME, "legal_name": "Secret Name Ltd", "vat_number": "IT123"})
+        self.client.post(
+            f"/en/shops/edit/{self.shop.id}/", {"name": NAME, "legal_name": "Secret Name Ltd", "vat_number": "IT123"}
+        )
         self.client.get(f"/en/shops/preview/{self.shop.id}/")
         self.client.post(f"/en/shops/preview/{self.shop.id}/", {"show_vat_number": "on"})
         Client().get(f"/en/shops/s/{self.shop.id}/")

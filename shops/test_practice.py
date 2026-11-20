@@ -1,5 +1,6 @@
 """The practice register (shops/practice.py): the real register's screens with nothing real behind them. No request to
 any provider, no write to the database, no sale anywhere, and open to the shop without a wallet."""
+
 import json
 import os
 import re
@@ -19,14 +20,16 @@ from config import features
 
 from .models import Shop, StaffRegister
 from .test_experimental import on
-from .tests import reset_limits
 from .test_scripts import assert_talks_to_nobody
+from .tests import reset_limits
 
 WRITES = re.compile(r"^\s*(INSERT|UPDATE|DELETE)", re.I)
 
 
 def practice_data(response):
-    found = re.search(r'<script id="practice-data" type="application/json">(.*?)</script>', response.content.decode(), re.S)
+    found = re.search(
+        r'<script id="practice-data" type="application/json">(.*?)</script>', response.content.decode(), re.S
+    )
     return json.loads(found.group(1))
 
 
@@ -40,8 +43,10 @@ class Practice(TestCase):
 
     def open(self, url, client=None):
         """The page, with every outgoing request made to fail loudly, counting the writes."""
-        with (patch("requests.Session.request", side_effect=AssertionError("network used")),
-              CaptureQueriesContext(connection) as queries):
+        with (
+            patch("requests.Session.request", side_effect=AssertionError("network used")),
+            CaptureQueriesContext(connection) as queries,
+        ):
             response = (client or self.client).get(url)
         writes = [query["sql"] for query in queries.captured_queries if WRITES.match(query["sql"])]
         self.assertEqual(writes, [])
@@ -65,8 +70,11 @@ class Practice(TestCase):
         self.assertNotIn("Practise without money", page)
 
     def test_the_register_has_no_address_to_pay_into(self):
-        found = re.search(r'<script id="register-data" type="application/json">(.*?)</script>',
-                          self.open(self.url).content.decode(), re.S)
+        found = re.search(
+            r'<script id="register-data" type="application/json">(.*?)</script>',
+            self.open(self.url).content.decode(),
+            re.S,
+        )
         data = json.loads(found.group(1))
         self.assertEqual((data["address"], data["domain"], data["sources"]), ("", "", []))
         self.assertEqual(data["texts"]["to"], "")
@@ -110,8 +118,11 @@ class Practice(TestCase):
         self.assertNotContains(response, "first-day-")
 
     def test_a_till_waiting_for_the_pass_leads_to_the_training_not_to_a_closed_door(self):
-        with patch("shops.training.locked", return_value=True), patch("shops.training.quick_start", return_value=0), \
-                patch("shops.first_day.applies", return_value=False):
+        with (
+            patch("shops.training.locked", return_value=True),
+            patch("shops.training.quick_start", return_value=0),
+            patch("shops.first_day.applies", return_value=False),
+        ):
             response = self.open(self.url)
             self.assertContains(response, 'href="/en/shops/training/">Start the path</a>')
             self.assertNotContains(response, "Open the real register")
@@ -119,8 +130,11 @@ class Practice(TestCase):
             other = self.open(self.url, self.client_class())
             self.assertNotContains(other, "Open the real register")
         # With the quick start the owner's till takes the first sales: the button stays
-        with patch("shops.training.locked", return_value=True), patch("shops.training.quick_start", return_value=500), \
-                patch("shops.first_day.applies", return_value=False):
+        with (
+            patch("shops.training.locked", return_value=True),
+            patch("shops.training.quick_start", return_value=500),
+            patch("shops.first_day.applies", return_value=False),
+        ):
             self.assertContains(self.open(self.url), "Open the real register")
 
     def test_the_real_register_links_to_the_practice_and_stays_the_same(self):
@@ -164,8 +178,9 @@ class Practice(TestCase):
     def test_the_pretend_customer_has_the_moves_of_the_exercises(self):
         page = self.open(self.url).content.decode()
         self.assertEqual(re.findall(r'data-move="(\w+)"', page), ["pay", "none", "down", "up", "phone", "confused"])
-        self.assertEqual(re.findall(r'data-exercise="(\w+)"', page),
-                         ["take", "offline", "expired", "phone", "onchain", "real"])
+        self.assertEqual(
+            re.findall(r'data-exercise="(\w+)"', page), ["take", "offline", "expired", "phone", "onchain", "real"]
+        )
         # On-chain is one exercise, the remedy when the customer does not understand the code; its words are there
         self.assertIn("pays only on-chain", practice_data(self.open(self.url))["texts"]["confused"])
 
@@ -295,8 +310,12 @@ class PracticeOnChain(TestCase):
         node = os.environ.get("NODE") or shutil.which("node")
         if not node:
             self.skipTest("node is missing")
-        result = subprocess.run([node, "-e", PRACTICE_HARNESS, "-", str(settings.BASE_DIR / "static" / "practice.js"), *mode],
-                                capture_output=True, text=True, timeout=60)
+        result = subprocess.run(
+            [node, "-e", PRACTICE_HARNESS, "-", str(settings.BASE_DIR / "static" / "practice.js"), *mode],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
 

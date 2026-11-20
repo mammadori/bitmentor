@@ -8,13 +8,16 @@ def wrong_team_area(app_configs, **kwargs):
     names of the staff registers): `manage.py check` and the log of `web` say so. A warning, like the others."""
     from .area import problems
 
-    return [checks.Warning(problem, hint="The block is documented in examples/community/community.yml", id="team.W001")
-            for problem in problems()]
+    return [
+        checks.Warning(problem, hint="The block is documented in examples/community/community.yml", id="team.W001")
+        for problem in problems()
+    ]
 
 
 class TeamConfig(AppConfig):
     """Team access: optional, off unless TEAM_ACCESS=on (docs/features/team-access.md). The tables always exist; the
     switch decides whether anything uses them (team/access.py)."""
+
     name = "team"
     verbose_name = _("Team access")
 

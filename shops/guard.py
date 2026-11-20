@@ -33,6 +33,7 @@ What it does not see, honestly: a change that skips Django (SQL, `QuerySet.raw`,
 whoever has the shell or the database, who can also delete the register. This is a witness, not a lock: against them
 only another person's eyes help (the moderation chat is read by the association, not by the one who made the change).
 """
+
 import contextvars
 import logging
 import threading
@@ -43,7 +44,6 @@ from smtplib import SMTPException
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
-from config.mail import merchant_sender, send_mail
 from django.db import transaction
 from django.db.models.signals import m2m_changed, post_save, pre_delete, pre_save
 from django.dispatch import receiver
@@ -54,6 +54,7 @@ from django.utils.translation import gettext_lazy
 
 from config.community import community
 from config.guard import comes_from_admin, current_request
+from config.mail import merchant_sender, send_mail
 
 from . import events
 from .models import AccountChange, Profile, Shop, is_demo
@@ -80,34 +81,51 @@ DELIVERY_SECONDS = 20
 # (short, in everyday words, one thing that happened)
 WORDS = {
     "password": (gettext_lazy("password"), gettext_lazy("A password was set or changed on your account.")),
-    "is_staff": (gettext_lazy("access to the admin"),
-                 gettext_lazy("Your account was given, or lost, access to the site's administration.")),
-    "is_superuser": (gettext_lazy("all rights in the admin"),
-                     gettext_lazy("Your account was given, or lost, all the rights over the site.")),
+    "is_staff": (
+        gettext_lazy("access to the admin"),
+        gettext_lazy("Your account was given, or lost, access to the site's administration."),
+    ),
+    "is_superuser": (
+        gettext_lazy("all rights in the admin"),
+        gettext_lazy("Your account was given, or lost, all the rights over the site."),
+    ),
     "is_active": (gettext_lazy("switched on or off"), gettext_lazy("Your account was switched on or off.")),
-    "username": (gettext_lazy("name it signs in with"),
-                 gettext_lazy("The name your account signs in with was replaced by another one.")),
+    "username": (
+        gettext_lazy("name it signs in with"),
+        gettext_lazy("The name your account signs in with was replaced by another one."),
+    ),
     "groups": (gettext_lazy("groups"), gettext_lazy("The rights of your account were changed.")),
     "permissions": (gettext_lazy("permissions"), gettext_lazy("The rights of your account were changed.")),
     "shop_owner": (gettext_lazy("owner of a shop"), gettext_lazy("A shop of yours was handed to another account.")),
-    "shop_chat": (gettext_lazy("Telegram chat of a shop"),
-                  gettext_lazy("The Telegram chat that receives the notices of a shop of yours was changed.")),
+    "shop_chat": (
+        gettext_lazy("Telegram chat of a shop"),
+        gettext_lazy("The Telegram chat that receives the notices of a shop of yours was changed."),
+    ),
     "deleted": (gettext_lazy("account deleted"), gettext_lazy("Your account was deleted.")),
-    "second_factor": (gettext_lazy("second factor of the admin's sign-in"),
-                      gettext_lazy("The second factor of your account's sign-in to the administration was turned on, "
-                                   "turned off or removed.")),
-    "admin_wallet": (gettext_lazy("wallet of the admin's sign-in"),
-                     gettext_lazy("A wallet that signs in to the administration was linked to your account, or "
-                                  "removed from it.")),
-    "shop_lightning": (gettext_lazy("Lightning address of a shop"),
-                       gettext_lazy("The Lightning address where a shop of yours gets paid was changed.")),
+    "second_factor": (
+        gettext_lazy("second factor of the admin's sign-in"),
+        gettext_lazy(
+            "The second factor of your account's sign-in to the administration was turned on, turned off or removed."
+        ),
+    ),
+    "admin_wallet": (
+        gettext_lazy("wallet of the admin's sign-in"),
+        gettext_lazy("A wallet that signs in to the administration was linked to your account, or removed from it."),
+    ),
+    "shop_lightning": (
+        gettext_lazy("Lightning address of a shop"),
+        gettext_lazy("The Lightning address where a shop of yours gets paid was changed."),
+    ),
 }
 # The column of the destination and the code the register keeps for its change
 DESTINATION_CODES = {"lightning_address": "shop_lightning"}
 VIA = {via.value: via.label for via in AccountChange.Via}
 # Who was told, in the register's words
-CHANNELS = {"email": gettext_lazy("email"), "telegram": gettext_lazy("Telegram chat of the shop"),
-            "association": gettext_lazy("chat of the association")}
+CHANNELS = {
+    "email": gettext_lazy("email"),
+    "telegram": gettext_lazy("Telegram chat of the shop"),
+    "association": gettext_lazy("chat of the association"),
+}
 
 _local = threading.local()
 
@@ -136,14 +154,19 @@ def origin():
 
 def recently_changed(user, within=RECENT):
     """True if whoever runs the site changed this account, or one of its shops' owner or chat, within `within`."""
-    return bool(user and user.is_authenticated and Profile.objects.filter(
-        user=user, account_changed__gte=timezone.now() - within).exists())
+    return bool(
+        user
+        and user.is_authenticated
+        and Profile.objects.filter(user=user, account_changed__gte=timezone.now() - within).exists()
+    )
 
 
 def advice(contact):
     """What the owner does: nothing if they know why, and otherwise tell the association at once."""
     if contact:
-        return _("If you know why, you do not need to do anything. If you do not, write to {email} now.").format(email=contact)
+        return _("If you know why, you do not need to do anything. If you do not, write to {email} now.").format(
+            email=contact
+        )
     return _("If you know why, you do not need to do anything. If you do not, tell the association now.")
 
 
@@ -151,13 +174,19 @@ def notice(user):
     """What the panel says to an owner whose account changed in the last RECENT: the date and the sentences, or None."""
     since = timezone.now() - RECENT
     # The owner's own act (a wallet connected) is in the register, but it is not something that happened to the account
-    rows = list(AccountChange.objects.filter(user=user, created__gte=since).exclude(via=AccountChange.Via.OWNER)
-                .order_by("created"))
+    rows = list(
+        AccountChange.objects.filter(user=user, created__gte=since)
+        .exclude(via=AccountChange.Via.OWNER)
+        .order_by("created")
+    )
     if not rows:
         return None
     codes = {code for row in rows for code in row.changed.split(",")}
-    return {"when": timezone.localtime(rows[-1].created), "what": words(codes, sentence=True),
-            "advice": advice(community().get("email", ""))}
+    return {
+        "when": timezone.localtime(rows[-1].created),
+        "what": words(codes, sentence=True),
+        "advice": advice(community().get("email", "")),
+    }
 
 
 def pending():
@@ -191,15 +220,23 @@ def record(user, codes, shops, chats, mark=True, deleting=False):
     # In a Telegram chat the shop's name is the owner's text, as everywhere in the alerts: one line, no web address
     plain = ", ".join(sorted({alert_name(shop) for shop in shops}))
     # A deleted user is not pointed to: the row would be left pointing at nobody the moment the deletion goes on
-    row = AccountChange.objects.create(user=None if deleting else user, shops=names[:300], changed=",".join(sorted(codes)),
-                                       actor=actor[:150], via=via)
+    row = AccountChange.objects.create(
+        user=None if deleting else user, shops=names[:300], changed=",".join(sorted(codes)), actor=actor[:150], via=via
+    )
     profile = Profile.objects.filter(user=user).first()
     if mark and not deleting:
         Profile.objects.update_or_create(user=user, defaults={"account_changed": row.created})
     # The key now: a user deleted has no pk left when the commit comes
     key = user.pk
-    pending()[key] = {"row": row.pk, "created": row.created, "codes": codes, "chats": chats,
-                      "email": profile.email if profile else "", "shops": names, "plain": plain}
+    pending()[key] = {
+        "row": row.pk,
+        "created": row.created,
+        "codes": codes,
+        "chats": chats,
+        "email": profile.email if profile else "",
+        "shops": names,
+        "plain": plain,
+    }
     transaction.on_commit(lambda: deliver(key, row.pk), robust=True)
     return row.pk
 
@@ -267,15 +304,25 @@ def deliver(key, row_pk):
         def association():
             by = _("By {actor}, from {via}.") if row.actor else _("From {via}.")
             link = f"{settings.PUBLIC_URL}{reverse_url('admin:shops_accountchange_changelist')}"
-            text = " ".join([_("Account change: {shops}.").format(shops=entry["plain"]),
-                             _("Changed: {what}.").format(what=", ".join(words(entry["codes"]))),
-                             by.format(actor=row.actor, via=str(VIA[row.via])),
-                             _("The register: {link}").format(link=link)])
+            text = " ".join(
+                [
+                    _("Account change: {shops}.").format(shops=entry["plain"]),
+                    _("Changed: {what}.").format(what=", ".join(words(entry["codes"]))),
+                    by.format(actor=row.actor, via=str(VIA[row.via])),
+                    _("The register: {link}").format(link=link),
+                ]
+            )
             return delivery.telegram(settings.TELEGRAM_MODERATION_CHAT, text)
 
         def email():
-            body = "\n\n".join([owner_line, "\n".join(f"- {line}" for line in sentences),
-                                _("Shops on your account: {shops}.").format(shops=entry["shops"]), advice_line])
+            body = "\n\n".join(
+                [
+                    owner_line,
+                    "\n".join(f"- {line}" for line in sentences),
+                    _("Shops on your account: {shops}.").format(shops=entry["shops"]),
+                    advice_line,
+                ]
+            )
             return delivery.email(entry["email"], f"{name}: {_('your account was changed')}", body)
 
         def chats():
@@ -286,8 +333,11 @@ def deliver(key, row_pk):
             reached = [delivery.telegram(chat, text) for chat in chosen[:MAX_CHATS]]
             return all(reached) and len(chosen) <= MAX_CHATS
 
-        channels = [("association", association if settings.TELEGRAM_MODERATION_CHAT else None),
-                    ("email", email if entry["email"] else None), ("telegram", chats if entry["chats"] else None)]
+        channels = [
+            ("association", association if settings.TELEGRAM_MODERATION_CHAT else None),
+            ("email", email if entry["email"] else None),
+            ("telegram", chats if entry["chats"] else None),
+        ]
         for channel, function in channels:
             if function is None:
                 # The association is always said: «not told» is a fact the register keeps. The owner's channels only if
@@ -297,8 +347,9 @@ def deliver(key, row_pk):
                 continue
             (told if attempt(row_pk, channel, function) else not_told).append(channel)
     order = ["email", "telegram", "association"]
-    AccountChange.objects.filter(pk=row_pk).update(told=",".join(sorted(told, key=order.index)),
-                                                   not_told=",".join(sorted(not_told, key=order.index)))
+    AccountChange.objects.filter(pk=row_pk).update(
+        told=",".join(sorted(told, key=order.index)), not_told=",".join(sorted(not_told, key=order.index))
+    )
 
 
 def owned(user):
@@ -312,6 +363,7 @@ def owned_chats(shops):
 
 # --- Where a shop's money goes ------------------------------------------------------------------------------------------
 
+
 def watch(function, *args):
     """What the guardian does about a destination change, which must never stop the change itself: the connection of a wallet
     is the merchant's, and the witness is not a lock. Whatever goes wrong in it (a database error, a text that cannot be
@@ -321,7 +373,9 @@ def watch(function, *args):
         with transaction.atomic():
             return function(*args)
     except Exception as error:
-        logger.exception("The guardian could not watch a change of where a shop's money goes (%s)", type(error).__name__)
+        logger.exception(
+            "The guardian could not watch a change of where a shop's money goes (%s)", type(error).__name__
+        )
         return None
 
 
@@ -329,15 +383,16 @@ def refuse_from_admin():
     """The administration never changes where a shop's money goes, whoever signs in there and whichever module or action
     asks: the owner does, from the panel. Called before such a column is written (a save, an update)."""
     if origin()[0] == "admin":
-        raise PermissionDenied("Where a shop's money goes is not changed from the administration: only its owner does, "
-                               "from their panel.")
+        raise PermissionDenied(
+            "Where a shop's money goes is not changed from the administration: only its owner does, from their panel."
+        )
 
 
 def destinations(pks):
     """{pk: {column: value}} of the destination columns of these shops, as the database has them now."""
     pks, found = list(pks), {}
     for start in range(0, len(pks), 500):
-        for row in Shop.objects.filter(pk__in=pks[start:start + 500]).values("pk", *FIELDS):
+        for row in Shop.objects.filter(pk__in=pks[start : start + 500]).values("pk", *FIELDS):
             found[row["pk"]] = row
     return found
 
@@ -357,8 +412,13 @@ def address_changed(shop, before, after):
     """`events.lightning_address_changed`, after the commit, for a shop whose Lightning address is not what it was: from
     a save and from an update alike. Not for the made-up shops of the demo (`outside`), as for the notices."""
     if before["lightning_address"] != after["lightning_address"] and not outside(shop):
-        events.send(events.lightning_address_changed, Shop, shop=shop, before=before["lightning_address"] or "",
-                    after=after["lightning_address"] or "")
+        events.send(
+            events.lightning_address_changed,
+            Shop,
+            shop=shop,
+            before=before["lightning_address"] or "",
+            after=after["lightning_address"] or "",
+        )
 
 
 def outside(shop):
@@ -384,16 +444,22 @@ def paying_to(shop, whole=True):
     Empty for a shop without one."""
     if not shop.lightning_address:
         return []
-    return [{"kind": "lightning", "label": _("Lightning address"),
-             "value": shop.lightning_address if whole else short_address(shop.lightning_address)}]
+    return [
+        {
+            "kind": "lightning",
+            "label": _("Lightning address"),
+            "value": shop.lightning_address if whole else short_address(shop.lightning_address),
+        }
+    ]
 
 
 def destination_lines(before, after):
     """What changed, as [(code, old, new)] with the address short. The register has no value; the notices have these."""
     lines = []
     if before["lightning_address"] != after["lightning_address"]:
-        lines.append(("lightning_address", short_address(before["lightning_address"]),
-                      short_address(after["lightning_address"])))
+        lines.append(
+            ("lightning_address", short_address(before["lightning_address"]), short_address(after["lightning_address"]))
+        )
     return lines
 
 
@@ -416,17 +482,35 @@ def destination_changed(shop, before, after):
     # a stolen account would otherwise change it with a confirmation to a channel the thief may have changed first
     first = not before["lightning_address"]
     # A replacement counts as the owner's only from the one page made for it (address_change.apply marks it)
-    own = bool(via == "site" and (first or OWNER_CHANGE.get()) and shop.owner_id and visitor is not None and visitor.is_authenticated
-               and visitor.pk == shop.owner_id)
+    own = bool(
+        via == "site"
+        and (first or OWNER_CHANGE.get())
+        and shop.owner_id
+        and visitor is not None
+        and visitor.is_authenticated
+        and visitor.pk == shop.owner_id
+    )
     owner = User.objects.filter(pk=shop.owner_id).first() if shop.owner_id else None
     chats = owned_chats(owned(owner)) if owner else []
-    row = AccountChange.objects.create(user=owner, shops=shop.name[:300], changed=",".join(codes), actor=actor[:150],
-                                       via=AccountChange.Via.OWNER if own else via)
+    row = AccountChange.objects.create(
+        user=owner,
+        shops=shop.name[:300],
+        changed=",".join(codes),
+        actor=actor[:150],
+        via=AccountChange.Via.OWNER if own else via,
+    )
     if owner and not own:
         Profile.objects.update_or_create(user=owner, defaults={"account_changed": row.created})
     profile = Profile.objects.filter(user=owner).first() if owner else None
-    payload = {"row": row.pk, "own": own, "association": not (own and first), "lines": lines, "plain": alert_name(shop), "chats": chats,
-               "email": profile.email if profile else ""}
+    payload = {
+        "row": row.pk,
+        "own": own,
+        "association": not (own and first),
+        "lines": lines,
+        "plain": alert_name(shop),
+        "chats": chats,
+        "email": profile.email if profile else "",
+    }
     transaction.on_commit(lambda: deliver_destination(payload), robust=True)
     return row.pk
 
@@ -455,24 +539,35 @@ def deliver_destination(payload):
         contact = community().get("email", "")
         if payload["own"]:
             owner_line = _("You changed where a shop of yours gets paid, on {site}:").format(site=name)
-            closing = (_("If it was you, you do not need to do anything. If it was not, write to {email} now.")
-                       .format(email=contact) if contact else
-                       _("If it was you, you do not need to do anything. If it was not, tell the association now."))
+            closing = (
+                _("If it was you, you do not need to do anything. If it was not, write to {email} now.").format(
+                    email=contact
+                )
+                if contact
+                else _("If it was you, you do not need to do anything. If it was not, tell the association now.")
+            )
             subject = f"{name}: {_('you changed where your shop gets paid')}"
         else:
-            owner_line = _("Someone who runs the site changed where a shop of yours gets paid, on {site}:").format(site=name)
+            owner_line = _("Someone who runs the site changed where a shop of yours gets paid, on {site}:").format(
+                site=name
+            )
             closing = advice(contact)
             subject = f"{name}: {_('where your shop gets paid was changed')}"
-        owner_text = "\n".join([owner_line, *(f"- {line}" for line in details), _("Shop: {shop}.").format(shop=payload["plain"]),
-                                 closing])
+        owner_text = "\n".join(
+            [owner_line, *(f"- {line}" for line in details), _("Shop: {shop}.").format(shop=payload["plain"]), closing]
+        )
 
         def association():
             by = _("By {actor}, from {via}.") if row.actor else _("From {via}.")
             link = f"{settings.PUBLIC_URL}{reverse_url('admin:shops_accountchange_changelist')}"
-            text = " ".join([_("Destination change: {shop}.").format(shop=payload["plain"]),
-                             _("Changed: {what}.").format(what="; ".join(details)),
-                             by.format(actor=row.actor, via=str(VIA[row.via])),
-                             _("The register: {link}").format(link=link)])
+            text = " ".join(
+                [
+                    _("Destination change: {shop}.").format(shop=payload["plain"]),
+                    _("Changed: {what}.").format(what="; ".join(details)),
+                    by.format(actor=row.actor, via=str(VIA[row.via])),
+                    _("The register: {link}").format(link=link),
+                ]
+            )
             return delivery.telegram(settings.TELEGRAM_MODERATION_CHAT, text)
 
         def email():
@@ -483,8 +578,11 @@ def deliver_destination(payload):
             reached = [delivery.telegram(chat, owner_text) for chat in chosen[:MAX_CHATS]]
             return all(reached) and len(chosen) <= MAX_CHATS
 
-        channels = [("association", association if settings.TELEGRAM_MODERATION_CHAT else None),
-                    ("email", email if payload["email"] else None), ("telegram", chats if payload["chats"] else None)]
+        channels = [
+            ("association", association if settings.TELEGRAM_MODERATION_CHAT else None),
+            ("email", email if payload["email"] else None),
+            ("telegram", chats if payload["chats"] else None),
+        ]
         for channel, function in channels:
             if channel == "association" and not payload.get("association", not payload["own"]):
                 continue  # the owner's own act is the owner's business: the register keeps it
@@ -494,8 +592,9 @@ def deliver_destination(payload):
                 continue
             (told if attempt(row_pk, channel, function) else not_told).append(channel)
     order = ["email", "telegram", "association"]
-    AccountChange.objects.filter(pk=row_pk).update(told=",".join(sorted(told, key=order.index)),
-                                                   not_told=",".join(sorted(not_told, key=order.index)))
+    AccountChange.objects.filter(pk=row_pk).update(
+        told=",".join(sorted(told, key=order.index)), not_told=",".join(sorted(not_told, key=order.index))
+    )
 
 
 @receiver(pre_save, sender=User)
@@ -517,8 +616,13 @@ def user_after(sender, instance, created=False, raw=False, update_fields=None, *
     # Django itself rewrites the hash with a stronger one when someone signs in (check_password), and says so by saving
     # only `password`: the same secret, not a new one. Only when there was a usable hash: a password set where there was
     # none is always a change
-    if (changed == ["password"] and update_fields is not None and set(update_fields) == {"password"}
-            and before["password"] and not before["password"].startswith("!")):
+    if (
+        changed == ["password"]
+        and update_fields is not None
+        and set(update_fields) == {"password"}
+        and before["password"]
+        and not before["password"].startswith("!")
+    ):
         return
     if changed:
         shops = owned(instance)
@@ -588,8 +692,10 @@ def shop_after(sender, instance, created=False, raw=False, update_fields=None, *
     if created or raw or not before:
         return
     written = set(FIELDS) if update_fields is None else set(FIELDS) & set(update_fields)
-    old, new = ({field: before[field] for field in FIELDS},
-                {field: getattr(instance, field) if field in written else before[field] for field in FIELDS})
+    old, new = (
+        {field: before[field] for field in FIELDS},
+        {field: getattr(instance, field) if field in written else before[field] for field in FIELDS},
+    )
     watch(destination_changed, instance, old, new)
     address_changed(instance, old, new)
     via, _actor = origin()

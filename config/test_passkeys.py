@@ -1,6 +1,7 @@
 """Passkeys as the second factor of /admin/ (config/webauthn.py, config/cbor.py, config/second_factor.py): a software
 authenticator for the three algorithms, registration and sign-in end to end, every refusal, the modes, the sessions,
 the page, the commands, the notices, the setting, the script."""
+
 import base64
 import hashlib
 import json
@@ -60,6 +61,7 @@ HTTPS = {"HTTP_X_FORWARDED_PROTO": "https"}
 
 # --- A CBOR encoder, for the tests only --------------------------------------------------------------------------------
 
+
 def head(major, number):
     if number < 24:
         return bytes([major << 5 | number])
@@ -100,6 +102,7 @@ def unb64(text):
 
 # --- A software authenticator --------------------------------------------------------------------------------------
 
+
 class Authenticator:
     """Makes and uses one passkey as a browser and an authenticator would, with switches to break every part."""
 
@@ -119,7 +122,12 @@ class Authenticator:
             numbers = public.public_numbers()
             return {1: 2, 3: -7, -1: 1, -2: numbers.x.to_bytes(32, "big"), -3: numbers.y.to_bytes(32, "big")}
         if self.alg == webauthn.EDDSA:
-            return {1: 1, 3: -8, -1: 6, -2: public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)}
+            return {
+                1: 1,
+                3: -8,
+                -1: 6,
+                -2: public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw),
+            }
         numbers = public.public_numbers()
         return {1: 3, 3: -257, -1: numbers.n.to_bytes(256, "big"), -2: numbers.e.to_bytes(3, "big")}
 
@@ -132,11 +140,23 @@ class Authenticator:
 
     @staticmethod
     def client_data(kind, challenge, origin=ORIGIN, **extra):
-        return json.dumps({"type": kind, "challenge": challenge, "origin": origin, "crossOrigin": False,
-                           **extra}).encode()
+        return json.dumps(
+            {"type": kind, "challenge": challenge, "origin": origin, "crossOrigin": False, **extra}
+        ).encode()
 
-    def create(self, options, origin=ORIGIN, kind="webauthn.create", rp=HOST, flags=None, challenge=None, cose=None,
-               tail=b"", client=None, credential_id=None):
+    def create(
+        self,
+        options,
+        origin=ORIGIN,
+        kind="webauthn.create",
+        rp=HOST,
+        flags=None,
+        challenge=None,
+        cose=None,
+        tail=b"",
+        client=None,
+        credential_id=None,
+    ):
         """The JSON the page posts after navigator.credentials.create."""
         flags = (self.flags | AT) if flags is None else flags
         credential = self.credential_id if credential_id is None else credential_id
@@ -146,11 +166,29 @@ class Authenticator:
             data += bytes(16) + struct.pack(">H", len(credential)) + credential + encode(cose or self.cose())
         data += tail
         attestation = encode({"fmt": "none", "attStmt": {}, "authData": data})
-        return json.dumps({"id": b64(credential), "rawId": b64(credential), "type": "public-key",
-                           "response": {"clientDataJSON": b64(client), "attestationObject": b64(attestation)}})
+        return json.dumps(
+            {
+                "id": b64(credential),
+                "rawId": b64(credential),
+                "type": "public-key",
+                "response": {"clientDataJSON": b64(client), "attestationObject": b64(attestation)},
+            }
+        )
 
-    def get(self, options, origin=ORIGIN, kind="webauthn.get", rp=HOST, flags=None, challenge=None, count=None,
-            handle=None, tamper_signature=False, tamper_data=False, client=None):
+    def get(
+        self,
+        options,
+        origin=ORIGIN,
+        kind="webauthn.get",
+        rp=HOST,
+        flags=None,
+        challenge=None,
+        count=None,
+        handle=None,
+        tamper_signature=False,
+        tamper_data=False,
+        client=None,
+    ):
         """The JSON the page posts after navigator.credentials.get."""
         if count is None:
             self.count += self.step
@@ -163,9 +201,19 @@ class Authenticator:
             signature = signature[:-1] + bytes([signature[-1] ^ 1])
         if tamper_data:
             data = data[:-1] + bytes([data[-1] ^ 1])
-        return json.dumps({"id": b64(self.credential_id), "rawId": b64(self.credential_id), "type": "public-key",
-                           "response": {"clientDataJSON": b64(client), "authenticatorData": b64(data),
-                                        "signature": b64(signature), "userHandle": handle}})
+        return json.dumps(
+            {
+                "id": b64(self.credential_id),
+                "rawId": b64(self.credential_id),
+                "type": "public-key",
+                "response": {
+                    "clientDataJSON": b64(client),
+                    "authenticatorData": b64(data),
+                    "signature": b64(signature),
+                    "userHandle": handle,
+                },
+            }
+        )
 
 
 def browser():
@@ -202,21 +250,30 @@ class Base(TestCase):
         page = client.get(SETUP)
         self.assertEqual(page.status_code, 200)
         options = page.context["passkey_options"]
-        answer = client.post(SETUP, {"action": "passkey-add", "name": name,
-                                     "credential": authenticator.create(options, **broken)})
+        answer = client.post(
+            SETUP, {"action": "passkey-add", "name": name, "credential": authenticator.create(options, **broken)}
+        )
         return answer, authenticator
 
     def register(self, user=None, alg=webauthn.ES256, name="phone", **options):
         """A passkey of `user` (the staff account by default), stored as the page would, without going through it."""
         user = user or self.staff
         authenticator = Authenticator(alg, **options)
-        handle, _made = AdminPasskeyHandle.objects.get_or_create(user=user,
-                                                                 defaults={"handle": webauthn.new_user_handle()})
+        handle, _made = AdminPasskeyHandle.objects.get_or_create(
+            user=user, defaults={"handle": webauthn.new_user_handle()}
+        )
         challenge = webauthn.new_challenge()
         made = webauthn.verify_registration(authenticator.create({"challenge": challenge}), challenge)
-        passkey = AdminPasskey.objects.create(user=user, credential_id=made.credential_id, public_key=made.public_key,
-                                              algorithm=made.algorithm, sign_count=made.sign_count, name=name,
-                                              backup_eligible=made.backup_eligible, backed_up=made.backed_up)
+        passkey = AdminPasskey.objects.create(
+            user=user,
+            credential_id=made.credential_id,
+            public_key=made.public_key,
+            algorithm=made.algorithm,
+            sign_count=made.sign_count,
+            name=name,
+            backup_eligible=made.backup_eligible,
+            backed_up=made.backed_up,
+        )
         authenticator.passkey, authenticator.handle = passkey, handle.handle
         return authenticator
 
@@ -242,9 +299,10 @@ class Base(TestCase):
 # The decoder and the verifier on their own
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 class Cbor(SimpleTestCase):
     def test_what_it_reads(self):
-        value = {1: 2, 3: -7, -1: b"\x00" * 32, "fmt": "none", "list": [True, False, None, 0, 23, 24, 2 ** 40]}
+        value = {1: 2, 3: -7, -1: b"\x00" * 32, "fmt": "none", "list": [True, False, None, 0, 23, 24, 2**40]}
         self.assertEqual(cbor.decode(encode(value)), value)
         self.assertEqual(cbor.decode_prefix(encode(5) + b"rest"), (5, 1))
 
@@ -259,8 +317,8 @@ class Cbor(SimpleTestCase):
             "indefinite map": b"\xbf\x01\x02\xff",
             "indefinite array": b"\x9f\x01\xff",
             "reserved": b"\x1c",
-            "huge string": b"\x5b" + (2 ** 63).to_bytes(8, "big"),
-            "huge array": b"\x9b" + (2 ** 63).to_bytes(8, "big"),
+            "huge string": b"\x5b" + (2**63).to_bytes(8, "big"),
+            "huge array": b"\x9b" + (2**63).to_bytes(8, "big"),
             "huge map": b"\xba\xff\xff\xff\xff",
             "deep": deep,
             "trailing": b"\x01\x02",
@@ -303,8 +361,9 @@ class Verifier(SimpleTestCase):
                 self.assertEqual((made.algorithm, made.credential_id), (alg, b64(authenticator.credential_id)))
                 challenge = webauthn.new_challenge()
                 assertion = webauthn.parse_assertion(authenticator.get({"challenge": challenge}))
-                self.assertEqual(webauthn.verify_assertion(assertion, challenge, made.public_key, alg, 0, None,
-                                                           False), (1, False))
+                self.assertEqual(
+                    webauthn.verify_assertion(assertion, challenge, made.public_key, alg, 0, None, False), (1, False)
+                )
 
     def test_the_options(self):
         options = webauthn.creation_options("c", "h", "anna", "Community", ["x"])
@@ -342,14 +401,28 @@ class Verifier(SimpleTestCase):
         challenge = webauthn.new_challenge()
         good = json.loads(authenticator.create({"challenge": challenge}))
         response = good["response"]
-        posts = ["", "null", "[]", "{", "{}", '{"a": NaN}', "[" * 100000, '{"type": "public-key", "type": "x"}',
-                 json.dumps({**good, "rawId": "***"}), json.dumps({**good, "rawId": "A"}),
-                 json.dumps({**good, "rawId": "AAAA="}), json.dumps({**good, "id": "other"}),
-                 json.dumps({**good, "rawId": "A" * 2000, "id": "A" * 2000}), json.dumps({**good, "type": "x"}),
-                 json.dumps({**good, "response": "x"}), json.dumps({**good, "response": {}}), "x" * 40000,
-                 json.dumps({**good, "response": {**response, "clientDataJSON": b64(b"\xff\xfe")}}),
-                 json.dumps({**good, "response": {**response, "clientDataJSON": b64(b"[1]")}}),
-                 json.dumps({**good, "response": {**response, "attestationObject": b64(b"\xbf")}})]
+        posts = [
+            "",
+            "null",
+            "[]",
+            "{",
+            "{}",
+            '{"a": NaN}',
+            "[" * 100000,
+            '{"type": "public-key", "type": "x"}',
+            json.dumps({**good, "rawId": "***"}),
+            json.dumps({**good, "rawId": "A"}),
+            json.dumps({**good, "rawId": "AAAA="}),
+            json.dumps({**good, "id": "other"}),
+            json.dumps({**good, "rawId": "A" * 2000, "id": "A" * 2000}),
+            json.dumps({**good, "type": "x"}),
+            json.dumps({**good, "response": "x"}),
+            json.dumps({**good, "response": {}}),
+            "x" * 40000,
+            json.dumps({**good, "response": {**response, "clientDataJSON": b64(b"\xff\xfe")}}),
+            json.dumps({**good, "response": {**response, "clientDataJSON": b64(b"[1]")}}),
+            json.dumps({**good, "response": {**response, "attestationObject": b64(b"\xbf")}}),
+        ]
         attestation = unb64(response["attestationObject"])
         for cut in (1, 10, 50, len(attestation) - 1):
             posts.append(json.dumps({**good, "response": {**response, "attestationObject": b64(attestation[:cut])}}))
@@ -385,6 +458,7 @@ class Verifier(SimpleTestCase):
 # Registration
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 class Registration(Base):
     def setUp(self):
         super().setUp()
@@ -402,8 +476,10 @@ class Registration(Base):
                     answer, authenticator = self.add(Authenticator(alg), client=client, name=" my  phone\n")
                 self.assertRedirects(answer, SETUP, fetch_redirect_response=False)
                 passkey = AdminPasskey.objects.get(user=self.staff)
-                self.assertEqual((passkey.algorithm, passkey.name, passkey.credential_id),
-                                 (alg, "my phone", b64(authenticator.credential_id)))
+                self.assertEqual(
+                    (passkey.algorithm, passkey.name, passkey.credential_id),
+                    (alg, "my phone", b64(authenticator.credential_id)),
+                )
                 # The session proved it: it is one opened with it now
                 self.assertEqual(client.session[FACTOR_SESSION][:2], ["passkey", passkey.pk])
                 # And the next sign-in asks for it
@@ -450,8 +526,15 @@ class Registration(Base):
         self.assertEqual(AdminPasskey.objects.count(), before)
 
     def test_wrong_origins(self):
-        for origin in ("http://localhost", "https://evil.example", "https://sub.localhost", "https://localhost:8443",
-                       "http://" + "a" * 56 + ".onion", "https://localhost.", ""):
+        for origin in (
+            "http://localhost",
+            "https://evil.example",
+            "https://sub.localhost",
+            "https://localhost:8443",
+            "http://" + "a" * 56 + ".onion",
+            "https://localhost.",
+            "",
+        ):
             with self.subTest(origin):
                 self.refused(origin=origin)
 
@@ -470,8 +553,9 @@ class Registration(Base):
         challenge = page.context["passkey_options"]["challenge"]
         client = Authenticator.client_data("webauthn.create", challenge, crossOrigin=True)
         with clock(T):
-            answer = self.client.post(SETUP, {"action": "passkey-add", "name": "x",
-                                              "credential": authenticator.create({}, client=client)})
+            answer = self.client.post(
+                SETUP, {"action": "passkey-add", "name": "x", "credential": authenticator.create({}, client=client)}
+            )
         self.assertContains(answer, "The passkey was not added")
 
     def test_user_not_present(self):
@@ -507,14 +591,16 @@ class Registration(Base):
             self.client.post(SETUP, {"action": "passkey-add", "name": "x", "credential": authenticator.create(options)})
             self.assertEqual(AdminPasskey.objects.count(), 1)
             # Another authenticator, with the same challenge: gone
-            again = self.client.post(SETUP, {"action": "passkey-add", "name": "x",
-                                             "credential": Authenticator().create(options)})
+            again = self.client.post(
+                SETUP, {"action": "passkey-add", "name": "x", "credential": Authenticator().create(options)}
+            )
             self.assertContains(again, "The passkey was not added")
             self.assertEqual(AdminPasskey.objects.count(), 1)
             options = self.client.get(SETUP).context["passkey_options"]
         with clock(T + webauthn.CHALLENGE_SECONDS):
-            late = self.client.post(SETUP, {"action": "passkey-add", "name": "x",
-                                            "credential": Authenticator().create(options)})
+            late = self.client.post(
+                SETUP, {"action": "passkey-add", "name": "x", "credential": Authenticator().create(options)}
+            )
         self.assertContains(late, "The passkey was not added")
 
     def test_a_challenge_of_another_session_is_refused(self):
@@ -523,8 +609,9 @@ class Registration(Base):
             self.password(other)
             options = other.get(SETUP).context["passkey_options"]
             self.client.get(SETUP)
-            answer = self.client.post(SETUP, {"action": "passkey-add", "name": "x",
-                                              "credential": Authenticator().create(options)})
+            answer = self.client.post(
+                SETUP, {"action": "passkey-add", "name": "x", "credential": Authenticator().create(options)}
+            )
         self.assertContains(answer, "The passkey was not added")
 
     def test_a_credential_id_already_on_the_site(self):
@@ -544,8 +631,9 @@ class Registration(Base):
         with clock(T):
             options = self.client.get(SETUP).context["passkey_options"]
             AdminPasskeyHandle.objects.create(user=self.staff, handle=webauthn.new_user_handle())
-            answer = self.client.post(SETUP, {"action": "passkey-add", "name": "x",
-                                              "credential": Authenticator().create(options)})
+            answer = self.client.post(
+                SETUP, {"action": "passkey-add", "name": "x", "credential": Authenticator().create(options)}
+            )
         self.assertContains(answer, "The passkey was not added")
 
     def test_told_and_written(self):
@@ -563,8 +651,9 @@ class Registration(Base):
         self.assertContains(page, "synced one")
         self.assertContains(page, "synced")
         self.assertContains(page, "on this device only")
-        self.assertEqual(sorted(AdminPasskey.objects.values_list("backup_eligible", "backed_up")),
-                         [(False, False), (True, True)])
+        self.assertEqual(
+            sorted(AdminPasskey.objects.values_list("backup_eligible", "backed_up")), [(False, False), (True, True)]
+        )
 
     def test_the_name_is_text(self):
         with clock(T):
@@ -577,6 +666,7 @@ class Registration(Base):
 # ---------------------------------------------------------------------------------------------------------------------
 # The sign-in
 # ---------------------------------------------------------------------------------------------------------------------
+
 
 class SignIn(Base):
     def setUp(self):
@@ -592,7 +682,9 @@ class SignIn(Base):
             self.assertContains(page, "Now confirm with your passkey")
             self.assertNotContains(page, 'name="code"')
             options = page.context["passkey_options"]
-            self.assertEqual(options["allowCredentials"], [{"type": "public-key", "id": self.key.passkey.credential_id}])
+            self.assertEqual(
+                options["allowCredentials"], [{"type": "public-key", "id": self.key.passkey.credential_id}]
+            )
             self.assertEqual((options["rpId"], options["userVerification"]), (HOST, "preferred"))
             answer = self.client.post(CODE, {"credential": self.key.get(options)})
         self.assertRedirects(answer, "/admin/", fetch_redirect_response=False)
@@ -630,16 +722,27 @@ class SignIn(Base):
         return answer
 
     def test_wrong_origins(self):
-        for origin in ("http://localhost", "https://evil.example", "https://sub.localhost", "https://localhost:443x",
-                       "http://" + "a" * 56 + ".onion"):
+        for origin in (
+            "http://localhost",
+            "https://evil.example",
+            "https://sub.localhost",
+            "https://localhost:443x",
+            "http://" + "a" * 56 + ".onion",
+        ):
             with self.subTest(origin):
                 self.refused(origin=origin)
 
     def test_every_refusal(self):
-        cases = {"rp": {"rp": "evil.example"}, "type": {"kind": "webauthn.create"},
-                 "challenge": {"challenge": webauthn.new_challenge()}, "not present": {"flags": UV},
-                 "signature": {"tamper_signature": True}, "data": {"tamper_data": True},
-                 "handle": {"handle": b64(b"another")}, "bad handle": {"handle": "***"}}
+        cases = {
+            "rp": {"rp": "evil.example"},
+            "type": {"kind": "webauthn.create"},
+            "challenge": {"challenge": webauthn.new_challenge()},
+            "not present": {"flags": UV},
+            "signature": {"tamper_signature": True},
+            "data": {"tamper_data": True},
+            "handle": {"handle": b64(b"another")},
+            "bad handle": {"handle": "***"},
+        }
         for name, broken in cases.items():
             with self.subTest(name):
                 self.refused(**broken)
@@ -649,10 +752,19 @@ class SignIn(Base):
         def plain(answer):
             text = answer.content.decode()
             text = re.sub(r'name="csrfmiddlewaretoken" value="[^"]*"', "", text)
-            return re.sub(r'<script id="passkey-options" type="application/json">.*?</script>', "", text, flags=re.DOTALL)
+            return re.sub(
+                r'<script id="passkey-options" type="application/json">.*?</script>', "", text, flags=re.DOTALL
+            )
 
-        pages = {plain(self.refused(**broken)) for broken in (
-            {"rp": "evil.example"}, {"tamper_signature": True}, {"origin": "https://evil.example"}, {"flags": UV})}
+        pages = {
+            plain(self.refused(**broken))
+            for broken in (
+                {"rp": "evil.example"},
+                {"tamper_signature": True},
+                {"origin": "https://evil.example"},
+                {"flags": UV},
+            )
+        }
         other = User.objects.create_user("other", is_staff=True)
         stranger = self.register(other)
         reset_limits()
@@ -683,8 +795,9 @@ class SignIn(Base):
             answer = self.client.post(SETUP, {"action": "passkey-add", "name": "x", "credential": fresh.get(options)})
             self.assertContains(answer, "The passkey was not added")
             options = self.client.get(SETUP).context["passkey_options"]
-            answer = self.client.post(SETUP, {"action": "passkey-add", "name": "x",
-                                              "credential": fresh.get(options, kind="webauthn.create")})
+            answer = self.client.post(
+                SETUP, {"action": "passkey-add", "name": "x", "credential": fresh.get(options, kind="webauthn.create")}
+            )
             self.assertContains(answer, "The passkey was not added")
         self.assertEqual(AdminPasskey.objects.count(), 1)
 
@@ -739,10 +852,16 @@ class SignIn(Base):
 
     def test_malformed_posts_never_fail_the_page(self):
         good = json.loads(self.key.get({"challenge": "x"}))
-        posts = ["", "{", "[]", "null", json.dumps({**good, "response": {**good["response"], "signature": "*"}}),
-                 json.dumps({**good, "response": {**good["response"], "authenticatorData": b64(b"\x00" * 3000)}}),
-                 json.dumps({**good, "response": {**good["response"], "clientDataJSON": b64(b"{" * 3000)}}),
-                 "x" * 200000]
+        posts = [
+            "",
+            "{",
+            "[]",
+            "null",
+            json.dumps({**good, "response": {**good["response"], "signature": "*"}}),
+            json.dumps({**good, "response": {**good["response"], "authenticatorData": b64(b"\x00" * 3000)}}),
+            json.dumps({**good, "response": {**good["response"], "clientDataJSON": b64(b"{" * 3000)}}),
+            "x" * 200000,
+        ]
         with clock(T):
             self.password()
             for posted in posts:
@@ -776,15 +895,21 @@ class SignIn(Base):
     def test_a_refused_passkey_is_told_once_a_day_and_written(self):
         with clock(T):
             self.password()
-            self.assert_refused(self.client.post(CODE, {"credential": self.key.get(self.options(),
-                                                                                   tamper_signature=True)}))
+            self.assert_refused(
+                self.client.post(CODE, {"credential": self.key.get(self.options(), tamper_signature=True)})
+            )
             self.assert_refused(self.client.post(CODE, {"credential": self.key.get(self.options(), rp="x.example")}))
         texts = self.told_texts()
         self.assertEqual(len(texts), 1)
-        self.assertIn("A refused passkey after the right password for the staff account volunteer: its password may be "
-                      "known to someone else.", texts[0])
-        self.assertEqual(list(LogEntry.objects.values_list("change_message", flat=True)),
-                         ["A refused passkey after the right password"])
+        self.assertIn(
+            "A refused passkey after the right password for the staff account volunteer: its password may be "
+            "known to someone else.",
+            texts[0],
+        )
+        self.assertEqual(
+            list(LogEntry.objects.values_list("change_message", flat=True)),
+            ["A refused passkey after the right password"],
+        )
 
     def test_two_requests_of_one_session_with_one_challenge(self):
         """The second reads the session before the first saved it: the challenge is still there, but spent."""
@@ -822,12 +947,14 @@ class SignIn(Base):
         self.assertTrue(self.sign_in(self.key, client=browser(), flags=UP | UV | BE).context["passkey_wrong"])
         # Whether it is backed up now is read at each sign-in
         reset_limits()
-        self.assertRedirects(self.sign_in(synced, client=browser(), flags=UP | UV | BE | BS), "/admin/",
-                             fetch_redirect_response=False)
+        self.assertRedirects(
+            self.sign_in(synced, client=browser(), flags=UP | UV | BE | BS), "/admin/", fetch_redirect_response=False
+        )
         self.assertTrue(AdminPasskey.objects.get(pk=synced.passkey.pk).backed_up)
         reset_limits()
-        self.assertRedirects(self.sign_in(synced, client=browser(), flags=UP | UV | BE), "/admin/",
-                             fetch_redirect_response=False)
+        self.assertRedirects(
+            self.sign_in(synced, client=browser(), flags=UP | UV | BE), "/admin/", fetch_redirect_response=False
+        )
         self.assertFalse(AdminPasskey.objects.get(pk=synced.passkey.pk).backed_up)
 
     def test_a_count_that_does_not_grow_is_refused_and_told(self):
@@ -842,15 +969,17 @@ class SignIn(Base):
         texts = self.told_texts()
         self.assertEqual(len(texts), 1)
         self.assertIn("A passkey of the staff account volunteer signed with a count that did not grow", texts[0])
-        self.assertEqual(LogEntry.objects.get().change_message,
-                         "A passkey signed with a count that did not grow: refused")
+        self.assertEqual(
+            LogEntry.objects.get().change_message, "A passkey signed with a count that did not grow: refused"
+        )
         # A lower one too, and told once a day
         answer = self.sign_in(self.key, client=browser(), count=0)
         self.assertTrue(answer.context["passkey_wrong"])
         self.assertEqual(len(self.told_texts()), 1)
         # A greater one is fine
-        self.assertRedirects(self.sign_in(self.key, client=browser(), count=5), "/admin/",
-                             fetch_redirect_response=False)
+        self.assertRedirects(
+            self.sign_in(self.key, client=browser(), count=5), "/admin/", fetch_redirect_response=False
+        )
 
     def test_counts_that_stay_at_zero(self):
         """Many synced passkeys never count: zero and zero is accepted, again and again."""
@@ -886,8 +1015,11 @@ class SignIn(Base):
         key = self.register(moderator)
         with clock(T):
             self.assertRedirects(self.password(username="moderator"), CODE, fetch_redirect_response=False)
-            self.assertRedirects(self.client.post(CODE, {"credential": key.get(self.options())}), "/admin/",
-                                 fetch_redirect_response=False)
+            self.assertRedirects(
+                self.client.post(CODE, {"credential": key.get(self.options())}),
+                "/admin/",
+                fetch_redirect_response=False,
+            )
 
 
 @SITE
@@ -895,8 +1027,11 @@ class Onion(Base):
     def test_no_passkeys_on_the_onion_or_another_name(self):
         key = self.register()
         turn_on(self.staff)
-        for client in (Client(HTTP_HOST=HOST, **HTTPS, headers={"x-entrance": "onion"}),
-                       Client(HTTP_HOST="127.0.0.1", **HTTPS), Client(HTTP_HOST=HOST)):
+        for client in (
+            Client(HTTP_HOST=HOST, **HTTPS, headers={"x-entrance": "onion"}),
+            Client(HTTP_HOST="127.0.0.1", **HTTPS),
+            Client(HTTP_HOST=HOST),
+        ):
             with self.subTest(client), clock(T):
                 reset_limits()
                 self.password(client)
@@ -921,6 +1056,7 @@ class Onion(Base):
 # ---------------------------------------------------------------------------------------------------------------------
 # The sessions, the day, the device
 # ---------------------------------------------------------------------------------------------------------------------
+
 
 class Sessions(Base):
     def test_removing_a_ends_the_sessions_opened_with_a_not_b(self):
@@ -1045,19 +1181,22 @@ class Sessions(Base):
             self.password()
             options = self.options()
             self.register(name="new")
-            self.assertRedirects(self.client.post(CODE, {"credential": key.get(options)}), LOGIN,
-                                 fetch_redirect_response=False)
+            self.assertRedirects(
+                self.client.post(CODE, {"credential": key.get(options)}), LOGIN, fetch_redirect_response=False
+            )
             self.password()
             options = self.options()
             call_command("admin_passkey", "reset", "volunteer", stdout=StringIO())
-            self.assertRedirects(self.client.post(CODE, {"credential": key.get(options)}), LOGIN,
-                                 fetch_redirect_response=False)
+            self.assertRedirects(
+                self.client.post(CODE, {"credential": key.get(options)}), LOGIN, fetch_redirect_response=False
+            )
         self.assertFalse(signed_in(self.client))
 
 
 # ---------------------------------------------------------------------------------------------------------------------
 # The modes
 # ---------------------------------------------------------------------------------------------------------------------
+
 
 class Optional(Base):
     def test_either_signs_in(self):
@@ -1068,8 +1207,9 @@ class Optional(Base):
             page = self.client.get(CODE)
             self.assertContains(page, 'name="code"')
             self.assertIn("passkey_options", page.context)
-            self.assertRedirects(self.client.post(CODE, {"code": code(factor)}), "/admin/",
-                                 fetch_redirect_response=False)
+            self.assertRedirects(
+                self.client.post(CODE, {"code": code(factor)}), "/admin/", fetch_redirect_response=False
+            )
         reset_limits()
         self.assertRedirects(self.sign_in(key, client=browser()), "/admin/", fetch_redirect_response=False)
 
@@ -1100,8 +1240,11 @@ class Optional(Base):
         holder = browser()
         with clock(T):
             self.password(holder, username="keyholder")
-            self.assertRedirects(holder.post(CODE, {"credential": key.get(self.options(holder))}), "/admin/",
-                                 fetch_redirect_response=False)
+            self.assertRedirects(
+                holder.post(CODE, {"credential": key.get(self.options(holder))}),
+                "/admin/",
+                fetch_redirect_response=False,
+            )
             self.assertEqual(holder.get("/admin/").status_code, 200)
         # The account without one still has no page in between
         self.assertEqual(alone.get("/admin/").status_code, 200)
@@ -1167,8 +1310,11 @@ class PasskeyMode(Base):
             answer = self.client.post(CODE, {"code": code(factor)})
             self.assertFalse(signed_in(self.client))
             self.assertEqual(answer.status_code, 200)
-            self.assertRedirects(self.client.post(CODE, {"credential": key.get(self.options())}), "/admin/",
-                                 fetch_redirect_response=False)
+            self.assertRedirects(
+                self.client.post(CODE, {"credential": key.get(self.options())}),
+                "/admin/",
+                fetch_redirect_response=False,
+            )
             page = self.client.get(SETUP)
             self.assertContains(page, "This site accepts only passkeys: the code from the app is neither asked for")
             self.assertContains(page, "Add at least two")
@@ -1226,8 +1372,10 @@ class PasskeyMode(Base):
         factor = turn_on(self.staff)
         with clock(T):
             self.password()
-            for answer in (self.client.get(SETUP), self.client.post(SETUP, {"action": "passkey-add", "name": "x",
-                                                                            "credential": "{}"})):
+            for answer in (
+                self.client.get(SETUP),
+                self.client.post(SETUP, {"action": "passkey-add", "name": "x", "credential": "{}"}),
+            ):
                 self.assertEqual(answer.status_code, 302)
                 self.assertTrue(answer["Location"].startswith(LOGIN))
         self.assertFalse(AdminPasskey.objects.exists())
@@ -1252,16 +1400,18 @@ class PasskeyMode(Base):
             self.assertRedirects(self.client.get("/admin/"), "/admin/password_change/", fetch_redirect_response=False)
             self.assertEqual(self.client.get("/admin/password_change/").status_code, 200)
             new = "a brand new secret 8421 z"
-            self.client.post("/admin/password_change/", {"old_password": PASSWORD, "new_password1": new,
-                                                         "new_password2": new})
+            self.client.post(
+                "/admin/password_change/", {"old_password": PASSWORD, "new_password1": new, "new_password2": new}
+            )
             self.assertRedirects(self.client.get("/admin/"), SETUP, fetch_redirect_response=False)
             self.assertEqual(self.client.get(SETUP).status_code, 200)
 
     def test_wrong_codes_of_the_bootstrap_are_counted_and_told(self):
         factor = turn_on(self.staff)
         with steady_limits(), clock(T):
-            self.client.post(LOGIN, {"username": "volunteer", "password": PASSWORD, "next": "/admin/"},
-                             REMOTE_ADDR="203.0.113.200")
+            self.client.post(
+                LOGIN, {"username": "volunteer", "password": PASSWORD, "next": "/admin/"}, REMOTE_ADDR="203.0.113.200"
+            )
             for number in range(5):
                 answer = self.client.post(CODE, {"code": "000000"}, REMOTE_ADDR=f"203.0.113.{number}")
                 self.assertContains(answer, "That code is not right")
@@ -1279,8 +1429,9 @@ class PasskeyMode(Base):
             page = self.client.get(SETUP)
         self.assertContains(page, "a code from an app cannot be set up")
         self.assertFalse(AdminSecondFactor.objects.exists())
-        self.assertRedirects(self.client.post(SETUP, {"action": "on", "code": "123456"}), SETUP,
-                             fetch_redirect_response=False)
+        self.assertRedirects(
+            self.client.post(SETUP, {"action": "on", "code": "123456"}), SETUP, fetch_redirect_response=False
+        )
 
     def test_a_session_of_the_code_ends(self):
         factor = turn_on(self.staff)
@@ -1306,6 +1457,7 @@ class PasskeyMode(Base):
 # The page: rename, remove, nobody else's
 # ---------------------------------------------------------------------------------------------------------------------
 
+
 class Page(Base):
     def setUp(self):
         super().setUp()
@@ -1314,8 +1466,10 @@ class Page(Base):
 
     def test_rename(self):
         with clock(T + 60):
-            self.client.post(SETUP, {"action": "passkey-rename", "passkey": self.key.passkey.pk,
-                                     "name": "key on my keyring" + "x" * 100})
+            self.client.post(
+                SETUP,
+                {"action": "passkey-rename", "passkey": self.key.passkey.pk, "name": "key on my keyring" + "x" * 100},
+            )
             self.assertEqual(AdminPasskey.objects.get().name, ("key on my keyring" + "x" * 100)[:60])
             self.assertContains(self.client.get(SETUP), "key on my keyring")
 
@@ -1325,8 +1479,13 @@ class Page(Base):
         boss = browser()
         with clock(T + 60):
             self.password(boss, username="boss")
-            pages = [SETUP, "/admin/", f"/admin/auth/user/{self.staff.pk}/change/",
-                     f"/admin/auth/user/{self.staff.pk}/history/", "/admin/auth/user/"]
+            pages = [
+                SETUP,
+                "/admin/",
+                f"/admin/auth/user/{self.staff.pk}/change/",
+                f"/admin/auth/user/{self.staff.pk}/history/",
+                "/admin/auth/user/",
+            ]
             for url in pages:
                 page = boss.get(url)
                 self.assertEqual(page.status_code, 200, url)
@@ -1337,8 +1496,11 @@ class Page(Base):
             for action in ("passkey-remove", "passkey-rename"):
                 boss.post(SETUP, {"action": action, "passkey": theirs.passkey.pk, "name": "taken"})
             self.assertEqual(AdminPasskey.objects.get(pk=theirs.passkey.pk).name, "secret-name-of-volunteer")
-            for lookup in ("admin_passkeys__credential_id__startswith", "admin_passkeys__name",
-                           "admin_passkey_handle__handle__startswith"):
+            for lookup in (
+                "admin_passkeys__credential_id__startswith",
+                "admin_passkeys__name",
+                "admin_passkey_handle__handle__startswith",
+            ):
                 self.assertEqual(boss.get(f"/admin/auth/user/?{lookup}=a").status_code, 400, lookup)
         del other
 
@@ -1361,12 +1523,15 @@ class Page(Base):
         self.assertContains(page, "Aggiungi una passkey")
         # The example community has no German: the catalogue, formal
         with translation.override("de"):
-            self.assertEqual(translation.gettext("Your account has no passkey yet."), "Ihr Konto hat noch keinen Passkey.")
+            self.assertEqual(
+                translation.gettext("Your account has no passkey yet."), "Ihr Konto hat noch keinen Passkey."
+            )
 
 
 # ---------------------------------------------------------------------------------------------------------------------
 # The commands, preflight, the setting
 # ---------------------------------------------------------------------------------------------------------------------
+
 
 class Commands(Base):
     def test_list(self):
@@ -1395,8 +1560,10 @@ class Commands(Base):
         self.assertIn("volunteer: 2 passkeys removed", out.getvalue())
         self.assertFalse(AdminPasskey.objects.exists())
         self.assertFalse(AdminPasskeyHandle.objects.exists())
-        self.assertIn("The passkeys of the staff account volunteer were removed with manage.py admin_passkey reset.",
-                      self.told_texts()[0])
+        self.assertIn(
+            "The passkeys of the staff account volunteer were removed with manage.py admin_passkey reset.",
+            self.told_texts()[0],
+        )
         self.assertEqual(LogEntry.objects.get().change_message, "Passkeys removed with manage.py admin_passkey reset")
         with clock(T + 60):
             self.assertEqual(self.client.get("/admin/").status_code, 302)
@@ -1483,8 +1650,10 @@ class GoneChallenge(Base):
         with clock(T + 20):
             self.assert_refused(self.client.post(CODE, {"credential": key.get(self.options(), tamper_signature=True)}))
         self.assertEqual(len(self.told_texts()), 1)
-        self.assertEqual(list(LogEntry.objects.values_list("change_message", flat=True)),
-                         ["A refused passkey after the right password"])
+        self.assertEqual(
+            list(LogEntry.objects.values_list("change_message", flat=True)),
+            ["A refused passkey after the right password"],
+        )
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1539,8 +1708,9 @@ class Script(SimpleTestCase):
         with tempfile.TemporaryDirectory() as folder:
             harness = Path(folder) / "harness.js"
             harness.write_text(HARNESS)
-            result = subprocess.run([node, str(harness), str(SCRIPT)], capture_output=True, text=True, timeout=60,
-                                    check=False)
+            result = subprocess.run(
+                [node, str(harness), str(SCRIPT)], capture_output=True, text=True, timeout=60, check=False
+            )
         self.assertEqual(result.returncode, 0, result.stderr)
         out = json.loads(result.stdout)
         self.assertTrue(out["round"])
@@ -1551,11 +1721,24 @@ class Script(SimpleTestCase):
         self.assertEqual(out["created"], [[1, 2, 3], [4, 5], "anna", [6], "localhost"])
         self.assertEqual(out["requested"], [[1, 2, 3], [7], "preferred"])
         self.assertEqual(out["none"], [])
-        self.assertEqual(out["attestation"], {"id": "CA", "rawId": "CA", "type": "public-key",
-                                              "response": {"clientDataJSON": "AQI", "attestationObject": "Aw"}})
-        self.assertEqual(out["assertion"], {"id": "CQ", "rawId": "CQ", "type": "public-key",
-                                            "response": {"clientDataJSON": "AQ", "authenticatorData": "Ag",
-                                                         "signature": "__4", "userHandle": None}})
+        self.assertEqual(
+            out["attestation"],
+            {
+                "id": "CA",
+                "rawId": "CA",
+                "type": "public-key",
+                "response": {"clientDataJSON": "AQI", "attestationObject": "Aw"},
+            },
+        )
+        self.assertEqual(
+            out["assertion"],
+            {
+                "id": "CQ",
+                "rawId": "CQ",
+                "type": "public-key",
+                "response": {"clientDataJSON": "AQ", "authenticatorData": "Ag", "signature": "__4", "userHandle": None},
+            },
+        )
         self.assertEqual(out["handled"], "BAU")
         self.assertIsNone(out["emptyHandle"])
         self.assertEqual(out["supported"], [False, True, False])
@@ -1582,8 +1765,10 @@ class ResetSaysWhoWasTold(TransactionTestCase):
 
     def test_told_and_not_told(self):
         user = User.objects.create_user("volunteer", password=PASSWORD, is_staff=True)
-        for answer, words in ((("TELEGRAM_MODERATION_CHAT", []), "told: TELEGRAM_MODERATION_CHAT"),
-                              ((None, ["Telegram refused it"]), "not told: Telegram refused it")):
+        for answer, words in (
+            (("TELEGRAM_MODERATION_CHAT", []), "told: TELEGRAM_MODERATION_CHAT"),
+            ((None, ["Telegram refused it"]), "not told: Telegram refused it"),
+        ):
             Base.register(None, user)
             out = StringIO()
             with patch("shops.notifications.deliver_to_moderators", return_value=answer):

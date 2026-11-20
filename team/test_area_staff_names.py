@@ -1,6 +1,7 @@
 """The names of the staff registers in the volunteers' area (team/area.py, `DIAGNOSIS_BY_CHOICE`): off unless the
 community writes `team_area.staff_register_names: true` in community.yml. Off, one neutral line takes the place of the
 findings; /admin/ is unchanged."""
+
 from unittest.mock import patch
 
 from django.core.checks import run_checks
@@ -13,16 +14,20 @@ from . import area
 from .test_area import AreaBase
 
 LINES = (
-    "✗ [lightning_no_answer] Your Lightning wallet is not answering.", "    1.0 s",
+    "✗ [lightning_no_answer] Your Lightning wallet is not answering.",
+    "    1.0 s",
     "! [staff_off] These registers are turned off, so they take no new payment: Giulietta, Romeo.",
     "    Giulietta turned off 2026-11-01 10:00 UTC; Romeo turned off 2026-11-02 10:00 UTC",
     "! [staff_unopened] These registers were never opened on a phone: Mercuzio.",
     "    Mercuzio made 2026-11-01 10:00 UTC, code used or expired",
     "! [staff_code_waiting] These registers wait for the person to scan their code: Benvolio.",
     "    Benvolio made 2026-11-03 10:00 UTC, code valid until 2026-11-04 10:00 UTC",
-    "✓ [staff_ok] These registers are working: Tebaldo.", "    Tebaldo opened 2026-11-01",
-    "✗ [staff_no_register] The registers for your staff cannot work.", "    2 staff register(s) turned on",
-    "✓ [shop_visible] Your shop is on the map.", "    id=1",
+    "✓ [staff_ok] These registers are working: Tebaldo.",
+    "    Tebaldo opened 2026-11-01",
+    "✗ [staff_no_register] The registers for your staff cannot work.",
+    "    2 staff register(s) turned on",
+    "✓ [shop_visible] Your shop is on the map.",
+    "    id=1",
 )
 STAFF = "\n".join(LINES)
 NAMES = ("Giulietta", "Romeo", "Mercuzio", "Benvolio", "Tebaldo")

@@ -1,6 +1,7 @@
 """The check of a Lightning address on submit (new shop, wallet guide): bounded in time and in threads, outside the
 transaction, behind limits per account, per /64 and per /48. A free account pointing its address at a slow server must
 not hold the web workers."""
+
 import threading
 import time
 from unittest.mock import patch
@@ -43,8 +44,9 @@ class Base(TestCase):
     def new(self, user=None, ip="203.0.113.5", **fields):
         if user:
             self.client.force_login(user)
-        return self.client.post("/en/shops/new/", {"name": "Bar", "lightning_address": "mario@example.org", **fields},
-                                REMOTE_ADDR=ip)
+        return self.client.post(
+            "/en/shops/new/", {"name": "Bar", "lightning_address": "mario@example.org", **fields}, REMOTE_ADDR=ip
+        )
 
     def waiting(self):
         return Shop.objects.create(name="Bar", owner=self.user, awaiting_wallet=True)
@@ -79,9 +81,11 @@ class Bounded(Base):
 
     def test_a_probe_cut_by_its_own_limit_is_slow_not_wrong(self):
         """The fetches end on their own deadline with "no answer": that is the provider's time, not a wrong address."""
+
         def cut(address, seconds, **_options):
             time.sleep(seconds + 0.05)
             return lnaddress.NO_ANSWER
+
         with patch("shops.lnaddress.probe", side_effect=cut):
             self.assertEqual(refusal("mario@example.org", self.user.pk, seconds=0.2), SLOW)
 
@@ -116,8 +120,10 @@ class Bounded(Base):
 
         answers = []
         with patch("shops.lnaddress.probe", side_effect=probe):
-            workers = [threading.Thread(target=lambda: answers.append(refusal("mario@example.org", seconds=2)))
-                       for _n in range(6)]
+            workers = [
+                threading.Thread(target=lambda: answers.append(refusal("mario@example.org", seconds=2)))
+                for _n in range(6)
+            ]
             for worker in workers:
                 worker.start()
             for worker in workers:
@@ -158,6 +164,7 @@ class OutsideTheTransaction(Base):
         def probe(address, user, seconds):
             seen.append(len(connection.atomic_blocks))
             return None
+
         with patch("shops.views.refusal", side_effect=probe):
             self.assertEqual(self.new().status_code, 302)
         self.assertEqual(seen, [depth])
@@ -180,27 +187,42 @@ class Limits(Base):
         with patch("shops.views.SHOPS_PER_NETWORK", 1):
             self.new(ip="2001:db8:1:1::1", name="Uno")
             # Another owner's wallet: one address is never on shops of different owners (shops/certified.py)
-            self.assertContains(self.new(user=other, ip="2001:db8:1:2::1", name="Due", lightning_address="j@example.org"), "Too many shops in a short time")
+            self.assertContains(
+                self.new(user=other, ip="2001:db8:1:2::1", name="Due", lightning_address="j@example.org"),
+                "Too many shops in a short time",
+            )
             # Another /48 has a count of its own
-            self.assertEqual(self.new(user=other, ip="2001:db8:2:1::1", name="Tre",
-                                      lightning_address="j@example.org").status_code, 302)
+            self.assertEqual(
+                self.new(user=other, ip="2001:db8:2:1::1", name="Tre", lightning_address="j@example.org").status_code,
+                302,
+            )
         self.assertEqual(Shop.objects.count(), 2)
 
     def test_the_wallet_guide_per_account_and_per_48(self):
         first, second = self.waiting(), self.waiting()
         with patch("shops.views.SHOPS_PER_USER", 1):
-            self.client.post(f"/en/shops/wallet/{first.id}/", {"lightning_address": "mario@example.org"},
-                             REMOTE_ADDR="2001:db8:1:1::1")
-            response = self.client.post(f"/en/shops/wallet/{second.id}/", {"lightning_address": "mario@example.org"},
-                                        REMOTE_ADDR="198.51.100.7")
+            self.client.post(
+                f"/en/shops/wallet/{first.id}/",
+                {"lightning_address": "mario@example.org"},
+                REMOTE_ADDR="2001:db8:1:1::1",
+            )
+            response = self.client.post(
+                f"/en/shops/wallet/{second.id}/", {"lightning_address": "mario@example.org"}, REMOTE_ADDR="198.51.100.7"
+            )
         self.assertContains(response, "Too many shops in a short time")
         reset_limits()
         with patch("shops.views.SHOPS_PER_NETWORK", 1):
-            self.client.post(f"/en/shops/wallet/{second.id}/", {"lightning_address": "mario@example.org"},
-                             REMOTE_ADDR="2001:db8:1:1::1")
+            self.client.post(
+                f"/en/shops/wallet/{second.id}/",
+                {"lightning_address": "mario@example.org"},
+                REMOTE_ADDR="2001:db8:1:1::1",
+            )
             third = self.waiting()
-            response = self.client.post(f"/en/shops/wallet/{third.id}/", {"lightning_address": "mario@example.org"},
-                                        REMOTE_ADDR="2001:db8:1:2::1")
+            response = self.client.post(
+                f"/en/shops/wallet/{third.id}/",
+                {"lightning_address": "mario@example.org"},
+                REMOTE_ADDR="2001:db8:1:2::1",
+            )
         self.assertContains(response, "Too many shops in a short time")
 
 
@@ -208,8 +230,10 @@ class SlowNames(TestCase):
     def test_a_slow_dns_does_not_hold_the_form(self):
         """The rules of the form ask the DNS too: past DNS_SECONDS the name counts as not known, and the probe, bounded,
         decides; its connections are checked on the address reached."""
-        with patch("config.network.DNS_SECONDS", 0.1), \
-                patch("socket.getaddrinfo", side_effect=lambda *args, **kwargs: time.sleep(0.5) or []):
+        with (
+            patch("config.network.DNS_SECONDS", 0.1),
+            patch("socket.getaddrinfo", side_effect=lambda *args, **kwargs: time.sleep(0.5) or []),
+        ):
             started = time.monotonic()
             self.assertTrue(public_host("slow.example.org"))
             self.assertLess(time.monotonic() - started, 0.45)
@@ -220,9 +244,12 @@ class SlowNames(TestCase):
         about the address) and does not let urllib3 ask the same name again, with no limit, in the submit pool."""
         answer = threading.Event()
         self.addCleanup(answer.set)
-        with patch("config.network.DNS_SECONDS", 0.2), patch("config.network.DNS_SLOTS", threading.BoundedSemaphore(8)), \
-                patch("socket.getaddrinfo", side_effect=lambda *args, **kwargs: answer.wait(5) and []) as asked, \
-                patch("shops.lnaddress.requests.Session.get") as fetched:
+        with (
+            patch("config.network.DNS_SECONDS", 0.2),
+            patch("config.network.DNS_SLOTS", threading.BoundedSemaphore(8)),
+            patch("socket.getaddrinfo", side_effect=lambda *args, **kwargs: answer.wait(5) and []) as asked,
+            patch("shops.lnaddress.requests.Session.get") as fetched,
+        ):
             started = time.monotonic()
             self.assertEqual(refusal("mario@example.org", seconds=5), SLOW)
             self.assertLess(time.monotonic() - started, 2)
@@ -235,5 +262,8 @@ class SlowNames(TestCase):
 
     def test_names_that_lead_inside_in_ipv6_spelling(self):
         for address in ("::127.0.0.1", "64:ff9b::a00:1", "::ffff:10.0.0.1"):
-            with self.subTest(address), patch("socket.getaddrinfo", return_value=[(10, 1, 6, "", (address, 443, 0, 0))]):
+            with (
+                self.subTest(address),
+                patch("socket.getaddrinfo", return_value=[(10, 1, 6, "", (address, 443, 0, 0))]),
+            ):
                 self.assertFalse(public_host("inside.example.org"))

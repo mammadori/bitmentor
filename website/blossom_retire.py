@@ -11,6 +11,7 @@ and `deploy/blossom-retire.py` puts the old files in the folder for it, from git
 The mirrors are asked in the background, at most once a day for each file, never while a visitor waits: `HEAD
 <mirror>/<sha256>`, https only, no redirect followed.
 """
+
 import datetime
 import ipaddress
 import logging
@@ -105,14 +106,18 @@ def remember(root, found):
     """The rows of the retired files, as the folder and the theme are now: a file new in the folder gets its row, and
     its days start; a hash the theme serves again loses its row, so that retired again it has its days again."""
     from .models import BlossomRetired
+
     live = blossom.index()
     rows = {row.sha256: row for row in BlossomRetired.objects.all()}
     back = [digest for digest in rows if digest in live]
     if back:
         BlossomRetired.objects.filter(sha256__in=back).delete()
     now = timezone.now()
-    new = [BlossomRetired(sha256=digest, path=path.relative_to(root / FOLDER).as_posix()[:500], size=size, seen=now)
-           for digest, (path, size) in found.items() if digest not in rows and digest not in live]
+    new = [
+        BlossomRetired(sha256=digest, path=path.relative_to(root / FOLDER).as_posix()[:500], size=size, seen=now)
+        for digest, (path, size) in found.items()
+        if digest not in rows and digest not in live
+    ]
     if new:
         BlossomRetired.objects.bulk_create(new, ignore_conflicts=True)
     if new or back:
@@ -155,6 +160,7 @@ def answer(request, digest):
         response = blossom.send(request, *found)
         if response is not None:
             from . import blossom_visits
+
             blossom_visits.seen(request, blossom_visits.BLOB)
             response["Sunset"] = http_date(until.timestamp())
             response["Cache-Control"] = f"public, max-age={min(left, 86400)}"
@@ -167,8 +173,14 @@ def answer(request, digest):
         return response
     # The path it had in the theme: deploy/blossom-retire.py adds the hash's start to the name of a second old version
     was = VERSION.sub(r"\1", row.path)
-    now = next((other for other, (path, _size) in blossom.index().items()
-                if path.relative_to(community_module.COMMUNITY_DIR / "theme").as_posix() in (row.path, was)), "")
+    now = next(
+        (
+            other
+            for other, (path, _size) in blossom.index().items()
+            if path.relative_to(community_module.COMMUNITY_DIR / "theme").as_posix() in (row.path, was)
+        ),
+        "",
+    )
     response = blossom.refused(410, f"retired; the file is now {now}" if now else "retired")
     response["Cache-Control"] = CACHE_AFTER
     return response
@@ -190,11 +202,14 @@ def check_mirrors():
     """Asks the mirrors for some of the retired files not asked about today, and writes down who has each. A mirror
     that does not answer changes nothing: what was known stays, and the file is asked about again in an hour."""
     from .models import BlossomRetired
+
     servers = mirrors()
     if not servers or not days():
         return
     now = timezone.now()
-    due = BlossomRetired.objects.filter(checked__isnull=True) | BlossomRetired.objects.filter(checked__lt=now - CHECK_EVERY)
+    due = BlossomRetired.objects.filter(checked__isnull=True) | BlossomRetired.objects.filter(
+        checked__lt=now - CHECK_EVERY
+    )
     for row in due.order_by("checked", "seen")[:CHECK_AT_ONCE]:
         # Taken by one process only: whoever changes the row asks
         if not BlossomRetired.objects.filter(pk=row.pk, checked=row.checked).update(checked=now):
@@ -219,6 +234,7 @@ def check_soon():
 
     def run():
         from django.db import connection
+
         try:
             check_mirrors()
         except Exception:

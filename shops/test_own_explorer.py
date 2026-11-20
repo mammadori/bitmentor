@@ -1,5 +1,6 @@
 """The shop's own explorer: an https address of an Esplora or mempool API (the owner's node) that the owner's and the staff
 registers ask before the community's. The browser asks it; the site only keeps the address, for the register's CSP."""
+
 import json
 
 from django.contrib.auth import get_user_model
@@ -18,11 +19,26 @@ class Validation(SimpleTestCase):
         self.assertEqual(own_explorer_url("https://node.example.org"), "https://node.example.org")
 
     def test_what_a_browser_could_not_or_should_not_ask_is_refused(self):
-        for wrong in ("http://node.example.org/api", "node.example.org/api", "https://user:pass@node.example.org/api",
-                      "https://user@node.example.org/api", "https://node.example.org/api?x=1", "https://node.example.org/api#a",
-                      "https://192.168.1.5/api", "https://localhost/api", "https://node.example.org:0/api",
-                      "https://node.example.org:99999/api", "https://node.example.org/a b", "https://[::1/api", "",
-                      "https://node.example.org/" + "a" * 200, None, 5, "ftp://node.example.org", "wss://node.example.org"):
+        for wrong in (
+            "http://node.example.org/api",
+            "node.example.org/api",
+            "https://user:pass@node.example.org/api",
+            "https://user@node.example.org/api",
+            "https://node.example.org/api?x=1",
+            "https://node.example.org/api#a",
+            "https://192.168.1.5/api",
+            "https://localhost/api",
+            "https://node.example.org:0/api",
+            "https://node.example.org:99999/api",
+            "https://node.example.org/a b",
+            "https://[::1/api",
+            "",
+            "https://node.example.org/" + "a" * 200,
+            None,
+            5,
+            "ftp://node.example.org",
+            "wss://node.example.org",
+        ):
             self.assertIsNone(own_explorer_url(wrong), wrong)
 
 
@@ -55,7 +71,11 @@ class Kept(OnChain, TestCase):
     def test_a_wrong_one_is_refused_and_the_old_stays(self):
         self.client.force_login(self.owner)
         self.save("https://node.example.org/api")
-        for wrong in ("http://node.example.org/api", "https://u:p@node.example.org/api", "https://node.example.org/" + "a" * 300):
+        for wrong in (
+            "http://node.example.org/api",
+            "https://u:p@node.example.org/api",
+            "https://node.example.org/" + "a" * 300,
+        ):
             self.assertEqual(self.save(wrong).status_code, 400, wrong)
         for body in ("nonsense", json.dumps({"explorer": 5}), json.dumps({})):
             self.assertEqual(self.client.post(self.url, body, content_type="application/json").status_code, 400)
@@ -66,8 +86,10 @@ class Kept(OnChain, TestCase):
         from unittest.mock import patch
 
         self.client.force_login(self.owner)
-        with patch("urllib.request.urlopen", side_effect=AssertionError("fetched")), \
-                patch("socket.create_connection", side_effect=AssertionError("fetched")):
+        with (
+            patch("urllib.request.urlopen", side_effect=AssertionError("fetched")),
+            patch("socket.create_connection", side_effect=AssertionError("fetched")),
+        ):
             self.assertEqual(self.save("https://node.example.org/api").status_code, 200)
 
     def test_the_register_carries_it_and_opens_the_csp_to_its_origin_with_the_port(self):

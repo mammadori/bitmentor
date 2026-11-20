@@ -1,4 +1,5 @@
 """LUD-04 login: the wallet signs a challenge with the key dedicated to this domain."""
+
 import re
 
 import bech32

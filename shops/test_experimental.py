@@ -1,6 +1,7 @@
 """The experimental features (config/features.py, `experimental:` in community.yml): on-chain at the register and writing to
 OpenStreetMap. Off unless the community writes `true`, and off they are as quiet as a feature turned off: the pages, the
 register, the addresses, the commands and the texts; and what must never be lost while they are off."""
+
 import json
 import os
 import re
@@ -33,12 +34,15 @@ from .views import till_methods
 def on(*names):
     """The community's file with these experimental features turned on (`experimental:` in community.yml). A context
     manager, or a decorator of one test."""
-    return patch("config.features.community", new=lambda: {**community(), "experimental": {name: True for name in names}})
+    return patch(
+        "config.features.community", new=lambda: {**community(), "experimental": {name: True for name in names}}
+    )
 
 
 class Turned:
     """For a class of tests about an experimental feature: turned on around each whole test (its setUp too), as in a
     community that wrote it in `experimental`. First among the bases."""
+
     experimental = ()
 
     def run(self, result=None):
@@ -48,11 +52,13 @@ class Turned:
 
 class OnChain(Turned):
     """On-chain at the register: `experimental: {onchain: true}`."""
+
     experimental = (features.ONCHAIN,)
 
 
 class OsmUpload(Turned):
     """Writing to OpenStreetMap with `manage.py osm_upload`: `experimental: {osm_upload: true}`."""
+
     experimental = (features.OSM_UPLOAD,)
 
 
@@ -102,7 +108,9 @@ class TheBlock(TestCase):
             self.assertEqual(features.experimental_on(), [])
             found = features.experimental_problems()
             self.assertEqual(len(found), 2)
-            self.assertTrue(any("experimental.teleporter" in problem and "does nothing" in problem for problem in found))
+            self.assertTrue(
+                any("experimental.teleporter" in problem and "does nothing" in problem for problem in found)
+            )
             warnings = [item for item in checks.run_checks() if item.id == "shops.W011"]
             self.assertEqual(len(warnings), 2)
             # The block of the features that are on by default has its own check, and nothing to say here
@@ -110,7 +118,10 @@ class TheBlock(TestCase):
 
     def test_a_block_that_is_not_a_block_leaves_everything_off(self):
         for wrong in ("on", True, ["onchain"]):
-            with self.subTest(wrong), patch("config.features.community", new=lambda: {**community(), "experimental": wrong}):  # noqa: B023
+            with (
+                self.subTest(wrong),
+                patch("config.features.community", new=lambda: {**community(), "experimental": wrong}),  # noqa: B023
+            ):
                 self.assertEqual(features.experimental_on(), [])
                 self.assertEqual(len(features.experimental_problems()), 1)
         with patch("config.features.community", new=lambda: {**community(), "experimental": None}):
@@ -123,8 +134,9 @@ class TheBlock(TestCase):
             self.assertEqual(len(features.problems()), 1)
 
     def test_the_pages_know_the_switches(self):
-        self.assertEqual(self.client.get("/en/shops/map/").context["experimental"],
-                         {name: False for name in features.EXPERIMENTAL})
+        self.assertEqual(
+            self.client.get("/en/shops/map/").context["experimental"], {name: False for name in features.EXPERIMENTAL}
+        )
         with on(features.ONCHAIN):
             self.assertIs(self.client.get("/en/shops/map/").context["experimental"]["onchain"], True)
 
@@ -161,9 +173,18 @@ class Base(TestCase):
         cache.clear()
         reset_limits()
         self.owner = get_user_model().objects.create_user("owner")
-        self.shop = Shop.objects.create(name="Bakery", owner=self.owner, lightning_address="bar@ln.example.org", lightning=True,
-                                        onchain=True, latitude=41.9, longitude=12.5, city="Town", discount=10,
-                                        own_explorer="https://node.example.org:4081/api")
+        self.shop = Shop.objects.create(
+            name="Bakery",
+            owner=self.owner,
+            lightning_address="bar@ln.example.org",
+            lightning=True,
+            onchain=True,
+            latitude=41.9,
+            longitude=12.5,
+            city="Town",
+            discount=10,
+            own_explorer="https://node.example.org:4081/api",
+        )
         self.staff = StaffRegister.objects.create(shop=self.shop, name="Anna")
         self.url = reverse("register", args=[self.shop.id])
 
@@ -180,20 +201,47 @@ class OnChainOffAtTheRegister(Base):
     def test_the_owner_register_has_no_on_chain_button_setting_or_script(self):
         self.client.force_login(self.owner)
         page = self.client.get(self.url).content.decode()
-        for part in ('id="chain-ok"', "OK, on-chain", 'id="chain-key"', 'id="chain-start"', 'id="chain-path"', 'id="own-explorer"',
-                     'id="confirm-above"', 'id="chain-gap"', "<legend>On-chain", "How on-chain works", "register-chain",
-                     "data-chain="):
+        for part in (
+            'id="chain-ok"',
+            "OK, on-chain",
+            'id="chain-key"',
+            'id="chain-start"',
+            'id="chain-path"',
+            'id="own-explorer"',
+            'id="confirm-above"',
+            'id="chain-gap"',
+            "<legend>On-chain",
+            "How on-chain works",
+            "register-chain",
+            "data-chain=",
+        ):
             self.assertNotIn(part, page, part)
         # The rest of the settings is there, and the screens of a sale too
-        for part in ('id="settings-open"', 'id="currency"', 'id="discount-percent"', 'id="colour"', 'id="sources"', 'id="pay"',
-                     'id="chain-state"', "data-qrcode=", "data-nostr="):
+        for part in (
+            'id="settings-open"',
+            'id="currency"',
+            'id="discount-percent"',
+            'id="colour"',
+            'id="sources"',
+            'id="pay"',
+            'id="chain-state"',
+            "data-qrcode=",
+            "data-nostr=",
+        ):
             self.assertIn(part, page, part)
         data = register_data(page)
         self.assertFalse({"chain_on", "explorers", "own_explorer", "chain_claim", "explorer_save"} & set(data))
         with on(features.ONCHAIN):
             page = self.client.get(self.url).content.decode()
-        for part in ('id="chain-ok"', 'id="chain-key"', 'id="chain-start"', 'id="own-explorer"', 'id="confirm-above"',
-                     'id="chain-gap"', "data-chain="):
+        for part in (
+            'id="chain-ok"',
+            'id="chain-key"',
+            'id="chain-start"',
+            'id="own-explorer"',
+            'id="confirm-above"',
+            'id="chain-gap"',
+            "data-chain=",
+        ):
             self.assertIn(part, page, part)
         data = register_data(page)
         self.assertEqual((data["chain_on"], data["own_explorer"]), (True, "https://node.example.org:4081/api"))
@@ -204,8 +252,16 @@ class OnChainOffAtTheRegister(Base):
         with with_register(explorers=["https://ours.example.org/api"], price_sources=["kraken", "coinbase"]):
             response = self.client.get(self.url)
             connect = self.connect(response)
-            self.assertEqual(connect, ["'self'", "https://ln.example.org", "https://*.ln.example.org", "https://api.kraken.com",
-                                       "https://api.coinbase.com"])
+            self.assertEqual(
+                connect,
+                [
+                    "'self'",
+                    "https://ln.example.org",
+                    "https://*.ln.example.org",
+                    "https://api.kraken.com",
+                    "https://api.coinbase.com",
+                ],
+            )
             with on(features.ONCHAIN):
                 connect = self.connect(self.client.get(self.url))
         self.assertIn("https://ours.example.org", connect)
@@ -219,13 +275,21 @@ class OnChainOffAtTheRegister(Base):
             self.assertNotIn(part, page, part)
         with on(features.ONCHAIN):
             data = register_data(self.staff_page().content.decode())
-        self.assertEqual(data["chain_claim"], {"url": reverse("staff_chain", args=[self.staff.id]), "key": self.staff.key})
+        self.assertEqual(
+            data["chain_claim"], {"url": reverse("staff_chain", args=[self.staff.id]), "key": self.staff.key}
+        )
 
     def test_the_count_and_the_own_explorer_answer_404_to_everybody(self):
         body = json.dumps({"chain": "a" * 64, "at_least": 0})
         staff = json.dumps({"chain": "a" * 64, "at_least": 0, "k": self.staff.key})
-        urls = [(reverse("register_chain", args=[self.shop.id]), body), (reverse("staff_chain", args=[self.staff.id]), staff),
-                (reverse("register_explorer", args=[self.shop.id]), json.dumps({"explorer": "https://other.example.org/api"}))]
+        urls = [
+            (reverse("register_chain", args=[self.shop.id]), body),
+            (reverse("staff_chain", args=[self.staff.id]), staff),
+            (
+                reverse("register_explorer", args=[self.shop.id]),
+                json.dumps({"explorer": "https://other.example.org/api"}),
+            ),
+        ]
         for signed_in in (False, True):
             if signed_in:
                 self.client.force_login(self.owner)
@@ -247,8 +311,13 @@ class OnChainOffAtTheRegister(Base):
         self.assertFalse(explorer.enabled())
         for url in ("/dev/explorer/", "/dev/explorer/api", "/dev/explorer/api/address/tb1qnothing0000000/txs"):
             self.assertEqual(self.client.get(url).status_code, 404, url)
-        self.assertEqual(self.client.post("/dev/explorer/", {"address": "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx",
-                                                             "sats": 9000, "action": "mempool"}).status_code, 404)
+        self.assertEqual(
+            self.client.post(
+                "/dev/explorer/",
+                {"address": "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx", "sats": 9000, "action": "mempool"},
+            ).status_code,
+            404,
+        )
         self.assertNotIn("explorers", register_data(self.client.get(self.url).content.decode()))
         with on(features.ONCHAIN):
             self.assertTrue(explorer.enabled())
@@ -264,8 +333,11 @@ class OnChainOffAtTheRegister(Base):
         self.assertEqual((self.shop.onchain, self.shop.own_explorer), (True, "https://node.example.org:4081/api"))
         self.assertEqual(ChainCount.objects.get(shop=self.shop).next, 7)
         with on(features.ONCHAIN):
-            answer = self.client.post(reverse("register_chain", args=[self.shop.id]), json.dumps({"chain": "a" * 64, "at_least": 0}),
-                                      content_type="application/json")
+            answer = self.client.post(
+                reverse("register_chain", args=[self.shop.id]),
+                json.dumps({"chain": "a" * 64, "at_least": 0}),
+                content_type="application/json",
+            )
         self.assertEqual(answer.json(), {"index": 7})
 
     def test_the_pairing_of_a_staff_register_carries_nothing_of_on_chain(self):
@@ -303,7 +375,11 @@ class OnChainOffAtTheRegister(Base):
         self.assertFalse({"confused", "chain_ready"} & set(texts))
         self.assertNotIn("on-chain", json.dumps(texts).lower())
         self.assertNotIn("chain_on", register_data(page))
-        staff = self.client_class().get(f"{reverse('staff_practice', args=[self.staff.id])}?k={self.staff.key}").content.decode()
+        staff = (
+            self.client_class()
+            .get(f"{reverse('staff_practice', args=[self.staff.id])}?k={self.staff.key}")
+            .content.decode()
+        )
         self.assertEqual(re.findall(r'data-exercise="(\w+)"', staff), ["take", "offline", "expired", "phone", "real"])
         with on(features.ONCHAIN):
             page = self.client.get(reverse("practice", args=[self.shop.id])).content.decode()
@@ -327,8 +403,11 @@ class OnChainOffOnThePages(Base):
             form = ShopForm(data, instance=other, owner=self.owner)
             form.is_valid()
             self.assertNotIn("onchain", form.cleaned_data)
-            kept = ShopForm({**data, "name": "Bakery", "lightning_address": "bar@ln.example.org"}, instance=self.shop,
-                            owner=self.owner)
+            kept = ShopForm(
+                {**data, "name": "Bakery", "lightning_address": "bar@ln.example.org"},
+                instance=self.shop,
+                owner=self.owner,
+            )
             kept.is_valid()
             self.assertNotIn("onchain", kept.cleaned_data)
             with on(features.ONCHAIN):
@@ -366,7 +445,9 @@ class OnChainOffOnThePages(Base):
         self.assertEqual(osm.methods(self.shop), [osm.LIGHTNING])
         with on(features.ONCHAIN):
             self.assertEqual(osm.methods(self.shop), [osm.LIGHTNING, osm.ONCHAIN])
-            self.assertNotIn("chain", json.dumps(nostr.shop_event("11" * 32, self.shop, "https://example.org/s/1")).lower())
+            self.assertNotIn(
+                "chain", json.dumps(nostr.shop_event("11" * 32, self.shop, "https://example.org/s/1")).lower()
+            )
 
     def test_a_shop_with_its_own_till_and_no_lightning_flag_is_said_to_take_bitcoin(self):
         imported = Shop.objects.create(name="Books", latitude=41.9, longitude=12.5)
@@ -378,7 +459,9 @@ class OnChainOffOnThePages(Base):
         self.assertNotIn("on-chain", page.lower())
         self.assertNotIn("Lightning", page)
         # The customer's path: every wallet of the list, and no word on the way
-        with configured(wallets=[wallet("Lightning Only", methods=["lightning"]), wallet("Chain Only", methods="onchain")]):
+        with configured(
+            wallets=[wallet("Lightning Only", methods=["lightning"]), wallet("Chain Only", methods="onchain")]
+        ):
             step = self.client.get(f"/en/shops/customer/{imported.id}/1/?on=all").content.decode()
         self.assertIn("<strong>Lightning Only</strong>", step)
         self.assertIn("<strong>Chain Only</strong>", step)
@@ -394,8 +477,10 @@ class OnChainOffOnThePages(Base):
                 self.assertNotIn("on-chain", page.lower())
         help_page = self.client.get(reverse("customer_help", args=[self.shop.id])).content.decode()
         self.assertIn("Here it works with Lightning.", help_page)
-        self.assertIn("Your wallet holds less than the price. Add some bitcoin to the wallet, or pay the rest another way.",
-                      help_page)
+        self.assertIn(
+            "Your wallet holds less than the price. Add some bitcoin to the wallet, or pay the rest another way.",
+            help_page,
+        )
         self.assertNotIn("ten minutes", help_page)
         with on(features.ONCHAIN):
             help_page = self.client.get(reverse("customer_help", args=[self.shop.id])).content.decode()
@@ -440,8 +525,9 @@ class OnChainOffOnThePages(Base):
 
         from . import moving
 
-        outcome = SimpleNamespace(sign_in="wallet", email="", name="Bakery", code="", shop=SimpleNamespace(
-            owner_id=1, moved_register=True))
+        outcome = SimpleNamespace(
+            sign_in="wallet", email="", name="Bakery", code="", shop=SimpleNamespace(owner_id=1, moved_register=True)
+        )
         message = moving.owner_message(outcome, "site.example", "en")
         self.assertIn("with your Lightning address, as before", message)
         self.assertNotIn("on-chain", message)
@@ -460,20 +546,49 @@ class OnChainOffInTheRegister(RegisterRun):
     count to ask left in the page, the register asks neither."""
 
     def storage(self, **more):
-        return {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "onchain": {"key": BIP84_ACCOUNT, "path": "0"},
-                                                        "discount": 0, "confirmAbove": 5000, "currency": "EUR"}),
-                "register-chain-next:shop-1": json.dumps(COUNT), **more}
+        return {
+            "register-settings:shop-1": json.dumps(
+                {
+                    "lightning": ADDRESS,
+                    "onchain": {"key": BIP84_ACCOUNT, "path": "0"},
+                    "discount": 0,
+                    "confirmAbove": 5000,
+                    "currency": "EUR",
+                }
+            ),
+            "register-chain-next:shop-1": json.dumps(COUNT),
+            **more,
+        }
 
     def sale(self, name, **fields):
         now = time.time() * 1000
-        return {"id": name, "at": now - 60000, "cents": 900, "currency": "EUR", "status": "pending", "method": "onchain",
-                "sats": 9000, "address": BIP84_RECEIVE[0], "path": "0", "index": 0, "before": [], "wait": False,
-                "label": "9.00 EUR", "rate": 100000, "sources": [], "expires": now + 3600000, "till": "shop-1", **fields}
+        return {
+            "id": name,
+            "at": now - 60000,
+            "cents": 900,
+            "currency": "EUR",
+            "status": "pending",
+            "method": "onchain",
+            "sats": 9000,
+            "address": BIP84_RECEIVE[0],
+            "path": "0",
+            "index": 0,
+            "before": [],
+            "wait": False,
+            "label": "9.00 EUR",
+            "rate": 100000,
+            "sources": [],
+            "expires": now + 3600000,
+            "till": "shop-1",
+            **fields,
+        }
 
     def test_a_phone_that_holds_a_key_offers_no_on_chain_sale(self):
         out = self.run_register(OWNER, self.storage(), chain_on=False)
         self.assertTrue(out["chainHidden"])
-        self.assertEqual((out["blocked"], out["error"], out["chainError"], out["gap"], out["gapCount"]), ("", "", "", "", ""))
+        self.assertEqual(
+            (out["blocked"], out["error"], out["chainError"], out["gap"], out["gapCount"]), ("", "", "", "", "")
+        )
         # The button pressed all the same (a page left open): no sale, no address, no question to the explorer or the site
         self.assertIsNone(out.get("sale"))
         self.assertEqual((out["to"], out["asked"], out["claims"], out["ledger"]), ("", [], [], []))
@@ -485,23 +600,41 @@ class OnChainOffInTheRegister(RegisterRun):
 
     def test_lightning_goes_on_as_always(self):
         pr, _hash = invoice(10000)
-        out = self.run_register(OWNER, self.storage(), chain_on=False, discount=0,
-                                ln={"typed": ["1000"], "invoices": [pr],
-                                    "verify": {0: {"status": "OK", "settled": True, "preimage": "00" * 32, "pr": pr}}})
+        out = self.run_register(
+            OWNER,
+            self.storage(),
+            chain_on=False,
+            discount=0,
+            ln={
+                "typed": ["1000"],
+                "invoices": [pr],
+                "verify": {0: {"status": "OK", "settled": True, "preimage": "00" * 32, "pr": pr}},
+            },
+        )
         sale = out["ledger"][0]
         self.assertEqual((sale["status"], sale["method"], sale["sats"]), ("paid", "lightning", 10000))
         self.assertFalse([url for url in out["sales"][0]["ledger"] if "address" in url])
 
     def test_saving_the_settings_keeps_the_key_the_threshold_and_the_count(self):
         # The form has no on-chain field: whatever a stale page still held in them is not read
-        for fields in ({"currency": "CHF", "discount-percent": "5"},
-                       {"currency": "CHF", "discount-percent": "5", "chain-key": "", "chain-start": "7", "chain-path": "0/9",
-                        "confirm-above": "1"},
-                       {"currency": "CHF", "discount-percent": "5", "chain-key": "not a key", "confirm-above": "nonsense"}):
+        for fields in (
+            {"currency": "CHF", "discount-percent": "5"},
+            {
+                "currency": "CHF",
+                "discount-percent": "5",
+                "chain-key": "",
+                "chain-start": "7",
+                "chain-path": "0/9",
+                "confirm-above": "1",
+            },
+            {"currency": "CHF", "discount-percent": "5", "chain-key": "not a key", "confirm-above": "nonsense"},
+        ):
             with self.subTest(fields):
                 out = self.run_register(OWNER, self.storage(), chain_on=False, settings=fields, open_settings=True)
-                self.assertEqual(out["settingsSay"],
-                                 "Saved on this phone. Staff registers get the new settings only with a new pairing code.")
+                self.assertEqual(
+                    out["settingsSay"],
+                    "Saved on this phone. Staff registers get the new settings only with a new pairing code.",
+                )
                 saved = out["settings"]
                 self.assertEqual(saved["onchain"], {"key": BIP84_ACCOUNT, "path": "0"})
                 self.assertEqual((saved["confirmAbove"], saved["currency"], saved["discount"]), (5000, "CHF", 5))
@@ -517,23 +650,41 @@ class OnChainOffInTheRegister(RegisterRun):
     def test_on_chain_sales_left_waiting_are_kept_and_go_at_once_to_check_in_the_wallet(self):
         now = time.time() * 1000
         addresses = self.derived_many(BIP84_ACCOUNT, 0, range(5))
-        sales = [self.sale("waiting"), self.sale("over", at=now - 2 * 86400000, expires=now - 86400000, index=1,
-                                                 address=addresses[1]),
-                 self.sale("paid", status="paid", txid="a" * 64, index=2, address=addresses[2]),
-                 self.sale("seen", status="seen", index=3, address=addresses[3]),
-                 self.sale("cancelled", status="cancelled", index=4, address=addresses[4])]
-        paid = {sale["address"]: [{"txid": "f" * 64, "status": {"confirmed": True, "block_time": int(now / 1000)},
-                                   "vout": [{"scriptpubkey_address": sale["address"], "value": 9000}]}] for sale in sales}
-        out = self.run_register(OWNER, self.storage(**{"register-ledger:shop-1": json.dumps(sales)}), chain_on=False,
-                                atStart=paid)
+        sales = [
+            self.sale("waiting"),
+            self.sale("over", at=now - 2 * 86400000, expires=now - 86400000, index=1, address=addresses[1]),
+            self.sale("paid", status="paid", txid="a" * 64, index=2, address=addresses[2]),
+            self.sale("seen", status="seen", index=3, address=addresses[3]),
+            self.sale("cancelled", status="cancelled", index=4, address=addresses[4]),
+        ]
+        paid = {
+            sale["address"]: [
+                {
+                    "txid": "f" * 64,
+                    "status": {"confirmed": True, "block_time": int(now / 1000)},
+                    "vout": [{"scriptpubkey_address": sale["address"], "value": 9000}],
+                }
+            ]
+            for sale in sales
+        }
+        out = self.run_register(
+            OWNER, self.storage(**{"register-ledger:shop-1": json.dumps(sales)}), chain_on=False, atStart=paid
+        )
         # Nobody is asked, even with an explorer that would say «paid»; nothing is lost, and nothing is called paid. What
         # was waiting is not left to say «the register looks again»: nobody will, so it is to check in the wallet at once
         self.assertEqual(out["asked"], [])
         by_id = {sale["id"]: sale for sale in out["ledger"]}
         self.assertEqual(sorted(by_id), ["cancelled", "over", "paid", "seen", "waiting"])
-        self.assertEqual({name: sale["status"] for name, sale in by_id.items()},
-                         {"waiting": "unchecked", "over": "unchecked", "paid": "paid", "seen": "unchecked",
-                          "cancelled": "cancelled"})
+        self.assertEqual(
+            {name: sale["status"] for name, sale in by_id.items()},
+            {
+                "waiting": "unchecked",
+                "over": "unchecked",
+                "paid": "paid",
+                "seen": "unchecked",
+                "cancelled": "cancelled",
+            },
+        )
         self.assertEqual((by_id["paid"]["address"], by_id["paid"]["txid"]), (addresses[2], "a" * 64))
         # No new sale: the button pressed starts none
         self.assertEqual(len(out["ledger"]), 5)
@@ -546,8 +697,9 @@ class OnChainOffInTheRegister(RegisterRun):
             error: element("error").textContent, open: kept.get("register-open:shop-1") ?? null, ledger: ledger(),
             asked: asked.filter((url) => url.includes("/address/")) };
         """
-        storage = self.storage(**{"register-ledger:shop-1": json.dumps([self.sale("open")]),
-                                  "register-open:shop-1": json.dumps("open")})
+        storage = self.storage(
+            **{"register-ledger:shop-1": json.dumps([self.sale("open")]), "register-open:shop-1": json.dumps("open")}
+        )
         out = self.run_register(OWNER, storage, chain_on=False, script=script)
         self.assertEqual((out["to"], out["qr"], out["error"], out["open"], out["asked"]), ("", "", "", None, []))
         self.assertEqual([(sale["id"], sale["status"]) for sale in out["ledger"]], [("open", "unchecked")])
@@ -557,11 +709,22 @@ class OnChainOffInTheRegister(RegisterRun):
 
     def test_the_history_and_the_day_closing_still_show_the_on_chain_sales(self):
         at = time.mktime((2026, 11, 9, 12, 0, 0, 0, 0, -1)) * 1000
-        sales = [self.sale("chain", at=at, status="paid", txid="a" * 64),
-                 {"id": "ln", "at": at + 1000, "cents": 500, "currency": "EUR", "status": "paid", "sats": 5000,
-                  "label": "5.00 EUR", "till": "shop-1"}]
-        out = self.run_register(OWNER, self.storage(**{"register-ledger:shop-1": json.dumps(sales)}), chain_on=False,
-                                show_day="2026-11-09")
+        sales = [
+            self.sale("chain", at=at, status="paid", txid="a" * 64),
+            {
+                "id": "ln",
+                "at": at + 1000,
+                "cents": 500,
+                "currency": "EUR",
+                "status": "paid",
+                "sats": 5000,
+                "label": "5.00 EUR",
+                "till": "shop-1",
+            },
+        ]
+        out = self.run_register(
+            OWNER, self.storage(**{"register-ledger:shop-1": json.dumps(sales)}), chain_on=False, show_day="2026-11-09"
+        )
         totals = "\\n".join(out["dayTotals"])
         self.assertIn("On-chain: 1 paid", totals)
         self.assertIn("Lightning: 1 paid", totals)
@@ -572,7 +735,8 @@ class OnChainOffInTheRegister(RegisterRun):
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
         harness = Path(folder.name) / "code.js"
-        harness.write_text(r"""
+        harness.write_text(
+            r"""
 const fs = require("fs");
 for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
 (async () => {
@@ -581,9 +745,21 @@ for (const f of process.argv.slice(3)) eval(fs.readFileSync(f, "utf8"));
     discount: 0, currency: "EUR", sources: ["kraken", "coinbase"], shop: { name: "Bar Anna", town: "Example" } },
     ["kraken", "coinbase", "bitstamp"]));
 })();
-""".replace("REGISTER", REGISTER).replace("ADDRESS", ADDRESS))
-        made = subprocess.run([self.node, str(harness), BIP84_ACCOUNT, str(STATIC / "register-derive.js"),
-                               str(STATIC / "register-pairing.js")], capture_output=True, text=True, timeout=60, check=False)
+""".replace("REGISTER", REGISTER).replace("ADDRESS", ADDRESS)
+        )
+        made = subprocess.run(
+            [
+                self.node,
+                str(harness),
+                BIP84_ACCOUNT,
+                str(STATIC / "register-derive.js"),
+                str(STATIC / "register-pairing.js"),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
         self.assertEqual(made.returncode, 0, made.stderr)
         ledger = f"shop-1:{REGISTER}"
         dataset = {"ledger": ledger, "shop": "shop-1", "staff": REGISTER, "tillName": "Anna"}
@@ -617,20 +793,34 @@ class PairingDrawnWithOnChainOff(TestCase):
         if not self.node:
             self.skipTest("node is missing: NODE=/path/to/node to draw the pairing code")
         owner = get_user_model().objects.create(username="owner")
-        self.shop = Shop.objects.create(owner=owner, name="Bar", city="Example", lightning_address="till@ln.example.org")
-        self.register = StaffRegister.objects.create(shop=self.shop, name="Anna", code="c" * 32,
-                                                     code_until=timezone.now() + timedelta(hours=1))
+        self.shop = Shop.objects.create(
+            owner=owner, name="Bar", city="Example", lightning_address="till@ln.example.org"
+        )
+        self.register = StaffRegister.objects.create(
+            shop=self.shop, name="Anna", code="c" * 32, code_until=timezone.now() + timedelta(hours=1)
+        )
 
     def test_the_code_carries_no_key_and_the_summary_no_word_of_it(self):
         for held in ({"key": BIP84_ACCOUNT}, {"key": BIP84_ACCOUNT, "path": "0/5"}, {"address": BIP84_RECEIVE[0]}):
             with self.subTest(held):
-                out = PairingDrawn.draw(self, {"lightning": "till@ln.example.org", "onchain": held, "discount": 7,
-                                              "currency": "CHF", "confirmAbove": 2500, "sources": ["kraken", "bitstamp"]})
+                out = PairingDrawn.draw(
+                    self,
+                    {
+                        "lightning": "till@ln.example.org",
+                        "onchain": held,
+                        "discount": 7,
+                        "currency": "CHF",
+                        "confirmAbove": 2500,
+                        "sources": ["kraken", "bitstamp"],
+                    },
+                )
                 self.assertTrue(out["qr"])
                 self.assertIn("#pair=1.", out["link"])
                 self.assertIsNone(out["pairing"]["onchain"])
-                self.assertEqual((out["pairing"]["lightning"], out["pairing"]["discount"], out["pairing"]["currency"]),
-                                 ("till@ln.example.org", 7, "CHF"))
+                self.assertEqual(
+                    (out["pairing"]["lightning"], out["pairing"]["discount"], out["pairing"]["currency"]),
+                    ("till@ln.example.org", 7, "CHF"),
+                )
                 summary = " ".join(out["summary"])
                 self.assertNotIn("chain", summary.lower())
                 self.assertNotIn(BIP84_ACCOUNT, out["link"])
@@ -696,34 +886,77 @@ class OnChainOffInABrowser(TestCase):
         self.assertTrue(BROWSER, "REQUIRE_BROWSER=1 but chromium-headless-shell is missing: BROWSER_BIN=/path")
         html = self.client.get(reverse("register", args=[self.shop.id])).content.decode()
         now = time.time() * 1000
-        sale = {"at": now - 60000, "cents": 900, "currency": "EUR", "method": "onchain", "sats": 9000, "path": "0",
-                "before": [], "wait": False, "label": "9.00 EUR", "rate": 100000, "sources": [], "till": str(self.shop.id)}
+        sale = {
+            "at": now - 60000,
+            "cents": 900,
+            "currency": "EUR",
+            "method": "onchain",
+            "sats": 9000,
+            "path": "0",
+            "before": [],
+            "wait": False,
+            "label": "9.00 EUR",
+            "rate": 100000,
+            "sources": [],
+            "till": str(self.shop.id),
+        }
         memory = {
-            f"register-settings:{self.shop.id}": json.dumps({"lightning": "bar@ln.example.org", "confirmAbove": 5000,
-                                                             "onchain": {"key": BIP84_ACCOUNT}}),
+            f"register-settings:{self.shop.id}": json.dumps(
+                {"lightning": "bar@ln.example.org", "confirmAbove": 5000, "onchain": {"key": BIP84_ACCOUNT}}
+            ),
             f"register-chain-next:{self.shop.id}": json.dumps({"of": f"{BIP84_ACCOUNT}/0", "next": 2}),
             f"register-open:{self.shop.id}": json.dumps("open"),
-            f"register-ledger:{self.shop.id}": json.dumps([
-                {**sale, "id": "paid", "status": "paid", "address": BIP84_RECEIVE[0], "index": 0, "txid": "a" * 64},
-                {**sale, "id": "open", "status": "pending", "address": BIP84_RECEIVE[1], "index": 1,
-                 "expires": now + 3600000}])}
+            f"register-ledger:{self.shop.id}": json.dumps(
+                [
+                    {**sale, "id": "paid", "status": "paid", "address": BIP84_RECEIVE[0], "index": 0, "txid": "a" * 64},
+                    {
+                        **sale,
+                        "id": "open",
+                        "status": "pending",
+                        "address": BIP84_RECEIVE[1],
+                        "index": 1,
+                        "expires": now + 3600000,
+                    },
+                ]
+            ),
+        }
 
         def named(address):
             return re.sub(r"\.[0-9a-f]{12}\.js$", ".js", address.split("/static/", 1)[1])
 
         # The page's own scripts in the page, the ones loaded at first use from the files; nothing from the network
-        html = re.sub(r'<script src="([^"]*/static/[^"]+)"></script>',
-                      lambda match: f"<script>{(STATIC / named(match.group(1))).read_text()}</script>", html)
-        html = re.sub(r'data-(\w+)="([^"]*/static/[^"]+\.js)"',
-                      lambda match: f'data-{match.group(1)}="{(STATIC / named(match.group(2))).as_uri()}"', html)
+        html = re.sub(
+            r'<script src="([^"]*/static/[^"]+)"></script>',
+            lambda match: f"<script>{(STATIC / named(match.group(1))).read_text()}</script>",
+            html,
+        )
+        html = re.sub(
+            r'data-(\w+)="([^"]*/static/[^"]+\.js)"',
+            lambda match: f'data-{match.group(1)}="{(STATIC / named(match.group(2))).as_uri()}"',
+            html,
+        )
         html = re.sub(r'<link rel="(?:stylesheet|manifest)"[^>]*>', "", html)
         html = html.replace("<head>", "<head>" + WATCH % json.dumps(memory)).replace("</body>", REPORT + "</body>")
         with tempfile.TemporaryDirectory() as folder:
             page = Path(folder) / "register.html"
             page.write_text(html)
-            result = subprocess.run([BROWSER, "--no-sandbox", "--disable-gpu", f"--user-data-dir={folder}/profile",
-                                     "--allow-file-access-from-files", "--window-size=360,640", "--virtual-time-budget=8000",
-                                     "--dump-dom", page.as_uri()], capture_output=True, text=True, timeout=90, check=False)
+            result = subprocess.run(
+                [
+                    BROWSER,
+                    "--no-sandbox",
+                    "--disable-gpu",
+                    f"--user-data-dir={folder}/profile",
+                    "--allow-file-access-from-files",
+                    "--window-size=360,640",
+                    "--virtual-time-budget=8000",
+                    "--dump-dom",
+                    page.as_uri(),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=90,
+                check=False,
+            )
         found = re.search(r"<title>result=([^<]+)</title>", result.stdout)
         self.assertTrue(found, result.stderr[-2000:])
         from urllib.parse import unquote

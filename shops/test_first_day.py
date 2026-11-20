@@ -1,4 +1,5 @@
 """The first day in the panel (shops/first_day.py) and the card for whoever stands at the till."""
+
 import re
 from datetime import date
 from unittest.mock import patch
@@ -13,10 +14,12 @@ from .models import Shop
 from .tests import steady_limits
 
 PANEL = "/en/shops/"
+
+
 def first_day_block(page, shop):
     html = page.content.decode()
     start = html.find(f'id="first-day-{shop.id}"')
-    return "" if start < 0 else html[start:html.index("</details>", start)]
+    return "" if start < 0 else html[start : html.index("</details>", start)]
 
 
 def states(block):
@@ -29,8 +32,7 @@ class Panel(TestCase):
         cache.clear()
         self.owner = get_user_model().objects.create(username="k")
         self.client.force_login(self.owner)
-        self.shop = Shop.objects.create(owner=self.owner, name="Bar", 
-                                        lightning_address="bar@example.org")
+        self.shop = Shop.objects.create(owner=self.owner, name="Bar", lightning_address="bar@example.org")
 
     def panel(self, language="en"):
         page = self.client.get(f"/{language}/shops/")
@@ -48,7 +50,9 @@ class Panel(TestCase):
 
     def test_a_complete_shop_folds_into_one_line(self):
         now = timezone.now()
-        Shop.objects.filter(pk=self.shop.pk).update(first_sale=now, sign_printed=now, register_shared=now, latitude=1, longitude=2)
+        Shop.objects.filter(pk=self.shop.pk).update(
+            first_sale=now, sign_printed=now, register_shared=now, latitude=1, longitude=2
+        )
         block = first_day_block(self.panel(), self.shop)
         self.assertNotIn(" open", block.split(">")[0])
         self.assertIn("<summary>The first day: all done</summary>", block)
@@ -62,7 +66,9 @@ class Panel(TestCase):
 
     def test_no_first_day_without_a_register_or_for_a_historic_shop(self):
         imported = Shop.objects.create(owner=self.owner, name="Imported")
-        historic = Shop.objects.create(owner=self.owner, name="Old", lightning_address="old@example.org", closed_on=date(2024, 6, 30))
+        historic = Shop.objects.create(
+            owner=self.owner, name="Old", lightning_address="old@example.org", closed_on=date(2024, 6, 30)
+        )
         page = self.panel()
         self.assertEqual(first_day_block(page, imported), "")
         self.assertEqual(first_day_block(page, historic), "")
@@ -72,7 +78,9 @@ class Panel(TestCase):
 
     def test_a_shop_off_the_map_is_not_held_back_by_the_map(self):
         now = timezone.now()
-        Shop.objects.filter(pk=self.shop.pk).update(first_sale=now, sign_printed=now, register_shared=now, suspended=True)
+        Shop.objects.filter(pk=self.shop.pk).update(
+            first_sale=now, sign_printed=now, register_shared=now, suspended=True
+        )
         block = first_day_block(self.panel(), self.shop)
         self.assertEqual(states(block)["map"], "off")
         self.assertIn('write to <a href="mailto:info@example.org">', block)
@@ -158,7 +166,9 @@ class Ticks(TestCase):
         # With the token of the panel's own form it goes through
         page = client.get(PANEL).content.decode()
         token = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', page)[1]
-        self.assertEqual(client.post(self.url, {"step": "sign", "done": "1", "csrfmiddlewaretoken": token}).status_code, 302)
+        self.assertEqual(
+            client.post(self.url, {"step": "sign", "done": "1", "csrfmiddlewaretoken": token}).status_code, 302
+        )
         self.shop.refresh_from_db()
         self.assertIsNotNone(self.shop.sign_printed)
 
@@ -173,8 +183,7 @@ class TillCard(TestCase):
     def setUp(self):
         self.owner = get_user_model().objects.create(username="k")
         self.client.force_login(self.owner)
-        self.shop = Shop.objects.create(owner=self.owner, name="Central Bar", 
-                                        lightning_address="bar@example.org")
+        self.shop = Shop.objects.create(owner=self.owner, name="Central Bar", lightning_address="bar@example.org")
 
     def card(self, shop=None, language="en", query=""):
         return self.client.get(f"/{language}/shops/card/{(shop or self.shop).id}/{query}")
@@ -184,8 +193,13 @@ class TillCard(TestCase):
         self.assertEqual(page.status_code, 200)
         self.assertEqual(page["X-Robots-Tag"], "noindex, nofollow")
         self.assertContains(page, "Central Bar")
-        for words in ("Scrivi anche i centesimi: 1, 5, 0 fa 1,50.", "«In attesa del pagamento»", "«Pagamento ricevuto»",
-                      "«Il codice non si legge? Mostralo come testo»", "«Nuovo pagamento»"):
+        for words in (
+            "Scrivi anche i centesimi: 1, 5, 0 fa 1,50.",
+            "«In attesa del pagamento»",
+            "«Pagamento ricevuto»",
+            "«Il codice non si legge? Mostralo come testo»",
+            "«Nuovo pagamento»",
+        ):
             self.assertContains(page, words)
 
     def test_what_depends_on_how_the_shop_gets_paid(self):
@@ -229,7 +243,9 @@ class TillCard(TestCase):
         self.assertIn('name="viewport" content="width=device-width', html)
 
     def test_only_your_own_shops_with_a_register(self):
-        other = Shop.objects.create(owner=get_user_model().objects.create(username="other"), name="Other", lightning_address="o@example.org")
+        other = Shop.objects.create(
+            owner=get_user_model().objects.create(username="other"), name="Other", lightning_address="o@example.org"
+        )
         imported = Shop.objects.create(owner=self.owner, name="Imported")
         self.assertEqual(self.card(other).status_code, 404)
         self.assertEqual(self.card(imported).status_code, 404)

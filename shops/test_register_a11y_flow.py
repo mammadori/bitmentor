@@ -1,6 +1,7 @@
 """The register (static/register.js) in node, for whoever uses it with a screen reader: where the focus goes on each
 screen, what the status line says and how often, the QR code's text alternative, the copy of the invoice, and the field
 a failed form points to. The page is the stand-in of test_register_flow.py, which here also keeps attributes and focus."""
+
 import json
 import os
 import shutil
@@ -14,15 +15,22 @@ from .test_register_flow import ADDRESS, FILES, HARNESS, STATIC, invoice, texts
 
 SETUP, _ = HARNESS.split("for (const file of files) eval")
 for old, new in (
-        ("setAttribute() {}, removeAttribute() {}, focus() {},",
-         "attributes: {}, setAttribute(k, v) { this.attributes[k] = String(v); }, removeAttribute(k) { delete this.attributes[k]; },"
-         " focus() { document.activeElement = this; },"),
-        ("querySelectorAll() { return []; },",
-         'querySelectorAll(s) { return s === "[aria-invalid]" ? Object.values(elements).filter((e) => "aria-invalid" in e.attributes) : []; },')):
+    (
+        "setAttribute() {}, removeAttribute() {}, focus() {},",
+        "attributes: {}, setAttribute(k, v) { this.attributes[k] = String(v); }, removeAttribute(k) { delete this.attributes[k]; },"
+        " focus() { document.activeElement = this; },",
+    ),
+    (
+        "querySelectorAll() { return []; },",
+        'querySelectorAll(s) { return s === "[aria-invalid]" ? Object.values(elements).filter((e) => "aria-invalid" in e.attributes) : []; },',
+    ),
+):
     assert SETUP.count(old) == 1, old
     SETUP = SETUP.replace(old, new)
 
-SCENARIO = SETUP + r"""
+SCENARIO = (
+    SETUP
+    + r"""
 // The status line counts its writes: a poll that finds nothing new writes nothing
 let writes = 0;
 let said = "";
@@ -71,6 +79,7 @@ const fire = async (name, event = {}) => { for (const fn of listeners[name]) awa
   process.stdout.write(JSON.stringify(out), () => process.exit(0));
 })().catch((error) => { console.error(error); process.exit(1); });
 """
+)
 
 
 class Announced(SimpleTestCase):
@@ -83,20 +92,45 @@ class Announced(SimpleTestCase):
 
     def test_a_sale_said_and_focused_screen_by_screen(self):
         pr, _hash = invoice(10000)
-        data = {"address": ADDRESS, "domain": "ln.example.org", "currency": "EUR", "sources": ["kraken", "coinbase"],
-                "tolerance": 1.0, "max_age": 120, "network": "mainnet", "explorers": ["https://mempool.example.org/api"],
-                "discount": 0, "confirm_above": 0, "shop": {"name": "Bar"}, "texts": texts(), "relays": [],
-                "public_relays": []}
-        given = {"data": data, "dataset": {"ledger": "shop-1", "shop": "shop-1"},
-                 "storage": {"register-settings:shop-1": json.dumps({"lightning": ADDRESS})},
-                 "ln": {"invoices": [pr], "verify": {"0": {"status": "OK", "settled": False, "pr": pr}}},
-                 "paid": {"status": "OK", "settled": True, "preimage": "00" * 32, "pr": pr}}
+        data = {
+            "address": ADDRESS,
+            "domain": "ln.example.org",
+            "currency": "EUR",
+            "sources": ["kraken", "coinbase"],
+            "tolerance": 1.0,
+            "max_age": 120,
+            "network": "mainnet",
+            "explorers": ["https://mempool.example.org/api"],
+            "discount": 0,
+            "confirm_above": 0,
+            "shop": {"name": "Bar"},
+            "texts": texts(),
+            "relays": [],
+            "public_relays": [],
+        }
+        given = {
+            "data": data,
+            "dataset": {"ledger": "shop-1", "shop": "shop-1"},
+            "storage": {"register-settings:shop-1": json.dumps({"lightning": ADDRESS})},
+            "ln": {"invoices": [pr], "verify": {"0": {"status": "OK", "settled": False, "pr": pr}}},
+            "paid": {"status": "OK", "settled": True, "preimage": "00" * 32, "pr": pr},
+        }
         with tempfile.TemporaryDirectory() as folder:
             harness, path = Path(folder) / "a11y.js", Path(folder) / "given.json"
             harness.write_text(SCENARIO)
             path.write_text(json.dumps(given))
-            result = subprocess.run([self.node, str(harness), str(path), *(str(STATIC / name) for name in FILES),
-                                     str(STATIC / "register.js")], capture_output=True, text=True, timeout=60)
+            result = subprocess.run(
+                [
+                    self.node,
+                    str(harness),
+                    str(path),
+                    *(str(STATIC / name) for name in FILES),
+                    str(STATIC / "register.js"),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
         self.assertEqual(result.returncode, 0, result.stderr)
         out = json.loads(result.stdout)
         words = data["texts"]
@@ -120,10 +154,26 @@ class Announced(SimpleTestCase):
         # A new sale: back on the amount, and the copy button with its own name again at the next sale
         self.assertEqual(out["keypadFocus"], "amount")
         # The form's failures point to the field, which takes the focus and is described by the message
-        self.assertEqual(out["short"], {"aria-invalid": "true", "aria-describedby": "history-say", "focus": "export-pass",
-                                        "say": words["short"].replace("{count}", "10")})
-        self.assertEqual(out["mismatch"], {"pass": {}, "again": {"aria-invalid": "true", "aria-describedby": "history-say"},
-                                           "focus": "export-again"})
+        self.assertEqual(
+            out["short"],
+            {
+                "aria-invalid": "true",
+                "aria-describedby": "history-say",
+                "focus": "export-pass",
+                "say": words["short"].replace("{count}", "10"),
+            },
+        )
+        self.assertEqual(
+            out["mismatch"],
+            {"pass": {}, "again": {"aria-invalid": "true", "aria-describedby": "history-say"}, "focus": "export-again"},
+        )
         # A settings field is described by its own error, next to it, and by its help line
-        self.assertEqual(out["currency"], {"aria-invalid": "true", "aria-describedby": "currency-error currency-help", "focus": "currency",
-                                           "say": words["bad_currency"]})
+        self.assertEqual(
+            out["currency"],
+            {
+                "aria-invalid": "true",
+                "aria-describedby": "currency-error currency-help",
+                "focus": "currency",
+                "say": words["bad_currency"],
+            },
+        )

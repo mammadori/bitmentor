@@ -1,4 +1,5 @@
 """Nostr public keys as people write them (npub, NIP-19) and as events carry them (64 hexadecimal digits)."""
+
 import re
 
 import bech32

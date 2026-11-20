@@ -10,6 +10,7 @@ browser. The page has no address to send sales to, and its CSP lets it talk to n
 a sentence, not a payment request: no wallet can pay it. The pages ask nothing of any provider, and a shop without a
 wallet can practise too.
 """
+
 import segno
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
@@ -19,11 +20,11 @@ from django.utils.translation import gettext as _
 from config import features
 from config.community import community
 
-from . import first_day, training
+from . import first_day, training, views
 from . import staff as staff_registers
-from . import views
 from .models import Shop
-from .register import options, texts as register_texts
+from .register import options
+from .register import texts as register_texts
 
 
 def texts(staff):
@@ -37,22 +38,37 @@ def texts(staff):
 
 def all_texts(staff):
     return {
-        "pay": _("The customer paid. Hand over the goods only when this screen shows the green tick and «Payment "
-                 "received»: the customer's phone does not count."),
-        "none": _("The customer leaves without paying. The register says «Payment expired»: nothing was charged, the "
-                  "goods stay with you. In the real register it happens when the code expires."),
-        "down": _("No connection, as when the shop's Wi-Fi drops. The register says so and keeps the sale: do not "
-                  "cancel it and do not hand over the goods. Wait for the connection."),
+        "pay": _(
+            "The customer paid. Hand over the goods only when this screen shows the green tick and «Payment "
+            "received»: the customer's phone does not count."
+        ),
+        "none": _(
+            "The customer leaves without paying. The register says «Payment expired»: nothing was charged, the "
+            "goods stay with you. In the real register it happens when the code expires."
+        ),
+        "down": _(
+            "No connection, as when the shop's Wi-Fi drops. The register says so and keeps the sale: do not "
+            "cancel it and do not hand over the goods. Wait for the connection."
+        ),
         "up": _("The connection is back: the register asks at once how the sale went."),
-        "offline": (_("No connection: the shop's Lightning wallet cannot be reached.") if staff else
-                    _("No connection: your Lightning wallet cannot be reached.")),
-        "phone": _("The phone switched off and you opened the register again: the sale comes back by itself and says "
-                   "how it ended."),
-        "confused": _("The customer looks at the code and does not know what to do: their wallet does not read "
-                      "Lightning codes. Maybe it pays only on-chain: do not despair. Cancel this sale, type the amount "
-                      "again and press «OK, on-chain»."),
-        "chain_ready": _("An on-chain code: the customer's wallet pays it as an ordinary bitcoin payment. Wait for "
-                         "«Payment received» here, as with Lightning."),
+        "offline": (
+            _("No connection: the shop's Lightning wallet cannot be reached.")
+            if staff
+            else _("No connection: your Lightning wallet cannot be reached.")
+        ),
+        "phone": _(
+            "The phone switched off and you opened the register again: the sale comes back by itself and says "
+            "how it ended."
+        ),
+        "confused": _(
+            "The customer looks at the code and does not know what to do: their wallet does not read "
+            "Lightning codes. Maybe it pays only on-chain: do not despair. Cancel this sale, type the amount "
+            "again and press «OK, on-chain»."
+        ),
+        "chain_ready": _(
+            "An on-chain code: the customer's wallet pays it as an ordinary bitcoin payment. Wait for "
+            "«Payment received» here, as with Lightning."
+        ),
         "first": _("Type an amount and press OK: then the pretend customer can pay."),
         "ready": _("The customer has the code in front of them. Choose what they do."),
         "done": _("Exercise done: {name}."),
@@ -86,12 +102,16 @@ def context(request, shop, staff=None):
             # The real till waits for the owner's basic pass (shops/training.py): the way there, not a closed door
             if owner:
                 next_url, next_text = reverse("training"), _("Start the path")
-                next_note = _("The register that takes real money opens when you have the basic pass: a few short "
-                              "modules, with a little game. Your wallet and your recovery words are yours, and we want "
-                              "you to know what to do if something goes wrong.")
+                next_note = _(
+                    "The register that takes real money opens when you have the basic pass: a few short "
+                    "modules, with a little game. Your wallet and your recovery words are yours, and we want "
+                    "you to know what to do if something goes wrong."
+                )
             else:
                 next_url, next_text = "", ""
-                next_note = _("The owner of the shop has not finished the training yet: the register opens when they have.")
+                next_note = _(
+                    "The owner of the shop has not finished the training yet: the register opens when they have."
+                )
         else:
             next_url, next_text = real, _("Open the real register")
             next_note = _("The next sale is real.")
@@ -100,16 +120,35 @@ def context(request, shop, staff=None):
     # The practice code pays into nobody's address
     words = {**register_texts(), **(views.staff_texts() if staff else {}), "to": ""}
     return {
-        "shop": shop, "currency": currency, "owner": owner, "staff": staff, "practice": True, "urls": {"practice": ""},
+        "shop": shop,
+        "currency": currency,
+        "owner": owner,
+        "staff": staff,
+        "practice": True,
+        "urls": {"practice": ""},
         # The register's own data, with no address to pay into; `chain_on` as the real register has it (shops/register.py),
         # for the exercise where the customer's wallet pays only on-chain
-        "register": {"address": "", "domain": "", "currency": currency, "sources": [], "tolerance": options()["tolerance"],
-                     "max_age": options()["max_age"], "texts": words,
-                     **({"chain_on": True} if features.enabled(features.ONCHAIN) else {})},
+        "register": {
+            "address": "",
+            "domain": "",
+            "currency": currency,
+            "sources": [],
+            "tolerance": options()["tolerance"],
+            "max_age": options()["max_age"],
+            "texts": words,
+            **({"chain_on": True} if features.enabled(features.ONCHAIN) else {}),
+        },
         "ledger": f"practice:{base}",
-        "back": back, "back_text": back_text, "next_url": next_url, "next_text": next_text, "next_note": next_note,
-        "practice_data": {"qr": segno.make(sentence, error="m").svg_data_uri(scale=6, border=2), "text": sentence,
-                          "texts": texts(staff)},
+        "back": back,
+        "back_text": back_text,
+        "next_url": next_url,
+        "next_text": next_text,
+        "next_note": next_note,
+        "practice_data": {
+            "qr": segno.make(sentence, error="m").svg_data_uri(scale=6, border=2),
+            "text": sentence,
+            "texts": texts(staff),
+        },
     }
 
 

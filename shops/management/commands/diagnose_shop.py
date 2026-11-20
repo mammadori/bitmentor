@@ -9,6 +9,7 @@ say, detail, do).
 Exit code: 0 nothing wrong (warnings allowed), 1 at least one problem, 2 no single shop found (none, or several:
 they are listed). Read-only: see shops/diagnosis.py. docs/helpdesk.md explains every line.
 """
+
 import json
 import sys
 
@@ -30,7 +31,10 @@ class Command(BaseCommand):
     requires_system_checks = []
 
     def add_arguments(self, parser):
-        parser.add_argument("shop", help="id (or the id on the site it moved from), recovery or public email, imported list number, or a piece of the name")
+        parser.add_argument(
+            "shop",
+            help="id (or the id on the site it moved from), recovery or public email, imported list number, or a piece of the name",
+        )
         parser.add_argument("--json", action="store_true", help="machine-readable output")
         parser.add_argument("--language", default="", help="language of the sentences (default: the community's first)")
         parser.add_argument("--seconds", type=float, default=TOTAL_SECONDS, help="time limit for all the checks")
@@ -47,10 +51,19 @@ class Command(BaseCommand):
             findings = diagnose(shop, options["seconds"])
         level = worst(findings)
         if options["json"]:
-            self.stdout.write(json.dumps({
-                "shop": {"id": str(shop.id), "name": shop.name}, "language": language, "worst": level,
-                "at": timezone.now().isoformat(timespec="seconds"),
-                "findings": [finding.as_dict() for finding in findings]}, ensure_ascii=False, indent=2))
+            self.stdout.write(
+                json.dumps(
+                    {
+                        "shop": {"id": str(shop.id), "name": shop.name},
+                        "language": language,
+                        "worst": level,
+                        "at": timezone.now().isoformat(timespec="seconds"),
+                        "findings": [finding.as_dict() for finding in findings],
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            )
         else:
             self.stdout.write(f"{plain(shop.name)} · {plain(shop.city) or '-'} · {shop.id}")
             for finding in findings:
@@ -63,8 +76,13 @@ class Command(BaseCommand):
 
     def not_one(self, shops, options):
         if options["json"]:
-            self.stdout.write(json.dumps({"found": [{"id": str(shop.id), "name": shop.name, "city": shop.city}
-                                                    for shop in shops]}, ensure_ascii=False, indent=2))
+            self.stdout.write(
+                json.dumps(
+                    {"found": [{"id": str(shop.id), "name": shop.name, "city": shop.city} for shop in shops]},
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            )
             return
         if not shops:
             self.stderr.write(_("No shop found for “{text}”.").format(text=options["shop"]))

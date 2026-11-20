@@ -15,6 +15,7 @@ Every public file of the old `theme/` whose bytes are in no file of the theme no
 of the files, which is when they were put aside: give it at least the days of `blossom_retire_days`, and `touch` a
 file put in the folder by hand. Needs only Python 3.
 """
+
 import argparse
 import hashlib
 import os
@@ -26,8 +27,34 @@ from pathlib import Path
 
 FOLDER = "blossom-retired"
 # The same list as website/blossom.py (a test compares them)
-EXTENSIONS = frozenset((".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif", ".svg", ".ico", ".pdf", ".epub", ".mp3", ".ogg",
-                        ".opus", ".m4a", ".wav", ".flac", ".mp4", ".webm", ".mov", ".zip", ".gz", ".tar", ".tgz", ".woff2"))
+EXTENSIONS = frozenset(
+    (
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".webp",
+        ".gif",
+        ".avif",
+        ".svg",
+        ".ico",
+        ".pdf",
+        ".epub",
+        ".mp3",
+        ".ogg",
+        ".opus",
+        ".m4a",
+        ".wav",
+        ".flac",
+        ".mp4",
+        ".webm",
+        ".mov",
+        ".zip",
+        ".gz",
+        ".tar",
+        ".tgz",
+        ".woff2",
+    )
+)
 
 
 def public(name):
@@ -91,7 +118,9 @@ def from_git(community, commit, now):
         sys.exit(f"not a commit: {commit}")
     git = ["git", "-C", str(community)]
     # Run in the community folder, git names the files from there, also when the folder is inside a larger checkout
-    listed = subprocess.run([*git, "ls-tree", "-r", "-z", commit, "--", "theme"], check=True, capture_output=True).stdout
+    listed = subprocess.run(
+        [*git, "ls-tree", "-r", "-z", commit, "--", "theme"], check=True, capture_output=True
+    ).stdout
     retired = community / FOLDER
     count = 0
     for line in filter(None, listed.decode(errors="surrogateescape").split("\0")):
@@ -104,8 +133,10 @@ def from_git(community, commit, now):
         retired.mkdir(exist_ok=True)
         temporary = retired / f".{blob}.part"
         digest = hashlib.sha256()
-        with subprocess.Popen([*git, "cat-file", "blob", blob], stdout=subprocess.PIPE) as process, \
-                open(temporary, "wb") as stream:
+        with (
+            subprocess.Popen([*git, "cat-file", "blob", blob], stdout=subprocess.PIPE) as process,
+            open(temporary, "wb") as stream,
+        ):
             for chunk in iter(lambda: process.stdout.read(1024 * 1024), b""):
                 digest.update(chunk)
                 stream.write(chunk)
@@ -159,7 +190,9 @@ def main(arguments=None):
             count = from_folder(options.community, options.old, now)
         print(f"{count} old file(s) put aside in {options.community / FOLDER}")
     if options.prune is not None:
-        print(f"{prune(options.community, options.prune)} file(s) removed, put aside more than {options.prune} days ago")
+        print(
+            f"{prune(options.community, options.prune)} file(s) removed, put aside more than {options.prune} days ago"
+        )
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 """Loads the community folder: everything that is not software lives there."""
+
 import json
 import os
 import re
@@ -53,7 +54,7 @@ def front_matter(text):
         if ":" in line:
             key, value = line.split(":", 1)
             meta[key.strip()] = value.strip()
-    return meta, text[match.end():]
+    return meta, text[match.end() :]
 
 
 def visibility(meta):
@@ -132,9 +133,14 @@ def localized(value, language):
 def menu(language, key="menu"):
     # `path` wins over `slug`, and an entry with `path` needs no `slug`: get(…, default) would read the slug anyway
     # A private page is never in the menu, not even for whoever can see it: nobody else learns that it exists
-    return [{"href": f"/{language}/{item['path'] if 'path' in item else item['slug'] + '/'}", "label": localized(item["labels"], language)}
-            for item in community().get(key, [])
-            if not private_link(language, item["path"] if "path" in item else item["slug"])]
+    return [
+        {
+            "href": f"/{language}/{item['path'] if 'path' in item else item['slug'] + '/'}",
+            "label": localized(item["labels"], language),
+        }
+        for item in community().get(key, [])
+        if not private_link(language, item["path"] if "path" in item else item["slug"])
+    ]
 
 
 def community_link(value, language):
@@ -232,8 +238,10 @@ def shop_wallet(entry, language):
         raise ValueError(f"`name` is longer than {WALLET_NAME_LENGTH} characters")
     missing = [promise for promise in WALLET_PROMISES if entry.get(promise) is not True]
     if missing:
-        raise ValueError(f"only open source, self-custody and free wallets: write {', '.join(f'`{key}: true`' for key in missing)} "
-                         "once you are sure, or leave the wallet out")
+        raise ValueError(
+            f"only open source, self-custody and free wallets: write {', '.join(f'`{key}: true`' for key in missing)} "
+            "once you are sure, or leave the wallet out"
+        )
     link = community_link(entry.get("link"), language)
     description = localized(entry.get("description") or "", language)
     if description != "":
@@ -251,8 +259,13 @@ def shop_wallet(entry, language):
     unknown = [str(item) for item in methods if str(item).lower() not in WALLET_METHODS]
     if unknown:
         raise ValueError(f"`methods` can only be {', '.join(WALLET_METHODS)}, not {', '.join(unknown)}")
-    return {"name": name, "link": link, "description": description,
-            "platforms": [str(item).lower() for item in platforms], "methods": [str(item).lower() for item in methods]}
+    return {
+        "name": name,
+        "link": link,
+        "description": description,
+        "platforms": [str(item).lower() for item in platforms],
+        "methods": [str(item).lower() for item in methods],
+    }
 
 
 def shop_form_links(language, warn=None):
@@ -315,15 +328,28 @@ def customer_links(language, warn=None):
 
 def alternates(request, current):
     """The page in every language. A Markdown page missing in a language is not announced with hreflang (`exists`), and the
-    selector leads to the home of that language instead of a 404."""
+    selector leads to the home of that language instead of a 404. `unread` marks a language no native speaker has read
+    (config/languages.py)."""
+    from config import languages  # languages reads `community`, defined above
+
     tail = re.sub(rf"^/{re.escape(current)}(/|$)", "/", request.path)
     match = request.resolver_match
     slug = match.kwargs.get("slug") if match and match.view_name in ("home", "page") else None
     found = []
     for code, name in community()["languages"].items():
-        exists = slug is None or (page_path(code, slug).exists() and (not private_page(code, slug) or page_open_to(request, code, slug)))
-        found.append({"code": code, "name": name, "href": f"/{code}{tail}" if exists else f"/{code}/",
-                      "active": code == current, "exists": exists})
+        exists = slug is None or (
+            page_path(code, slug).exists() and (not private_page(code, slug) or page_open_to(request, code, slug))
+        )
+        found.append(
+            {
+                "code": code,
+                "name": name,
+                "href": f"/{code}{tail}" if exists else f"/{code}/",
+                "active": code == current,
+                "exists": exists,
+                "unread": languages.marked(code),
+            }
+        )
     return found
 
 
@@ -342,6 +368,7 @@ def context(request):
 
     language = get_language()
     data = community()
+    languages = alternates(request, language)
     return {
         "features": features.states(),
         "experimental": features.experimental_states(),
@@ -349,7 +376,8 @@ def context(request):
         "tagline": localized(data.get("tagline", ""), language),
         "menu": menu(language),
         "footer_menu": menu(language, "footer_menu"),
-        "alternates": alternates(request, language),
+        "alternates": languages,
+        "languages_unread": any(found["unread"] for found in languages),
         "data": community_data(),
         "source_url": settings.SOURCE_URL,
     }

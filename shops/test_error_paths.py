@@ -1,5 +1,6 @@
 """Error paths and ceilings that the feature tests do not reach: a database that fails under the certificates, the
 limits of the staff registers, two phones with one code, the cache of the public list starting from nothing."""
+
 from datetime import date
 from unittest.mock import patch
 
@@ -27,8 +28,10 @@ class CertificatesWithoutDatabase(TestCase):
             self.assertFalse(certified.owns_certified_shop(self.owner))
 
     def test_a_refresh_that_cannot_write_certifies_nobody_and_says_so(self):
-        with patch.object(QuerySet, "update", side_effect=DatabaseError("down")), \
-                self.assertLogs("shops.certified", "WARNING") as logged:
+        with (
+            patch.object(QuerySet, "update", side_effect=DatabaseError("down")),
+            self.assertLogs("shops.certified", "WARNING") as logged,
+        ):
             self.assertEqual(certified.refresh(), 0)
         self.assertIn("DatabaseError", logged.output[0])
         # What the log says is the kind of error, never its text
@@ -65,6 +68,7 @@ class StaffLimits(TestCase):
     def test_a_new_code_asked_too_fast_keeps_the_old_one(self):
         register = StaffRegister.objects.create(shop=self.shop, name="Anna")
         from .staff import new_code
+
         new_code(register)
         register.refresh_from_db()
         old = register.code
@@ -82,8 +86,10 @@ class StaffLimits(TestCase):
     def test_two_phones_pressing_at_once_open_the_register_only_once(self):
         register = StaffRegister.objects.create(shop=self.shop, name="Anna")
         from .staff import new_code
+
         new_code(register)
         register.refresh_from_db()
+
         # The other phone uses the code between this one's lookup and its update (here, while the limit is counted)
         def other_phone(*args, **kwargs):
             StaffRegister.objects.filter(pk=register.pk).update(code="", opened=timezone.now())

@@ -6,6 +6,7 @@ merchant and the association, not by a customer at the counter.
 It only reads: it never changes where a shop's money goes and never talks to a payment server. Its findings stay on the shop
 (`lightning_*` fields), a fault counts only after two failed probes in a row some time apart, and the merchant (email, and
 the shop's own Telegram chats) and the association (Telegram) hear about it only when the status changes. The register is never blocked by it."""
+
 import logging
 import socket
 import threading
@@ -15,7 +16,6 @@ from time import monotonic
 from urllib.parse import urlsplit
 
 from django.conf import settings
-from config.mail import merchant_sender, send_mail
 from django.db import transaction
 from django.db.models import F, Q
 from django.urls import reverse
@@ -26,6 +26,7 @@ from django.utils.translation import override
 
 from config import ratelimit
 from config.community import community
+from config.mail import merchant_sender, send_mail
 from config.network import resolve
 
 from . import certified, events, lnaddress, public_cache, vacation
@@ -57,10 +58,24 @@ ALERTS_PER_DAY = 4
 NAME_SECONDS = 4
 NETWORK_SECONDS = 12
 # The fields the probes write: saved alone, so a probe never overwrites what the merchant saved in the meantime
-FIELDS = ["lightning_status", "lightning_since", "lightning_checked", "lightning_worked", "lightning_failures",
-          "lightning_failing_since", "lightning_checked_address"]
-BLANK = {"lightning_status": "", "lightning_since": None, "lightning_checked": None, "lightning_worked": None,
-         "lightning_failures": 0, "lightning_failing_since": None, "lightning_checked_address": ""}
+FIELDS = [
+    "lightning_status",
+    "lightning_since",
+    "lightning_checked",
+    "lightning_worked",
+    "lightning_failures",
+    "lightning_failing_since",
+    "lightning_checked_address",
+]
+BLANK = {
+    "lightning_status": "",
+    "lightning_since": None,
+    "lightning_checked": None,
+    "lightning_worked": None,
+    "lightning_failures": 0,
+    "lightning_failing_since": None,
+    "lightning_checked_address": "",
+}
 # Probes asked from the panel run in the web workers: a few at a time, the others hear "try again in a minute"
 PANEL_PROBES = threading.BoundedSemaphore(2)
 TELEGRAM_LINES = 20
@@ -84,17 +99,24 @@ def due(now):
     """The watched shops to probe now, the ones waiting the longest first: never probed, probed more than CHECK_EVERY
     ago, failing or broken and probed more than FAILURE_GAP ago, or with an address the fields are not about."""
     failing = Q(lightning_failures__gt=0) | Q(lightning_status__in=BROKEN)
-    return (watched().filter(Q(lightning_checked__isnull=True) | Q(lightning_checked__lt=now - CHECK_EVERY)
-                             | (failing & Q(lightning_checked__lt=now - FAILURE_GAP))
-                             | ~Q(lightning_checked_address=F("lightning_address")))
-            .order_by(F("lightning_checked").asc(nulls_first=True), "pk"))
+    return (
+        watched()
+        .filter(
+            Q(lightning_checked__isnull=True)
+            | Q(lightning_checked__lt=now - CHECK_EVERY)
+            | (failing & Q(lightning_checked__lt=now - FAILURE_GAP))
+            | ~Q(lightning_checked_address=F("lightning_address"))
+        )
+        .order_by(F("lightning_checked").asc(nulls_first=True), "pk")
+    )
 
 
 def forget_unwatched():
     """A shop that is no longer watched (suspended, closed, without a Lightning address) keeps no status:
     /admin/ and preflight show only what holds today, and if it comes back it starts from scratch."""
     stale = real(Shop.objects.exclude(pk__in=watched().values("pk"))).exclude(
-        lightning_status="", lightning_failures=0, lightning_checked=None, lightning_checked_address="")
+        lightning_status="", lightning_failures=0, lightning_checked=None, lightning_checked_address=""
+    )
     return stale.update(**BLANK)
 
 
@@ -165,6 +187,7 @@ def probe_within(address, seconds, done=None):
         finally:
             if done:
                 done()
+
     worker = threading.Thread(target=run, daemon=True)
     worker.start()
     worker.join(seconds)
@@ -202,8 +225,11 @@ def record(pk, address, result):
             shop.__dict__.pop(public_cache.SAME_LIST, None)
         if change:
             # The community's code hears every change of the status, also while the shop's people are not told (holidays)
-            events.send(events.lightning_address_broken if change == BROKE else events.lightning_address_working, Shop,
-                        shop=shop)
+            events.send(
+                events.lightning_address_broken if change == BROKE else events.lightning_address_working,
+                Shop,
+                shop=shop,
+            )
     if result is None and not shop.certified_month:
         # An address that works may be the last thing the certificate waited for (shops/certified.py)
         certified.refresh(Shop.objects.filter(pk=shop.pk))
@@ -272,9 +298,14 @@ def panel(shop):
         return None
     if shop.lightning_status in BROKEN:
         # Never seen working: "it stopped" would not be true
-        return {"broken": True, "status": shop.lightning_status, "since": when(shop.lightning_since),
-                "checked": when(shop.lightning_checked), "customer": customer_text(shop),
-                "never": shop.lightning_worked is None}
+        return {
+            "broken": True,
+            "status": shop.lightning_status,
+            "since": when(shop.lightning_since),
+            "checked": when(shop.lightning_checked),
+            "customer": customer_text(shop),
+            "never": shop.lightning_worked is None,
+        }
     if shop.lightning_status == LightningStatus.OK and shop.lightning_worked:
         return {"broken": False, "checked": when(shop.lightning_worked)}
     return None
@@ -290,9 +321,11 @@ def owner_email(shop):
 def customer_text(shop):
     """What a customer at the counter meets, in the merchant's words."""
     if shop.lightning_status == LightningStatus.NO_CONFIRMATION:
-        return _("Customers can pay and the money reaches your wallet, but the register keeps waiting and does not say "
-                 "it is paid. Until this is fixed, check in your wallet that each payment arrived before the customer "
-                 "leaves.")
+        return _(
+            "Customers can pay and the money reaches your wallet, but the register keeps waiting and does not say "
+            "it is paid. Until this is fixed, check in your wallet that each payment arrived before the customer "
+            "leaves."
+        )
     return _("The register cannot take Lightning payments: customers cannot pay you in bitcoin until it works again.")
 
 
@@ -302,37 +335,60 @@ def email_text(shop, change):
     values = {"shop": shop.name, "address": shop.lightning_address, "email": contact}
     if change == FIXED:
         subject = _("{shop}: Lightning payments work again").format(shop=alert_name(shop))
-        body = [_("Good news: the Lightning address of {shop}, {address}, works again. Customers can pay you with "
-                  "Lightning, and the register sees their payments.").format(**values),
-                _("There is nothing to do.")]
+        body = [
+            _(
+                "Good news: the Lightning address of {shop}, {address}, works again. Customers can pay you with "
+                "Lightning, and the register sees their payments."
+            ).format(**values),
+            _("There is nothing to do."),
+        ]
     else:
         values["since"] = when(shop.lightning_since)
         if shop.lightning_status == LightningStatus.NO_CONFIRMATION:
             subject = _("{shop}: the register does not see Lightning payments arrive").format(shop=alert_name(shop))
-            happened = (_("We tried the Lightning address of {shop}, {address}, twice, some time apart: it receives "
-                          "payments, but it does not tell the register when one arrives.")
-                        if shop.lightning_worked is None else
-                        _("The Lightning address of {shop}, {address}, still receives payments, but {since} it stopped "
-                          "telling the register when one arrives."))
-            steps = [_("1. Open your wallet and check that your Lightning address is still exactly {address}."),
-                     _("2. If your wallet changed it, or changed how it works, the register needs a Lightning address "
-                       "that tells it when a payment arrives: change it from your shop's page in your panel, or write to "
-                       "{email} and we help you.")]
+            happened = (
+                _(
+                    "We tried the Lightning address of {shop}, {address}, twice, some time apart: it receives "
+                    "payments, but it does not tell the register when one arrives."
+                )
+                if shop.lightning_worked is None
+                else _(
+                    "The Lightning address of {shop}, {address}, still receives payments, but {since} it stopped "
+                    "telling the register when one arrives."
+                )
+            )
+            steps = [
+                _("1. Open your wallet and check that your Lightning address is still exactly {address}."),
+                _(
+                    "2. If your wallet changed it, or changed how it works, the register needs a Lightning address "
+                    "that tells it when a payment arrives: change it from your shop's page in your panel, or write to "
+                    "{email} and we help you."
+                ),
+            ]
         else:
             subject = _("{shop}: the register cannot take Lightning payments").format(shop=alert_name(shop))
-            happened = (_("We tried the Lightning address of {shop}, {address}, twice, some time apart, and it did "
-                          "not answer.")
-                        if shop.lightning_worked is None else
-                        _("The Lightning address of {shop}, {address}, stopped answering {since}. We tried it twice, "
-                          "some time apart."))
-            steps = [_("1. Open your wallet and find your Lightning address, usually under Receive."),
-                     _("2. Check that it is still exactly {address}."),
-                     _("3. If it is different, or your wallet no longer has one, change it from your shop's page in your "
-                       "panel: the shop and its sign stay the same. If you need help, write to {email}.")]
-        body = [_("What happened") + "\n" + happened.format(**values),
-                _("What your customers see") + "\n" + customer_text(shop),
-                _("What to do now") + "\n" + "\n".join(step.format(**values) for step in steps),
-                _("We keep checking it, and we write to you when it works again.")]
+            happened = (
+                _("We tried the Lightning address of {shop}, {address}, twice, some time apart, and it did not answer.")
+                if shop.lightning_worked is None
+                else _(
+                    "The Lightning address of {shop}, {address}, stopped answering {since}. We tried it twice, "
+                    "some time apart."
+                )
+            )
+            steps = [
+                _("1. Open your wallet and find your Lightning address, usually under Receive."),
+                _("2. Check that it is still exactly {address}."),
+                _(
+                    "3. If it is different, or your wallet no longer has one, change it from your shop's page in your "
+                    "panel: the shop and its sign stay the same. If you need help, write to {email}."
+                ),
+            ]
+        body = [
+            _("What happened") + "\n" + happened.format(**values),
+            _("What your customers see") + "\n" + customer_text(shop),
+            _("What to do now") + "\n" + "\n".join(step.format(**values) for step in steps),
+            _("We keep checking it, and we write to you when it works again."),
+        ]
     body.append(_("Your panel: {link}").format(link=f"{settings.PUBLIC_URL}{reverse('shops')}"))
     return f"{community()['name']}: {subject}", "\n\n".join(body)
 
@@ -355,13 +411,20 @@ def chat_text(shop, change):
         what = _("{shop}: Lightning payments work again")
         then = _("There is nothing to do.")
     else:
-        what = (_("{shop}: the register does not see Lightning payments arrive")
-                if shop.lightning_status == LightningStatus.NO_CONFIRMATION else
-                _("{shop}: the register cannot take Lightning payments"))
+        what = (
+            _("{shop}: the register does not see Lightning payments arrive")
+            if shop.lightning_status == LightningStatus.NO_CONFIRMATION
+            else _("{shop}: the register cannot take Lightning payments")
+        )
         then = _("Your panel says what to do.")
-    return "\n".join([f"{alert_text(community()['name'])}: {what.format(shop=alert_name(shop))}",
-                      f"{_('Lightning address')}: {short_address(shop.lightning_address)}", then,
-                      _("Your panel: {link}").format(link=f"{settings.PUBLIC_URL}{reverse('shops')}")])
+    return "\n".join(
+        [
+            f"{alert_text(community()['name'])}: {what.format(shop=alert_name(shop))}",
+            f"{_('Lightning address')}: {short_address(shop.lightning_address)}",
+            then,
+            _("Your panel: {link}").format(link=f"{settings.PUBLIC_URL}{reverse('shops')}"),
+        ]
+    )
 
 
 def tell_chats(shop, change, found):
@@ -375,9 +438,13 @@ def tell_chats(shop, change, found):
             if telegram(chat, text):
                 told = True
             else:
-                logger.error("Lightning address notice: chat %s of %s of shop %s refused it", place, len(found), shop.pk)
+                logger.error(
+                    "Lightning address notice: chat %s of %s of shop %s refused it", place, len(found), shop.pk
+                )
         except NotificationFailed as error:
-            logger.error("Lightning address notice not delivered to chat %s of %s of shop %s", place, len(found), shop.pk)
+            logger.error(
+                "Lightning address notice not delivered to chat %s of %s of shop %s", place, len(found), shop.pk
+            )
             if isinstance(error, Unreachable):
                 break
     return told
@@ -402,8 +469,11 @@ def tell_owner(shop, change):
             if send_mail(subject, body, merchant_sender(), [email], kind="merchant"):
                 told = True
             else:
-                logger.error("Lightning address email not sent for shop %s (kept back by the email budget, or taken "
-                             "by no backend)", shop.pk)
+                logger.error(
+                    "Lightning address email not sent for shop %s (kept back by the email budget, or taken "
+                    "by no backend)",
+                    shop.pk,
+                )
         except (OSError, SMTPException, ValueError):
             logger.error("Lightning address email not delivered for shop %s", shop.pk)
     if found and tell_chats(shop, change, found):
@@ -422,22 +492,36 @@ def tell_association(changes, mass=None):
     with override(settings.LANGUAGE_CODE):
         lines = [_("Lightning addresses of the shops:")]
         if mass:
-            lines.append(_("{failed} of {probed} addresses failed at the same time: probably the network of this server "
-                           "or a big provider, not the shops. Nothing was counted and no merchant was told; the next "
-                           "run tries again.").format(failed=mass[0], probed=mass[1]))
+            lines.append(
+                _(
+                    "{failed} of {probed} addresses failed at the same time: probably the network of this server "
+                    "or a big provider, not the shops. Nothing was counted and no merchant was told; the next "
+                    "run tries again."
+                ).format(failed=mass[0], probed=mass[1])
+            )
         for shop, change in changes[:TELEGRAM_LINES]:
             if change == FIXED:
                 lines.append(_("{shop}: works again").format(shop=alert_name(shop)))
             elif shop.lightning_worked is None:
-                lines.append((_("{shop}: does not confirm payments")
-                              if shop.lightning_status == LightningStatus.NO_CONFIRMATION
-                              else _("{shop}: does not answer")).format(shop=alert_name(shop)))
+                lines.append(
+                    (
+                        _("{shop}: does not confirm payments")
+                        if shop.lightning_status == LightningStatus.NO_CONFIRMATION
+                        else _("{shop}: does not answer")
+                    ).format(shop=alert_name(shop))
+                )
             elif shop.lightning_status == LightningStatus.NO_CONFIRMATION:
-                lines.append(_("{shop}: stopped confirming payments {since}").format(
-                    shop=alert_name(shop), since=when(shop.lightning_since)))
+                lines.append(
+                    _("{shop}: stopped confirming payments {since}").format(
+                        shop=alert_name(shop), since=when(shop.lightning_since)
+                    )
+                )
             else:
-                lines.append(_("{shop}: stopped answering {since}").format(
-                    shop=alert_name(shop), since=when(shop.lightning_since)))
+                lines.append(
+                    _("{shop}: stopped answering {since}").format(
+                        shop=alert_name(shop), since=when(shop.lightning_since)
+                    )
+                )
         if len(changes) > TELEGRAM_LINES:
             lines.append(_("…and {count} more").format(count=len(changes) - TELEGRAM_LINES))
         link = f"{settings.PUBLIC_URL}{reverse('admin:shops_shop_changelist')}?lightning=broken"

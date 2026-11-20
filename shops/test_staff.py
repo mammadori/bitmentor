@@ -1,5 +1,6 @@
 """Registers for whoever works with the owner (shops/staff.py): each one with its own key and name, put on a phone with
 a one-time code, turned off alone, and never in the way of a payment already on its screen."""
+
 import json
 import re
 from datetime import timedelta
@@ -7,7 +8,6 @@ from unittest.mock import patch
 from urllib.parse import urlsplit
 
 from django.conf import settings
-
 from django.contrib.auth import get_user_model
 from django.templatetags.static import static
 from django.test import TestCase
@@ -79,7 +79,9 @@ class StaffRegisters(TestCase):
         phone = self.client_class()
         # A chat preview or a camera app opening the link does not use the code up
         for _ in range(3):
-            self.assertContains(phone.get(f"/en/shops/register/open/?c={register.code}"), "Open the register on this phone")
+            self.assertContains(
+                phone.get(f"/en/shops/register/open/?c={register.code}"), "Open the register on this phone"
+            )
         code = register.code
         self.put_on_phone(register, phone)
         register.refresh_from_db()
@@ -112,7 +114,9 @@ class StaffRegisters(TestCase):
         register.refresh_from_db()
         self.assertAlmostEqual(register.code_until - timezone.now(), timedelta(hours=1), delta=timedelta(minutes=1))
         with patch("shops.staff.timezone.now", return_value=timezone.now() + timedelta(hours=1, minutes=1)):
-            self.assertEqual(self.client_class().post("/en/shops/register/open/", {"code": register.code}).status_code, 404)
+            self.assertEqual(
+                self.client_class().post("/en/shops/register/open/", {"code": register.code}).status_code, 404
+            )
         self.put_on_phone(register)
         self.assertEqual(self.client_class().post("/en/shops/register/open/", {"code": register.code}).status_code, 404)
 
@@ -186,12 +190,22 @@ class StaffRegisters(TestCase):
     def test_wrong_keys_open_nothing(self):
         register = self.add()
         other = self.add("Bruno")
-        for wrong in ("x" * 32, "short", "", other.key, register.key[:-1] + ("B" if register.key.endswith("A") else "A")):
+        for wrong in (
+            "x" * 32,
+            "short",
+            "",
+            other.key,
+            register.key[:-1] + ("B" if register.key.endswith("A") else "A"),
+        ):
             self.assertEqual(self.client.get(f"/en/shops/register/p/{register.id}/?k={wrong}").status_code, 404, wrong)
-            self.assertEqual(self.client.get(f"/register/p/{register.id}/manifest.webmanifest?k={wrong}").status_code, 404)
+            self.assertEqual(
+                self.client.get(f"/register/p/{register.id}/manifest.webmanifest?k={wrong}").status_code, 404
+            )
             self.assertEqual(self.client.post("/en/shops/register/open/", {"code": wrong}).status_code, 404, wrong)
         # There is no address to send sales to, with or without the key
-        self.assertEqual(self.client.post(f"/register/p/{register.id}/sale/?k={register.key}", {"amount": "5"}).status_code, 404)
+        self.assertEqual(
+            self.client.post(f"/register/p/{register.id}/sale/?k={register.key}", {"amount": "5"}).status_code, 404
+        )
 
     def test_the_key_and_the_code_never_go_in_a_path(self):
         """gunicorn, Caddy and Django's error log write paths down, not queries (config/gunicorn.py, Caddyfile)."""
@@ -224,7 +238,9 @@ class StaffRegisters(TestCase):
         # One expression for the field: all of the query goes but its question mark (and the token in the path of a
         # team invite, team/tests.py)
         pattern, replacement = re.search(r"request>uri regexp (\S+) (\S+)\n", access_log).groups()
-        written = re.sub(pattern, re.sub(r"\$\{(\d)\}", r"\\g<\1>", replacement), "/en/shops/register/p/x/?k=the-key&c=code")
+        written = re.sub(
+            pattern, re.sub(r"\$\{(\d)\}", r"\\g<\1>", replacement), "/en/shops/register/p/x/?k=the-key&c=code"
+        )
         self.assertEqual(written, "/en/shops/register/p/x/?")
         self.assertIn("request>headers delete", access_log)
         self.assertIn("%(U)s", (settings.BASE_DIR / "config" / "gunicorn.py").read_text())
@@ -308,8 +324,12 @@ class StaffRegisters(TestCase):
         self.assertEqual(self.rename(register, "Mallory", other).status_code, 404)
         self.assertEqual(self.rename(register, "Mallory", self.client_class()).status_code, 302)
         # A register of another shop of someone else, through the owner's own shop
-        theirs = StaffRegister.objects.create(shop=Shop.objects.create(
-            owner=get_user_model().objects.get(username="other"), name="Other", lightning_address="o@ln.example.org"), name="Eve")
+        theirs = StaffRegister.objects.create(
+            shop=Shop.objects.create(
+                owner=get_user_model().objects.get(username="other"), name="Other", lightning_address="o@ln.example.org"
+            ),
+            name="Eve",
+        )
         self.assertEqual(self.rename(theirs, "Mallory").status_code, 404)
         self.assertEqual(self.client.get(f"/en/shops/registers/{self.shop.id}/{register.id}/rename/").status_code, 405)
         self.client.post(f"/en/shops/registers/{self.shop.id}/{register.id}/retire/")
@@ -350,8 +370,9 @@ class StaffRegisters(TestCase):
         self.assertLess(page.index("No place chosen</h3>"), page.index("<strong>Bruno</strong>"))
         self.assertNotIn("<b>Market</b>", page)
         # The rename form moves it, and the name stays
-        response = self.client.post(f"/en/shops/registers/{self.shop.id}/{bruno.id}/rename/",
-                                    {"name": "Bruno", "place": market.pk})
+        response = self.client.post(
+            f"/en/shops/registers/{self.shop.id}/{bruno.id}/rename/", {"name": "Bruno", "place": market.pk}
+        )
         self.assertRedirects(response, self.manage, fetch_redirect_response=False)
         bruno.refresh_from_db()
         self.assertEqual((bruno.name, bruno.place), ("Bruno", market))
@@ -365,21 +386,25 @@ class StaffRegisters(TestCase):
         from .models import ShopPlace
 
         ShopPlace.objects.create(shop=self.shop, address="Harbour 1", latitude=1, longitude=2)
-        other = Shop.objects.create(owner=get_user_model().objects.create(username="other"), name="Other",
-                                    lightning_address="o@ln.example.org")
+        other = Shop.objects.create(
+            owner=get_user_model().objects.create(username="other"), name="Other", lightning_address="o@ln.example.org"
+        )
         theirs = ShopPlace.objects.create(shop=other, address="Elsewhere", latitude=5, longitude=6)
         response = self.client.post(self.manage, {"name": "Anna", "place": theirs.pk})
         self.assertEqual(response.status_code, 200)
         self.assertFalse(StaffRegister.objects.filter(name="Anna").exists())
         register = self.add("Bruno")
-        response = self.client.post(f"/en/shops/registers/{self.shop.id}/{register.id}/rename/",
-                                    {"name": "Carla", "place": theirs.pk})
+        response = self.client.post(
+            f"/en/shops/registers/{self.shop.id}/{register.id}/rename/", {"name": "Carla", "place": theirs.pk}
+        )
         self.assertEqual(response.status_code, 200)
         register.refresh_from_db()
         self.assertEqual((register.name, register.place), ("Bruno", None))
         # A shop without other places takes no place, whatever is sent
         ShopPlace.objects.filter(shop=self.shop).delete()
-        self.client.post(f"/en/shops/registers/{self.shop.id}/{register.id}/rename/", {"name": "Bruno", "place": theirs.pk})
+        self.client.post(
+            f"/en/shops/registers/{self.shop.id}/{register.id}/rename/", {"name": "Bruno", "place": theirs.pk}
+        )
         register.refresh_from_db()
         self.assertIsNone(register.place)
 
@@ -408,7 +433,9 @@ class StaffRegisters(TestCase):
         from .views import STAFF_NAMES_SHOWN
 
         names = [f"P{n}" for n in range(STAFF_NAMES_SHOWN + 2)] + ["<i>Zed</i>"]
-        StaffRegister.objects.bulk_create(StaffRegister(shop=self.shop, name=name, created=timezone.now()) for name in names)
+        StaffRegister.objects.bulk_create(
+            StaffRegister(shop=self.shop, name=name, created=timezone.now()) for name in names
+        )
         StaffRegister.objects.create(shop=self.shop, name="Gone", retired=timezone.now())
         other = Shop.objects.create(owner=self.owner, name="Café", lightning_address="cafe@ln.example.org")
         StaffRegister.objects.create(shop=other, name="Bruno")
@@ -452,7 +479,9 @@ class StaffRegisterPage(TestCase):
         self.assertNotContains(page, "Paid into")
 
     def retire(self, minutes_ago):
-        StaffRegister.objects.filter(pk=self.register.pk).update(retired=timezone.now() - timedelta(minutes=minutes_ago))
+        StaffRegister.objects.filter(pk=self.register.pk).update(
+            retired=timezone.now() - timedelta(minutes=minutes_ago)
+        )
         self.register.refresh_from_db()
 
     def test_the_owner_s_register_knows_the_registers_turned_off_for_good(self):
@@ -476,14 +505,18 @@ class StaffRegisterPage(TestCase):
         now = timezone.now()
         StaffRegister.objects.bulk_create(
             StaffRegister(shop=self.shop, name=f"Old {n}", retired=now - timedelta(days=400 - n % 300, minutes=n))
-            for n in range(GONE_TILLS + 20))
+            for n in range(GONE_TILLS + 20)
+        )
         newest = StaffRegister.objects.create(shop=self.shop, name="Last", retired=now - timedelta(days=2))
         self.client.force_login(self.owner)
         gone = self.client.get(f"/en/shops/register/{self.shop.id}/").context["register"]["gone_tills"]
         self.assertEqual(len(gone), GONE_TILLS)
         self.assertEqual(gone[0], str(newest.id))
-        expected = list(StaffRegister.objects.filter(shop=self.shop, retired__isnull=False).order_by("-retired")
-                        .values_list("id", flat=True)[:GONE_TILLS])
+        expected = list(
+            StaffRegister.objects.filter(shop=self.shop, retired__isnull=False)
+            .order_by("-retired")
+            .values_list("id", flat=True)[:GONE_TILLS]
+        )
         self.assertEqual(gone, [str(pk) for pk in expected])
 
     def test_turned_off_the_register_takes_no_new_sale(self):
@@ -523,8 +556,9 @@ class Pairing(OnChain, TestCase):
     def setUp(self):
         reset_limits()
         self.owner = get_user_model().objects.create(username="owner")
-        self.shop = Shop.objects.create(owner=self.owner, name="Bar", city="Example", discount=10,
-                                        lightning_address="Till@LN.example.org")
+        self.shop = Shop.objects.create(
+            owner=self.owner, name="Bar", city="Example", discount=10, lightning_address="Till@LN.example.org"
+        )
         self.client.force_login(self.owner)
 
     def add(self, name):
@@ -545,8 +579,9 @@ class Pairing(OnChain, TestCase):
         page = self.code_page(register)
         data = page.context["pairing"]
         self.assertEqual(data["url"], f"{settings.PUBLIC_URL}/en/shops/register/open/?c={register.code}")
-        self.assertEqual((data["register"], data["lightning"], data["network"]),
-                         (str(register.id), "till@ln.example.org", "signet"))
+        self.assertEqual(
+            (data["register"], data["lightning"], data["network"]), (str(register.id), "till@ln.example.org", "signet")
+        )
         self.assertEqual((data["discount"], data["shop"]["name"], data["shop"]["town"]), (10, "Bar", "Example"))
         self.assertGreaterEqual(len(data["sources"]), 2)
         self.assertFalse({"key", "onchain", "xpub", "address"} & set(data))
@@ -556,8 +591,13 @@ class Pairing(OnChain, TestCase):
         # The QR is drawn by the owner's phone, with the pairing in the fragment: the page has no picture of the link
         self.assertNotContains(page, "data:image/svg")
         self.assertNotContains(page, "#pair=")
-        for script in ("vendor/qrcode/qrcode.js", "register-derive.js", "register-nostr.js", "register-pairing.js",
-                       "staff-pair.js"):
+        for script in (
+            "vendor/qrcode/qrcode.js",
+            "register-derive.js",
+            "register-nostr.js",
+            "register-pairing.js",
+            "staff-pair.js",
+        ):
             # static(): the name with the fingerprint in an image with collected files, the plain one without
             self.assertContains(page, f'<script src="{static(script)}"></script>')
         self.assertContains(page, '<script id="pairing-data" type="application/json">')
@@ -642,9 +682,12 @@ class PairingDrawn(OnChain, TestCase):
         if not self.node:
             self.skipTest("node is missing: NODE=/path/to/node to draw the pairing code")
         owner = get_user_model().objects.create(username="owner")
-        self.shop = Shop.objects.create(owner=owner, name="Bar", city="Example", lightning_address="till@ln.example.org")
-        self.register = StaffRegister.objects.create(shop=self.shop, name="Anna", code="c" * 32,
-                                                     code_until=timezone.now() + timedelta(hours=1))
+        self.shop = Shop.objects.create(
+            owner=owner, name="Bar", city="Example", lightning_address="till@ln.example.org"
+        )
+        self.register = StaffRegister.objects.create(
+            shop=self.shop, name="Anna", code="c" * 32, code_until=timezone.now() + timedelta(hours=1)
+        )
 
     def draw(self, settings_on_phone, register=None):
         import json
@@ -653,39 +696,72 @@ class PairingDrawn(OnChain, TestCase):
         from pathlib import Path
 
         from .staff import pairing_data
+        from .test_explorer import with_register
         from .test_register_chain import BIP84_ACCOUNT
 
-        from .test_explorer import with_register
-
         with self.settings(NETWORK="mainnet"), with_register(**(register or {})):
-            pairing = pairing_data(self.shop, self.register, "https://example.org/en/shops/register/open/?c=" + "c" * 32)
+            pairing = pairing_data(
+                self.shop, self.register, "https://example.org/en/shops/register/open/?c=" + "c" * 32
+            )
         static = settings.BASE_DIR / "static"
         with tempfile.TemporaryDirectory() as folder:
             harness, given = Path(folder) / "draw.js", Path(folder) / "given.json"
             harness.write_text(DRAW)
             given.write_text(json.dumps({"pairing": pairing, "settings": settings_on_phone, "account": BIP84_ACCOUNT}))
-            result = subprocess.run([self.node, str(harness), str(given), *(str(static / name) for name in (
-                "vendor/qrcode/qrcode.js", "register-derive.js", "register-nostr.js", "register-pairing.js", "staff-pair.js"))],
-                capture_output=True, text=True, timeout=60)
+            result = subprocess.run(
+                [
+                    self.node,
+                    str(harness),
+                    str(given),
+                    *(
+                        str(static / name)
+                        for name in (
+                            "vendor/qrcode/qrcode.js",
+                            "register-derive.js",
+                            "register-nostr.js",
+                            "register-pairing.js",
+                            "staff-pair.js",
+                        )
+                    ),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
 
     def test_the_code_carries_the_child_key_and_the_preferences(self):
         from .test_register_chain import BIP84_ACCOUNT
 
-        out = self.draw({"lightning": "till@ln.example.org", "onchain": {"key": BIP84_ACCOUNT}, "discount": 7,
-                         "currency": "CHF", "confirmAbove": 2500, "sources": ["kraken", "bitstamp"], "note": "Thanks"})
+        out = self.draw(
+            {
+                "lightning": "till@ln.example.org",
+                "onchain": {"key": BIP84_ACCOUNT},
+                "discount": 7,
+                "currency": "CHF",
+                "confirmAbove": 2500,
+                "sources": ["kraken", "bitstamp"],
+                "note": "Thanks",
+            }
+        )
         self.assertTrue(out["qr"])
-        self.assertTrue(out["link"].startswith("https://example.org/en/shops/register/open/?c=" + "c" * 32 + "#pair=1."))
+        self.assertTrue(
+            out["link"].startswith("https://example.org/en/shops/register/open/?c=" + "c" * 32 + "#pair=1.")
+        )
         pairing = out["pairing"]
         # The owner's receive chain …/0: the key of the chain, counted with the other registers through the site
         self.assertEqual(pairing["onchain"], {"key": out["expected"], "path": "0"})
         self.assertTrue(any("…/0/n" in line for line in out["summary"]))
         self.assertNotIn(BIP84_ACCOUNT, out["link"])
-        self.assertEqual((pairing["discount"], pairing["currency"], pairing["confirmAbove"], pairing["sources"], pairing["note"]),
-                         (7, "CHF", 2500, ["kraken", "bitstamp"], "Thanks"))
-        self.assertEqual((pairing["lightning"], pairing["register"], pairing["shop"]["town"]),
-                         ("till@ln.example.org", str(self.register.id), "Example"))
+        self.assertEqual(
+            (pairing["discount"], pairing["currency"], pairing["confirmAbove"], pairing["sources"], pairing["note"]),
+            (7, "CHF", 2500, ["kraken", "bitstamp"], "Thanks"),
+        )
+        self.assertEqual(
+            (pairing["lightning"], pairing["register"], pairing["shop"]["town"]),
+            ("till@ln.example.org", str(self.register.id), "Example"),
+        )
 
     def test_the_owners_path_goes_with_the_code(self):
         from .test_register_chain import BIP84_ACCOUNT

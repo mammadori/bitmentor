@@ -17,6 +17,7 @@ browser with a pass reaches the admin's sign-in page, as an allowed address does
 `TEAM_AREA=on` adds the volunteers' area (team/area.py): wallets can also sign in while the site is in production, and a
 pass of a key with the role `moderator` opens the area, in development and in production. The same pass, read by the
 same code (`valid_pass`); `holder` keeps its meaning, a site under construction only."""
+
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
@@ -132,4 +133,6 @@ def volunteer(request):
 def give(response, key):
     """Hands the browser a pass of this key. For the whole site, because Caddy must see it on every path; only over
     HTTPS, and never to a script."""
-    response.set_cookie(PASS_COOKIE, pass_for(key), max_age=PASS_AGE, path="/", secure=True, httponly=True, samesite="Lax")
+    response.set_cookie(
+        PASS_COOKIE, pass_for(key), max_age=PASS_AGE, path="/", secure=True, httponly=True, samesite="Lax"
+    )

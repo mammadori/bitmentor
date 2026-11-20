@@ -1,5 +1,6 @@
 """New shops wait for an approval (shops/approval.py): off the map, the lists and the counts, with the register working,
 until someone of the community approves them on /admin/today/ or in /admin/."""
+
 from unittest.mock import patch
 
 from django.contrib.admin.models import LogEntry
@@ -33,8 +34,10 @@ class NewShopWaits(TestCase):
         self.addCleanup(told.stop)
 
     def new(self):
-        self.client.post("/en/shops/new/", {"name": "Bar", "latitude": "41.9", "longitude": "12.5",
-                                            "lightning_address": "mario@example.org"})
+        self.client.post(
+            "/en/shops/new/",
+            {"name": "Bar", "latitude": "41.9", "longitude": "12.5", "lightning_address": "mario@example.org"},
+        )
         return Shop.objects.get()
 
     def test_a_new_shop_waits_off_the_map_with_its_register(self):
@@ -117,9 +120,13 @@ class Approve(TestCase):
 class Tell(TestCase):
     def test_the_moderators_hear_of_it_after_the_save(self):
         shop = Shop.objects.create(name="Bar", approved_on=None)
-        with patch("shops.notifications.deliver_to_moderators", return_value=("x", [])) as deliver, \
-                patch("shops.approval.threading.Thread") as thread, self.captureOnCommitCallbacks(execute=True):
+        with (
+            patch("shops.notifications.deliver_to_moderators", return_value=("x", [])) as deliver,
+            patch("shops.approval.threading.Thread") as thread,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             from .approval import tell_moderators
+
             tell_moderators(shop)
         with patch("shops.notifications.deliver_to_moderators", return_value=("x", [])) as deliver:
             thread.call_args.kwargs["target"]()
@@ -162,7 +169,16 @@ class ApprovedByWhoeverBringsThem(TestCase):
             response = self.client.get("/admin/shops/shop/add/")
             form = response.context["adminform"].form
             data = {name: value for name, value in form.initial.items() if value is not None and not callable(value)}
-            data.update({"name": "Written", "discount": 0, "closures-TOTAL_FORMS": 0, "closures-INITIAL_FORMS": 0, "places-TOTAL_FORMS": 0, "places-INITIAL_FORMS": 0})
+            data.update(
+                {
+                    "name": "Written",
+                    "discount": 0,
+                    "closures-TOTAL_FORMS": 0,
+                    "closures-INITIAL_FORMS": 0,
+                    "places-TOTAL_FORMS": 0,
+                    "places-INITIAL_FORMS": 0,
+                }
+            )
             self.client.post("/admin/shops/shop/add/", data)
         shop = Shop.objects.get(name="Written")
         self.assertEqual(shop.approved_by, "boss")

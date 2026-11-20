@@ -1,5 +1,6 @@
 """The events the community's own code can listen to (shops/events.py): each sent once per fact, with its arguments,
 after the commit and never after a rollback; a receiver that raises breaks nothing and is written in the log."""
+
 import json
 import tempfile
 from datetime import timedelta
@@ -66,8 +67,12 @@ class Helper(TestCase):
         self.assertEqual(len(heard), 1)
 
     def test_a_receiver_that_raises_is_logged_and_the_others_still_hear(self):
-        with Heard(events.shop_created, raising=True) as first, Heard(events.shop_created) as second, \
-                self.assertLogs("shops.events", "ERROR") as logs, self.captureOnCommitCallbacks(execute=True):
+        with (
+            Heard(events.shop_created, raising=True) as first,
+            Heard(events.shop_created) as second,
+            self.assertLogs("shops.events", "ERROR") as logs,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             events.send(events.shop_created, Shop, shop="x", user=None, source="site")
         self.assertEqual((len(first), len(second)), (1, 1))
         line = logs.output[0]
@@ -85,8 +90,11 @@ class Created(Files, TestCase):
     def test_from_the_sites_form(self):
         user = User.objects.create(username="k")
         self.client.force_login(user)
-        with Heard(events.shop_created) as heard, patch("shops.views.refusal", return_value=None), \
-                self.captureOnCommitCallbacks(execute=True):
+        with (
+            Heard(events.shop_created) as heard,
+            patch("shops.views.refusal", return_value=None),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             self.client.post("/en/shops/new/", {"name": "Bar", "lightning_address": "mario@example.org"})
             # The same form sent twice finds the first shop: no second event
             self.client.post("/en/shops/new/", {"name": "Bar", "lightning_address": "mario@example.org"})
@@ -102,8 +110,11 @@ class Created(Files, TestCase):
 
     def test_a_refused_address_creates_nothing_and_says_nothing(self):
         self.client.force_login(User.objects.create(username="k"))
-        with Heard(events.shop_created) as heard, patch("shops.views.refusal", return_value="no"), \
-                self.captureOnCommitCallbacks(execute=True):
+        with (
+            Heard(events.shop_created) as heard,
+            patch("shops.views.refusal", return_value="no"),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             self.client.post("/en/shops/new/", {"name": "Bar", "lightning_address": "mario@example.org"})
         self.assertEqual(heard, [])
 
@@ -119,8 +130,16 @@ class Created(Files, TestCase):
         with patch.object(field, "get_default", lambda: None):
             form = self.client.get("/admin/shops/shop/add/").context["adminform"].form
             data = {name: value for name, value in form.initial.items() if value is not None and not callable(value)}
-            data.update({"name": "Written", "discount": 0, "closures-TOTAL_FORMS": 0, "closures-INITIAL_FORMS": 0,
-                         "places-TOTAL_FORMS": 0, "places-INITIAL_FORMS": 0})
+            data.update(
+                {
+                    "name": "Written",
+                    "discount": 0,
+                    "closures-TOTAL_FORMS": 0,
+                    "closures-INITIAL_FORMS": 0,
+                    "places-TOTAL_FORMS": 0,
+                    "places-INITIAL_FORMS": 0,
+                }
+            )
             with Heard(events.shop_created) as heard, self.captureOnCommitCallbacks(execute=True):
                 self.client.post("/admin/shops/shop/add/", data)
                 shop = Shop.objects.get(name="Written")
@@ -135,14 +154,19 @@ class Created(Files, TestCase):
             call_command("import_shops", self.path("list.json"), stdout=StringIO())
             # Again: the shops are updated, none is new
             call_command("import_shops", self.path("list.json"), stdout=StringIO())
-        self.assertEqual(sorted((call["shop"].name, call["source"], call["user"]) for call in heard),
-                         [("One", "import", None), ("Two", "import", None)])
+        self.assertEqual(
+            sorted((call["shop"].name, call["source"], call["user"]) for call in heard),
+            [("One", "import", None), ("Two", "import", None)],
+        )
 
     def test_an_import_that_fails_halfway_says_nothing(self):
         rows = [{"external_id": "1", "name": "One"}, {"external_id": "2", "name": "Two", "discount": 500}]
         Path(self.path("list.json")).write_text(json.dumps(rows))
-        with Heard(events.shop_created) as heard, self.captureOnCommitCallbacks(execute=True), \
-                self.assertRaises(CommandError):
+        with (
+            Heard(events.shop_created) as heard,
+            self.captureOnCommitCallbacks(execute=True),
+            self.assertRaises(CommandError),
+        ):
             call_command("import_shops", self.path("list.json"), stdout=StringIO())
         self.assertEqual(heard, [])
         self.assertFalse(Shop.objects.exists())
@@ -166,7 +190,9 @@ class Created(Files, TestCase):
         self.assertEqual(len(heard), len(document["shops"]))
         self.assertEqual({call["source"] for call in heard}, {"move"})
         self.assertEqual({call["user"] for call in heard}, {None})
-        self.assertEqual(sorted(call["shop"].name for call in heard), sorted(Shop.objects.values_list("name", flat=True)))
+        self.assertEqual(
+            sorted(call["shop"].name for call in heard), sorted(Shop.objects.values_list("name", flat=True))
+        )
 
     def test_a_moved_shop_taking_the_place_of_one_of_the_list_is_not_new(self):
         document = self.moved_document()
@@ -222,8 +248,13 @@ class Claimed(TestCase):
     CODE = "A" * 31 + "b"
 
     def setUp(self):
-        self.shop = Shop.objects.create(name="Cyclist", moved_register=True, moved_in="2026-11-04T10:00Z", moved_from="x",
-                                        claim_hash=claim_digest(self.CODE))
+        self.shop = Shop.objects.create(
+            name="Cyclist",
+            moved_register=True,
+            moved_in="2026-11-04T10:00Z",
+            moved_from="x",
+            claim_hash=claim_digest(self.CODE),
+        )
         self.user = User.objects.create(username="k")
         self.client.force_login(self.user)
 
@@ -237,8 +268,11 @@ class Claimed(TestCase):
         self.assertEqual((heard[0]["shop"].owner, heard[0]["shop"].claim_hash), (self.user, ""))
 
     def test_a_receiver_that_raises_does_not_stop_the_claim(self):
-        with Heard(events.shop_claimed, raising=True), self.assertLogs("shops.events", "ERROR"), \
-                self.captureOnCommitCallbacks(execute=True):
+        with (
+            Heard(events.shop_claimed, raising=True),
+            self.assertLogs("shops.events", "ERROR"),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             response = self.client.post("/en/shops/claim/", {"code": self.CODE})
         self.assertRedirects(response, "/en/shops/", fetch_redirect_response=False)
         self.assertEqual(Shop.objects.get(pk=self.shop.pk).owner, self.user)
@@ -284,8 +318,11 @@ class Approved(TestCase):
         self.assertEqual(Shop.objects.get(pk=self.shop.pk).approved_by, "[team key 3] Anna")
 
     def test_none_for_a_held_shop(self):
-        with Heard(events.shop_approved) as heard, patch("shops.approval.approval_signals.asks", return_value=True), \
-                self.captureOnCommitCallbacks(execute=True):
+        with (
+            Heard(events.shop_approved) as heard,
+            patch("shops.approval.approval_signals.asks", return_value=True),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             outcome = approval.approve_or_hold(Shop.objects.all(), self.staff)
         self.assertEqual((outcome.approved, heard), (0, []))
 
@@ -295,9 +332,11 @@ class Approved(TestCase):
             Shop.objects.filter(pk=self.shop.pk).update(approved_on=timezone.now(), approved_by="other")
             return {shop.pk: [] for shop in shops}
 
-        with Heard(events.shop_approved) as heard, \
-                patch("shops.approval.approval_signals.signals_of", side_effect=somebody_else_first), \
-                self.captureOnCommitCallbacks(execute=True):
+        with (
+            Heard(events.shop_approved) as heard,
+            patch("shops.approval.approval_signals.signals_of", side_effect=somebody_else_first),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             outcome = approval.approve_or_hold(Shop.objects.all(), self.staff)
         self.assertEqual((outcome.approved, heard), (0, []))
 
@@ -322,8 +361,9 @@ class Approved(TestCase):
 @override_settings(TELEGRAM_BOT_TOKEN="", TELEGRAM_MODERATION_CHAT="")
 class Guardian(TestCase):
     def setUp(self):
-        self.shop = Shop.objects.create(owner=User.objects.create(username="k"), name="Bar",
-                                        lightning_address="bar@example.org")
+        self.shop = Shop.objects.create(
+            owner=User.objects.create(username="k"), name="Bar", lightning_address="bar@example.org"
+        )
         self.now = timezone.now()
 
     def probe(self, result, after):
@@ -332,8 +372,11 @@ class Guardian(TestCase):
             return lightning_watch.record(self.shop.pk, "bar@example.org", result)[1]
 
     def test_broken_and_working_once_each_at_the_change_of_status(self):
-        with Heard(events.lightning_address_broken) as broken, Heard(events.lightning_address_working) as working, \
-                self.captureOnCommitCallbacks(execute=True):
+        with (
+            Heard(events.lightning_address_broken) as broken,
+            Heard(events.lightning_address_working) as working,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             self.probe(None, timedelta(0))
             self.probe(LightningStatus.NO_ANSWER, timedelta(hours=6))
             self.assertEqual(broken, [])
@@ -347,8 +390,11 @@ class Guardian(TestCase):
         self.assertEqual(broken[0]["shop"].lightning_status, LightningStatus.NO_ANSWER)
 
     def test_an_unsure_probe_says_nothing(self):
-        with Heard(events.lightning_address_broken) as broken, Heard(events.lightning_address_working) as working, \
-                self.captureOnCommitCallbacks(execute=True):
+        with (
+            Heard(events.lightning_address_broken) as broken,
+            Heard(events.lightning_address_working) as working,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             for _ in range(3):
                 self.probe(lightning_watch.UNSURE, timedelta(hours=1))
         self.assertEqual((broken, working), ([], []))
@@ -356,8 +402,9 @@ class Guardian(TestCase):
 
 class AddressChanged(TestCase):
     def setUp(self):
-        self.shop = Shop.objects.create(owner=User.objects.create(username="k"), name="Bar",
-                                        lightning_address="bar@example.org")
+        self.shop = Shop.objects.create(
+            owner=User.objects.create(username="k"), name="Bar", lightning_address="bar@example.org"
+        )
 
     def test_save_update_and_bulk_update_each_once(self):
         with Heard(events.lightning_address_changed) as heard, self.captureOnCommitCallbacks(execute=True):
@@ -370,9 +417,14 @@ class AddressChanged(TestCase):
             self.shop.name = "Renamed"
             self.shop.save()
             Shop.objects.filter(pk=self.shop.pk).update(lightning_address="")
-        self.assertEqual([(call["before"], call["after"]) for call in heard],
-                         [("bar@example.org", "new@example.org"), ("new@example.org", "other@example.org"),
-                          ("other@example.org", "")])
+        self.assertEqual(
+            [(call["before"], call["after"]) for call in heard],
+            [
+                ("bar@example.org", "new@example.org"),
+                ("new@example.org", "other@example.org"),
+                ("other@example.org", ""),
+            ],
+        )
         self.assertEqual({call["shop"].pk for call in heard}, {self.shop.pk})
 
     def test_a_new_shop_is_no_change_and_a_rollback_says_nothing(self):
@@ -387,8 +439,11 @@ class AddressChanged(TestCase):
         self.assertEqual(heard, [])
 
     def test_a_receiver_that_raises_does_not_stop_the_change(self):
-        with Heard(events.lightning_address_changed, raising=True), self.assertLogs("shops.events", "ERROR"), \
-                self.captureOnCommitCallbacks(execute=True):
+        with (
+            Heard(events.lightning_address_changed, raising=True),
+            self.assertLogs("shops.events", "ERROR"),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             Shop.objects.filter(pk=self.shop.pk).update(lightning_address="new@example.org")
         self.assertEqual(Shop.objects.get(pk=self.shop.pk).lightning_address, "new@example.org")
 
@@ -411,13 +466,14 @@ class ThemeFileServed(TestCase):
     def listed(self, patterns=("media/*.zip",)):
         return patch.dict(community(), {"announced_files": list(patterns)})
 
-
     def test_only_for_the_listed_files(self):
         with self.listed(), Heard(events.theme_file_served) as heard:
             self.assertEqual(self.client.get("/theme/media/book.zip", headers=BROWSER).status_code, 200)
             self.assertEqual(self.client.get("/theme/style.css", headers=BROWSER).status_code, 200)
             self.assertEqual(self.client.get("/theme/media/none.zip").status_code, 404)
-        self.assertEqual(heard, [{"sender": None, "path": "media/book.zip", "first_byte": True, "client_kind": "browser"}])
+        self.assertEqual(
+            heard, [{"sender": None, "path": "media/book.zip", "first_byte": True, "client_kind": "browser"}]
+        )
 
     def test_never_without_the_key(self):
         self.assertNotIn("announced_files", community())
@@ -429,7 +485,9 @@ class ThemeFileServed(TestCase):
     def test_first_byte_with_and_without_range(self):
         with self.listed(), Heard(events.theme_file_served) as heard:
             self.assertEqual(self.client.get("/theme/media/book.zip", headers={"Range": "bytes=0-9"}).status_code, 206)
-            self.assertEqual(self.client.get("/theme/media/book.zip", headers={"Range": "bytes=10-19"}).status_code, 206)
+            self.assertEqual(
+                self.client.get("/theme/media/book.zip", headers={"Range": "bytes=10-19"}).status_code, 206
+            )
             self.assertEqual(self.client.get("/theme/media/book.zip", headers={"Range": "bytes=500-"}).status_code, 416)
         self.assertEqual([call["first_byte"] for call in heard], [True, False])
 
@@ -442,7 +500,9 @@ class ThemeFileServed(TestCase):
         with self.listed(), Heard(events.theme_file_served) as heard:
             self.client.get("/theme/media/book.zip", headers=BROWSER)
             self.client.get("/theme/media/book.zip", headers={"User-Agent": "curl/8.5.0"})
-            self.client.get("/theme/media/book.zip", headers={"Sec-Fetch-Mode": "navigate", "User-Agent": "Googlebot/2.1"})
+            self.client.get(
+                "/theme/media/book.zip", headers={"Sec-Fetch-Mode": "navigate", "User-Agent": "Googlebot/2.1"}
+            )
         self.assertEqual([call["client_kind"] for call in heard], ["browser", "program", "program"])
         # Nothing of the request goes to the receivers
         self.assertEqual({tuple(sorted(call)) for call in heard}, {("client_kind", "first_byte", "path", "sender")})
@@ -450,8 +510,9 @@ class ThemeFileServed(TestCase):
     def test_a_head_or_an_unchanged_file_sends_no_file_and_says_nothing(self):
         with self.listed(), Heard(events.theme_file_served) as heard:
             modified = self.client.get("/theme/media/book.zip")["Last-Modified"]
-            self.assertEqual(self.client.get("/theme/media/book.zip", headers={"If-Modified-Since": modified}).status_code,
-                             304)
+            self.assertEqual(
+                self.client.get("/theme/media/book.zip", headers={"If-Modified-Since": modified}).status_code, 304
+            )
             self.client.head("/theme/media/book.zip")
         self.assertEqual(len(heard), 1)
 

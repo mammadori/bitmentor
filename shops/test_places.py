@@ -1,4 +1,5 @@
 """A shop with several branches: one shop, one register, a point on the map for each place (ShopPlace)."""
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
@@ -11,14 +12,30 @@ class Places(TestCase):
     def setUp(self):
         reset_limits()
         self.owner = get_user_model().objects.create(username="email:" + "a" * 32)
-        self.shop = Shop.objects.create(name="Driving school", owner=self.owner, address="Main street 3", city="Northtown",
-                                        latitude=45.9, longitude=11.0, approved_on=timezone.now(), lightning=True)
+        self.shop = Shop.objects.create(
+            name="Driving school",
+            owner=self.owner,
+            address="Main street 3",
+            city="Northtown",
+            latitude=45.9,
+            longitude=11.0,
+            approved_on=timezone.now(),
+            lightning=True,
+        )
         self.client.force_login(self.owner)
         self.page = f"/en/shops/places/{self.shop.id}/"
 
     def add(self, **fields):
-        return self.client.post(self.page, {"address": "Side road 90", "city": "Southvillage", "latitude": "45,913861",
-                                            "longitude": "11.032598", **fields})
+        return self.client.post(
+            self.page,
+            {
+                "address": "Side road 90",
+                "city": "Southvillage",
+                "latitude": "45,913861",
+                "longitude": "11.032598",
+                **fields,
+            },
+        )
 
     def listed(self):
         return {shop["name"]: shop for shop in self.client.get("/shops.json").json()["shops"]}
@@ -28,16 +45,22 @@ class Places(TestCase):
         self.assertContains(self.client.get(self.page), "No other place yet.")
         self.assertRedirects(self.add(), self.page)
         place = ShopPlace.objects.get()
-        self.assertEqual((place.shop, place.address, place.city, place.latitude, place.longitude),
-                         (self.shop, "Side road 90", "Southvillage", 45.913861, 11.032598))
+        self.assertEqual(
+            (place.shop, place.address, place.city, place.latitude, place.longitude),
+            (self.shop, "Side road 90", "Southvillage", 45.913861, 11.032598),
+        )
         self.assertContains(self.client.get(self.page), "Side road 90, Southvillage")
         self.client.post(self.page, {"remove": "²"})
         self.client.post(self.page, {"remove": place.pk})
         self.assertFalse(ShopPlace.objects.exists())
 
     def test_a_place_needs_its_point_and_a_name_and_takes_no_secret(self):
-        for fields in ({"latitude": ""}, {"latitude": "200"}, {"address": "", "city": ""},
-                       {"address": " ".join(["abandon"] * 11 + ["about"])}):
+        for fields in (
+            {"latitude": ""},
+            {"latitude": "200"},
+            {"address": "", "city": ""},
+            {"address": " ".join(["abandon"] * 11 + ["about"])},
+        ):
             self.assertEqual(self.add(**fields).status_code, 400, fields)
         self.assertFalse(ShopPlace.objects.exists())
         self.add(address="Side‮ road", city="")
@@ -65,16 +88,20 @@ class Places(TestCase):
         self.assertNotIn("places", before)
         self.add()
         after = self.listed()["Driving school"]  # the list is built again when a place is saved
-        self.assertEqual(after.pop("places"), [{"address": "Side road 90", "city": "Southvillage",
-                                               "latitude": 45.913861, "longitude": 11.032598}])
+        self.assertEqual(
+            after.pop("places"),
+            [{"address": "Side road 90", "city": "Southvillage", "latitude": 45.913861, "longitude": 11.032598}],
+        )
         self.assertEqual(after, before)
         self.assertEqual(len(self.listed()), 1)  # one shop, however many places
         # An owner who hides the address hides the places' too
         Shop.objects.filter(pk=self.shop.pk).update(show_address=False)
         self.shop.refresh_from_db()
         self.shop.save()
-        self.assertEqual(self.listed()["Driving school"]["places"],
-                         [{"city": "Southvillage", "latitude": 45.913861, "longitude": 11.032598}])
+        self.assertEqual(
+            self.listed()["Driving school"]["places"],
+            [{"city": "Southvillage", "latitude": 45.913861, "longitude": 11.032598}],
+        )
         ShopPlace.objects.all().delete()
         self.assertNotIn("places", self.listed()["Driving school"])
 
@@ -107,13 +134,23 @@ class Places(TestCase):
 
 class EditPlaces(TestCase):
     """The owner changes a place in the same form, instead of removing it and adding it again."""
+
     setUp = Places.setUp
     add = Places.add
     listed = Places.listed
 
     def change(self, place=None, **fields):
-        return self.client.post(self.page, {"place": self.place.pk if place is None else place, "address": "New road 1",
-                                            "city": "Southvillage", "latitude": "45.95", "longitude": "11.05", **fields})
+        return self.client.post(
+            self.page,
+            {
+                "place": self.place.pk if place is None else place,
+                "address": "New road 1",
+                "city": "Southvillage",
+                "latitude": "45.95",
+                "longitude": "11.05",
+                **fields,
+            },
+        )
 
     def mine(self):
         self.add()
@@ -131,16 +168,21 @@ class EditPlaces(TestCase):
         self.assertEqual(self.listed()["Driving school"]["places"][0]["address"], "Side road 90")
         self.assertRedirects(self.change(), self.page)
         place.refresh_from_db()
-        self.assertEqual((place.address, place.latitude, place.longitude, place.osm_ref),
-                         ("New road 1", 45.95, 11.05, "node/42"))
+        self.assertEqual(
+            (place.address, place.latitude, place.longitude, place.osm_ref), ("New road 1", 45.95, 11.05, "node/42")
+        )
         self.assertEqual(ShopPlace.objects.count(), 1)
         # The public list is built again, as when a place is added
         self.assertEqual(self.listed()["Driving school"]["places"][0]["address"], "New road 1")
 
     def test_a_change_is_checked_like_a_new_place(self):
         place = self.mine()
-        for fields in ({"latitude": ""}, {"latitude": "200"}, {"address": "", "city": ""},
-                       {"address": " ".join(["abandon"] * 11 + ["about"])}):
+        for fields in (
+            {"latitude": ""},
+            {"latitude": "200"},
+            {"address": "", "city": ""},
+            {"address": " ".join(["abandon"] * 11 + ["about"])},
+        ):
             self.assertEqual(self.change(**fields).status_code, 400, fields)
         place.refresh_from_db()
         self.assertEqual(place.address, "Side road 90")
@@ -150,7 +192,9 @@ class EditPlaces(TestCase):
 
     def test_a_full_shop_still_changes_its_places(self):
         place = self.mine()
-        ShopPlace.objects.bulk_create([ShopPlace(shop=self.shop, city="X", latitude=1, longitude=1)] * (ShopPlace.MAX - 1))
+        ShopPlace.objects.bulk_create(
+            [ShopPlace(shop=self.shop, city="X", latitude=1, longitude=1)] * (ShopPlace.MAX - 1)
+        )
         self.assertContains(self.client.get(f"{self.page}?edit={place.pk}"), 'id="pick-map"')
         self.assertRedirects(self.change(), self.page)
         self.assertEqual(self.shop.places.count(), ShopPlace.MAX)
@@ -158,8 +202,9 @@ class EditPlaces(TestCase):
     def test_only_a_place_of_the_owners_shop_is_changed(self):
         place = self.mine()
         other = get_user_model().objects.create(username="email:" + "b" * 32)
-        theirs = ShopPlace.objects.create(shop=Shop.objects.create(name="Other", owner=other), city="Far", latitude=1,
-                                          longitude=1)
+        theirs = ShopPlace.objects.create(
+            shop=Shop.objects.create(name="Other", owner=other), city="Far", latitude=1, longitude=1
+        )
         for key in (theirs.pk, "9999", "x", "1e3", "²", "9" * 30):
             self.assertEqual(self.client.get(f"{self.page}?edit={key}").status_code, 404, key)
             self.assertEqual(self.change(place=key).status_code, 404, key)
@@ -176,10 +221,16 @@ class EditPlaces(TestCase):
 
     def test_a_change_needs_the_csrf_token(self):
         from django.test import Client
+
         place = self.mine()
         client = Client(enforce_csrf_checks=True)
         client.force_login(self.owner)
-        self.assertEqual(client.post(self.page, {"place": place.pk, "address": "New road 1", "city": "",
-                                                 "latitude": "45.95", "longitude": "11.05"}).status_code, 403)
+        self.assertEqual(
+            client.post(
+                self.page,
+                {"place": place.pk, "address": "New road 1", "city": "", "latitude": "45.95", "longitude": "11.05"},
+            ).status_code,
+            403,
+        )
         place.refresh_from_db()
         self.assertEqual(place.address, "Side road 90")

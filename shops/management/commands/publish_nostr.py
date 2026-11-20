@@ -1,4 +1,5 @@
 """Publishes the community profile and the visible shops to the relays. With --sha256 it signs a file instead."""
+
 import json
 import re
 import time
@@ -46,8 +47,15 @@ def published_shops(socket, pubkey):
         if not isinstance(message, list) or not message or message[0] in ("EOSE", "CLOSED"):
             break
         event = message[2] if message[0] == "EVENT" and len(message) > 2 else None
-        if isinstance(event, dict) and event.get("pubkey") == pubkey and event.get("kind") == SHOP_KIND and verified(event):
-            d = next((tag[1] for tag in event["tags"] if isinstance(tag, list) and len(tag) > 1 and tag[0] == "d"), None)
+        if (
+            isinstance(event, dict)
+            and event.get("pubkey") == pubkey
+            and event.get("kind") == SHOP_KIND
+            and verified(event)
+        ):
+            d = next(
+                (tag[1] for tag in event["tags"] if isinstance(tag, list) and len(tag) > 1 and tag[0] == "d"), None
+            )
             if isinstance(d, str) and 0 < len(d) <= 100:
                 found.setdefault(d, set()).add(event["id"])
     socket.send(json.dumps(["CLOSE", "shops"]))
@@ -84,8 +92,10 @@ def send(relay, events, secret=None):
             stale = {d: ids for d, ids in published_shops(socket, public_key(secret)).items() if d not in current}
             names = sorted(stale)
             for start in range(0, len(names), DELETION_BLOCK):
-                block = names[start:start + DELETION_BLOCK]
-                deletions.append((block, deletion_event(secret, SHOP_KIND, block, set().union(*(stale[d] for d in block)))))
+                block = names[start : start + DELETION_BLOCK]
+                deletions.append(
+                    (block, deletion_event(secret, SHOP_KIND, block, set().union(*(stale[d] for d in block))))
+                )
         # Deletions first: an event refused halfway (a relay closing the connection) must not leave suspended shops
         # on the relays
         for block, event in deletions:
@@ -143,16 +153,22 @@ class Command(BaseCommand):
         base = f"https://{settings.SITE_HOST}"
         language = next(iter(data["languages"]))
         with override(language):
-            events = [profile_event(secret, data["name"], localized(data.get("tagline", ""), language), picture(data, base))]
-            events += [shop_event(secret, shop, base + reverse("shop_detail", args=[shop.id]))
-                       for shop in real(public_shops()).prefetch_related("closures")]
+            events = [
+                profile_event(secret, data["name"], localized(data.get("tagline", ""), language), picture(data, base))
+            ]
+            events += [
+                shop_event(secret, shop, base + reverse("shop_detail", args=[shop.id]))
+                for shop in real(public_shops()).prefetch_related("closures")
+            ]
         if publish(settings.NOSTR_RELAYS, events, self.stdout.write, secret):
             raise CommandError("Some relays did not receive the events")
 
     def sign_file(self, secret, options):
         if not re.fullmatch(r"[0-9a-f]{64}", options["sha256"]):
             raise CommandError("--sha256 wants 64 hexadecimal digits")
-        event = file_event(secret, options["sha256"], options["size"], options["mime"], options["summary"], options["url"])
+        event = file_event(
+            secret, options["sha256"], options["size"], options["mime"], options["summary"], options["url"]
+        )
         failed = 0 if options["sign_only"] else publish(settings.NOSTR_RELAYS, [event], self.stderr.write)
         self.stdout.write(json.dumps(event, ensure_ascii=False))
         if failed:

@@ -19,6 +19,7 @@ Where the money goes is the most sensitive thing an account holds, so the change
   provider of the old address stays open to the registers for `PREVIOUS_OPEN` (`previous_domain`), so that the sales
   already shown on it are still recognised.
 """
+
 import time
 from datetime import timedelta
 from urllib.parse import urlencode
@@ -83,8 +84,11 @@ def next_change(shop, now=None):
     """When the owner may change the address again, or None if now: `every()` after the last change, and after the
     last change of the account's recovery email or wallet connected to it (a stolen session could set its own email, or
     connect its own wallet, and sign in with it)."""
-    times = [moment + every() for moment in (shop.lightning_changed, email_changed(shop.owner_id), wallet_changed(shop.owner_id))
-             if moment]
+    times = [
+        moment + every()
+        for moment in (shop.lightning_changed, email_changed(shop.owner_id), wallet_changed(shop.owner_id))
+        if moment
+    ]
     then = max(times, default=None)
     return then if then and then > (now or timezone.now()) else None
 
@@ -113,10 +117,18 @@ def apply(shop_pk, user, before, address, now=None):
             return False
         mark = OWNER_CHANGE.set(True)
         try:
-            return bool(Shop.objects.filter(pk=shop_pk, owner=user, lightning_address=before, suspended=False)
-                    .filter(Q(lightning_changed__isnull=True) | Q(lightning_changed__lte=now - every()))
-                    .update(lightning_address=address, lightning=True, awaiting_wallet=False, lightning_previous=before,
-                            lightning_changed=now, **lightning_watch.BLANK))
+            return bool(
+                Shop.objects.filter(pk=shop_pk, owner=user, lightning_address=before, suspended=False)
+                .filter(Q(lightning_changed__isnull=True) | Q(lightning_changed__lte=now - every()))
+                .update(
+                    lightning_address=address,
+                    lightning=True,
+                    awaiting_wallet=False,
+                    lightning_previous=before,
+                    lightning_changed=now,
+                    **lightning_watch.BLANK,
+                )
+            )
         finally:
             OWNER_CHANGE.reset(mark)
 
@@ -142,8 +154,12 @@ def panel(shop, now=None):
     """What the panel says about a change of the last NOTICE: None, or {"when", "before", "after", "pending"}."""
     if not shop.lightning_changed or (now or timezone.now()) - shop.lightning_changed >= NOTICE:
         return None
-    return {"when": timezone.localtime(shop.lightning_changed), "before": short_address(shop.lightning_previous),
-            "after": short_address(shop.lightning_address), "pending": shop.address_pending}
+    return {
+        "when": timezone.localtime(shop.lightning_changed),
+        "before": short_address(shop.lightning_previous),
+        "after": short_address(shop.lightning_address),
+        "pending": shop.address_pending,
+    }
 
 
 @login_required(login_url="shops")
@@ -159,8 +175,11 @@ def change(request, shop):
     before = shop.lightning_address
     wait = next_change(shop)
     fresh = signed_in_recently(request)
-    form = WalletForm(request.POST if request.method == "POST" and fresh and not wait else None, instance=shop,
-                      initial={"lightning_address": ""})
+    form = WalletForm(
+        request.POST if request.method == "POST" and fresh and not wait else None,
+        instance=shop,
+        initial={"lightning_address": ""},
+    )
     status = 200
     if form.is_bound and ratelimit.over_limit(f"lnchange-user:{request.user.pk}", TRIES_PER_USER, TRIES_WINDOW):
         form.add_error(None, _("Too many tries in a short time: wait a few minutes."))
@@ -174,14 +193,30 @@ def change(request, shop):
             if problem:
                 form.add_error("lightning_address", problem)
             elif apply(shop.pk, request.user, before, address):
-                messages.success(request, _("Done: payments now go to {address}. Open each register again and confirm "
-                                            "the new address.").format(address=address))
+                messages.success(
+                    request,
+                    _(
+                        "Done: payments now go to {address}. Open each register again and confirm the new address."
+                    ).format(address=address),
+                )
                 return redirect("shops")
             else:
                 messages.error(request, _("Your shop changed while you were saving: look at it again."))
                 return redirect("edit_shop", shop=shop.id)
     sign_in = f"{reverse('shops')}?{urlencode({'next': reverse('change_address', args=[shop.id])})}"
-    return render(request, "shops/address_change.html", {
-        "form": form, "shop": shop, "fresh": fresh, "wait": wait, "days": settings.LIGHTNING_CHANGE_DAYS,
-        "sign_in": sign_in, "minutes": int(FRESH.total_seconds() // 60), "community_email": community()["email"],
-        "before": before}, status=status)
+    return render(
+        request,
+        "shops/address_change.html",
+        {
+            "form": form,
+            "shop": shop,
+            "fresh": fresh,
+            "wait": wait,
+            "days": settings.LIGHTNING_CHANGE_DAYS,
+            "sign_in": sign_in,
+            "minutes": int(FRESH.total_seconds() // 60),
+            "community_email": community()["email"],
+            "before": before,
+        },
+        status=status,
+    )

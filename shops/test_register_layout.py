@@ -2,6 +2,7 @@
 OK key are all on the screen, without scrolling, for the owner's and the staff register, in the light and the dark
 colours of the theme. The page as the site gives it, with its styles, measured in a headless Chromium; skipped without
 one, an error with REQUIRE_BROWSER=1."""
+
 import os
 import re
 import shutil
@@ -40,8 +41,11 @@ class OneScreen(TestCase):
     def setUp(self):
         reset_limits()
         self.owner = get_user_model().objects.create(username="owner")
-        self.shop = Shop.objects.create(owner=self.owner, name="The Bakery at the Corner of the Long Street",
-                                        lightning_address="a-rather-long-address@ln.example.org")
+        self.shop = Shop.objects.create(
+            owner=self.owner,
+            name="The Bakery at the Corner of the Long Street",
+            lightning_address="a-rather-long-address@ln.example.org",
+        )
         self.client.force_login(self.owner)
 
     def staff_html(self, name="Anna"):
@@ -55,8 +59,11 @@ class OneScreen(TestCase):
     def measure(self, html, dark=False, shown=(), size=(360, 640)):
         """The page with its styles in place of the links, without its scripts: the keypad as it first appears."""
         self.assertTrue(BROWSER, "REQUIRE_BROWSER=1 but chromium-headless-shell is missing: BROWSER_BIN=/path")
-        styles = {"base.css": STATIC / "base.css", "register.css": STATIC / "register.css",
-                  "theme.css": Path(COMMUNITY_DIR) / "theme" / "theme.css"}
+        styles = {
+            "base.css": STATIC / "base.css",
+            "register.css": STATIC / "register.css",
+            "theme.css": Path(COMMUNITY_DIR) / "theme" / "theme.css",
+        }
 
         def inline(match):
             name = match.group(1).rsplit("/", 1)[-1]
@@ -73,9 +80,23 @@ class OneScreen(TestCase):
             page = Path(folder) / "register.html"
             page.write_text(html)
             flags = ["--force-dark-mode", "--blink-settings=preferredColorScheme=0"] if dark else []
-            result = subprocess.run([BROWSER, "--no-sandbox", "--disable-gpu", f"--user-data-dir={folder}/profile",
-                                     f"--window-size={size[0]},{size[1]}", *flags, "--virtual-time-budget=3000",
-                                     "--dump-dom", page.as_uri()], capture_output=True, text=True, timeout=60, check=False)
+            result = subprocess.run(
+                [
+                    BROWSER,
+                    "--no-sandbox",
+                    "--disable-gpu",
+                    f"--user-data-dir={folder}/profile",
+                    f"--window-size={size[0]},{size[1]}",
+                    *flags,
+                    "--virtual-time-budget=3000",
+                    "--dump-dom",
+                    page.as_uri(),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=False,
+            )
         found = re.search(r"<title>overflow=(-?\d+);ok=(\w+)</title>", result.stdout)
         self.assertTrue(found, result.stderr[-2000:])
         return int(found.group(1)), found.group(2) == "true"
@@ -91,8 +112,12 @@ class OneScreen(TestCase):
             staff_chain = self.staff_html("Bruno")
         self.assertIn('id="chain-ok"', owner_chain)
         self.assertIn('id="chain-ok"', staff_chain)
-        for where, html in [("owner", owner), ("staff", staff), ("owner, on-chain on", owner_chain),
-                            ("staff, on-chain on", staff_chain)]:
+        for where, html in [
+            ("owner", owner),
+            ("staff", staff),
+            ("owner, on-chain on", owner_chain),
+            ("staff, on-chain on", staff_chain),
+        ]:
             for dark in (False, True):
                 # Empty, and with the discount line, the on-chain key and the shop's note shown
                 for shown in ((), ("discount-fixed", "chain-ok", "note")):

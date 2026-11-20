@@ -1,6 +1,7 @@
 """The training site (shops/demo.py, manage.py demo_data): a small made-up community in every state, which asks nothing
 of any provider, refuses to run next to real money, can be run again to put everything back, and takes
 away all of it and only it."""
+
 import os
 import socket
 import subprocess
@@ -20,7 +21,6 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-
 from . import dashboard, demo, directory, first_day, journey, lightning_watch, lnaddress
 from . import forms as shop_forms
 from .models import AccountChange, Closure, Profile, Shop, StaffRegister, Trainee
@@ -33,9 +33,11 @@ User = get_user_model()
 
 def nobody_outside():
     """Any HTTP request, socket or email fails the test."""
-    return (patch("requests.sessions.Session.request", side_effect=OUTSIDE),
-            patch.object(socket, "create_connection", side_effect=OUTSIDE),
-            patch.object(socket, "getaddrinfo", side_effect=OUTSIDE))
+    return (
+        patch("requests.sessions.Session.request", side_effect=OUTSIDE),
+        patch.object(socket, "create_connection", side_effect=OUTSIDE),
+        patch.object(socket, "getaddrinfo", side_effect=OUTSIDE),
+    )
 
 
 def run(*args, **options):
@@ -68,16 +70,30 @@ def real_shop_with_owner():
     """A shop of a real merchant, with everything a demo shop has, that the demo must never touch."""
     user = User.objects.create(username="email:feedface", is_active=True)
     Profile.objects.create(user=user, email="real@example.org")
-    shop = Shop.objects.create(name="Real Bakery", owner=user, external_id="shop-1",
-                               lightning_address="bake@example.org", latitude=1, longitude=2)
+    shop = Shop.objects.create(
+        name="Real Bakery",
+        owner=user,
+        external_id="shop-1",
+        lightning_address="bake@example.org",
+        latitude=1,
+        longitude=2,
+    )
     StaffRegister.objects.create(shop=shop, name="Real helper")
     return shop
 
 
 def census():
-    return {name: model.objects.count() for name, model in (
-        ("shops", Shop), ("users", User), ("profiles", Profile), ("staff", StaffRegister), ("passes", Trainee),
-        ("changes", AccountChange))}
+    return {
+        name: model.objects.count()
+        for name, model in (
+            ("shops", Shop),
+            ("users", User),
+            ("profiles", Profile),
+            ("staff", StaffRegister),
+            ("passes", Trainee),
+            ("changes", AccountChange),
+        )
+    }
 
 
 @override_settings(PUBLIC_URL=SITE, TELEGRAM_BOT_TOKEN="", NETWORK="signet", SITE_MODE="development")
@@ -117,8 +133,12 @@ class Refusals(TestCase):
 
     def test_a_site_with_a_real_shop_is_refused_whatever_the_mode_and_the_variable(self):
         Shop.objects.create(name="Real Bakery")
-        for setting in ({}, {"SITE_MODE": "maintenance"}, {"SITE_MODE": "maintenance", "DEMO_ALLOWED": True},
-                        {"DEMO_ALLOWED": True}):
+        for setting in (
+            {},
+            {"SITE_MODE": "maintenance"},
+            {"SITE_MODE": "maintenance", "DEMO_ALLOWED": True},
+            {"DEMO_ALLOWED": True},
+        ):
             with override_settings(**setting):
                 with self.assertRaisesMessage(CommandError, "1 shops"):
                     run()
@@ -154,11 +174,19 @@ class Refusals(TestCase):
                 run()
 
     def test_the_variable_is_read_from_the_environment(self):
-        base = {"PATH": os.environ["PATH"], "COMMUNITY_DIR": os.environ.get("COMMUNITY_DIR", "examples/community"),
-                "SECRET_KEY": "x", "DJANGO_SETTINGS_MODULE": "config.settings"}
+        base = {
+            "PATH": os.environ["PATH"],
+            "COMMUNITY_DIR": os.environ.get("COMMUNITY_DIR", "examples/community"),
+            "SECRET_KEY": "x",
+            "DJANGO_SETTINGS_MODULE": "config.settings",
+        }
         for value, wanted in (("1", "True"), ("", "False"), ("yes", "False"), ("0", "False")):
-            out = subprocess.run([sys.executable, "-c", "from django.conf import settings; print(settings.DEMO_ALLOWED)"],
-                                 env={**base, "BITMENTOR_DEMO": value}, capture_output=True, text=True)
+            out = subprocess.run(
+                [sys.executable, "-c", "from django.conf import settings; print(settings.DEMO_ALLOWED)"],
+                env={**base, "BITMENTOR_DEMO": value},
+                capture_output=True,
+                text=True,
+            )
             self.assertEqual(out.stdout.strip(), wanted, out.stderr[-300:])
 
     def test_remove_and_links_do_not_go_together(self):
@@ -256,8 +284,10 @@ class Populate(TestCase):
     def test_the_paths_of_the_merchants_are_where_the_story_says(self):
         made()
         now = timezone.now()
-        steps = {slug: {step["key"]: step["state"] for step in journey.summary(demo_shop(slug))["steps"]}
-                 for slug in ("loaf", "door", "books", "hardware", "gelato")}
+        steps = {
+            slug: {step["key"]: step["state"] for step in journey.summary(demo_shop(slug))["steps"]}
+            for slug in ("loaf", "door", "books", "hardware", "gelato")
+        }
         self.assertEqual(steps["loaf"]["certificate"], journey.DONE)
         self.assertEqual(steps["hardware"]["certificate"], journey.DONE)
         self.assertEqual(steps["door"]["certificate"], journey.TODO)
@@ -334,8 +364,10 @@ class Populate(TestCase):
             run("--links")
         self.assertEqual(census(), before)
         real.refresh_from_db()
-        self.assertEqual((real.name, real.lightning_address, real.owner.username),
-                         ("Real Bakery", "bake@example.org", "email:feedface"))
+        self.assertEqual(
+            (real.name, real.lightning_address, real.owner.username),
+            ("Real Bakery", "bake@example.org", "email:feedface"),
+        )
         # Taking the demo away is still allowed, and leaves the real shop; then the site has nothing of the demo
         run("--remove")
         self.assertEqual(Shop.objects.count(), 1)
@@ -428,8 +460,10 @@ class PeriodicCommands(TestCase):
             probed = [call.args[0] for call in probe.call_args_list]
         self.assertEqual(probed, ["real@example.org"])
         after = demo_shop("gelato")
-        self.assertEqual((after.lightning_status, after.lightning_failures, after.lightning_since),
-                         (gelato.lightning_status, gelato.lightning_failures, gelato.lightning_since))
+        self.assertEqual(
+            (after.lightning_status, after.lightning_failures, after.lightning_since),
+            (gelato.lightning_status, gelato.lightning_failures, gelato.lightning_since),
+        )
         self.assertEqual(demo_shop("loaf").lightning_status, "ok")
 
     def test_the_demo_shops_stay_out_of_nostr(self):
@@ -473,9 +507,17 @@ class SignIn(TestCase):
         self.sign_in("loaf")
 
     def test_every_owner_opens_their_panel_and_their_pages(self):
-        pages = {"loaf": ["The Daily Loaf"], "door": ["Blue Door Cafe", "Paper &amp; Ink Books"], "petals": ["Petal Flowers"],
-                 "hardware": ["Hardware Hub"], "gelato": ["Moonlight Gelato"], "tailor": ["Needle &amp; Thread Tailor"],
-                 "herbs": ["Chamomile Herbalist"], "pencil": ["Pencil Stationery"], "records": ["The Old Record Shop"]}
+        pages = {
+            "loaf": ["The Daily Loaf"],
+            "door": ["Blue Door Cafe", "Paper &amp; Ink Books"],
+            "petals": ["Petal Flowers"],
+            "hardware": ["Hardware Hub"],
+            "gelato": ["Moonlight Gelato"],
+            "tailor": ["Needle &amp; Thread Tailor"],
+            "herbs": ["Chamomile Herbalist"],
+            "pencil": ["Pencil Stationery"],
+            "records": ["The Old Record Shop"],
+        }
         failing = patch("requests.sessions.Session.request", side_effect=requests.ConnectionError("nobody here"))
         with failing:
             for name, names in pages.items():
@@ -486,11 +528,19 @@ class SignIn(TestCase):
                 for shop_name in names:
                     self.assertContains(panel, shop_name)
                 for shop in Shop.objects.filter(owner__username=f"demo:{name}"):
-                    self.assertEqual(self.client.get(reverse("shop_detail", args=[shop.pk])).status_code, 200, shop.name)
+                    self.assertEqual(
+                        self.client.get(reverse("shop_detail", args=[shop.pk])).status_code, 200, shop.name
+                    )
                     if shop.has_register:
-                        self.assertEqual(self.client.get(reverse("register", args=[shop.pk])).status_code, 200, shop.name)
-                        self.assertEqual(self.client.get(reverse("practice", args=[shop.pk])).status_code, 200, shop.name)
-                        self.assertEqual(self.client.get(reverse("staff_registers", args=[shop.pk])).status_code, 200, shop.name)
+                        self.assertEqual(
+                            self.client.get(reverse("register", args=[shop.pk])).status_code, 200, shop.name
+                        )
+                        self.assertEqual(
+                            self.client.get(reverse("practice", args=[shop.pk])).status_code, 200, shop.name
+                        )
+                        self.assertEqual(
+                            self.client.get(reverse("staff_registers", args=[shop.pk])).status_code, 200, shop.name
+                        )
 
     def test_the_panel_of_the_shop_without_a_wallet_offers_to_connect_one(self):
         self.sign_in("petals")
@@ -594,17 +644,24 @@ class AroundTheDemo(TestCase):
 
     def test_the_morning_summary_is_never_about_demo_shops(self):
         # Only demo shops have things to do: no message, no call to Telegram or the mailbox
-        with patch("shops.management.commands.dashboard.send_mail") as sent, \
-                patch("shops.management.commands.dashboard.telegram") as chat:
+        with (
+            patch("shops.management.commands.dashboard.send_mail") as sent,
+            patch("shops.management.commands.dashboard.telegram") as chat,
+        ):
             out = StringIO()
             call_command("dashboard", "--send", stdout=out)
         self.assertIn("Nothing to do today", out.getvalue())
         sent.assert_not_called()
         chat.assert_not_called()
         # A real shop with a problem: the message names it, and none of the demo shops
-        self.real_shop(lightning_status="no_answer", lightning_since=timezone.now() - timedelta(days=2),
-                       lightning_checked=timezone.now(), lightning_worked=timezone.now() - timedelta(days=3),
-                       lightning_checked_address="bake@example.org", first_sale=timezone.now() - timedelta(days=30))
+        self.real_shop(
+            lightning_status="no_answer",
+            lightning_since=timezone.now() - timedelta(days=2),
+            lightning_checked=timezone.now(),
+            lightning_worked=timezone.now() - timedelta(days=3),
+            lightning_checked_address="bake@example.org",
+            first_sale=timezone.now() - timedelta(days=30),
+        )
         with patch("shops.management.commands.dashboard.send_mail") as sent:
             with self.assertRaises(SystemExit) as stopped:
                 call_command("dashboard", "--send", stdout=StringIO())

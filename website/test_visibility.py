@@ -1,4 +1,5 @@
 """Public and private parts of the pages (website/visibility.py)."""
+
 import shutil
 import tempfile
 from pathlib import Path
@@ -144,8 +145,12 @@ class Filter(TestCase):
                 visibility.filtered(wrong)
 
     def test_a_mark_inside_code_is_an_error(self):
-        for text in ("```\n::: private\n```\n", "~~~~\n::: private\n~~~\n:::\n~~~~\n", "```\n::: private\n",
-                     "  ```python\n:::\n  ```\n"):
+        for text in (
+            "```\n::: private\n```\n",
+            "~~~~\n::: private\n~~~\n:::\n~~~~\n",
+            "```\n::: private\n",
+            "  ```python\n:::\n  ```\n",
+        ):
             with self.assertRaises(visibility.MarkError, msg=text):
                 visibility.filtered(text)
 
@@ -155,16 +160,30 @@ class Filter(TestCase):
 
     def test_a_fence_closes_only_with_its_own_kind_and_length(self):
         """An unbalanced fence or a line of tildes cannot hide a mark and make the private part public."""
-        for text in ("~~~~~~\n\n::: private\nSecret.\n:::\n", "````\n```\n::: private\nSecret.\n:::\n````\n",
-                     "~~~\n```\n::: private\nSecret.\n:::\n~~~\n"):
+        for text in (
+            "~~~~~~\n\n::: private\nSecret.\n:::\n",
+            "````\n```\n::: private\nSecret.\n:::\n````\n",
+            "~~~\n```\n::: private\nSecret.\n:::\n~~~\n",
+        ):
             with self.assertRaises(visibility.MarkError, msg=text):
                 visibility.filtered(text)
         # Backticks in the info string: not a fence, the marks work
         self.assertEqual(visibility.filtered("``` a`b\n\n::: private\nSecret.\n:::\n"), "``` a`b\n\n")
 
     def test_a_mark_written_otherwise_is_an_error(self):
-        for line in ("::: Private", "::: PUBLIC", "::: secret", "  ::: private", "\t:::", " :::", ":::private text",
-                     "::::", "::: private :::", ":::private", ":::public"):
+        for line in (
+            "::: Private",
+            "::: PUBLIC",
+            "::: secret",
+            "  ::: private",
+            "\t:::",
+            " :::",
+            ":::private text",
+            "::::",
+            "::: private :::",
+            ":::private",
+            ":::public",
+        ):
             with self.assertRaises(visibility.MarkError, msg=line):
                 visibility.filtered(f"Text.\n\n{line}\n\nSecret.\n\n:::\n")
 
@@ -172,23 +191,30 @@ class Filter(TestCase):
         text = "\ufeffBefore.\r\n\r\n::: private\r\nSecret.\r\n:::\r\n\r\nAfter.\r\n"
         self.assertEqual(visibility.filtered(text), "Before.\n\nAfter.\n")
         from config.community import front_matter
+
         meta, body = front_matter("\ufeff---\r\ntitle: X\r\nvisibility: private\r\n---\r\nText\r\n")
         self.assertEqual((meta, body), ({"title": "X", "visibility": "private"}, "Text\n"))
         self.assertTrue(visibility.is_private_page(meta))
 
     def test_a_note_of_many_paragraphs_goes_whole(self):
-        text = ("Text.\n\n[^long]: First paragraph.\n    still the first.\n\n    Second paragraph.\n\n"
-                "        code in the note\n\nAfter.\n")
+        text = (
+            "Text.\n\n[^long]: First paragraph.\n    still the first.\n\n    Second paragraph.\n\n"
+            "        code in the note\n\nAfter.\n"
+        )
         self.assertEqual(visibility.filtered(text), "Text.\n\n\nAfter.\n")
 
     def test_a_lazy_line_belongs_to_its_note(self):
-        self.assertEqual(visibility.filtered("Text.\n\n[^a]: First line\nlazy line.\n\nAfter.\n"), "Text.\n\n\nAfter.\n")
+        self.assertEqual(
+            visibility.filtered("Text.\n\n[^a]: First line\nlazy line.\n\nAfter.\n"), "Text.\n\n\nAfter.\n"
+        )
 
     def test_an_indented_definition_is_a_definition(self):
         self.assertEqual(visibility.filtered("Text.\n\n   [^a]: Note.\n\nAfter.\n"), "Text.\n\n\nAfter.\n")
 
     def test_notes_called_only_by_notes_that_go_go_too(self):
-        text = "Text.[^kept]\n\n[^kept]: Kept.\n[^gone]: Gone, calls [^chain].\n[^chain]: Chain.\n[^self]: Me [^self].\n"
+        text = (
+            "Text.[^kept]\n\n[^kept]: Kept.\n[^gone]: Gone, calls [^chain].\n[^chain]: Chain.\n[^self]: Me [^self].\n"
+        )
         self.assertEqual(visibility.filtered(text), "Text.[^kept]\n\n[^kept]: Kept.\n")
 
     def test_a_note_called_from_a_kept_note_stays(self):
@@ -201,8 +227,14 @@ class Filter(TestCase):
 
     def test_private_page(self):
         from config.community import visibility as read
+
         self.assertTrue(visibility.is_private_page({"title": "X", "visibility": "private"}))
-        for meta in ({"visibility": "Private"}, {"Visibility": "private"}, {"visibility": '"private"'}, {"visibility": "'PRIVATE'"}):
+        for meta in (
+            {"visibility": "Private"},
+            {"Visibility": "private"},
+            {"visibility": '"private"'},
+            {"visibility": "'PRIVATE'"},
+        ):
             self.assertEqual(read(meta), "private", meta)
         for meta in ({"title": "X"}, {"visibility": "public"}, {"visibility": ""}):
             self.assertEqual(read(meta), "public", meta)
@@ -281,7 +313,10 @@ class PublicView(CommunityWithPrivatePages):
         """It answers like any address that does not exist: the language middleware sends it to /<language>/view/, a 404."""
         unknown = self.client.post("/nonexistent/", {"private": "on"})
         response = self.client.post("/view/", {"private": "on", "next": "/it/"})
-        self.assertEqual((response.status_code, response["Location"]), (unknown.status_code, unknown["Location"].replace("nonexistent", "view")))
+        self.assertEqual(
+            (response.status_code, response["Location"]),
+            (unknown.status_code, unknown["Location"].replace("nonexistent", "view")),
+        )
         self.assertEqual(self.client.get("/view/", follow=True).status_code, 404)
         self.assertNotIn(visibility.COOKIE, response.cookies)
 
@@ -289,9 +324,15 @@ class PublicView(CommunityWithPrivatePages):
     def test_a_forged_header_from_outside_gives_nothing(self):
         """Caddy writes the last X-Forwarded-For: a visitor can only put addresses before it. Other headers count for
         nothing."""
-        self.assertPublic(self.get("/it/mixed/", **{**SITE, "X-Forwarded-For": "203.0.113.7, 198.51.100.1"}).content.decode())
+        self.assertPublic(
+            self.get("/it/mixed/", **{**SITE, "X-Forwarded-For": "203.0.113.7, 198.51.100.1"}).content.decode()
+        )
         for header in ("X-Real-IP", "Client-IP", "Forwarded", "X-Client-IP"):
-            self.assertPublic(self.get("/it/mixed/", **{**SITE, header: "203.0.113.7", "X-Forwarded-For": "198.51.100.1"}).content.decode())
+            self.assertPublic(
+                self.get(
+                    "/it/mixed/", **{**SITE, header: "203.0.113.7", "X-Forwarded-For": "198.51.100.1"}
+                ).content.decode()
+            )
 
     def test_every_page_has_the_same_cache_headers(self):
         """With curl -I nobody learns which pages have a private part, or which addresses are private pages."""
@@ -306,16 +347,26 @@ class PublicView(CommunityWithPrivatePages):
     def test_the_onion_never_has_an_allowed_address(self):
         """On the onion Caddy writes X-Entrance: onion, and the address it passes may be one a visitor chose."""
         for entrance in ("onion", "", "Site", "site, site"):
-            self.assertPublic(self.get("/it/mixed/", **{"X-Entrance": entrance, "X-Forwarded-For": "203.0.113.7"}).content.decode())
+            self.assertPublic(
+                self.get("/it/mixed/", **{"X-Entrance": entrance, "X-Forwarded-For": "203.0.113.7"}).content.decode()
+            )
         self.assertPublic(self.client.get("/it/mixed/", headers={"X-Forwarded-For": "203.0.113.7"}).content.decode())
 
     def test_links_to_private_pages_are_left_out(self):
         from config import community as community_config
-        data = {**community(), "menu": [{"path": "friends/", "labels": {"it": "Amici", "en": "Friends"}},
-                                        {"path": "friends/#x", "labels": {"it": "Amici", "en": "Friends"}},
-                                        {"path": "shops/map/", "labels": {"it": "Mappa", "en": "Map"}}],
-                "shop_page": {"wallet": "friends/", "stories": {"7": [{"path": "friends/", "text": "Friends"},
-                                                                    {"path": "stories/", "text": "Stories"}]}}}
+
+        data = {
+            **community(),
+            "menu": [
+                {"path": "friends/", "labels": {"it": "Amici", "en": "Friends"}},
+                {"path": "friends/#x", "labels": {"it": "Amici", "en": "Friends"}},
+                {"path": "shops/map/", "labels": {"it": "Mappa", "en": "Map"}},
+            ],
+            "shop_page": {
+                "wallet": "friends/",
+                "stories": {"7": [{"path": "friends/", "text": "Friends"}, {"path": "stories/", "text": "Stories"}]},
+            },
+        }
         warnings = []
         with patch("config.community.community", return_value=data):
             self.assertEqual([item["href"] for item in community_config.menu("it")], ["/it/shops/map/"])
@@ -325,6 +376,7 @@ class PublicView(CommunityWithPrivatePages):
         self.assertTrue(all("private page" in warning for warning in warnings))
         with patch("shops.views.GUIDE_PAGE", "friends"):
             from shops.views import guide
+
             self.assertEqual(guide(), "")
         with patch("shops.views.GUIDE_PAGE", "mixed"):
             self.assertEqual(guide(), "/en/mixed/")
@@ -334,6 +386,7 @@ class PublicView(CommunityWithPrivatePages):
         with patch("website.views.parse", return_value=({}, broken.split("---\n", 2)[2])):
             self.assertEqual(self.get("/it/mixed/").status_code, 404)
         from config import community as community_config
+
         (community_config.COMMUNITY_DIR / "pages/it/broken.md").write_text(broken)
         problems = wrong_marks(None)
         self.assertEqual([problem.id for problem in problems], ["website.W003"])
@@ -342,15 +395,31 @@ class PublicView(CommunityWithPrivatePages):
 
     def test_a_visibility_not_understood_is_private_and_the_check_says_so(self):
         from config import community as community_config
-        (community_config.COMMUNITY_DIR / "pages/it/strange.md").write_text("---\ntitle: X\nvisibility: members\n---\nText\n")
+
+        (community_config.COMMUNITY_DIR / "pages/it/strange.md").write_text(
+            "---\ntitle: X\nvisibility: members\n---\nText\n"
+        )
         self.assertEqual([problem.id for problem in wrong_marks(None)], ["website.W005"])
         self.assertEqual(self.get("/it/strange/").status_code, 404)
         self.assertNotIn("strange", self.get("/sitemap.xml").content.decode())
 
     def test_the_check_warns_about_shared_networks(self):
-        cases = {"203.0.113.7 2001:db8::1": 0, "127.0.0.1 ::1": 0, "private_ranges": 1, "172.17.0.1": 1, "10.0.0.0/8": 1,
-                 "192.168.1.5": 1, "fd00::1": 1, "fe80::1": 1, "100.64.0.1": 1, "198.51.0.0/16": 1, "2001:db8::/32": 1,
-                 "203.0.113.0/24 2001:db8:1::/48": 0, "not-an-address": 1, "127.0.0.0/8": 1}
+        cases = {
+            "203.0.113.7 2001:db8::1": 0,
+            "127.0.0.1 ::1": 0,
+            "private_ranges": 1,
+            "172.17.0.1": 1,
+            "10.0.0.0/8": 1,
+            "192.168.1.5": 1,
+            "fd00::1": 1,
+            "fe80::1": 1,
+            "100.64.0.1": 1,
+            "198.51.0.0/16": 1,
+            "2001:db8::/32": 1,
+            "203.0.113.0/24 2001:db8:1::/48": 0,
+            "not-an-address": 1,
+            "127.0.0.0/8": 1,
+        }
         for value, count in cases.items():
             with self.settings(DEV_ALLOWED_IPS=value):
                 found = [problem for problem in wrong_marks(None) if problem.id == "website.W004"]
@@ -391,7 +460,9 @@ class AllowedAddress(CommunityWithPrivatePages):
         self.assertEqual(self.get("/it/friends/", **{"X-Static-Copy": "1"}).status_code, 404)
 
     def test_switching_off_and_on(self):
-        response = self.client.post("/view/", {"private": "off", "next": "/it/mixed/"}, headers={**SITE, "X-Forwarded-For": "203.0.113.7"})
+        response = self.client.post(
+            "/view/", {"private": "off", "next": "/it/mixed/"}, headers={**SITE, "X-Forwarded-For": "203.0.113.7"}
+        )
         self.assertRedirects(response, "/it/mixed/", fetch_redirect_response=False)
         cookie = response.cookies[visibility.COOKIE]
         self.assertEqual(cookie.value, "off")
@@ -402,22 +473,31 @@ class AllowedAddress(CommunityWithPrivatePages):
         self.assertIn("Vista pubblica", html)
         self.assertIn("Mostra la parte privata", html)
         self.assertEqual(self.get("/it/friends/").status_code, 404)
-        self.client.post("/view/", {"private": "on", "next": "/it/mixed/"}, headers={**SITE, "X-Forwarded-For": "203.0.113.7"})
+        self.client.post(
+            "/view/", {"private": "on", "next": "/it/mixed/"}, headers={**SITE, "X-Forwarded-For": "203.0.113.7"}
+        )
         self.assertIn("Quagmire", self.get("/it/mixed/").content.decode())
 
     def test_the_switch_goes_back_only_to_this_site(self):
         for target in ("https://evil.example/", "//evil.example/", "/\\evil.example", "javascript:alert(1)", ""):
-            response = self.client.post("/view/", {"private": "off", "next": target}, headers={**SITE, "X-Forwarded-For": "203.0.113.7"})
+            response = self.client.post(
+                "/view/", {"private": "off", "next": target}, headers={**SITE, "X-Forwarded-For": "203.0.113.7"}
+            )
             self.assertEqual(response["Location"], "/", target)
 
     def test_the_switch_needs_csrf(self):
         client = self.client_class(enforce_csrf_checks=True)
-        response = client.post("/view/", {"private": "off", "next": "/it/"}, headers={**SITE, "X-Forwarded-For": "203.0.113.7"})
+        response = client.post(
+            "/view/", {"private": "off", "next": "/it/"}, headers={**SITE, "X-Forwarded-For": "203.0.113.7"}
+        )
         self.assertEqual(response.status_code, 403)
         page = client.get("/it/mixed/", headers={**SITE, "X-Forwarded-For": "203.0.113.7"})
         token = page.context["csrf_token"]
-        response = client.post("/view/", {"private": "off", "next": "/it/", "csrfmiddlewaretoken": token},
-                               headers={**SITE, "X-Forwarded-For": "203.0.113.7"})
+        response = client.post(
+            "/view/",
+            {"private": "off", "next": "/it/", "csrfmiddlewaretoken": token},
+            headers={**SITE, "X-Forwarded-For": "203.0.113.7"},
+        )
         self.assertEqual(response.status_code, 302)
 
     def test_the_switch_answers_only_to_post(self):
@@ -440,8 +520,11 @@ class AllowedAddress(CommunityWithPrivatePages):
     def test_german_speaks_german(self):
         from django.template.loader import render_to_string
         from django.utils import translation
+
         with translation.override("de"):
-            html = render_to_string("partials/view_notice.html", {"visibility": {"private": True, "mode": "development"}})
+            html = render_to_string(
+                "partials/view_notice.html", {"visibility": {"private": True, "mode": "development"}}
+            )
         self.assertIn("Private Ansicht", html)
         self.assertIn("Privaten Teil ausblenden", html)
 
@@ -470,8 +553,10 @@ class Accounts(CommunityWithPrivatePages):
         from datetime import date
 
         from django.utils import timezone
-        Shop.objects.filter(pk=self.shop.pk).update(certified_month=date(2026, 1, 1), private_approved=timezone.now(),
-                                                    private_approved_by="staffer")
+
+        Shop.objects.filter(pk=self.shop.pk).update(
+            certified_month=date(2026, 1, 1), private_approved=timezone.now(), private_approved_by="staffer"
+        )
         html = self.client.get("/it/mixed/").content.decode()
         self.assertIn("Quagmire", html)
         self.assertIn("Vista privata", html)
@@ -485,6 +570,7 @@ class Accounts(CommunityWithPrivatePages):
         from datetime import date
 
         from django.utils import timezone
+
         Shop.objects.filter(pk=self.shop.pk).update(certified_month=date(2026, 1, 1))
         self.assertNotIn("Quagmire", self.client.get("/it/mixed/").content.decode())
         Shop.objects.filter(pk=self.shop.pk).update(private_approved=timezone.now(), private_approved_by="staffer")
@@ -494,6 +580,7 @@ class Accounts(CommunityWithPrivatePages):
 
     def test_nobody_is_certified_yet(self):
         from shops.certified import owns_certified_shop
+
         self.assertFalse(owns_certified_shop(self.user))
 
 

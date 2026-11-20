@@ -4,6 +4,7 @@ The site's own version if the community's image sets one, otherwise the software
 the sources, or an image built without a release tag) the git commit, with «-dirty» when tracked files have changes
 that are not committed; «no-version» when there is no git either.
 """
+
 import subprocess
 from functools import cache
 from pathlib import Path
@@ -17,8 +18,9 @@ UNTAGGED = "development"
 
 def _git(*arguments):
     try:
-        done = subprocess.run(["git", "-C", str(settings.BASE_DIR), *arguments], capture_output=True, text=True,
-                              timeout=5, check=False)
+        done = subprocess.run(
+            ["git", "-C", str(settings.BASE_DIR), *arguments], capture_output=True, text=True, timeout=5, check=False
+        )
     except (OSError, subprocess.SubprocessError):
         return None
     return done.stdout.strip() if done.returncode == 0 else None

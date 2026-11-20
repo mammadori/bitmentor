@@ -1,10 +1,11 @@
 """The owner's panel by stages (shops/stages.py, templates/shops/stages.html, static/stages.js): on top each shop's
 current stage, the rest of the panel closed below; off, the panel exactly as without stages."""
+
 import json
 import re
 import subprocess
 import tempfile
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -23,7 +24,9 @@ from .test_scripts import assert_talks_to_nobody, node_or_skip
 from .test_training import EXAMPLE_WITHOUT_QUICK, changed, configured
 
 PANEL = "/en/shops/"
-NOW = timezone.now()
+# A fixed moment, at noon: the stages count days of the community's calendar (stages.days_since), and "thirty days
+# before now" taken near midnight, in the weeks after the clocks change, is twenty-nine of those
+NOW = datetime(2026, 6, 15, 12, tzinfo=UTC)
 NUMBERS = dict(stages.DEFAULTS)
 FIXTURE = Path(__file__).parent / "testdata" / "panel_without_stages.html"
 
@@ -38,9 +41,24 @@ def numbers_in(block):
 
 def fake(**fields):
     """A shop as the panel sees it, with the attributes the view sets."""
-    shop = {"lightning_address": "a@wallet.example", "external_id": "", "has_register": True, "closed": False, "first_sale": None, "needs_approval": False, "listed": True,
-            "suspended": False, "latitude": 41.9, "longitude": 12.5, "sign_printed": None, "lightning_watch": None,
-            "till_locked": False, "till_quick": 0, "needs_wallet": False, "waits_for_wallet": False}
+    shop = {
+        "lightning_address": "a@wallet.example",
+        "external_id": "",
+        "has_register": True,
+        "closed": False,
+        "first_sale": None,
+        "needs_approval": False,
+        "listed": True,
+        "suspended": False,
+        "latitude": 41.9,
+        "longitude": 12.5,
+        "sign_printed": None,
+        "lightning_watch": None,
+        "till_locked": False,
+        "till_quick": 0,
+        "needs_wallet": False,
+        "waits_for_wallet": False,
+    }
     shop.update(fields)
     return SimpleNamespace(**shop)
 
@@ -65,6 +83,13 @@ class Conditions(SimpleTestCase):
         self.assertEqual(key(fake(first_sale=sold, sign_printed=sold)), stages.TAKINGS)
         self.assertEqual(key(fake(first_sale=NOW - timedelta(days=7), sign_printed=sold)), stages.ROUTINE)
         self.assertEqual(key(fake(first_sale=NOW - timedelta(days=30), sign_printed=sold)), stages.GAME)
+
+    def test_the_days_are_the_ones_of_the_calendar(self):
+        # 23:50 in Rome on 19 November; thirty times 24 hours before it is 00:50 on 21 October there (summer time)
+        late = datetime(2026, 11, 19, 22, 50, tzinfo=UTC)
+        with override_settings(TIME_ZONE="Europe/Rome"):
+            self.assertEqual(stages.days_since(late - timedelta(days=30), late), 29)
+            self.assertEqual(stages.days_since(datetime(2026, 10, 20, 21, 59, tzinfo=UTC), late), 30)
 
     def test_nothing_to_walk(self):
         self.assertIsNone(current(fake(has_register=False)))
@@ -93,7 +118,9 @@ class Conditions(SimpleTestCase):
 
     def test_without_the_training_no_pass_and_no_game(self):
         old = NOW - timedelta(days=90)
-        self.assertEqual(key(fake(first_sale=old, sign_printed=old, till_locked=True), training_on=False), stages.ROUTINE)
+        self.assertEqual(
+            key(fake(first_sale=old, sign_printed=old, till_locked=True), training_on=False), stages.ROUTINE
+        )
         takings = current(fake(first_sale=NOW, sign_printed=NOW, till_quick=2000), training_on=False)
         self.assertFalse(takings["propose_pass"])
         self.assertEqual([later["key"] for later in takings["promote"]], [stages.ROUTINE])
@@ -106,8 +133,9 @@ class Conditions(SimpleTestCase):
 
     def test_the_phone_may_open_the_later_stages(self):
         found = current(fake(first_sale=NOW, sign_printed=NOW))
-        self.assertEqual([(later["key"], later["sales"]) for later in found["promote"]],
-                         [(stages.ROUTINE, 5), (stages.GAME, 20)])
+        self.assertEqual(
+            [(later["key"], later["sales"]) for later in found["promote"]], [(stages.ROUTINE, 5), (stages.GAME, 20)]
+        )
         routine = current(fake(first_sale=NOW - timedelta(days=8), sign_printed=NOW))
         self.assertEqual([later["key"] for later in routine["promote"]], [stages.GAME])
         # Nothing to promote over the steps that need doing first
@@ -116,14 +144,18 @@ class Conditions(SimpleTestCase):
 
     def test_the_days_come_from_the_community(self):
         numbers = {**NUMBERS, "routine_days": 2, "game_days": 3}
-        self.assertEqual(key(fake(first_sale=NOW - timedelta(days=2), sign_printed=NOW), numbers=numbers), stages.ROUTINE)
+        self.assertEqual(
+            key(fake(first_sale=NOW - timedelta(days=2), sign_printed=NOW), numbers=numbers), stages.ROUTINE
+        )
         self.assertEqual(key(fake(first_sale=NOW - timedelta(days=3), sign_printed=NOW), numbers=numbers), stages.GAME)
 
     def test_the_rest_has_only_what_exists(self):
         shop = fake(break_eligible=True, osm_enabled=True)
         self.assertEqual(stages.rest(shop, onchain=True, nostr=True), list(stages.REST_LINES))
         self.assertEqual(stages.rest(fake(), onchain=False, nostr=False), ["discount", "address"])
-        self.assertEqual(stages.rest(fake(has_register=False, lightning_address=""), onchain=True, nostr=True), ["discount"])
+        self.assertEqual(
+            stages.rest(fake(has_register=False, lightning_address=""), onchain=True, nostr=True), ["discount"]
+        )
 
     def test_the_address_change_only_where_its_page_opens(self):
         for fields in ({"suspended": True}, {"external_id": f"{DEMO_PREFIX}1"}):
@@ -135,7 +167,9 @@ class Conditions(SimpleTestCase):
 class Numbers(SimpleTestCase):
     def test_defaults(self):
         with numbers_in(None):
-            self.assertEqual(stages.numbers(), {"routine_days": 7, "routine_sales": 5, "game_days": 30, "game_sales": 20})
+            self.assertEqual(
+                stages.numbers(), {"routine_days": 7, "routine_sales": 5, "game_days": 30, "game_sales": 20}
+            )
             self.assertEqual(stages.problems(), [])
 
     def test_the_community_s_numbers(self):
@@ -161,7 +195,7 @@ class Numbers(SimpleTestCase):
         import yaml
 
         text = (Path(settings.BASE_DIR) / "examples" / "community" / "community.yml").read_text()
-        block = text[text.index("# stages:"):].split("\n# The stops")[0]
+        block = text[text.index("# stages:") :].split("\n# The stops")[0]
         found = yaml.safe_load("\n".join(line[2:] for line in block.split("\n") if line.startswith("# ")))
         self.assertEqual(found, {"stages": stages.DEFAULTS})
 
@@ -178,8 +212,9 @@ class Panel(TestCase):
         self.owner = get_user_model().objects.create(username="owner")
         Profile.objects.create(user=self.owner, email="mario@example.org")
         self.client.force_login(self.owner)
-        self.shop = Shop.objects.create(name="Bar", owner=self.owner, latitude=41.9, longitude=12.5,
-                                        lightning_address="mario@wallet.example")
+        self.shop = Shop.objects.create(
+            name="Bar", owner=self.owner, latitude=41.9, longitude=12.5, lightning_address="mario@wallet.example"
+        )
 
     def page(self, url=PANEL):
         return self.client.get(url).content.decode()
@@ -198,8 +233,13 @@ class Panel(TestCase):
         self.assertIn(f'href="/en/shops/register/{self.shop.id}/"', top)
         self.assertIn("<summary>Everything, if you want</summary>", fold)
         # Today's panel is all there, inside the fold
-        for piece in (f'id="first-day-{self.shop.id}"', f'id="handover-{self.shop.id}"', 'class="panel-row"',
-                      f"/en/shops/sign/{self.shop.id}/", "Add a shop"):
+        for piece in (
+            f'id="first-day-{self.shop.id}"',
+            f'id="handover-{self.shop.id}"',
+            'class="panel-row"',
+            f"/en/shops/sign/{self.shop.id}/",
+            "Add a shop",
+        ):
             self.assertIn(piece, fold)
         # in the image the static files carry a fingerprint in their name (stages.<hash>.js)
         self.assertRegex(top, r'src="/static/stages(\.[0-9a-f]+)?\.js"')
@@ -219,8 +259,12 @@ class Panel(TestCase):
 
         Shop.objects.filter(pk=self.shop.pk).update(first_sale=timezone.now(), sign_printed=timezone.now())
         without = {key: value for key, value in community().items() if key != "currency"}
-        with configured(changed(quick_start=20)), override_settings(NETWORK="mainnet"), \
-                patch("shops.stages.community", new=lambda: without), patch("shops.register.community", new=lambda: without):
+        with (
+            configured(changed(quick_start=20)),
+            override_settings(NETWORK="mainnet"),
+            patch("shops.stages.community", new=lambda: without),
+            patch("shops.register.community", new=lambda: without),
+        ):
             top = self.split(self.page())[0]
             shop = Shop.objects.get(pk=self.shop.pk)
             used = register_data(shop)["currency"]
@@ -254,10 +298,16 @@ class Panel(TestCase):
             self.assertIn('data-stage="game" data-stage-now', self.split(self.page())[0])
 
     def test_the_pass_card_is_in_the_fold_in_every_state(self):
-        for block, network in ((changed(quick_start=20), "mainnet"), (EXAMPLE_WITHOUT_QUICK, "mainnet"),
-                               (EXAMPLE_WITHOUT_QUICK, "signet")):
-            with self.subTest(block.get("quick_start"), network=network), configured(block), \
-                    override_settings(NETWORK=network):
+        for block, network in (
+            (changed(quick_start=20), "mainnet"),
+            (EXAMPLE_WITHOUT_QUICK, "mainnet"),
+            (EXAMPLE_WITHOUT_QUICK, "signet"),
+        ):
+            with (
+                self.subTest(block.get("quick_start"), network=network),
+                configured(block),
+                override_settings(NETWORK=network),
+            ):
                 top, fold = self.split(self.page())
                 self.assertNotIn('id="training"', top)
                 self.assertIn('id="training"', fold)
@@ -274,11 +324,12 @@ class Panel(TestCase):
         self.assertIn(f'id="approval-waits-{self.shop.id}"', top)
 
     def test_a_historic_shop_without_a_register_has_no_stage(self):
-        old = Shop.objects.create(name="Old", owner=self.owner, closed_on=timezone.localdate() - timedelta(days=3),
-                                  awaiting_wallet=True)
+        old = Shop.objects.create(
+            name="Old", owner=self.owner, closed_on=timezone.localdate() - timedelta(days=3), awaiting_wallet=True
+        )
         top = self.split(self.page())[0]
-        card = top[top.index(f'id="stage-{old.id}"'):]
-        card = card[:card.index("</article>")]
+        card = top[top.index(f'id="stage-{old.id}"') :]
+        card = card[: card.index("</article>")]
         self.assertNotIn("data-stage-now", card)
         self.assertNotIn("Connect your wallet", card)
 
@@ -301,8 +352,14 @@ class Panel(TestCase):
         self.assertNotIn(f'id="wallet-{waiting.id}"', fold)
 
     def test_several_shops_each_with_its_stage(self):
-        other = Shop.objects.create(name="Café", owner=self.owner, latitude=41.9, longitude=12.5,
-                                    lightning_address="cafe@wallet.example", first_sale=timezone.now())
+        other = Shop.objects.create(
+            name="Café",
+            owner=self.owner,
+            latitude=41.9,
+            longitude=12.5,
+            lightning_address="cafe@wallet.example",
+            first_sale=timezone.now(),
+        )
         top = self.split(self.page())[0]
         self.assertIn(f'id="stage-{self.shop.id}"', top)
         self.assertIn(f'id="stage-{other.id}"', top)
@@ -310,19 +367,33 @@ class Panel(TestCase):
 
     def test_the_safety_notices_stay_outside_the_fold(self):
         Shop.objects.filter(pk=self.shop.pk).update(suspended=True)
-        broken = Shop.objects.create(name="Broken", owner=self.owner, lightning_address="b@wallet.example",
-                                     lightning_status="no_answer", lightning_checked_address="b@wallet.example",
-                                     lightning_since=timezone.now(), lightning_checked=timezone.now())
-        waiting = Shop.objects.create(name="Waiting", owner=self.owner, lightning_address="w@wallet.example",
-                                      approved_on=None)
+        broken = Shop.objects.create(
+            name="Broken",
+            owner=self.owner,
+            lightning_address="b@wallet.example",
+            lightning_status="no_answer",
+            lightning_checked_address="b@wallet.example",
+            lightning_since=timezone.now(),
+            lightning_checked=timezone.now(),
+        )
+        waiting = Shop.objects.create(
+            name="Waiting", owner=self.owner, lightning_address="w@wallet.example", approved_on=None
+        )
         change = {"when": timezone.now(), "before": "a@x.example", "after": "b@x.example", "pending": False}
         account = {"when": timezone.now(), "what": ["The recovery email"], "advice": "Write to us."}
-        with patch("shops.views.address_change.panel", return_value=change), \
-                patch("shops.views.guard.notice", return_value=account):
+        with (
+            patch("shops.views.address_change.panel", return_value=change),
+            patch("shops.views.guard.notice", return_value=account),
+        ):
             top, fold = self.split(self.page())
-        for piece in ("Suspended: not on the map or in the lists.", f'id="lightning-{broken.id}"',
-                      f'id="address-changed-{self.shop.id}"', 'id="account-changed"', f'id="approval-waits-{waiting.id}"',
-                      f'id="help-{self.shop.id}"'):
+        for piece in (
+            "Suspended: not on the map or in the lists.",
+            f'id="lightning-{broken.id}"',
+            f'id="address-changed-{self.shop.id}"',
+            'id="account-changed"',
+            f'id="approval-waits-{waiting.id}"',
+            f'id="help-{self.shop.id}"',
+        ):
             self.assertIn(piece, top)
             self.assertNotIn(piece, fold)
 
@@ -332,7 +403,9 @@ class Panel(TestCase):
         self.assertIn('name="back" value="stage"', form[0])
         self.assertIn("csrfmiddlewaretoken", form[0])
         self.assertNotIn("<script>", top)
-        response = self.client.post(f"/en/shops/first-day/{self.shop.id}/", {"step": "sale", "done": "1", "back": "stage"})
+        response = self.client.post(
+            f"/en/shops/first-day/{self.shop.id}/", {"step": "sale", "done": "1", "back": "stage"}
+        )
         self.assertRedirects(response, f"/en/shops/#stage-{self.shop.id}", fetch_redirect_response=False)
 
     def test_the_rest_is_closed_under_each_shop(self):
@@ -368,8 +441,14 @@ class Panel(TestCase):
         Shop.objects.create(name="Old", owner=self.owner, closed_on=timezone.localdate() - timedelta(days=3))
         Shop.objects.create(owner=self.owner, name="New", awaiting_wallet=True)
         Shop.objects.create(owner=self.owner, name="Waiting", lightning_address="w@wallet.example", approved_on=None)
-        Shop.objects.create(owner=self.owner, name="Aside", lightning_address="a@wallet.example", approved_on=None,
-                            set_aside_on=timezone.now(), set_aside_by="staff")
+        Shop.objects.create(
+            owner=self.owner,
+            name="Aside",
+            lightning_address="a@wallet.example",
+            approved_on=None,
+            set_aside_on=timezone.now(),
+            set_aside_by="staff",
+        )
         Shop.objects.filter(pk=self.shop.pk).update(first_sale=timezone.now(), suspended=True)
         tokens = re.compile(r'name="csrfmiddlewaretoken" value="[^"]+"')
         with features_off("stages"):
@@ -386,14 +465,24 @@ class Panel(TestCase):
         template = engines["django"].from_string(
             '{% extends "shops/panel.html" %}{% block head %}<meta name="community-head">{{ block.super }}{% endblock %}'
             '{% block content %}<div id="community-before"></div>{{ block.super }}<div id="community-after"></div>'
-            '{% endblock %}')
+            "{% endblock %}"
+        )
         page = template.render(response.context[0].flatten(), response.wsgi_request)
-        for piece in ('name="community-head"', 'id="community-before"', 'id="community-after"', 'id="stages"',
-                      'id="everything"', f'id="first-day-{self.shop.id}"'):
+        for piece in (
+            'name="community-head"',
+            'id="community-before"',
+            'id="community-after"',
+            'id="stages"',
+            'id="everything"',
+            f'id="first-day-{self.shop.id}"',
+        ):
             self.assertIn(piece, page)
         # And one that replaces the new block keeps the rest
-        page = engines["django"].from_string('{% extends "shops/panel.html" %}{% block stages %}{% endblock %}').render(
-            response.context[0].flatten(), response.wsgi_request)
+        page = (
+            engines["django"]
+            .from_string('{% extends "shops/panel.html" %}{% block stages %}{% endblock %}')
+            .render(response.context[0].flatten(), response.wsgi_request)
+        )
         self.assertNotIn('id="stages"', page)
         self.assertIn(f'id="first-day-{self.shop.id}"', page)
 
@@ -467,24 +556,30 @@ class Script(SimpleTestCase):
         with tempfile.TemporaryDirectory() as folder:
             harness = Path(folder) / "harness.js"
             harness.write_text(HARNESS)
-            result = subprocess.run([node, str(harness), str(SCRIPT)], capture_output=True, text=True, timeout=60,
-                                    check=False)
+            result = subprocess.run(
+                [node, str(harness), str(SCRIPT)], capture_output=True, text=True, timeout=60, check=False
+            )
         self.assertEqual(result.returncode, 0, result.stderr)
         out = json.loads(result.stdout)
         # Only paid and confirmed, only the owner's register of that shop; a broken ledger, or none, counts nothing
         self.assertEqual(out["counts"], [3, 0, 0, 25, 0])
-        self.assertEqual(out["cards"], [
-            [True, False, True],   # 3 sales: the routine (3) shows, the game (20) waits
-            [False, True],         # 4 needed, 3 there: as the days say
-            [False, True],         # broken ledger
-            [True, True, False],   # 25 sales: the game, the latest reached
-            [False, True],         # no ledger at all
-            [False, True],         # a number that cannot be read
-        ])
+        self.assertEqual(
+            out["cards"],
+            [
+                [True, False, True],  # 3 sales: the routine (3) shows, the game (20) waits
+                [False, True],  # 4 needed, 3 there: as the days say
+                [False, True],  # broken ledger
+                [True, True, False],  # 25 sales: the game, the latest reached
+                [False, True],  # no ledger at all
+                [False, True],  # a number that cannot be read
+            ],
+        )
         # The quick start as the register counts it: seen, paid and confirmed in the community's currency
         self.assertEqual(out["quick"], [1250, 0, None])
-        self.assertEqual(out["lines"], [[False, "On this phone, 12.50 EUR of it is still left."], [False, "Used up."],
-                                        [True, ""], [True, ""]])
+        self.assertEqual(
+            out["lines"],
+            [[False, "On this phone, 12.50 EUR of it is still left."], [False, "Used up."], [True, ""], [True, ""]],
+        )
         self.assertEqual(out["reveal"], [True, True, True, True])
         # A target outside any fold, none, an empty or broken fragment: nothing changes
         self.assertEqual(out["others"], [False, False, False, False, False, False])
@@ -493,5 +588,7 @@ class Script(SimpleTestCase):
         script = SCRIPT.read_text()
         self.assertIn('addEventListener("hashchange"', script)
         self.assertIn("reveal(document, location.hash)", script)
-        self.assertIn("""<script src="{% static 'stages.js' %}" defer></script>""",
-                      (settings.BASE_DIR / "templates" / "shops" / "stages.html").read_text())
+        self.assertIn(
+            """<script src="{% static 'stages.js' %}" defer></script>""",
+            (settings.BASE_DIR / "templates" / "shops" / "stages.html").read_text(),
+        )

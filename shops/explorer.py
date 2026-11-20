@@ -9,6 +9,7 @@ cache, with limits per visitor and on how many addresses are kept. Nothing here 
 It cannot run where money is real: settings refuse FAKE_EXPLORER on mainnet, so in production too (production runs on
 mainnet), and every view answers 404 unless the flag is on and the network is not mainnet, whatever the settings say.
 The same 404 while on-chain at the register, an experimental feature, is off (config/features.py)."""
+
 import hashlib
 import json
 import re
@@ -41,8 +42,11 @@ ADDRESSES = "fake-explorer:addresses"
 def enabled():
     """With FAKE_EXPLORER, never on mainnet, and only while on-chain at the register is on (an experimental feature,
     config/features.py): off, no register asks an explorer and these pages do not exist."""
-    return (bool(getattr(settings, "FAKE_EXPLORER", False)) and settings.NETWORK != "mainnet"
-            and features.enabled(features.ONCHAIN))
+    return (
+        bool(getattr(settings, "FAKE_EXPLORER", False))
+        and settings.NETWORK != "mainnet"
+        and features.enabled(features.ONCHAIN)
+    )
 
 
 def api_base():
@@ -69,13 +73,23 @@ def pretend(address, sats, confirmed):
     of now, since the register counts only a payment in the sale's time."""
     payments = store.get(key(address), [])
     txid = hashlib.sha256(f"{address}:{sats}:{len(payments)}:{settings.SECRET_KEY[:8]}".encode()).hexdigest()
-    tx = {"txid": txid, "version": 2, "locktime": 0, "vin": [], "size": 222, "weight": 561, "fee": 500,
-          "vout": [{"scriptpubkey_type": "v0_p2wpkh", "scriptpubkey_address": address, "value": sats}],
-          "status": {"confirmed": True, "block_height": 200000, "block_time": int(time.time())} if confirmed else {"confirmed": False}}
+    tx = {
+        "txid": txid,
+        "version": 2,
+        "locktime": 0,
+        "vin": [],
+        "size": 222,
+        "weight": 561,
+        "fee": 500,
+        "vout": [{"scriptpubkey_type": "v0_p2wpkh", "scriptpubkey_address": address, "value": sats}],
+        "status": {"confirmed": True, "block_height": 200000, "block_time": int(time.time())}
+        if confirmed
+        else {"confirmed": False},
+    }
     known = [item for item in store.get(ADDRESSES, []) if item != address]
-    for forgotten in known[:max(0, len(known) + 1 - MAX_ADDRESSES)]:
+    for forgotten in known[: max(0, len(known) + 1 - MAX_ADDRESSES)]:
         store.delete(key(forgotten))
-    store.set(ADDRESSES, [*known[-(MAX_ADDRESSES - 1):], address], KEPT)
+    store.set(ADDRESSES, [*known[-(MAX_ADDRESSES - 1) :], address], KEPT)
     store.set(key(address), [tx, *payments][:MAX_PAYMENTS], KEPT)
     return txid
 
@@ -114,9 +128,15 @@ def pay(request):
     if not enabled():
         raise Http404
     if request.method == "POST":
-        if ratelimit.over_limit(f"fake-explorer:{ratelimit.client_ip(request)}", PER_VISITOR, 3600) or ratelimit.over_limit("fake-explorer", PER_HOUR, 3600):
-            return HttpResponse("Too many pretend payments: try again later.", status=429, content_type="text/plain",
-                                headers={"Retry-After": str(ratelimit.seconds_left(3600))})
+        if ratelimit.over_limit(
+            f"fake-explorer:{ratelimit.client_ip(request)}", PER_VISITOR, 3600
+        ) or ratelimit.over_limit("fake-explorer", PER_HOUR, 3600):
+            return HttpResponse(
+                "Too many pretend payments: try again later.",
+                status=429,
+                content_type="text/plain",
+                headers={"Retry-After": str(ratelimit.seconds_left(3600))},
+            )
     form = PayForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         address, action = form.cleaned_data["address"], form.cleaned_data["action"]
@@ -126,8 +146,14 @@ def pay(request):
             pretend(address, form.cleaned_data["sats"], action == "confirmed")
         return redirect(f"{reverse('fake_explorer')}?a={address}")
     shown = request.GET.get("a", "")
-    response = render(request, "shops/fake_explorer.html", {
-        "form": form, "address": shown if ADDRESS.fullmatch(shown) else "",
-        "txs": txs_for(shown) if ADDRESS.fullmatch(shown) else []})
+    response = render(
+        request,
+        "shops/fake_explorer.html",
+        {
+            "form": form,
+            "address": shown if ADDRESS.fullmatch(shown) else "",
+            "txs": txs_for(shown) if ADDRESS.fullmatch(shown) else [],
+        },
+    )
     response["X-Robots-Tag"] = "noindex, nofollow"
     return response

@@ -1,12 +1,13 @@
 """The short cache of the public list of shops (shops/public_cache.py): what is kept is the same for everybody, and a
 saved shop shows at the next request."""
+
 import re
 from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.template import Context, Template
 from django.db import connection, transaction
+from django.template import Context, Template
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
@@ -25,8 +26,11 @@ class PublicList(TestCase):
         cache.clear()
         self.owner = get_user_model().objects.create_user("owner-of-the-bar", email="owner@b.example")
         self.shop = Shop.objects.create(name="Bar", owner=self.owner, latitude=41.9, longitude=12.5, lightning=True)
-        Shop.objects.filter(pk=self.shop.pk).update(certified_month=date(2026, 9, 1), lightning_address="bar@b.example",
-                                                    lightning_worked=timezone.now() - timedelta(days=2))
+        Shop.objects.filter(pk=self.shop.pk).update(
+            certified_month=date(2026, 9, 1),
+            lightning_address="bar@b.example",
+            lightning_worked=timezone.now() - timedelta(days=2),
+        )
         Trainee.objects.create(user=self.owner, base_earned=timezone.now())
         self.other = get_user_model().objects.create_user("someone-else")
 
@@ -98,17 +102,23 @@ class PublicList(TestCase):
 
     def test_map_gives_the_shops_to_the_community_templates(self):
         # A community's map template counts the shops and lists the places of a year by name and town
-        Shop.objects.create(name="Old inn", city="Hilltown", external_id="77", latitude=41.7, longitude=12.3,
-                            closed_on=date(2020, 5, 1))
-        template = Template('{{ shops|length }}|{% for shop in shops %}{% if shop.external_id in keys or '
-                            'shop.id|stringformat:"s" in keys %}<a href="{% url \'shop_detail\' shop.id %}">'
-                            '{{ shop.name }}</a>, {{ shop.city }};{% endif %}{% endfor %}')
+        Shop.objects.create(
+            name="Old inn", city="Hilltown", external_id="77", latitude=41.7, longitude=12.3, closed_on=date(2020, 5, 1)
+        )
+        template = Template(
+            "{{ shops|length }}|{% for shop in shops %}{% if shop.external_id in keys or "
+            'shop.id|stringformat:"s" in keys %}<a href="{% url \'shop_detail\' shop.id %}">'
+            "{{ shop.name }}</a>, {{ shop.city }};{% endif %}{% endfor %}"
+        )
         for _round in range(2):
             # The second page comes from the cache: the same values
             shops = self.client.get("/en/shops/map/").context["shops"]
             page = template.render(Context({"shops": shops, "keys": ["77", str(self.shop.pk)]}))
-            self.assertEqual(page, f'2|<a href="/en/shops/s/{self.shop.pk}/">Bar</a>, ;'
-                                   f'<a href="/en/shops/s/{Shop.objects.get(external_id="77").pk}/">Old inn</a>, Hilltown;')
+            self.assertEqual(
+                page,
+                f'2|<a href="/en/shops/s/{self.shop.pk}/">Bar</a>, ;'
+                f'<a href="/en/shops/s/{Shop.objects.get(external_id="77").pk}/">Old inn</a>, Hilltown;',
+            )
         # Public values only, never the owner or the Lightning address
         self.assertEqual(set(shops[0]), {"id", "external_id", "name", "city", "closed_on", "discount"})
         self.assertNotIn("bar@b.example", str(shops))
@@ -117,7 +127,9 @@ class PublicList(TestCase):
         self.assertTrue(self.client.get("/shops.json").json()["shops"][0]["certified"])
         admin_session(self.client)
         with self.captureOnCommitCallbacks(execute=True):
-            self.client.post("/admin/shops/shop/", {"action": "revoke_certificate", "_selected_action": [str(self.shop.pk)]})
+            self.client.post(
+                "/admin/shops/shop/", {"action": "revoke_certificate", "_selected_action": [str(self.shop.pk)]}
+            )
         self.client.logout()
         self.assertFalse(self.client.get("/shops.json").json()["shops"][0]["certified"])
         self.assertNotIn("Certified shop", shop_list(self.client.get("/en/shops/map/")))
@@ -145,8 +157,9 @@ class Bookkeeping(TestCase):
     def setUp(self):
         cache.clear()
         self.owner = get_user_model().objects.create_user("owner-of-the-bar")
-        self.shop = Shop.objects.create(name="Bar", owner=self.owner, latitude=41.9, longitude=12.5,
-                                        lightning_address="bar@b.example")
+        self.shop = Shop.objects.create(
+            name="Bar", owner=self.owner, latitude=41.9, longitude=12.5, lightning_address="bar@b.example"
+        )
 
     def probe(self, result):
         before = public_cache.generation()
@@ -170,8 +183,10 @@ class Bookkeeping(TestCase):
         self.probe(None)
         marked = []
         mark = public_cache.same_list
-        with patch.object(public_cache, "same_list", lambda shop: marked.append(mark(shop)) or shop), \
-                patch.object(Shop, "save", side_effect=RuntimeError("database")):
+        with (
+            patch.object(public_cache, "same_list", lambda shop: marked.append(mark(shop)) or shop),
+            patch.object(Shop, "save", side_effect=RuntimeError("database")),
+        ):
             with self.assertRaises(RuntimeError):
                 lightning_watch.record(self.shop.pk, "bar@b.example", None)
         [shop] = marked

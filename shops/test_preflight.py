@@ -1,4 +1,5 @@
 """manage.py preflight: every point of the "before mainnet" list that can be checked from the machine stops it."""
+
 import smtplib
 from io import StringIO
 from unittest.mock import MagicMock, patch
@@ -13,15 +14,24 @@ COMMAND = "shops.management.commands.preflight"
 
 
 class Preflight(TestCase):
-    GOOD = {"SITE_SCHEME": "https", "NETWORK": "mainnet", "DEBUG": False, "SECRET_KEY": "x" * 60, "EMAIL_HOST": "mail",
-            "DEFAULT_FROM_EMAIL": "Community <noreply@community.example.net>", "SECURE_HSTS_SECONDS": 31536000}
+    GOOD = {
+        "SITE_SCHEME": "https",
+        "NETWORK": "mainnet",
+        "DEBUG": False,
+        "SECRET_KEY": "x" * 60,
+        "EMAIL_HOST": "mail",
+        "DEFAULT_FROM_EMAIL": "Community <noreply@community.example.net>",
+        "SECURE_HSTS_SECONDS": 31536000,
+    }
 
     def run_it(self, mail=None, aaaa=(), **changes):
         """The errors written by the command, one per line; empty if everything is ready."""
         connection = mail or MagicMock()
-        with override_settings(**{**self.GOOD, **changes}), \
-                patch(f"{COMMAND}.get_connection", return_value=connection) as get_connection, \
-                patch(f"{COMMAND}.site_ipv6", return_value=set(aaaa)):
+        with (
+            override_settings(**{**self.GOOD, **changes}),
+            patch(f"{COMMAND}.get_connection", return_value=connection) as get_connection,
+            patch(f"{COMMAND}.site_ipv6", return_value=set(aaaa)),
+        ):
             self.get_connection = get_connection
             try:
                 call_command("preflight", stderr=(errors := StringIO()), stdout=StringIO())
@@ -39,8 +49,14 @@ class Preflight(TestCase):
         self.assertEqual(self.run_it(), [])
 
     def test_each_missing_piece_stops_it(self):
-        for change in ({"NETWORK": "signet"}, {"SECRET_KEY": "short"}, {"EMAIL_HOST": ""}, {"SECURE_HSTS_SECONDS": 86400},
-                       {"SECURE_HSTS_SECONDS": 31535999}, {"DEBUG": True}):
+        for change in (
+            {"NETWORK": "signet"},
+            {"SECRET_KEY": "short"},
+            {"EMAIL_HOST": ""},
+            {"SECURE_HSTS_SECONDS": 86400},
+            {"SECURE_HSTS_SECONDS": 31535999},
+            {"DEBUG": True},
+        ):
             with self.subTest(change):
                 self.assertEqual(len(self.run_it(**change)), 1)
 
@@ -83,6 +99,7 @@ class Preflight(TestCase):
 
 class IPv6(TestCase):
     """An AAAA record with a Docker network without IPv6: every IPv6 visitor would come from the gateway."""
+
     GOOD, run_it, assertStops = Preflight.GOOD, Preflight.run_it, Preflight.assertStops
     LOOPBACK = "00000000000000000000000000000001 01 80 10 80       lo\n"
     LINK = "fe8000000000000000420afffe000002 0c 40 20 80     eth0\n"
@@ -98,6 +115,7 @@ class IPv6(TestCase):
 
     def test_own_ipv6_leaves_out_loopback_and_link_local(self):
         from .management.commands.preflight import own_ipv6
+
         self.assertFalse(own_ipv6(self.interfaces(self.LOOPBACK + self.LINK)))
         self.assertTrue(own_ipv6(self.interfaces(self.LOOPBACK + self.LINK + self.ULA)))
         missing = MagicMock()
@@ -106,6 +124,7 @@ class IPv6(TestCase):
 
     def test_only_public_addresses_of_the_name_count(self):
         from .management.commands.preflight import site_ipv6
+
         with self.aaaa("::1", "fe80::1%eth0", "fd00::5", "2a01:4f8::1"):
             self.assertEqual(site_ipv6("website.example.net"), {"2a01:4f8::1"})
         with patch(f"{COMMAND}.socket.getaddrinfo", side_effect=OSError("no AAAA")):
@@ -129,6 +148,7 @@ class IPv6(TestCase):
 class PrivacyPageNote(TestCase):
     def test_placeholders_in_the_privacy_page_are_a_note_not_an_error(self):
         from shops.management.commands.preflight import privacy_notes
+
         notes = privacy_notes()  # the example community ships the template
         self.assertEqual(len(notes), 1)
         self.assertIn("docs/privacy.md", notes[0])
@@ -141,6 +161,7 @@ NO_TELEGRAM = {"TELEGRAM_BOT_TOKEN": "", "TELEGRAM_MODERATION_CHAT": ""}
 class ModeratorsChannel(TestCase):
     """Whether the moderators can be reached: a warning that cannot be missed, never a stop (whoever runs a site alone is
     their own moderator), and a plain note when the mail does Telegram's job."""
+
     GOOD = Preflight.GOOD
     TELEGRAM = TELEGRAM
     NO_TELEGRAM = NO_TELEGRAM
@@ -148,8 +169,12 @@ class ModeratorsChannel(TestCase):
     def run_it(self, email="staff@example.org", **changes):
         """(stdout, stderr, stopped)."""
         out, errors = StringIO(), StringIO()
-        with override_settings(**{**self.GOOD, **changes}), patch(f"{COMMAND}.get_connection"), \
-                patch(f"{COMMAND}.site_ipv6", return_value=set()), patch.dict(community(), {"email": email}):
+        with (
+            override_settings(**{**self.GOOD, **changes}),
+            patch(f"{COMMAND}.get_connection"),
+            patch(f"{COMMAND}.site_ipv6", return_value=set()),
+            patch.dict(community(), {"email": email}),
+        ):
             try:
                 call_command("preflight", stdout=out, stderr=errors)
                 stopped = False
@@ -159,18 +184,28 @@ class ModeratorsChannel(TestCase):
 
     def test_nobody_reached_is_a_warning_and_preflight_still_passes(self):
         for mode in ("development", "test", "production"):
-            for case in (self.NO_TELEGRAM, {"TELEGRAM_BOT_TOKEN": "t", "TELEGRAM_MODERATION_CHAT": ""},
-                         {"TELEGRAM_BOT_TOKEN": "", "TELEGRAM_MODERATION_CHAT": "-100"}):
+            for case in (
+                self.NO_TELEGRAM,
+                {"TELEGRAM_BOT_TOKEN": "t", "TELEGRAM_MODERATION_CHAT": ""},
+                {"TELEGRAM_BOT_TOKEN": "", "TELEGRAM_MODERATION_CHAT": "-100"},
+            ):
                 with self.subTest(mode=mode, case=case):
                     out, errors, stopped = self.run_it(email="", SITE_MODE=mode, **case)
                     self.assertFalse(stopped)
                     self.assertEqual(errors, "")
                     self.assertIn("All ready", out)
                     warning = next(line for line in out.splitlines() if line.startswith("WARNING:"))
-                    for text in ("the moderators cannot be reached", "the morning summary",
-                                 "the new shops waiting for an approval", "second factor", "will reach nobody",
-                                 "/admin/today/", "TELEGRAM_MODERATION_CHAT", "EMAIL_HOST",
-                                 "community.yml has no `moderators_emails` and no `email`"):
+                    for text in (
+                        "the moderators cannot be reached",
+                        "the morning summary",
+                        "the new shops waiting for an approval",
+                        "second factor",
+                        "will reach nobody",
+                        "/admin/today/",
+                        "TELEGRAM_MODERATION_CHAT",
+                        "EMAIL_HOST",
+                        "community.yml has no `moderators_emails` and no `email`",
+                    ):
                         self.assertIn(text, warning)
 
     def test_the_warning_names_what_is_missing(self):
@@ -188,8 +223,11 @@ class ModeratorsChannel(TestCase):
         out, errors, stopped = self.run_it(EMAIL_HOST="", **self.NO_TELEGRAM)
         self.assertTrue(stopped)
         self.assertEqual(errors.splitlines(), ["EMAIL_HOST is missing: the sign-in links will not go out"])
-        self.assertIn("WARNING: the moderators cannot be reached (TELEGRAM_BOT_TOKEN is empty; "
-                      "TELEGRAM_MODERATION_CHAT is empty; EMAIL_HOST is empty)", out)
+        self.assertIn(
+            "WARNING: the moderators cannot be reached (TELEGRAM_BOT_TOKEN is empty; "
+            "TELEGRAM_MODERATION_CHAT is empty; EMAIL_HOST is empty)",
+            out,
+        )
 
     def test_mail_without_telegram_is_a_plain_note(self):
         out, _errors, stopped = self.run_it(**self.NO_TELEGRAM)
@@ -200,8 +238,11 @@ class ModeratorsChannel(TestCase):
     def test_a_community_mail_backend_is_mail_without_email_host(self):
         """EMAIL_REAL_BACKEND (docs/configuration.md, "A mail backend of the community") sends real mail without EMAIL_HOST:
         no warning, no stop for the sign-in links."""
-        community_backend = {**self.NO_TELEGRAM, "EMAIL_HOST": "",
-                             "EMAIL_REAL_BACKEND": "shops.test_notify_test.CommunityBackend"}
+        community_backend = {
+            **self.NO_TELEGRAM,
+            "EMAIL_HOST": "",
+            "EMAIL_REAL_BACKEND": "shops.test_notify_test.CommunityBackend",
+        }
         out, errors, stopped = self.run_it(**community_backend)
         self.assertFalse(stopped, errors)
         self.assertNotIn("WARNING", out)

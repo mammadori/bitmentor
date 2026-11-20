@@ -5,6 +5,7 @@ A historic shop (closed for good: from the day after its `closed_on`, Shop.close
 history, but is not a place to pay: it does not enter the counts, the discounts or the shop window. Up to and including
 its closing day it is a place to pay like the others.
 """
+
 from math import asin, ceil, cos, degrees, radians, sin, sqrt
 
 from django.db.models import Q
@@ -41,8 +42,12 @@ def waits_for_wallet(shop):
 
 def public_shops():
     """A shop waiting for its owner's wallet (waiting_for_wallet) is not a place of the map yet."""
-    return (Shop.objects.filter(suspended=False, approved_on__isnull=False, listed=True).exclude(latitude=None).exclude(longitude=None)
-            .exclude(waiting_for_wallet()))
+    return (
+        Shop.objects.filter(suspended=False, approved_on__isnull=False, listed=True)
+        .exclude(latitude=None)
+        .exclude(longitude=None)
+        .exclude(waiting_for_wallet())
+    )
 
 
 def payable_shops():
@@ -89,9 +94,12 @@ def nearby_shops(shop, limit=NEARBY_SHOPS, radius=NEARBY_METRES):
     here = (shop.latitude, shop.longitude)
     span = degrees(radius / EARTH_METRES)
     wide = span / max(cos(radians(shop.latitude)), 0.01)
-    candidates = (payable_shops().exclude(pk=shop.pk)
-                  .filter(latitude__range=(here[0] - span, here[0] + span), longitude__range=(here[1] - wide, here[1] + wide))
-                  .only("id", "name", "city", "discount", "lightning", "onchain", "latitude", "longitude"))
+    candidates = (
+        payable_shops()
+        .exclude(pk=shop.pk)
+        .filter(latitude__range=(here[0] - span, here[0] + span), longitude__range=(here[1] - wide, here[1] + wide))
+        .only("id", "name", "city", "discount", "lightning", "onchain", "latitude", "longitude")
+    )
     found = []
     for other in candidates:
         other.metres = metres_between(here, (other.latitude, other.longitude))

@@ -1,5 +1,6 @@
 """Team access in /admin/: the invites the staff makes and the keys they became. With TEAM_ACCESS off nothing of it
 shows: no page, no link, for anybody."""
+
 import segno
 from django.conf import settings
 from django.contrib import admin, messages
@@ -47,6 +48,7 @@ class Switched:
 class TeamKeyAdmin(Switched, HidesSecrets, admin.ModelAdmin):
     """The team's keys. A key is made only by an invite; here it is renamed, revoked or deleted. Revoking keeps the
     row, so the same wallet cannot come back with another invite; deleting forgets it."""
+
     list_display = ("name", "role", "approves", "short_key", "created", "last_pass", "state")
     list_filter = ("role", "approves")
     search_fields = ("name",)
@@ -72,8 +74,9 @@ class TeamKeyAdmin(Switched, HidesSecrets, admin.ModelAdmin):
     def area_log(self, key):
         count = key.area_actions.count()
         url = f"{reverse('admin:team_teamaction_changelist')}?key__id__exact={key.pk}"
-        return format_html('<a href="{}">{}</a>', url,
-                           ngettext("%(count)d action", "%(count)d actions", count) % {"count": count})
+        return format_html(
+            '<a href="{}">{}</a>', url, ngettext("%(count)d action", "%(count)d actions", count) % {"count": count}
+        )
 
     @admin.display(description=_("linking key"))
     def short_key(self, key):
@@ -98,21 +101,33 @@ class TeamKeyAdmin(Switched, HidesSecrets, admin.ModelAdmin):
 
     @admin.action(description=_("Revoke the selected keys: their passes stop at once"), permissions=["change"])
     def revoke(self, request, queryset):
-        count = self.each(request, queryset, TeamKey.revoke, _("Revoked: the wallet signs in no more, its passes stopped."))
-        self.message_user(request, ngettext("%(count)d key revoked.", "%(count)d keys revoked.", count) % {"count": count},
-                          messages.SUCCESS)
+        count = self.each(
+            request, queryset, TeamKey.revoke, _("Revoked: the wallet signs in no more, its passes stopped.")
+        )
+        self.message_user(
+            request,
+            ngettext("%(count)d key revoked.", "%(count)d keys revoked.", count) % {"count": count},
+            messages.SUCCESS,
+        )
 
-    @admin.action(description=_("End the passes of the selected keys: every browser signs in again"), permissions=["change"])
+    @admin.action(
+        description=_("End the passes of the selected keys: every browser signs in again"), permissions=["change"]
+    )
     def end_passes(self, request, queryset):
         count = self.each(request, queryset, TeamKey.end_passes, _("Passes ended: every browser signs in again."))
-        self.message_user(request, ngettext("The passes of %(count)d key ended.", "The passes of %(count)d keys ended.",
-                                            count) % {"count": count}, messages.SUCCESS)
+        self.message_user(
+            request,
+            ngettext("The passes of %(count)d key ended.", "The passes of %(count)d keys ended.", count)
+            % {"count": count},
+            messages.SUCCESS,
+        )
 
 
 @admin.register(TeamInvite)
 class TeamInviteAdmin(Switched, HidesSecrets, admin.ModelAdmin):
     """The invites: made here with a name and a role, shown once as a link and a QR code, then only looked at. Deleting
     one that is still open revokes it."""
+
     list_display = ("name", "role", "created", "expires", "state", "key")
     list_filter = ("role",)
     search_fields = ("name",)
@@ -148,9 +163,18 @@ class TeamInviteAdmin(Switched, HidesSecrets, admin.ModelAdmin):
 
     def response_add(self, request, obj, post_url_continue=None):
         link = f"{settings.PUBLIC_URL}{reverse('team_join', args=[request.team_invite_token])}"
-        response = TemplateResponse(request, "admin/team/teaminvite/created.html", {
-            **self.admin_site.each_context(request), "opts": self.opts, "title": str(obj), "invite": obj, "link": link,
-            "qr": segno.make(link, error="l").svg_data_uri(scale=6, border=2, light="#fff")})
+        response = TemplateResponse(
+            request,
+            "admin/team/teaminvite/created.html",
+            {
+                **self.admin_site.each_context(request),
+                "opts": self.opts,
+                "title": str(obj),
+                "invite": obj,
+                "link": link,
+                "qr": segno.make(link, error="l").svg_data_uri(scale=6, border=2, light="#fff"),
+            },
+        )
         response["Cache-Control"] = "private, no-store"
         return response
 
@@ -159,6 +183,7 @@ class TeamInviteAdmin(Switched, HidesSecrets, admin.ModelAdmin):
 class TeamActionAdmin(HidesSecrets, admin.ModelAdmin):
     """What the volunteers did in their area (team/area.py), newest first: to read, never to add, change or delete. It
     shows only while the area is on (TEAM_AREA with TEAM_ACCESS); the rows stay in the database when it is off."""
+
     list_display = ("created", "name", "action", "target")
     list_filter = ("action", "key")
     fields = ("created", "name", "key", "action", "target")

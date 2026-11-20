@@ -1,5 +1,6 @@
 """Where the registers keep their encrypted copies on Nostr: `register.relays` and `register.public_relays` in
 community.yml, the register's data and its CSP, which opens only those relays."""
+
 import json
 import os
 import shutil
@@ -22,10 +23,21 @@ class Relays(SimpleTestCase):
     def test_only_a_wss_address_of_a_domain_name(self):
         self.assertEqual(relay_url("wss://Relay.Example.org/"), "wss://relay.example.org")
         self.assertEqual(relay_url("wss://relay.example.org/nostr"), "wss://relay.example.org/nostr")
-        for wrong in ("ws://relay.example.org", "https://relay.example.org", "wss://relay.example.org:444",
-                      "wss://a@relay.example.org", "wss://relay.example.org?x=1", "wss://relay.example.org#x",
-                      "wss://127.0.0.1", "wss://*.example.org", "wss://relay.example.org; script-src *",
-                      "wss://relay.example.org/a b", None, 3, ["wss://relay.example.org"]):
+        for wrong in (
+            "ws://relay.example.org",
+            "https://relay.example.org",
+            "wss://relay.example.org:444",
+            "wss://a@relay.example.org",
+            "wss://relay.example.org?x=1",
+            "wss://relay.example.org#x",
+            "wss://127.0.0.1",
+            "wss://*.example.org",
+            "wss://relay.example.org; script-src *",
+            "wss://relay.example.org/a b",
+            None,
+            3,
+            ["wss://relay.example.org"],
+        ):
             self.assertIsNone(relay_url(wrong), wrong)
 
     def test_a_path_alone_is_a_relay_of_the_site_itself(self):
@@ -41,34 +53,63 @@ class Relays(SimpleTestCase):
     def test_a_relay_of_the_community_on_a_name_under_the_site(self):
         with self.settings(SITE_HOST="dev.example.org"):
             self.assertEqual(relay_url("wss://relay.{site_host}", own=True), "wss://relay.dev.example.org")
-            self.assertEqual(relay_url(" wss://Relay.{site_host}/nostr/ ", own=True), "wss://relay.dev.example.org/nostr")
+            self.assertEqual(
+                relay_url(" wss://Relay.{site_host}/nostr/ ", own=True), "wss://relay.dev.example.org/nostr"
+            )
             self.assertEqual(relay_url("wss://{site_host}/relay", own=True), "wss://dev.example.org/relay")
             # only a relay of the community, only the end of the host, once, and still a wss address
             self.assertIsNone(relay_url("wss://relay.{site_host}"))
-            for wrong in ("wss://{site_host}.evil.example.org", "wss://relay.example.org/{site_host}",
-                          "wss://{site_host}.{site_host}", "ws://relay.{site_host}", "wss://relay.{site_host}:444",
-                          "wss://relay.{site_host}?x=1", "wss://relay.{SITE_HOST}", "wss://relay.{site_host}@evil.example.org",
-                          "{site_host}", "//relay.{site_host}"):
+            for wrong in (
+                "wss://{site_host}.evil.example.org",
+                "wss://relay.example.org/{site_host}",
+                "wss://{site_host}.{site_host}",
+                "ws://relay.{site_host}",
+                "wss://relay.{site_host}:444",
+                "wss://relay.{site_host}?x=1",
+                "wss://relay.{SITE_HOST}",
+                "wss://relay.{site_host}@evil.example.org",
+                "{site_host}",
+                "//relay.{site_host}",
+            ):
                 self.assertIsNone(relay_url(wrong, own=True), wrong)
         for host in ("localhost", "example.org:8443", "evil.example.org/x?"):
             with self.settings(SITE_HOST=host):
                 self.assertIsNone(relay_url("wss://relay.{site_host}", own=True), host)
-        with self.settings(SITE_HOST="example.org"), with_register(
-                relays=["wss://relay.{site_host}", "/relay"], public_relays=["wss://nos.lol", "wss://pub.{site_host}"]):
-            self.assertEqual(relays(), {"relays": ["wss://relay.example.org", "wss://example.org/relay"],
-                                        "public_relays": ["wss://nos.lol"]})
-            self.assertEqual(relay_problems(), ["register.public_relays: 'wss://pub.{site_host}' is not a wss address of "
-                                                "a relay (wss://host/path): it is not used"])
+        with (
+            self.settings(SITE_HOST="example.org"),
+            with_register(
+                relays=["wss://relay.{site_host}", "/relay"], public_relays=["wss://nos.lol", "wss://pub.{site_host}"]
+            ),
+        ):
+            self.assertEqual(
+                relays(),
+                {"relays": ["wss://relay.example.org", "wss://example.org/relay"], "public_relays": ["wss://nos.lol"]},
+            )
+            self.assertEqual(
+                relay_problems(),
+                [
+                    "register.public_relays: 'wss://pub.{site_host}' is not a wss address of "
+                    "a relay (wss://host/path): it is not used"
+                ],
+            )
 
     def test_the_community_relays_and_the_public_ones(self):
         self.assertEqual(relays(), {"relays": [], "public_relays": []})
-        with with_register(relays="wss://ours.example.org", public_relays=["wss://nos.lol", "wss://ours.example.org/",
-                                                                            "ws://bad.example.org"]):
+        with with_register(
+            relays="wss://ours.example.org",
+            public_relays=["wss://nos.lol", "wss://ours.example.org/", "ws://bad.example.org"],
+        ):
             self.assertEqual(relays(), {"relays": ["wss://ours.example.org"], "public_relays": ["wss://nos.lol"]})
-            self.assertEqual(relay_problems(), ["register.public_relays: 'ws://bad.example.org' is not a wss address of a "
-                                                "relay (wss://host/path): it is not used"])
-            self.assertEqual([problem.id for problem in checks.run_checks() if problem.id.startswith("shops.")],
-                             ["shops.W007"])
+            self.assertEqual(
+                relay_problems(),
+                [
+                    "register.public_relays: 'ws://bad.example.org' is not a wss address of a "
+                    "relay (wss://host/path): it is not used"
+                ],
+            )
+            self.assertEqual(
+                [problem.id for problem in checks.run_checks() if problem.id.startswith("shops.")], ["shops.W007"]
+            )
         many = [f"wss://r{i}.example.org" for i in range(20)]
         with with_register(relays=many, public_relays=many):
             self.assertEqual(relays(), {"relays": many[:8], "public_relays": many[8:16]})
@@ -77,12 +118,15 @@ class Relays(SimpleTestCase):
 class RegisterPolicy(TestCase):
     def setUp(self):
         owner = get_user_model().objects.create(username="k")
-        self.shop = Shop.objects.create(owner=owner, name="Bar", city="Example", lightning_address="till@ln.example.org")
+        self.shop = Shop.objects.create(
+            owner=owner, name="Bar", city="Example", lightning_address="till@ln.example.org"
+        )
         self.url = f"/en/shops/register/{self.shop.id}/"
 
     def test_the_csp_opens_only_the_relays_of_community_yml(self):
-        with with_register(relays=["wss://ours.example.org/nostr", "wss://evil.example.org:444"],
-                           public_relays=["wss://nos.lol"]):
+        with with_register(
+            relays=["wss://ours.example.org/nostr", "wss://evil.example.org:444"], public_relays=["wss://nos.lol"]
+        ):
             response = self.client.get(self.url)
         connect = response.headers["Content-Security-Policy"].split("connect-src ")[1].split(";")[0].split()
         self.assertIn("wss://ours.example.org", connect)
@@ -216,8 +260,12 @@ class RelayLimits(SimpleTestCase):
         with tempfile.TemporaryDirectory() as folder:
             harness = Path(folder) / "relays.js"
             harness.write_text(RELAYS_HARNESS)
-            result = subprocess.run([node, str(harness), str(settings.BASE_DIR / "static" / "register-relays.js")],
-                                    capture_output=True, text=True, timeout=120)
+            result = subprocess.run(
+                [node, str(harness), str(settings.BASE_DIR / "static" / "register-relays.js")],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
         if result.returncode:
             raise AssertionError(result.stderr)
         cls.out = json.loads(result.stdout)
@@ -240,9 +288,16 @@ class RelayLimits(SimpleTestCase):
         """Refused by the browser, a socket error, no opening before the time limit, no answer before the time limit:
         each is one relay failing. A relay that hangs up has given what it gave."""
         self.assertEqual(self.out["failingRequest"], {"events": [], "answered": 1})
-        self.assertEqual(self.out["failingPublish"], {"wss://refused.example.org": 0, "wss://broken.example.org": 0,
-                                                      "wss://asleep.example.org": 0, "wss://mute.example.org": 0,
-                                                      "wss://hangup.example.org": 1})
+        self.assertEqual(
+            self.out["failingPublish"],
+            {
+                "wss://refused.example.org": 0,
+                "wss://broken.example.org": 0,
+                "wss://asleep.example.org": 0,
+                "wss://mute.example.org": 0,
+                "wss://hangup.example.org": 1,
+            },
+        )
         self.assertEqual(self.out["hangup"], ["before-hangup"])
 
     def test_a_false_signature_does_not_hide_the_genuine_event(self):

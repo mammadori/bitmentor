@@ -1,13 +1,13 @@
 """Tests run in series in the same thread: a request to /it/ leaves Italian active for the tests that follow,
 and those that expect the default language fail or pass depending on the order. After each test it goes back
 to the default language."""
+
 import multiprocessing
 import unittest
 
 from django.conf import settings
 from django.test.runner import DiscoverRunner, ParallelTestSuite, RemoteTestResult, RemoteTestRunner
 from django.utils import translation
-
 
 # Python 3.14 starts the workers with forkserver on Linux, and Django clones a SQLite test database only for fork: the
 # tests keep fork, as up to 3.13. Here, when the runner is imported, and not in its __init__: `manage.py test --parallel`

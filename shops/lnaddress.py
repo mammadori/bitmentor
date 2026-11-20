@@ -3,6 +3,7 @@
 A provider without LUD-21 gives the register no way to see a payment arrive: the merchant has to check the wallet by
 hand. This has to be found out here, not in front of the customer.
 """
+
 import hashlib
 import json
 import socket
@@ -42,6 +43,7 @@ class Found(str):
     """A state of `probe` that also says why, in `why`: one of the names below, or None when nothing more is known.
     It is the state itself for whoever compares it (`probe(...) == NO_ANSWER`), so the callers that read only the
     state go on as before; `explanation` reads `why` to tell the merchant what exactly is wrong."""
+
     def __new__(cls, state, why=None):
         found = super().__new__(cls, state)
         found.why = why
@@ -52,7 +54,12 @@ class Found(str):
 # something that is no LNURL-pay (LUD-16); its invoices come from another site, which the register does not ask; it
 # gives no invoice
 UNREACHABLE, NO_SUCH_ADDRESS, NOT_LNURL, INVOICES_ELSEWHERE, NO_INVOICE = (
-    "unreachable", "no_such_address", "not_lnurl", "invoices_elsewhere", "no_invoice")
+    "unreachable",
+    "no_such_address",
+    "not_lnurl",
+    "invoices_elsewhere",
+    "no_invoice",
+)
 # Why NO_CONFIRMATION: the invoice has no LUD-21 `verify`; the `verify` is on another site; it answers in a way the
 # register cannot read
 NO_VERIFY, VERIFY_ELSEWHERE, VERIFY_UNREADABLE = "no_verify", "verify_elsewhere", "verify_unreadable"
@@ -197,8 +204,9 @@ def fetch(url, seconds=MAX_SECONDS, size=MAX_BYTES):
     with requests.Session() as session:
         watchdog = Watchdog(left, pinned=addresses)
         session.mount("https://", watchdog)
-        with session.get(url, headers=HEADERS, timeout=min(TIMEOUT, seconds), allow_redirects=False,
-                         stream=True) as response:
+        with session.get(
+            url, headers=HEADERS, timeout=min(TIMEOUT, seconds), allow_redirects=False, stream=True
+        ) as response:
             response.raise_for_status()
             for chunk in response.iter_content(8192):
                 body += chunk
@@ -327,10 +335,14 @@ def one_slip(typed, known):
         return False
     if len(typed) == len(known):
         diff = [i for i, (a, b) in enumerate(zip(typed, known)) if a != b]
-        return len(diff) == 1 or (len(diff) == 2 and diff[1] == diff[0] + 1
-                                  and typed[diff[0]] == known[diff[1]] and typed[diff[1]] == known[diff[0]])
+        return len(diff) == 1 or (
+            len(diff) == 2
+            and diff[1] == diff[0] + 1
+            and typed[diff[0]] == known[diff[1]]
+            and typed[diff[1]] == known[diff[0]]
+        )
     short, long = sorted((typed, known), key=len)
-    return any(long[:i] + long[i + 1:] == short for i in range(len(long)))
+    return any(long[:i] + long[i + 1 :] == short for i in range(len(long)))
 
 
 def known_domains():
@@ -340,8 +352,11 @@ def known_domains():
     domain either, which would tell it to others. No provider is named in the software."""
     from .models import Shop, still_trading
 
-    shops = (Shop.objects.exclude(lightning_address="").exclude(owner=None)
-             .filter(still_trading(), suspended=False, approved_on__isnull=False))
+    shops = (
+        Shop.objects.exclude(lightning_address="")
+        .exclude(owner=None)
+        .filter(still_trading(), suspended=False, approved_on__isnull=False)
+    )
     owners = {}
     for address, owner in shops.values_list("lightning_address", "owner")[:5000]:
         owners.setdefault(address.rpartition("@")[2], set()).add(owner)
@@ -357,11 +372,42 @@ def suggestion(address):
 
 
 # Mailbox providers that give no Lightning address: what a merchant writes there is the email, not the wallet's address
-MAILBOXES = frozenset({
-    "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "hotmail.it", "live.com", "live.it", "msn.com",
-    "yahoo.com", "yahoo.it", "icloud.com", "me.com", "mac.com", "aol.com", "gmx.com", "gmx.de", "gmx.net", "web.de",
-    "t-online.de", "proton.me", "protonmail.com", "libero.it", "virgilio.it", "tiscali.it", "alice.it", "tim.it",
-    "fastwebnet.it", "email.it", "pec.it", "orange.fr", "free.fr", "laposte.net"})
+MAILBOXES = frozenset(
+    {
+        "gmail.com",
+        "googlemail.com",
+        "outlook.com",
+        "hotmail.com",
+        "hotmail.it",
+        "live.com",
+        "live.it",
+        "msn.com",
+        "yahoo.com",
+        "yahoo.it",
+        "icloud.com",
+        "me.com",
+        "mac.com",
+        "aol.com",
+        "gmx.com",
+        "gmx.de",
+        "gmx.net",
+        "web.de",
+        "t-online.de",
+        "proton.me",
+        "protonmail.com",
+        "libero.it",
+        "virgilio.it",
+        "tiscali.it",
+        "alice.it",
+        "tim.it",
+        "fastwebnet.it",
+        "email.it",
+        "pec.it",
+        "orange.fr",
+        "free.fr",
+        "laposte.net",
+    }
+)
 
 
 def explanation(state, address, suggested=None):
@@ -374,38 +420,76 @@ def explanation(state, address, suggested=None):
     text = {
         OK: _("It works: the register will know when a payment arrives. Provider: {provider}."),
         UNKNOWN_DOMAIN: _("I cannot find {provider}: check what you wrote after the @."),
-        NO_ANSWER: _("This Lightning address does not answer: check it and try again. "
-                     "Phoenix addresses, the ones with the ₿ sign, cannot be used here."),
-        NO_CONFIRMATION: _("This address can receive, but it does not tell the register when a payment arrives. "
-                           "Use a wallet with a different Lightning address, or write to {email}."),
+        NO_ANSWER: _(
+            "This Lightning address does not answer: check it and try again. "
+            "Phoenix addresses, the ones with the ₿ sign, cannot be used here."
+        ),
+        NO_CONFIRMATION: _(
+            "This address can receive, but it does not tell the register when a payment arrives. "
+            "Use a wallet with a different Lightning address, or write to {email}."
+        ),
     }[str(state)]
     detailed = {
-        (NO_ANSWER, UNREACHABLE): (_("{provider} does not answer right now: check what you wrote after the @ and "
-                                     "try again in a minute."),),
-        (NO_ANSWER, NO_SUCH_ADDRESS): (_("{provider} answers, but it knows no such address: check what you wrote "
-                                         "before the @."), phoenix),
-        (NO_ANSWER, NOT_LNURL): (_("{provider} answers, but not as a Lightning address does (LNURL-pay, LUD-16): "
-                                   "check the address in your wallet, under Receive."), phoenix),
-        (NO_ANSWER, INVOICES_ELSEWHERE): (_("{provider} has its invoices made by another site, and the register "
-                                            "asks only the address's own: this wallet cannot be used with the "
-                                            "register."), another),
-        (NO_ANSWER, NO_INVOICE): (_("{provider} knows this address but gives no invoice for it: check in your "
-                                    "wallet that it can receive, and try again."),),
-        (NO_CONFIRMATION, NO_VERIFY): (_("This address can receive, but {provider} does not tell the register when "
-                                         "a payment arrives: it does not support LUD-21 (verify)."), another),
-        (NO_CONFIRMATION, VERIFY_ELSEWHERE): (_("This address can receive, but {provider} does not tell the "
-                                                "register when a payment arrives: its LUD-21 (verify) is on "
-                                                "another site, which the register does not ask."), another),
-        (NO_CONFIRMATION, VERIFY_UNREADABLE): (_("This address can receive, but {provider} does not tell the "
-                                                 "register when a payment arrives: its LUD-21 (verify) does not "
-                                                 "answer as the register needs."), another),
+        (NO_ANSWER, UNREACHABLE): (
+            _("{provider} does not answer right now: check what you wrote after the @ and try again in a minute."),
+        ),
+        (NO_ANSWER, NO_SUCH_ADDRESS): (
+            _("{provider} answers, but it knows no such address: check what you wrote before the @."),
+            phoenix,
+        ),
+        (NO_ANSWER, NOT_LNURL): (
+            _(
+                "{provider} answers, but not as a Lightning address does (LNURL-pay, LUD-16): "
+                "check the address in your wallet, under Receive."
+            ),
+            phoenix,
+        ),
+        (NO_ANSWER, INVOICES_ELSEWHERE): (
+            _(
+                "{provider} has its invoices made by another site, and the register "
+                "asks only the address's own: this wallet cannot be used with the "
+                "register."
+            ),
+            another,
+        ),
+        (NO_ANSWER, NO_INVOICE): (
+            _(
+                "{provider} knows this address but gives no invoice for it: check in your "
+                "wallet that it can receive, and try again."
+            ),
+        ),
+        (NO_CONFIRMATION, NO_VERIFY): (
+            _(
+                "This address can receive, but {provider} does not tell the register when "
+                "a payment arrives: it does not support LUD-21 (verify)."
+            ),
+            another,
+        ),
+        (NO_CONFIRMATION, VERIFY_ELSEWHERE): (
+            _(
+                "This address can receive, but {provider} does not tell the "
+                "register when a payment arrives: its LUD-21 (verify) is on "
+                "another site, which the register does not ask."
+            ),
+            another,
+        ),
+        (NO_CONFIRMATION, VERIFY_UNREADABLE): (
+            _(
+                "This address can receive, but {provider} does not tell the "
+                "register when a payment arrives: its LUD-21 (verify) does not "
+                "answer as the register needs."
+            ),
+            another,
+        ),
     }.get((str(state), getattr(state, "why", None)))
     if detailed:
         text = " ".join(detailed)
     text = text.format(provider=domain, email=community()["email"])
     if state == NO_ANSWER and domain.lower() in MAILBOXES:
-        text = _("This looks like an email, not a Lightning address. You need the wallet's Lightning address: open the "
-                 "wallet and look under Receive.")
+        text = _(
+            "This looks like an email, not a Lightning address. You need the wallet's Lightning address: open the "
+            "wallet and look under Receive."
+        )
     if suggested:
         text = f"{text} {_('Did you mean {address}?').format(address=suggested)}"
     return text

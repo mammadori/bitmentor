@@ -1,5 +1,6 @@
 """The .po files are written by hand: one reader of them, and one test that every string of every template is in each
 language of locale/, with the same placeholders. A string added without them shows in English to everyone else."""
+
 import re
 
 from django.conf import settings
@@ -46,7 +47,9 @@ def python_ids(paths):
     """The msgids of _("...") and gettext_lazy("...") in the Python files, adjacent strings joined."""
     found = set()
     for path in paths:
-        for match in re.finditer(r"""(?<![\w.])(?:_|gettext_lazy|gettext)\(\s*((?:"(?:[^"\\]|\\.)*"\s*)+)\)""", path.read_text()):
+        for match in re.finditer(
+            r"""(?<![\w.])(?:_|gettext_lazy|gettext)\(\s*((?:"(?:[^"\\]|\\.)*"\s*)+)\)""", path.read_text()
+        ):
             found.add("".join(re.findall(r'"((?:[^"\\]|\\.)*)"', match.group(1))).replace('\\"', '"'))
     return found
 
@@ -55,12 +58,17 @@ def untranslated(test, ids, exempt=()):
     """Asserts that every msgid is translated, with the same placeholders, in every language of locale/."""
     test.assertTrue(languages())
     catalogues = {language: catalogue(language) for language in languages()}
-    missing = {language: sorted(msgid for msgid in ids - set(exempt) if not found.get(msgid))
-               for language, found in catalogues.items()}
+    missing = {
+        language: sorted(msgid for msgid in ids - set(exempt) if not found.get(msgid))
+        for language, found in catalogues.items()
+    }
     test.assertEqual({language: found for language, found in missing.items() if found}, {})
     for language, found in catalogues.items():
-        wrong = sorted(msgid for msgid in ids - set(exempt)
-                       if sorted(re.findall(PLACEHOLDER, found[msgid])) != sorted(re.findall(PLACEHOLDER, msgid)))
+        wrong = sorted(
+            msgid
+            for msgid in ids - set(exempt)
+            if sorted(re.findall(PLACEHOLDER, found[msgid])) != sorted(re.findall(PLACEHOLDER, msgid))
+        )
         test.assertEqual(wrong, [], f"{language}: placeholders")
 
 
@@ -78,8 +86,11 @@ class Template(SimpleTestCase):
     def test_the_template_follows_the_italian_catalog(self):
         from config import pot
 
-        self.assertEqual(pot.TEMPLATE.read_text(), pot.template(pot.SOURCE.read_text()),
-                         "locale/django.pot is behind the catalogs: write it again with `python -m config.pot`")
+        self.assertEqual(
+            pot.TEMPLATE.read_text(),
+            pot.template(pot.SOURCE.read_text()),
+            "locale/django.pot is behind the catalogs: write it again with `python -m config.pot`",
+        )
 
     def test_the_template_has_every_text_and_no_translation(self):
         from config import pot
@@ -88,10 +99,15 @@ class Template(SimpleTestCase):
         ids = r'^msgid(?:_plural)? (?:".*"\n)+'
         self.assertEqual(re.findall(ids, text, re.MULTILINE)[1:], re.findall(ids, source, re.MULTILINE)[1:])
         self.assertGreater(len(re.findall(ids, text, re.MULTILINE)), 1500)
-        self.assertEqual([line for line in text.split("\n\n", 1)[1].splitlines()
-                          if line.startswith("msgstr") and not line.endswith(' ""')], [])
+        self.assertEqual(
+            [
+                line
+                for line in text.split("\n\n", 1)[1].splitlines()
+                if line.startswith("msgstr") and not line.endswith(' ""')
+            ],
+            [],
+        )
         self.assertNotIn("\n# ", text.split("\n\n", 1)[1])
-
 
 
 class Since(SimpleTestCase):
@@ -123,4 +139,3 @@ class Since(SimpleTestCase):
             lines = pot.since("0.1.9")
         self.assertEqual(len(lines), 1)
         self.assertIn("git is not here", lines[0])
-

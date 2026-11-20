@@ -7,6 +7,7 @@
 The command reads and prints no password, and not the hash either: it only copies the account's current hash into its
 Profile. Another password, from the person or from the admin's user form, is another hash and ends the mark by itself;
 to hand over a new password, set it first and run this command after."""
+
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 

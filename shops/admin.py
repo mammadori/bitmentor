@@ -17,11 +17,23 @@ from . import approval, certified, details, events, guard, osm
 from .forms import ShopAdminForm
 from .guard import CHANNELS, RECENT, VIA, words
 from .lightning_watch import BROKEN
-from .models import AccountChange, Closure, Declaration, HelpRequest, LightningStatus, OsmRequest, OsmRun, Shop, ShopPlace, Trainee
+from .models import (
+    AccountChange,
+    Closure,
+    Declaration,
+    HelpRequest,
+    LightningStatus,
+    OsmRequest,
+    OsmRun,
+    Shop,
+    ShopPlace,
+    Trainee,
+)
 
 
 class LightningFilter(admin.SimpleListFilter):
     """The status of the Lightning address, as the guardian last found it: "Not working" puts together the two faults."""
+
     title = _("Lightning address")
     parameter_name = "lightning"
 
@@ -41,12 +53,16 @@ class LightningFilter(admin.SimpleListFilter):
 
 class CertifiedFilter(admin.SimpleListFilter):
     """Certified shops (shops/certified.py), and all the others, with or without a register."""
+
     title = _("certified shop")
     parameter_name = "certified"
 
     def lookups(self, request, model_admin):
-        return [("yes", _("Certified")), ("waiting", _("Certified, private part waiting for approval")),
-                ("no", _("Not yet"))]
+        return [
+            ("yes", _("Certified")),
+            ("waiting", _("Certified, private part waiting for approval")),
+            ("no", _("Not yet")),
+        ]
 
     def queryset(self, request, queryset):
         if self.value() == "waiting":
@@ -60,6 +76,7 @@ class CertifiedFilter(admin.SimpleListFilter):
 
 class OsmFilter(admin.SimpleListFilter):
     """The shops linked to an entry on OpenStreetMap (shops/osm.py), and those that are not."""
+
     title = _("OpenStreetMap")
     parameter_name = "osm"
 
@@ -77,6 +94,7 @@ class OsmFilter(admin.SimpleListFilter):
 
 class VatFilter(admin.SimpleListFilter):
     """The VAT numbers that look wrong (shops/details.py): saved as they were written, for the association to check."""
+
     title = _("VAT number")
     parameter_name = "vat"
 
@@ -99,6 +117,7 @@ class SetAsideFilter(admin.SimpleListFilter):
     """The shops set aside from /admin/today/ (shops/approval.py, `set_aside`): not approved, not asked about. A shop
     approved afterwards by a release that did not know the fields (docs/releases.md, "Going back") keeps them, and is
     simply approved: it is not among those set aside."""
+
     title = _("set aside")
     parameter_name = "set_aside"
 
@@ -116,6 +135,7 @@ class SetAsideFilter(admin.SimpleListFilter):
 class PlaceInline(admin.TabularInline):
     """The other places of a shop with several branches (ShopPlace): one shop and one register, a point on the map for
     each. The shop's own position is the first."""
+
     model = ShopPlace
     extra = 0
     max_num = ShopPlace.MAX
@@ -126,6 +146,7 @@ class ClosureInline(admin.TabularInline):
     """Closed for a while (shops/vacation.py): the association writes it for a merchant who phones. The first day may be in
     the past; the shop says it is closed until the day it opens again, and nothing else changes: the register keeps
     working."""
+
     model = Closure
     extra = 0
     fields = ("first_day", "reopens_on", "reason")
@@ -134,26 +155,85 @@ class ClosureInline(admin.TabularInline):
 @admin.register(Shop)
 class ShopAdmin(HidesSecrets, admin.ModelAdmin):
     form = ShopAdminForm
-    list_display = ("name", "city", "lightning_column", "certified_column", "osm_proposal_column", "discount", "listed", "suspended",
-                    "approved_column", "closed_on", "owner")
+    list_display = (
+        "name",
+        "city",
+        "lightning_column",
+        "certified_column",
+        "osm_proposal_column",
+        "discount",
+        "listed",
+        "suspended",
+        "approved_column",
+        "closed_on",
+        "owner",
+    )
     list_editable = ("suspended", "closed_on")
-    list_filter = (LightningFilter, CertifiedFilter, OsmFilter, VatFilter, ("approved_on", admin.EmptyFieldListFilter), SetAsideFilter, "suspended", "closed_on", "listed", "lightning",
-                   "awaiting_wallet")
+    list_filter = (
+        LightningFilter,
+        CertifiedFilter,
+        OsmFilter,
+        VatFilter,
+        ("approved_on", admin.EmptyFieldListFilter),
+        SetAsideFilter,
+        "suspended",
+        "closed_on",
+        "listed",
+        "lightning",
+        "awaiting_wallet",
+    )
     # What a helper needs when a merchant phones: all of it is on the shop's page, which a moderator reads (the owner as
     # its sign-in name). The owner's recovery email is on no page of the admin: OWNER_EMAIL_SEARCH, superusers only
-    search_fields = ("name", "city", "legal_name", "vat_number", "lightning_address", "email", "external_id",
-                     "owner__username")
+    search_fields = (
+        "name",
+        "city",
+        "legal_name",
+        "vat_number",
+        "lightning_address",
+        "email",
+        "external_id",
+        "owner__username",
+    )
     # The whole address only (iexact): a search by a piece of it would let the rest be guessed one letter at a time
     OWNER_EMAIL_SEARCH = ("=owner__profile__email",)
     # Where the money goes is the owner's to change, from the panel. What the guardian found is written only by its probes
     # (manage.py check_lightning), and the certificate never from here
-    readonly_fields = ("approved_on", "approved_by", "approval_check", "set_aside",
-                       "lightning_address", "lightning_status", "lightning_since",
-                       "lightning_checked", "lightning_worked", "certified_month", "certified_revoked", "private_approved",
-                       "private_approved_by", "moved_in",
-                       "moved_register", "awaiting_wallet", "osm_seen", "osm_page", "osm_proposal", "osm_offered", "osm_history")
-    actions = ("approve_shops", "approve_private_part", "revoke_private_part", "revoke_certificate", "allow_certificate", "show_contacts", "hide_contacts", "confirm_osm_link",
-               "reject_osm_link", "accept_osm_contacts", "decline_osm_contacts")
+    readonly_fields = (
+        "approved_on",
+        "approved_by",
+        "approval_check",
+        "set_aside",
+        "lightning_address",
+        "lightning_status",
+        "lightning_since",
+        "lightning_checked",
+        "lightning_worked",
+        "certified_month",
+        "certified_revoked",
+        "private_approved",
+        "private_approved_by",
+        "moved_in",
+        "moved_register",
+        "awaiting_wallet",
+        "osm_seen",
+        "osm_page",
+        "osm_proposal",
+        "osm_offered",
+        "osm_history",
+    )
+    actions = (
+        "approve_shops",
+        "approve_private_part",
+        "revoke_private_part",
+        "revoke_certificate",
+        "allow_certificate",
+        "show_contacts",
+        "hide_contacts",
+        "confirm_osm_link",
+        "reject_osm_link",
+        "accept_osm_contacts",
+        "decline_osm_contacts",
+    )
     inlines = (PlaceInline, ClosureInline)
     # What the community's `features` block (config/features.py) takes away from the administration. The data stays in
     # the database; the page just does not show a feature that is off. The Closures table is never hidden here (a closure written before can still keep the alarms quiet until its day, and the association must be able
@@ -163,7 +243,11 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
 
     def get_list_display(self, request):
         columns = super().get_list_display(request)
-        return columns if features.enabled(features.CERTIFIED) else [name for name in columns if name != "certified_column"]
+        return (
+            columns
+            if features.enabled(features.CERTIFIED)
+            else [name for name in columns if name != "certified_column"]
+        )
 
     def get_search_fields(self, request):
         """A search must not confirm a value its user cannot see: the owner's recovery email (shops.Profile, shown on no
@@ -174,10 +258,12 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
 
     def get_list_filter(self, request):
         found = super().get_list_filter(request)
-        return found if features.enabled(features.CERTIFIED) else [item for item in found if item is not CertifiedFilter]
+        return (
+            found if features.enabled(features.CERTIFIED) else [item for item in found if item is not CertifiedFilter]
+        )
 
-    def get_actions(self, request):
-        found = super().get_actions(request)
+    def get_actions(self, request, action_location=admin.ActionLocation.CHANGE_LIST):
+        found = super().get_actions(request, action_location=action_location)
         if features.enabled(features.CERTIFIED):
             return found
         return {name: action for name, action in found.items() if name not in self.CERTIFICATE_ACTIONS}
@@ -224,8 +310,10 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
     @admin.display(description=_("OpenStreetMap decisions"))
     def osm_history(self, shop):
         """Who confirmed or refused a link, who accepted or declined the contacts, and when."""
-        lines = [f"{item.get('at', '')[:16].replace('T', ' ')} · {item.get('by') or '?'} · {item.get('what', '')}"
-                 for item in osm.notes_of(shop)["decisions"]]
+        lines = [
+            f"{item.get('at', '')[:16].replace('T', ' ')} · {item.get('by') or '?'} · {item.get('what', '')}"
+            for item in osm.notes_of(shop)["decisions"]
+        ]
         return format_html("<br>".join(["{}"] * len(lines)), *lines) if lines else "–"
 
     @admin.display(description=_("Offered by OpenStreetMap"))
@@ -238,36 +326,59 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
     def confirm_osm_link(self, request, queryset):
         """A proposed link (shops/osm.py) becomes the shop's link: from the next reading its empty address, town and position
         are filled, and its entry is compared. Look at the element first: it is in the shop's page."""
-        count = sum(1 for shop in queryset.exclude(osm_proposed="") if osm.confirm_link(shop, request.user.get_username()))
+        count = sum(
+            1 for shop in queryset.exclude(osm_proposed="") if osm.confirm_link(shop, request.user.get_username())
+        )
         self.message_user(request, _("%(count)d links to OpenStreetMap confirmed.") % {"count": count})
 
     @admin.action(description=_("Refuse the OpenStreetMap link proposed"), permissions=["change"])
     def reject_osm_link(self, request, queryset):
-        count = sum(1 for shop in queryset.exclude(osm_proposed="") if osm.reject_link(shop, request.user.get_username()))
-        self.message_user(request, _("%(count)d proposed links to OpenStreetMap refused: they are not proposed again.") % {"count": count})
+        count = sum(
+            1 for shop in queryset.exclude(osm_proposed="") if osm.reject_link(shop, request.user.get_username())
+        )
+        self.message_user(
+            request,
+            _("%(count)d proposed links to OpenStreetMap refused: they are not proposed again.") % {"count": count},
+        )
 
     @admin.action(description=_("Accept the website and phone offered by OpenStreetMap"), permissions=["change"])
     def accept_osm_contacts(self, request, queryset):
         """Written only into the fields that are still empty."""
-        count = sum(1 for shop in queryset.exclude(osm_ref="") if osm.accept_contacts(shop, request.user.get_username()))
+        count = sum(
+            1 for shop in queryset.exclude(osm_ref="") if osm.accept_contacts(shop, request.user.get_username())
+        )
         self.message_user(request, _("%(count)d shops got the contacts OpenStreetMap offered.") % {"count": count})
 
     @admin.action(description=_("Decline the website and phone offered by OpenStreetMap"), permissions=["change"])
     def decline_osm_contacts(self, request, queryset):
-        count = sum(1 for shop in queryset.exclude(osm_ref="") if osm.decline_contacts(shop, request.user.get_username()))
-        self.message_user(request, _("%(count)d shops declined the contacts OpenStreetMap offered: they are not offered again.") % {"count": count})
+        count = sum(
+            1 for shop in queryset.exclude(osm_ref="") if osm.decline_contacts(shop, request.user.get_username())
+        )
+        self.message_user(
+            request,
+            _("%(count)d shops declined the contacts OpenStreetMap offered: they are not offered again.")
+            % {"count": count},
+        )
 
     @admin.display(description=_("OpenStreetMap page"))
     def osm_page(self, shop):
         """A link to the linked element, to check that the link is the right place."""
         url = osm.element_url(shop.osm_ref)
-        return format_html('<a href="{}" rel="noopener noreferrer" target="_blank">{}</a>', url, shop.osm_ref) if url else "–"
+        return (
+            format_html('<a href="{}" rel="noopener noreferrer" target="_blank">{}</a>', url, shop.osm_ref)
+            if url
+            else "–"
+        )
 
     @admin.display(description=_("Link proposed"))
     def osm_proposal(self, shop):
         """The element the reading proposes as the shop's, with a link to look at it before confirming."""
         url = osm.element_url(shop.osm_proposed)
-        return format_html('<a href="{}" rel="noopener noreferrer" target="_blank">{}</a>', url, shop.osm_proposed) if url else "–"
+        return (
+            format_html('<a href="{}" rel="noopener noreferrer" target="_blank">{}</a>', url, shop.osm_proposed)
+            if url
+            else "–"
+        )
 
     def save_model(self, request, obj, form, change):
         """A link to OpenStreetMap written by hand is the link: whatever the reading had proposed is gone. The form keeps
@@ -287,8 +398,12 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
             self.log_change(request, obj, "Private part revoked: the shop changed owner")
         why = details.vat_doubt(obj.vat_number) if "vat_number" in form.changed_data else ""
         if why:
-            self.message_user(request, _("The VAT number of %(shop)s may have a mistake: %(why)s It is saved as written.")
-                              % {"shop": obj.name, "why": why}, messages.WARNING)
+            self.message_user(
+                request,
+                _("The VAT number of %(shop)s may have a mistake: %(why)s It is saved as written.")
+                % {"shop": obj.name, "why": why},
+                messages.WARNING,
+            )
 
     def get_search_results(self, request, queryset, search_term):
         """The search finds a VAT number written with dots, dashes or spaces as the list keeps it: the term is tidied the way
@@ -313,14 +428,18 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
     def certified_column(self, shop):
         return shop.certified
 
-    @admin.action(description=_("Show the phone and the email of the selected shops with no owner"), permissions=["change"])
+    @admin.action(
+        description=_("Show the phone and the email of the selected shops with no owner"), permissions=["change"]
+    )
     def show_contacts(self, request, queryset):
         """For the shops loaded from a list: they start with the phone and the email hidden, and no owner can turn them on.
         A shop with an owner is left alone: its owner chooses (shops/details.py)."""
         count = queryset.filter(owner__isnull=True).update(show_phone=True, show_email=True)
         self.message_user(request, _("%(count)d shops now show their phone and email.") % {"count": count})
 
-    @admin.action(description=_("Hide the phone and the email of the selected shops with no owner"), permissions=["change"])
+    @admin.action(
+        description=_("Hide the phone and the email of the selected shops with no owner"), permissions=["change"]
+    )
     def hide_contacts(self, request, queryset):
         count = queryset.filter(owner__isnull=True).update(show_phone=False, show_email=False)
         self.message_user(request, _("%(count)d shops now hide their phone and email.") % {"count": count})
@@ -372,8 +491,10 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
     def get_urls(self):
         from django.urls import path
 
-        return [path("<uuid:shop>/put-back/", self.admin_site.admin_view(self.put_back_view), name="shops_shop_put_back"),
-                *super().get_urls()]
+        return [
+            path("<uuid:shop>/put-back/", self.admin_site.admin_view(self.put_back_view), name="shops_shop_put_back"),
+            *super().get_urls(),
+        ]
 
     def put_back_view(self, request, shop):
         """A shop set aside goes back among the waiting ones: POST, staff with the permission to change shops."""
@@ -386,8 +507,9 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
             raise PermissionDenied
         found = get_object_or_404(Shop, pk=shop)
         if approval.put_back(found, request.user):
-            self.message_user(request, _("%(name)s waits for an approval again: it is on the list of the day.")
-                              % {"name": found.name})
+            self.message_user(
+                request, _("%(name)s waits for an approval again: it is on the list of the day.") % {"name": found.name}
+            )
         else:
             self.message_user(request, _("%(name)s was not set aside.") % {"name": found.name}, messages.WARNING)
         return redirect("admin:shops_shop_change", found.pk)
@@ -399,13 +521,26 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
         # The ones that look like a copy of a shop already here wait for a person, one by one (shops/approval_signals.py)
         held = len(outcome.held)
         if held and outcome.failed:
-            self.message_user(request, _("Not approved: %(count)d shops, because the checks for copies of other shops could "
-                                         "not be run (whoever runs the site should look at the log). Approve them one by one "
-                                         "from /admin/today/, after looking at each yourself.") % {"count": held},
-                              messages.WARNING)
+            self.message_user(
+                request,
+                _(
+                    "Not approved: %(count)d shops, because the checks for copies of other shops could "
+                    "not be run (whoever runs the site should look at the log). Approve them one by one "
+                    "from /admin/today/, after looking at each yourself."
+                )
+                % {"count": held},
+                messages.WARNING,
+            )
         elif held:
-            self.message_user(request, _("Not approved: %(count)d shops that look like a shop already on the site. Approve them "
-                                         "one by one from /admin/today/, after checking.") % {"count": held}, messages.WARNING)
+            self.message_user(
+                request,
+                _(
+                    "Not approved: %(count)d shops that look like a shop already on the site. Approve them "
+                    "one by one from /admin/today/, after checking."
+                )
+                % {"count": held},
+                messages.WARNING,
+            )
 
     def log_each(self, request, shops, message):
         """The association's actions on the certificate and the private part go in the admin's history of each shop."""
@@ -418,7 +553,8 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
         in its history. A shop not certified, or already approved, is left as it is."""
         shops = list(certified.waiting_approval(queryset))
         Shop.objects.filter(pk__in=[shop.pk for shop in shops]).update(
-            private_approved=timezone.now(), private_approved_by=request.user.get_username())
+            private_approved=timezone.now(), private_approved_by=request.user.get_username()
+        )
         self.log_each(request, shops, "Private part approved")
         self.message_user(request, _("Private part opened for %(count)d shops.") % {"count": len(shops)})
 
@@ -434,7 +570,9 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
         """No badge and no private part, and the site no longer certifies these shops. The approval of the private part
         goes too: a certificate allowed again waits for a new one."""
         shops = list(queryset)
-        count = queryset.update(certified_month=None, certified_revoked=True, private_approved=None, private_approved_by="")
+        count = queryset.update(
+            certified_month=None, certified_revoked=True, private_approved=None, private_approved_by=""
+        )
         self.log_each(request, shops, "Certificate revoked")
         self.message_user(request, _("Certificate revoked for %(count)d shops.") % {"count": count})
 
@@ -454,6 +592,7 @@ class DeclarationAdmin(HidesSecrets, admin.ModelAdmin):
     statement, the version of its text, the text as it was shown, when, who and for which shop. To look at and to export,
     never to edit: nothing is added, changed or deleted here (whoever has the shell or the database can, and the docs say
     so). No address of the connection is kept."""
+
     list_display = ("made", "who", "shop_name", "key", "version_short", "language")
     list_filter = ("key", "language")
     search_fields = ("who", "shop_name", "key", "version")
@@ -476,9 +615,19 @@ class DeclarationAdmin(HidesSecrets, admin.ModelAdmin):
         writer = csv.writer(response)
         writer.writerow(["made", "who", "shop", "shop_id", "register_id", "statement", "version", "language", "text"])
         for row in queryset.order_by("made", "pk").iterator():
-            writer.writerow([timezone.localtime(row.made).isoformat(timespec="seconds"), spreadsheet_text(masked(row.who)),
-                             spreadsheet_text(row.shop_name), row.shop_id or "", row.register_id or "", row.key, row.version,
-                             row.language, spreadsheet_text(row.text)])
+            writer.writerow(
+                [
+                    timezone.localtime(row.made).isoformat(timespec="seconds"),
+                    spreadsheet_text(masked(row.who)),
+                    spreadsheet_text(row.shop_name),
+                    row.shop_id or "",
+                    row.register_id or "",
+                    row.key,
+                    row.version,
+                    row.language,
+                    spreadsheet_text(row.text),
+                ]
+            )
         return response
 
     def has_add_permission(self, request):
@@ -495,6 +644,7 @@ class DeclarationAdmin(HidesSecrets, admin.ModelAdmin):
 class TraineeAdmin(HidesSecrets, admin.ModelAdmin):
     """Who has the basic pass of the merchant's training and since when, and the last review. To look at: the pass is
     earned on the site, not given here."""
+
     list_display = ("user", "base_earned", "reviewed")
     search_fields = ("user__username",)
     date_hierarchy = "base_earned"
@@ -515,6 +665,7 @@ class AccountChangeAdmin(HidesSecrets, admin.ModelAdmin):
     """What whoever runs the site changed in the account of a shop's owner (shops/guard.py), newest first. To look at,
     not to edit: nothing is added, changed or deleted here, by anyone (whoever has the shell or the database can, and the
     docs say so)."""
+
     list_display = ("when", "sentence", "what", "told_column", "not_told_column")
     list_filter = ("via",)
     search_fields = ("shops", "actor")
@@ -529,7 +680,8 @@ class AccountChangeAdmin(HidesSecrets, admin.ModelAdmin):
     def sentence(self, change):
         if change.actor:
             return _("The account of {shops} was changed from {via} by {actor}.").format(
-                shops=change.shops, via=VIA[change.via], actor=change.actor)
+                shops=change.shops, via=VIA[change.via], actor=change.actor
+            )
         return _("The account of {shops} was changed from {via}.").format(shops=change.shops, via=VIA[change.via])
 
     @admin.display(description=_("what changed"))
@@ -556,6 +708,7 @@ class AccountChangeAdmin(HidesSecrets, admin.ModelAdmin):
 
 class SolvedFilter(admin.SimpleListFilter):
     """The requests for help still waiting, or already solved."""
+
     title = _("state")
     parameter_name = "state"
 
@@ -575,6 +728,7 @@ class HelpRequestAdmin(HidesSecrets, admin.ModelAdmin):
     """The merchants' requests for help (shops/helpdesk.py), newest first, with the diagnosis the site made when they
     asked. To read and to mark solved (an action: who and when are kept); nothing is added, edited or deleted here. The
     open ones are on top of /admin/today/ until someone marks them solved."""
+
     list_display = ("when", "shop", "symptom", "call_back", "delivery", "state")
     list_select_related = ("shop",)
     list_filter = (SolvedFilter, "symptom")
@@ -582,7 +736,18 @@ class HelpRequestAdmin(HidesSecrets, admin.ModelAdmin):
     date_hierarchy = "created"
     actions = ("solve", "reopen")
     readonly_fields = [field.name for field in HelpRequest._meta.fields] + ["call_back_to"]
-    fields = ("shop", "symptom", "note", "created", "channel", "call_back_to", "delivery", "summary", "resolved", "resolved_by")
+    fields = (
+        "shop",
+        "symptom",
+        "note",
+        "created",
+        "channel",
+        "call_back_to",
+        "delivery",
+        "summary",
+        "resolved",
+        "resolved_by",
+    )
 
     @admin.display(description=_("asked"), ordering="created")
     def when(self, row):
@@ -602,14 +767,18 @@ class HelpRequestAdmin(HidesSecrets, admin.ModelAdmin):
         chat or its public phone."""
         from .lightning_watch import owner_email
 
-        found = {HelpRequest.Channel.EMAIL: owner_email(row.shop), HelpRequest.Channel.TELEGRAM: row.shop.telegram_chat,
-                 HelpRequest.Channel.PHONE: row.shop.phone}.get(row.channel)
+        found = {
+            HelpRequest.Channel.EMAIL: owner_email(row.shop),
+            HelpRequest.Channel.TELEGRAM: row.shop.telegram_chat,
+            HelpRequest.Channel.PHONE: row.shop.phone,
+        }.get(row.channel)
         return found or "–"
 
     @admin.action(description=_("Mark as solved"), permissions=["change"])
     def solve(self, request, queryset):
-        count = queryset.filter(resolved__isnull=True).update(resolved=timezone.now(),
-                                                              resolved_by=request.user.get_username()[:150])
+        count = queryset.filter(resolved__isnull=True).update(
+            resolved=timezone.now(), resolved_by=request.user.get_username()[:150]
+        )
         self.message_user(request, _("%(count)d requests marked as solved.") % {"count": count})
 
     @admin.action(description=_("Mark as waiting again"), permissions=["change"])
@@ -632,6 +801,7 @@ class HelpRequestAdmin(HidesSecrets, admin.ModelAdmin):
 class OsmRunAdmin(HidesSecrets, admin.ModelAdmin):
     """The monthly readings of OpenStreetMap (shops/osm.py), newest first, with what each found and the changes proposed
     for OpenStreetMap. To read, not to edit: the proposals are sent by a person with `manage.py osm_upload`, never from here."""
+
     list_display = ("when", "ok", "result", "uploaded")
     list_filter = ("ok",)
     readonly_fields = ("created", "ok", "error", "uploaded", "changeset", "result", "text")
@@ -646,7 +816,12 @@ class OsmRunAdmin(HidesSecrets, admin.ModelAdmin):
         if not run.ok:
             return run.error
         found = osm.counts(run.report)
-        return _("%(proposals)d changes proposed, %(link_proposals)d links proposed, %(candidates)d new places, %(says_no)d marked as closed there") % found
+        return (
+            _(
+                "%(proposals)d changes proposed, %(link_proposals)d links proposed, %(candidates)d new places, %(says_no)d marked as closed there"
+            )
+            % found
+        )
 
     @admin.display(description=_("report"))
     def text(self, run):
@@ -679,6 +854,7 @@ class OsmRequestAdmin(HidesSecrets, admin.ModelAdmin):
     there (shops/osm_views.py), newest first. A person of the staff does it (by hand in the editor, or with `manage.py
     osm_upload`) and marks it done here, or writes why it could not be done: the merchant sees both in the panel.
     The site never writes to OpenStreetMap by itself."""
+
     list_display = ("when", "shop", "kind", "state", "delivery", "done_by")
     list_select_related = ("shop",)
     list_filter = (OsmStateFilter, "kind")
@@ -711,7 +887,8 @@ class OsmRequestAdmin(HidesSecrets, admin.ModelAdmin):
     @admin.action(description=_("Mark as done"), permissions=["change"])
     def mark_done(self, request, queryset):
         count = queryset.filter(state=OsmRequest.State.OPEN).update(
-            state=OsmRequest.State.DONE, done=timezone.now(), done_by=request.user.get_username()[:150])
+            state=OsmRequest.State.DONE, done=timezone.now(), done_by=request.user.get_username()[:150]
+        )
         self.message_user(request, _("%(count)d requests marked as done.") % {"count": count})
 
     def has_add_permission(self, request):
@@ -731,14 +908,22 @@ def dashboard_view(request):
 
     if not request.user.has_perm("shops.view_shop"):
         raise PermissionDenied
-    context = {**admin.site.each_context(request), "title": _("To do today"), **summary(),
-               "can_approve": request.user.has_perm("shops.change_shop")}
+    context = {
+        **admin.site.each_context(request),
+        "title": _("To do today"),
+        **summary(),
+        "can_approve": request.user.has_perm("shops.change_shop"),
+    }
     flag_copies(context["items"])
     # What whoever runs the site changed in the accounts of shop owners lately (shops/guard.py): a line, with its register
     if request.user.has_perm("shops.view_accountchange"):
-        context["account_changes"] = (AccountChange.objects.filter(created__gte=timezone.now() - RECENT)
-                                       .exclude(via=AccountChange.Via.OWNER).count())
+        context["account_changes"] = (
+            AccountChange.objects.filter(created__gte=timezone.now() - RECENT)
+            .exclude(via=AccountChange.Via.OWNER)
+            .count()
+        )
     from website import blossom, blossom_visits
+
     if blossom.enabled():
         context["blossom_users"] = blossom_visits.users()
     return TemplateResponse(request, "admin/shops/dashboard.html", context)
@@ -782,15 +967,29 @@ def approve_view(request, shop):
     shop = get_object_or_404(Shop, pk=shop)
     # A shop that looks like a copy of another is approved only with the box ticked: a person says they checked
     confirmed = request.POST.get("checked") == "1"
-    approved, held, failed = approval.approve_or_hold(Shop.objects.filter(pk=shop.pk), request.user, confirmed=confirmed)
+    approved, held, failed = approval.approve_or_hold(
+        Shop.objects.filter(pk=shop.pk), request.user, confirmed=confirmed
+    )
     if approved:
         messages.success(request, _("%(name)s is approved: it is on the map and the lists.") % {"name": shop.name})
     elif held and failed:
-        messages.error(request, _("%(name)s is not approved: the checks for copies of other shops could not be run. Look "
-                                  "at the shop yourself, then tick the box and approve it.") % {"name": shop.name})
+        messages.error(
+            request,
+            _(
+                "%(name)s is not approved: the checks for copies of other shops could not be run. Look "
+                "at the shop yourself, then tick the box and approve it."
+            )
+            % {"name": shop.name},
+        )
     elif held:
-        messages.error(request, _("%(name)s is not approved: it looks like a shop already on the site. Check what its line "
-                                  "says, then tick the box and approve it.") % {"name": shop.name})
+        messages.error(
+            request,
+            _(
+                "%(name)s is not approved: it looks like a shop already on the site. Check what its line "
+                "says, then tick the box and approve it."
+            )
+            % {"name": shop.name},
+        )
     else:
         messages.info(request, _("%(name)s was already approved.") % {"name": shop.name})
     return redirect("admin_dashboard")
@@ -807,8 +1006,14 @@ def set_aside_view(request, shop):
         raise PermissionDenied
     shop = get_object_or_404(Shop, pk=shop)
     if approval.set_aside(shop, request.user):
-        messages.success(request, _("%(name)s is set aside: it stays off the map and is not asked about again. Its page in "
-                                    "the admin puts it back among the waiting shops.") % {"name": shop.name})
+        messages.success(
+            request,
+            _(
+                "%(name)s is set aside: it stays off the map and is not asked about again. Its page in "
+                "the admin puts it back among the waiting shops."
+            )
+            % {"name": shop.name},
+        )
     elif shop.needs_approval:
         messages.info(request, _("%(name)s was already set aside.") % {"name": shop.name})
     else:

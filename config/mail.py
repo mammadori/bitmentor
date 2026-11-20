@@ -2,9 +2,11 @@
 each web address a real link, so that a mail program that does not make links of the plain text still has one to tap.
 A line that is only an address becomes a button. Nothing else in the HTML: no images, no remote content, no tracking,
 no styles from outside; the text is escaped, so nothing a merchant wrote can become markup."""
+
 import logging
 import re
 import threading
+from email.headerregistry import Address
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, get_connection
@@ -19,14 +21,18 @@ WAITING = threading.BoundedSemaphore(8)
 URL = re.compile(r"https?://[^\s<>\"']+")
 # What ends a sentence is not part of the address: «…/claim/?code=abc.» links to «…/claim/?code=abc»
 TRAILING = ".,;:!?)»”’]"
-BUTTON = ("display:inline-block;padding:12px 20px;border-radius:6px;background:#224455;color:#ffffff;"
-          "text-decoration:none;font-weight:bold")
+BUTTON = (
+    "display:inline-block;padding:12px 20px;border-radius:6px;background:#224455;color:#ffffff;"
+    "text-decoration:none;font-weight:bold"
+)
 
 
 def split(url):
     end = len(url)
     # A closing parenthesis is the address's own when it closes one opened in it: …/Bitcoin_(money)
-    while end and url[end - 1] in TRAILING and not (url[end - 1] == ")" and url[:end].count("(") >= url[:end].count(")")):
+    while (
+        end and url[end - 1] in TRAILING and not (url[end - 1] == ")" and url[:end].count("(") >= url[:end].count(")"))
+    ):
         end -= 1
     return url[:end], url[end:]
 
@@ -36,7 +42,7 @@ def linked(line):
     out, last = [], 0
     for found in URL.finditer(line):
         url, rest = split(found.group())
-        out += [escape(line[last:found.start()]), f'<a href="{escape(url)}">{escape(url)}</a>', escape(rest)]
+        out += [escape(line[last : found.start()]), f'<a href="{escape(url)}">{escape(url)}</a>', escape(rest)]
         last = found.end()
     out.append(escape(line[last:]))
     return "".join(out)
@@ -55,8 +61,10 @@ def html(text):
             else:
                 lines.append(linked(line))
         paragraphs.append("<p>" + "<br>\n".join(lines) + "</p>")
-    return ('<!doctype html><html><head><meta charset="utf-8"></head>'
-            '<body style="font-family:sans-serif;line-height:1.5">\n' + "\n".join(paragraphs) + "\n</body></html>")
+    return (
+        '<!doctype html><html><head><meta charset="utf-8"></head>'
+        '<body style="font-family:sans-serif;line-height:1.5">\n' + "\n".join(paragraphs) + "\n</body></html>"
+    )
 
 
 def merchant_sender():
@@ -87,14 +95,40 @@ def leaves():
 KINDS = ("link", "staff", "merchant")
 
 
+SENDER = re.compile(r"\s*(.*?)\s*<([^<>\s]+)>\s*")
+
+
+def sender(value):
+    """A sender as the mail's headers want it: `Name <address>` with the name in quotes when it has a character that
+    means something else there. An installer writes `Shops (automatic) <shops@example.org>` in the .env and expects
+    the whole name to be shown: unquoted, the part in brackets is a comment (RFC 5322) and Django, from 6.1, leaves
+    it out; a colon would start a group. An address alone, or a value this cannot read, stays as it is."""
+    found = SENDER.fullmatch(value or "")
+    if not found or not found.group(1):
+        return value
+    name = found.group(1)
+    if len(name) > 1 and name[0] == name[-1] == '"':
+        name = name[1:-1].replace('\\"', '"')
+    try:
+        return str(Address(display_name=name, addr_spec=found.group(2)))
+    except ValueError:
+        return value
+
+
 def send_mail(subject, message, from_email, recipient_list, fail_silently=False, connection=None, kind=""):
     """django.core.mail.send_mail with the same arguments and answer (1 if sent), plus the HTML copy and its kind."""
     connection = connection or get_connection(fail_silently=fail_silently)
-    shown = from_email or settings.DEFAULT_FROM_EMAIL
+    shown = sender(from_email or settings.DEFAULT_FROM_EMAIL)
     # The envelope (Return-Path) can be another address than the one shown in From, see EMAIL_ENVELOPE_FROM
-    envelope = settings.EMAIL_ENVELOPE_FROM or shown
-    mail = EmailMultiAlternatives(subject, message, envelope, recipient_list, connection=connection,
-                                  headers={"From": shown} if envelope != shown else None)
+    envelope = sender(settings.EMAIL_ENVELOPE_FROM) or shown
+    mail = EmailMultiAlternatives(
+        subject,
+        message,
+        envelope,
+        recipient_list,
+        connection=connection,
+        headers={"From": shown} if envelope != shown else None,
+    )
     mail.attach_alternative(html(message), "text/html")
     mail.kind = kind
     return mail.send()
@@ -106,13 +140,18 @@ def _deliver(subject, message, recipient_list, kind, failed):
         left = bool(send_mail(subject, message, None, recipient_list, kind=kind))
         if not left:
             # The email budget kept it back (config/mailbudget.py warned with its reason)
-            logger.error("email: a \"%s\" email (%s) was not sent", kind, subject)
+            logger.error('email: a "%s" email (%s) was not sent', kind, subject)
     except Exception as error:  # noqa: BLE001 (a thread: whatever breaks must reach the log, not vanish)
         # Only the kind of error and the mail server's code: its text, and a traceback with it, can quote the recipient
         left = False
         code = getattr(error, "smtp_code", None)
-        logger.error("email: a \"%s\" email (%s) could not be sent: %s%s", kind, subject, type(error).__name__,
-                     f" {code}" if isinstance(code, int) else "")
+        logger.error(
+            'email: a "%s" email (%s) could not be sent: %s%s',
+            kind,
+            subject,
+            type(error).__name__,
+            f" {code}" if isinstance(code, int) else "",
+        )
     if not left and failed:
         try:
             failed()

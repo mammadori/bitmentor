@@ -3,6 +3,7 @@ entry there, the steps to do it alone with the editor already on the right place
 do it. Only the shop's owner; the one page that changes anything is a POST with the CSRF token and a limit of requests.
 Nothing here writes to OpenStreetMap, and no server is asked while the page loads: it shows what the last monthly reading
 found. The staff and the sessions of /admin/ are visitors here (config/guard.py)."""
+
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -29,8 +30,12 @@ MESSAGE_WINDOW = 3600
 
 class AskForm(forms.Form):
     """The tick «The association does it for me»: nothing is sent without it."""
-    association = forms.BooleanField(required=True, label=gettext_lazy("The association does it for me"),
-                                     error_messages={"required": gettext_lazy("Tick the box to send the request.")})
+
+    association = forms.BooleanField(
+        required=True,
+        label=gettext_lazy("The association does it for me"),
+        error_messages={"required": gettext_lazy("Tick the box to send the request.")},
+    )
 
 
 def owned(request, shop):
@@ -45,9 +50,18 @@ def home(request, shop, form=None, status=200):
     state = osm.page(shop)
     if state is None:
         raise Http404
-    return render(request, "shops/osm.html", {
-        "shop": shop, "osm": state, "form": form or AskForm(), "asked": osm_request.panel(shop),
-        "community_email": community()["email"]}, status=status)
+    return render(
+        request,
+        "shops/osm.html",
+        {
+            "shop": shop,
+            "osm": state,
+            "form": form or AskForm(),
+            "asked": osm_request.panel(shop),
+            "community_email": community()["email"],
+        },
+        status=status,
+    )
 
 
 @not_indexed
@@ -72,16 +86,24 @@ def ask(request, shop):
     try:
         row, new = osm_request.create(shop, request.user)
     except osm_request.TooMany:
-        messages.error(request, _("You have already asked {count} times today, and the association has your requests: "
-                                  "we do them one by one. If it is urgent, write to {email}.").format(
-                                      count=osm_request.ASK_PER_DAY, email=community()["email"]))
+        messages.error(
+            request,
+            _(
+                "You have already asked {count} times today, and the association has your requests: "
+                "we do them one by one. If it is urgent, write to {email}."
+            ).format(count=osm_request.ASK_PER_DAY, email=community()["email"]),
+        )
         return redirect("osm_home", shop.pk)
     if not new:
         messages.success(request, _("You asked a moment ago, and we have your request."))
         return redirect("osm_home", shop.pk)
-    spent = [ratelimit.over_limit("osm-moderators", MESSAGES_IN_ALL, MESSAGE_WINDOW),
-             ratelimit.over_limit(f"osm-moderators-ip:{ratelimit.client_ip(request)}", MESSAGES_PER_IP, MESSAGE_WINDOW)]
+    spent = [
+        ratelimit.over_limit("osm-moderators", MESSAGES_IN_ALL, MESSAGE_WINDOW),
+        ratelimit.over_limit(f"osm-moderators-ip:{ratelimit.client_ip(request)}", MESSAGES_PER_IP, MESSAGE_WINDOW),
+    ]
     osm_request.finish(row, notify=not any(spent))
-    messages.success(request, _("We have your request. A person of the association does it by hand, and you see here when it "
-                                "is done."))
+    messages.success(
+        request,
+        _("We have your request. A person of the association does it by hand, and you see here when it is done."),
+    )
     return redirect("osm_home", shop.pk)

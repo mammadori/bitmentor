@@ -1,5 +1,6 @@
 """The error paths of the register's community.yml readers (shops/register.py): a mistake in the file must never stop
 every register, and a value that cannot be read must fall back to the default, not raise."""
+
 from django.test import SimpleTestCase
 
 from .register import MAX_TOLERANCE, TOLERANCE, connect_origins, explorer_url, number, read_tolerance, relay_url
@@ -36,8 +37,16 @@ class Addresses(SimpleTestCase):
         self.assertIsNone(relay_url("wss://[::1/relay"))
 
     def test_a_relay_with_a_port_a_query_or_credentials_is_refused(self):
-        for wrong in ("ws://relay.example.org", "wss://relay.example.org:444", "wss://u:p@relay.example.org",
-                      "wss://relay.example.org/?x=1", "wss://relay.example.org/#x", "wss://127.0.0.1", 5, None):
+        for wrong in (
+            "ws://relay.example.org",
+            "wss://relay.example.org:444",
+            "wss://u:p@relay.example.org",
+            "wss://relay.example.org/?x=1",
+            "wss://relay.example.org/#x",
+            "wss://127.0.0.1",
+            5,
+            None,
+        ):
             self.assertIsNone(relay_url(wrong), wrong)
         self.assertEqual(relay_url(" wss://Relay.Example.org/nostr/ "), "wss://relay.example.org/nostr")
 
@@ -48,9 +57,15 @@ class Origins(SimpleTestCase):
         self.assertEqual(connect_origins({}), [])
 
     def test_only_https_explorers_and_wss_relays_enter_the_list_by_host(self):
-        origins = connect_origins({"domain": "ln.example.org", "sources": ["kraken"],
-                                   "explorers": ["https://mempool.example.org/api", "http://plain.example.org/api"],
-                                   "relays": ["wss://relay.example.org/x"], "public_relays": ["ws://plain.example.org"]})
+        origins = connect_origins(
+            {
+                "domain": "ln.example.org",
+                "sources": ["kraken"],
+                "explorers": ["https://mempool.example.org/api", "http://plain.example.org/api"],
+                "relays": ["wss://relay.example.org/x"],
+                "public_relays": ["ws://plain.example.org"],
+            }
+        )
         self.assertIn("https://mempool.example.org", origins)
         self.assertIn("wss://relay.example.org", origins)
         self.assertNotIn("https://plain.example.org", origins)

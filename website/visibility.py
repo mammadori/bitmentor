@@ -24,6 +24,7 @@ always public.
 A page with `visibility: staff` is a 404 for everyone but accounts with is_staff (staff and admin) and the allowed
 addresses; shop owners, certified or not, get nothing. It is private as a whole for the menu, the sitemap and the copy.
 """
+
 import ipaddress
 import re
 
@@ -47,9 +48,22 @@ ENTRANCE = "X-Entrance"
 # The shorthand Caddy accepts in client_ip, with the same networks
 PRIVATE_RANGES = ("192.168.0.0/16", "172.16.0.0/12", "10.0.0.0/8", "127.0.0.1/8", "fd00::/8", "::1/128")
 # Networks that are never one person: internal, loopback, link-local, shared by a carrier
-INTERNAL = [ipaddress.ip_network(network) for network in (
-    "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8", "169.254.0.0/16", "100.64.0.0/10", "0.0.0.0/8",
-    "fc00::/7", "fe80::/10", "::1/128", "::/128")]
+INTERNAL = [
+    ipaddress.ip_network(network)
+    for network in (
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "127.0.0.0/8",
+        "169.254.0.0/16",
+        "100.64.0.0/10",
+        "0.0.0.0/8",
+        "fc00::/7",
+        "fe80::/10",
+        "::1/128",
+        "::/128",
+    )
+]
 LOOPBACK = {ipaddress.ip_network("127.0.0.1/32"), ipaddress.ip_network("::1/128")}
 WIDEST = {4: 24, 6: 48}
 
@@ -69,8 +83,13 @@ def lines_by_block(text):
         opening = FENCE.fullmatch(line)
         if fence is None and opening and not (opening[1][0] == "`" and "`" in opening[2]):
             fence = opening[1]
-        elif fence is not None and opening and opening[1][0] == fence[0] and len(opening[1]) >= len(fence) \
-                and not opening[2].strip():
+        elif (
+            fence is not None
+            and opening
+            and opening[1][0] == fence[0]
+            and len(opening[1]) >= len(fence)
+            and not opening[2].strip()
+        ):
             fence = None
         elif not line.lstrip().startswith(":::"):
             found.append((line, inside))
@@ -80,8 +99,10 @@ def lines_by_block(text):
             if fence is not None:
                 raise MarkError(f"line {number}: {line!r} inside a fenced code block")
             if not match:
-                raise MarkError(f"line {number}: {line!r} is not a mark: ':::', '::: private' or '::: public', "
-                                "at the start of the line, in small letters")
+                raise MarkError(
+                    f"line {number}: {line!r} is not a mark: ':::', '::: private' or '::: public', "
+                    "at the start of the line, in small letters"
+                )
             if match[1]:
                 if inside:
                     raise MarkError(f"line {number}: {line!r} inside a {inside} block opened on line {opened}")
@@ -115,7 +136,7 @@ def footnote_segments(lines):
                     segments[-1][1].append(line)
                     continue
             else:
-                after = next((later for later in lines[index + 1:] if later.strip()), "")
+                after = next((later for later in lines[index + 1 :] if later.strip()), "")
                 if INDENTED.match(after) and not DEFINITION.match(after):
                     segments[-1][1].append(line)
                     continue
@@ -182,15 +203,21 @@ def address_problems():
     problems = []
     for entry in settings.DEV_ALLOWED_IPS.split():
         if entry == "private_ranges":
-            problems.append("`private_ranges` covers the internal networks: every onion visitor would see the private part")
+            problems.append(
+                "`private_ranges` covers the internal networks: every onion visitor would see the private part"
+            )
             continue
         try:
             network = ipaddress.ip_network(entry, strict=False)
         except ValueError:
             problems.append(f"{entry!r} is not an address or a network")
             continue
-        if network not in LOOPBACK and any(network.overlaps(internal) for internal in INTERNAL if internal.version == network.version):
-            problems.append(f"{entry} is an internal network: the onion, the Docker gateway or the machine itself come from there")
+        if network not in LOOPBACK and any(
+            network.overlaps(internal) for internal in INTERNAL if internal.version == network.version
+        ):
+            problems.append(
+                f"{entry} is an internal network: the onion, the Docker gateway or the machine itself come from there"
+            )
         elif network.prefixlen < WIDEST[network.version]:
             problems.append(f"{entry} is wider than /{WIDEST[network.version]}: many people come from there")
     return problems
@@ -241,8 +268,9 @@ class Visibility:
     def entitled(self):
         """May this visitor have the private view? Never for the static copy of the site."""
         if self._entitled is None:
-            self._entitled = not self.static_copy and (self.allowed_address
-                                                       or entitled_account(getattr(self.request, "user", None)))
+            self._entitled = not self.static_copy and (
+                self.allowed_address or entitled_account(getattr(self.request, "user", None))
+            )
         return self._entitled
 
     @property
@@ -251,8 +279,9 @@ class Visibility:
         static copy. The cookie does not switch it."""
         # StaffApart (config/guard.py) turns the staff into a visitor outside /admin/: the account is in staff_user
         user = getattr(self.request, "staff_user", None)
-        return not self.static_copy and (self.allowed_address
-                                         or bool(user and user.is_active and (user.is_staff or user.is_superuser)))
+        return not self.static_copy and (
+            self.allowed_address or bool(user and user.is_active and (user.is_staff or user.is_superuser))
+        )
 
     @property
     def private(self):
@@ -281,4 +310,6 @@ def context(request):
     visibility = getattr(request, "visibility", None)
     if visibility is None or not visibility.entitled:
         return {}
-    return {"visibility": {"private": visibility.private, "mode": settings.SITE_MODE if visibility.allowed_address else ""}}
+    return {
+        "visibility": {"private": visibility.private, "mode": settings.SITE_MODE if visibility.allowed_address else ""}
+    }

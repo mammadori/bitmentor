@@ -5,6 +5,7 @@ NIP-44 is checked against the official test vectors (testdata/nip44.vectors.json
 its sha256 is the one NIP-44 publishes) and the signatures against BIP340's (testdata/bip340-vectors.csv, from
 github.com/bitcoin/bips): a copy encrypted wrong is a copy nobody opens. The scripts run in node (NODE=/path/to/node, or
 node on the PATH); without node only the files are checked."""
+
 import hashlib
 import json
 import os
@@ -15,6 +16,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.test import SimpleTestCase
+
 from .test_scripts import assert_talks_to_nobody
 
 STATIC = settings.BASE_DIR / "static"
@@ -166,15 +168,21 @@ class Running(SimpleTestCase):
         with tempfile.TemporaryDirectory() as folder:
             harness = Path(folder) / "harness.js"
             harness.write_text(HARNESS)
-            result = subprocess.run([node, str(harness), *map(str, SCRIPTS), str(NIP44), str(BIP340), NPUB, NSEC],
-                                    capture_output=True, text=True, timeout=120)
+            result = subprocess.run(
+                [node, str(harness), *map(str, SCRIPTS), str(NIP44), str(BIP340), NPUB, NSEC],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
         if result.returncode:
             raise AssertionError(result.stderr)
         cls.out = json.loads(result.stdout)
 
     def test_nip44_matches_every_valid_vector(self):
         self.assertEqual(self.out["wrong"], [])
-        self.assertEqual(self.out["counts"], {"keys": 35, "pairs": 10, "long": 3, "invalidKeys": 8, "invalidPayloads": 12})
+        self.assertEqual(
+            self.out["counts"], {"keys": 35, "pairs": 10, "long": 3, "invalidKeys": 8, "invalidPayloads": 12}
+        )
 
     def test_nip44_refuses_every_invalid_vector(self):
         self.assertEqual(self.out["invalidKeys"], ["key"] * 8)
@@ -182,7 +190,9 @@ class Running(SimpleTestCase):
         self.assertEqual(self.out["invalidLengths"], ["length"] * 4)
 
     def test_chacha20_matches_rfc_8439(self):
-        self.assertTrue(self.out["chacha"].startswith("6e2e359a2568f98041ba0728dd0d6981e97e7aec1d4360c20a27afccfd9fae0b"))
+        self.assertTrue(
+            self.out["chacha"].startswith("6e2e359a2568f98041ba0728dd0d6981e97e7aec1d4360c20a27afccfd9fae0b")
+        )
         self.assertTrue(self.out["chacha"].endswith("5af90bbf74a35be6b40b8eedf2785e42874d"))
 
     def test_signatures_match_bip340(self):
@@ -201,7 +211,9 @@ class Running(SimpleTestCase):
         self.assertTrue(self.out["event"]["author"])
         self.assertTrue(self.out["event"]["checked"])
         opened = self.out["opened"]
-        self.assertEqual((opened["till"], opened["who"], opened["period"], opened["part"]), ("reg-1", "Anna", "2026-11", 0))
+        self.assertEqual(
+            (opened["till"], opened["who"], opened["period"], opened["part"]), ("reg-1", "Anna", "2026-11", 0)
+        )
         self.assertEqual([sale["id"] for sale in opened["sales"]], ["s0", "s1", "s2"])
         self.assertEqual(self.out["openedByTill"], 3)
 
@@ -217,8 +229,10 @@ class Running(SimpleTestCase):
         self.assertEqual(self.out["partsBack"], 4000)
 
     def test_d_tags_and_filter(self):
-        self.assertEqual(self.out["d"][:2], [{"till": "reg-1", "period": "2026-11", "part": 0},
-                                             {"till": "reg-1", "period": "2026-11-09", "part": 3}])
+        self.assertEqual(
+            self.out["d"][:2],
+            [{"till": "reg-1", "period": "2026-11", "part": 0}, {"till": "reg-1", "period": "2026-11-09", "part": 3}],
+        )
         self.assertEqual(self.out["d"][2:], [None, None, None])
         self.assertEqual(self.out["filter"]["kinds"], [30078])
         self.assertEqual(self.out["filter"]["since"], 5)

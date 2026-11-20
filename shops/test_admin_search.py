@@ -1,5 +1,6 @@
 """The search of /admin/shops/shop/: what a helper needs when a merchant phones, and never a way to confirm a value the
 user cannot see. The owner's recovery email is on no page a moderator opens: only a superuser searches by it."""
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.test import TestCase
@@ -20,8 +21,14 @@ class Search(Base):
         super().setUp()
         self.owner = User.objects.create_user("merchant-key")
         Profile.objects.create(user=self.owner, email="recovery@example.org")
-        self.shop = Shop.objects.create(name="Red Bar", city="Townville", owner=self.owner, email="shop@example.net",
-                                        lightning_address="redbar@wallet.example.com", external_id="list-0042")
+        self.shop = Shop.objects.create(
+            name="Red Bar",
+            city="Townville",
+            owner=self.owner,
+            email="shop@example.net",
+            lightning_address="redbar@wallet.example.com",
+            external_id="list-0042",
+        )
         Shop.objects.create(name="Blue Pub", city="Townville")
 
     def found(self, term, **params):

@@ -41,6 +41,7 @@ and never twice: the step of the last accepted code is stored, and no code of th
 
 Adding, turning off, removing and the resets are written where a change of password is (`record_change`).
 """
+
 import hashlib
 import logging
 import threading
@@ -176,9 +177,11 @@ class Factors:
 
     def without(self, factor):
         """These factors less one: what would be left after removing it."""
-        return Factors(None if self.totp == factor else self.totp,
-                       [passkey for passkey in self.passkeys if passkey != factor],
-                       None if self.bootstrap == factor else self.bootstrap)
+        return Factors(
+            None if self.totp == factor else self.totp,
+            [passkey for passkey in self.passkeys if passkey != factor],
+            None if self.bootstrap == factor else self.bootstrap,
+        )
 
 
 def accepted_factors(user):
@@ -211,8 +214,9 @@ def take_code(factor, code, confirm=False):
     step = totp.accepted_step(factor.secret, code, now(), factor.last_step)
     if step is None:
         return False
-    rows = AdminSecondFactor.objects.filter(pk=factor.pk, user_id=factor.user_id, last_step__lt=step,
-                                            confirmed__isnull=confirm)
+    rows = AdminSecondFactor.objects.filter(
+        pk=factor.pk, user_id=factor.user_id, last_step__lt=step, confirmed__isnull=confirm
+    )
     changes = {"last_step": step, **({"confirmed": timezone.now()} if confirm else {})}
     return bool(rows.update(**changes))
 
@@ -234,9 +238,14 @@ class PasswordStep(LoginView):
         # Nobody stays signed in in this browser, and the session gets a new key (flush): a key planted before the
         # password, or the session of another account, is not the one that waits for the code
         auth_logout(request)
-        request.session[PENDING] = {"user": user.pk, "auth": user.get_session_auth_hash(), "factors": factors.marks(),
-                                    "backend": getattr(user, "backend", ""), "until": now() + PENDING_SECONDS,
-                                    "next": target}
+        request.session[PENDING] = {
+            "user": user.pk,
+            "auth": user.get_session_auth_hash(),
+            "factors": factors.marks(),
+            "backend": getattr(user, "backend", ""),
+            "until": now() + PENDING_SECONDS,
+            "next": target,
+        }
         response = HttpResponseRedirect(reverse("admin_second_factor_code"))
         response.pending_user = user
         return response
@@ -249,8 +258,13 @@ def login(request, extra_context=None):
     site = admin.site
     if request.method == "GET" and site.has_permission(request):
         return HttpResponseRedirect(reverse("admin:index", current_app=site.name))
-    context = {**site.each_context(request), "title": _("Log in"), "subtitle": None, "app_path": request.get_full_path(),
-               "username": request.user.get_username()}
+    context = {
+        **site.each_context(request),
+        "title": _("Log in"),
+        "subtitle": None,
+        "app_path": request.get_full_path(),
+        "username": request.user.get_username(),
+    }
     if REDIRECT_FIELD_NAME not in request.GET and REDIRECT_FIELD_NAME not in request.POST:
         context[REDIRECT_FIELD_NAME] = reverse("admin:index", current_app=site.name)
     context.update(extra_context or {})
@@ -264,8 +278,9 @@ def login(request, extra_context=None):
         if link is not None:
             template = admin_wallet.LOGIN_TEMPLATE
             context.update(link)
-    return PasswordStep.as_view(extra_context=context, authentication_form=site.login_form or AdminAuthenticationForm,
-                                template_name=template)(request)
+    return PasswordStep.as_view(
+        extra_context=context, authentication_form=site.login_form or AdminAuthenticationForm, template_name=template
+    )(request)
 
 
 def pending(request):
@@ -353,7 +368,9 @@ def open_session(request, user, factor, target, bootstrap=False):
     if bootstrap:
         # Only the page where the passkey is added: wherever the sign-in wanted to go
         return HttpResponseRedirect(reverse("admin_second_factor"))
-    if not url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+    if not url_has_allowed_host_and_scheme(
+        target, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
         target = reverse("admin:index", current_app=admin.site.name)
     return HttpResponseRedirect(target)
 
@@ -431,8 +448,13 @@ class Gate:
         if settings.SESSION_COOKIE_NAME not in request.COOKIES or not comes_from_admin(request):
             return None
         # The sign-in's own pages make a new session whatever this one was, and the sign-out ends it
-        if request.path_info in (reverse("admin:login"), reverse("admin_second_factor_code"), reverse("admin:logout"),
-                                 reverse("admin_wallet_login"), reverse("admin_wallet_status")):
+        if request.path_info in (
+            reverse("admin:login"),
+            reverse("admin_second_factor_code"),
+            reverse("admin:logout"),
+            reverse("admin_wallet_login"),
+            reverse("admin_wallet_status"),
+        ):
             return None
         user = request.user
         if not (user.is_authenticated and request.session.get(ADMIN_SESSION)):
@@ -447,7 +469,8 @@ class Gate:
             # The admin's page that sets an account's password asks for no old one: a session opened with a wallet
             # would leave with a password, and from there with a factor and the wallets (config/admin_wallet.py)
             return HttpResponseForbidden(
-                _("This session was opened with a wallet: sign in with the password to set a password."))
+                _("This session was opened with a wallet: sign in with the password to set a password.")
+            )
         if user.is_active and user.is_staff and factors_of_request(request).missing() and not exempt(request):
             return HttpResponseRedirect(reverse("admin_second_factor"))
         return None
@@ -459,6 +482,7 @@ class Gate:
 def in_background(work):
     """Runs `work` in a thread of its own: the page or the command waits neither for Telegram nor for the mail server.
     The thread's own database connections (the mail budget) are closed when it ends: nobody else would close them."""
+
     def run():
         from django.db import connections
 
@@ -475,6 +499,7 @@ def tell(text, wait=False, report=None, subject=None):
     with the site's name. In a thread, unless `wait` (a command, which would end before the thread); then `report`, if
     given, gets (where, problems) as deliver_to_moderators says them. A message that cannot go is a line in the log, never
     an error for whoever caused it."""
+
     def deliver():
         where, problems = None, []
         from shops.management.commands.dashboard import site_label
@@ -499,10 +524,12 @@ def tell(text, wait=False, report=None, subject=None):
 
 def notice(sentence, user):
     """The text of a notice, made when it is sent: the account's name as an alert shows a name."""
+
     def text():
         from shops.notifications import alert_text
 
         return str(sentence).format(name=alert_text(user.get_username()))
+
     return text
 
 
@@ -528,16 +555,24 @@ def record_change(user, message, sentence, by=None, wait=False, report=None, cod
 TURNED_ON = gettext_lazy("The staff account {name} turned its second factor on.")
 TURNED_OFF = gettext_lazy("The staff account {name} turned its second factor off.")
 RESET = gettext_lazy("The second factor of the staff account {name} was reset with manage.py admin_totp reset.")
-WRONG_CODE = gettext_lazy("A wrong second-factor code after the right password for the staff account {name}: its "
-                          "password may be known to someone else. Change it.")
+WRONG_CODE = gettext_lazy(
+    "A wrong second-factor code after the right password for the staff account {name}: its "
+    "password may be known to someone else. Change it."
+)
 PASSKEY_ADDED = gettext_lazy("The staff account {name} added a passkey.")
 PASSKEY_REMOVED = gettext_lazy("The staff account {name} removed a passkey.")
-PASSKEY_RESET = gettext_lazy("The passkeys of the staff account {name} were removed with manage.py admin_passkey reset.")
-WRONG_PASSKEY = gettext_lazy("A refused passkey after the right password for the staff account {name}: its password may "
-                             "be known to someone else. Change it.")
-PASSKEY_COPIED = gettext_lazy("A passkey of the staff account {name} signed with a count that did not grow: it may have "
-                              "been copied. The sign-in was refused. Remove that passkey from the account, and check "
-                              "who else may have it.")
+PASSKEY_RESET = gettext_lazy(
+    "The passkeys of the staff account {name} were removed with manage.py admin_passkey reset."
+)
+WRONG_PASSKEY = gettext_lazy(
+    "A refused passkey after the right password for the staff account {name}: its password may "
+    "be known to someone else. Change it."
+)
+PASSKEY_COPIED = gettext_lazy(
+    "A passkey of the staff account {name} signed with a count that did not grow: it may have "
+    "been copied. The sign-in was refused. Remove that passkey from the account, and check "
+    "who else may have it."
+)
 
 
 # --- The codes of the sign-in --------------------------------------------------------------------------------------
@@ -564,8 +599,13 @@ def wrong_code(response, user):
         # One a day: a counter of its own, in the database like the limits, so that the workers agree
         if ratelimit.over_limit(f"admin-code-told:{user.pk}", 1, DAY):
             return
-        LogEntry.objects.log_actions(user.pk, [user], CHANGE, single_object=True,
-                                     change_message="A wrong second-factor code after the right password")
+        LogEntry.objects.log_actions(
+            user.pk,
+            [user],
+            CHANGE,
+            single_object=True,
+            change_message="A wrong second-factor code after the right password",
+        )
         text = notice(WRONG_CODE, user)
         response._resource_closers.append(lambda: tell(text))
     except Exception:
@@ -578,7 +618,10 @@ def wrong_code(response, user):
 def over_limits(request):
     """The codes typed on the set-up page, as the old passwords of the change of password: counted by address and
     network, given back when right."""
-    counted = [(f"admin-factor:{ratelimit.client_ip(request)}", 10), (f"admin-factor-net:{ratelimit.client_network(request)}", 30)]
+    counted = [
+        (f"admin-factor:{ratelimit.client_ip(request)}", 10),
+        (f"admin-factor-net:{ratelimit.client_network(request)}", 30),
+    ]
     # Both are counted, whatever the first says
     spent = [ratelimit.over_limit(name, limit, WINDOW) for name, limit in counted]
     return any(spent), counted
@@ -589,7 +632,6 @@ def give_back(counted):
     seconds)."""
     for name, *rest in counted:
         ratelimit.give_back(name, rest[1] if len(rest) > 1 else WINDOW)
-
 
 
 # --- Passkeys ------------------------------------------------------------------------------------------------------
@@ -642,8 +684,9 @@ def take_assertion(request, user, posted, outcome=None):
         key = AdminPasskey.objects.filter(user_id=user.pk, credential_id=assertion.credential_id).first()
         if key is None:
             raise webauthn.Refused("not a passkey of this account")
-        count, backed_up = webauthn.verify_assertion(assertion, challenge, key.public_key, key.algorithm,
-                                                     key.sign_count, handle_of(user), key.backup_eligible)
+        count, backed_up = webauthn.verify_assertion(
+            assertion, challenge, key.public_key, key.algorithm, key.sign_count, handle_of(user), key.backup_eligible
+        )
     except webauthn.Replayed:
         copied_passkey(user)
         return None, True
@@ -666,8 +709,9 @@ def wrong_passkey(response, user):
     try:
         if ratelimit.over_limit(f"admin-passkey-wrong-told:{user.pk}", 1, DAY):
             return
-        LogEntry.objects.log_actions(user.pk, [user], CHANGE, single_object=True,
-                                     change_message="A refused passkey after the right password")
+        LogEntry.objects.log_actions(
+            user.pk, [user], CHANGE, single_object=True, change_message="A refused passkey after the right password"
+        )
         text = notice(WRONG_PASSKEY, user)
         response._resource_closers.append(lambda: tell(text))
     except Exception:
@@ -680,8 +724,13 @@ def copied_passkey(user):
     try:
         if ratelimit.over_limit(f"admin-passkey-told:{user.pk}", 1, DAY):
             return
-        LogEntry.objects.log_actions(user.pk, [user], CHANGE, single_object=True,
-                                     change_message="A passkey signed with a count that did not grow: refused")
+        LogEntry.objects.log_actions(
+            user.pk,
+            [user],
+            CHANGE,
+            single_object=True,
+            change_message="A passkey signed with a count that did not grow: refused",
+        )
         tell(notice(PASSKEY_COPIED, user))
     except Exception:
         logger.exception("second factor: a copied passkey could not be written down")
@@ -716,14 +765,20 @@ def passkey_context(request):
 
     user = request.user
     passkeys = list(AdminPasskey.objects.filter(user=user).order_by("created", "pk"))
-    context = {"passkeys": passkeys, "passkeys_here": passkeys_here(request), "public_url": settings.PUBLIC_URL,
-               "passkey_mode": mode() == "passkey", "totp_accepted": totp_accepted()}
+    context = {
+        "passkeys": passkeys,
+        "passkeys_here": passkeys_here(request),
+        "public_url": settings.PUBLIC_URL,
+        "passkey_mode": mode() == "passkey",
+        "totp_accepted": totp_accepted(),
+    }
     if context["passkeys_here"]:
         challenge = webauthn.new_challenge()
         handle = handle_of(user) or webauthn.new_user_handle()
         request.session[PASSKEY_SETUP_SESSION] = [challenge, now() + webauthn.CHALLENGE_SECONDS, handle]
         context["passkey_options"] = webauthn.creation_options(
-            challenge, handle, user.get_username(), rp_name(), [passkey.credential_id for passkey in passkeys])
+            challenge, handle, user.get_username(), rp_name(), [passkey.credential_id for passkey in passkeys]
+        )
     return context
 
 
@@ -736,11 +791,20 @@ def wallet_context(request):
 @sensitive_variables()
 def page(request, context, status=200):
     site = admin.site
-    response = TemplateResponse(request, TEMPLATE, {**site.each_context(request), "title": _("Second factor"),
-                                                    "required": factors_of_request(request).missing(),
-                                                    "bootstrap_session": bootstrap_session(request),
-                                                    **passkey_context(request), **wallet_context(request), **context},
-                                status=status)
+    response = TemplateResponse(
+        request,
+        TEMPLATE,
+        {
+            **site.each_context(request),
+            "title": _("Second factor"),
+            "required": factors_of_request(request).missing(),
+            "bootstrap_session": bootstrap_session(request),
+            **passkey_context(request),
+            **wallet_context(request),
+            **context,
+        },
+        status=status,
+    )
     if status == 429:
         response["Retry-After"] = str(ratelimit.seconds_left(WINDOW))
     return response
@@ -750,15 +814,19 @@ def shown_setup(request):
     """The waiting set-up of the signed-in account that this session was shown, as a queryset (empty if none)."""
     from shops.models import AdminSecondFactor
 
-    return AdminSecondFactor.objects.filter(pk=request.session.get(SETUP_SESSION), user=request.user,
-                                            confirmed__isnull=True)
+    return AdminSecondFactor.objects.filter(
+        pk=request.session.get(SETUP_SESSION), user=request.user, confirmed__isnull=True
+    )
 
 
 @sensitive_variables()
 def setup_context(request, factor):
     host = settings.SITE_HOST
-    return {"setting_up": True, "secret": totp.grouped(factor.secret),
-            "uri": totp.uri(factor.secret, request.user.get_username(), host)}
+    return {
+        "setting_up": True,
+        "secret": totp.grouped(factor.secret),
+        "uri": totp.uri(factor.secret, request.user.get_username(), host),
+    }
 
 
 def totp_context(request):
@@ -819,9 +887,15 @@ def add_passkey(request):
             if mine.handle != handle or AdminPasskey.objects.filter(credential_id=found.credential_id).exists():
                 raise IntegrityError("another handle, or a credential already registered")
             passkey = AdminPasskey.objects.create(
-                user=user, credential_id=found.credential_id, public_key=found.public_key, algorithm=found.algorithm,
-                sign_count=found.sign_count, backup_eligible=found.backup_eligible, backed_up=found.backed_up,
-                name=clean_name(request.POST.get("name")))
+                user=user,
+                credential_id=found.credential_id,
+                public_key=found.public_key,
+                algorithm=found.algorithm,
+                sign_count=found.sign_count,
+                backup_eligible=found.backup_eligible,
+                backed_up=found.backed_up,
+                name=clean_name(request.POST.get("name")),
+            )
             record_change(user, "Passkey added", PASSKEY_ADDED, by=user)
     except IntegrityError:
         return page(request, {"passkey_wrong": True})
@@ -930,5 +1004,7 @@ def setup_view(request):
     if request.session.get(FACTOR_SESSION) is None:
         request.session.cycle_key()
         request.session[FACTOR_SESSION] = [TOTP, waiting.pk, now()]
-    messages.success(request, _("The second factor is on: from the next sign-in, the password and then a code from the app."))
+    messages.success(
+        request, _("The second factor is on: from the next sign-in, the password and then a code from the app.")
+    )
     return back_to_page()

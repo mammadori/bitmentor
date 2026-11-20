@@ -1,4 +1,5 @@
 """The shops of the community's list have their own gate (`training.gate_imported`, `reminder` unless written)."""
+
 from django.test import SimpleTestCase
 
 from .models import Shop
@@ -6,8 +7,9 @@ from .training import Config, gate_of
 
 
 def config(**values):
-    return Config(**{"gate": "unlock", "review_months": 12, "refresh_days": 30, "since": None, "public_sign": True,
-                     **values})
+    return Config(
+        **{"gate": "unlock", "review_months": 12, "refresh_days": 30, "since": None, "public_sign": True, **values}
+    )
 
 
 class GateOf(SimpleTestCase):

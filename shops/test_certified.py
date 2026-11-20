@@ -1,5 +1,6 @@
 """Certified shops and how recently their Lightning address worked (shops/certified.py): the rule, the bands, what
 leaves the site, the admin."""
+
 import json
 from datetime import date, datetime, timedelta
 from datetime import timezone as dt_timezone
@@ -11,7 +12,6 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
-
 
 from . import certified, lightning_watch, training
 from .certified import MONTH, OLDER, WEEK, YEAR, bands, owns_certified_shop
@@ -62,8 +62,12 @@ class Rule(Base):
 
     def setUp(self):
         super().setUp()
-        Shop.objects.filter(pk=self.shop.pk).update(lightning_address="bar@b.example", lightning_status=LightningStatus.OK,
-                                                     lightning_checked_address="bar@b.example", lightning_worked=NOW)
+        Shop.objects.filter(pk=self.shop.pk).update(
+            lightning_address="bar@b.example",
+            lightning_status=LightningStatus.OK,
+            lightning_checked_address="bar@b.example",
+            lightning_worked=NOW,
+        )
 
     def pass_(self):
         Trainee.objects.create(user=self.owner, base_earned=NOW)
@@ -88,15 +92,21 @@ class Rule(Base):
 
     def test_without_a_working_address_no_certificate(self):
         self.pass_()
-        for fields in ({"lightning_status": LightningStatus.NO_ANSWER}, {"lightning_status": ""},
-                       {"lightning_checked_address": "old@b.example"}, {"lightning_address": "", "lightning_checked_address": ""}):
+        for fields in (
+            {"lightning_status": LightningStatus.NO_ANSWER},
+            {"lightning_status": ""},
+            {"lightning_checked_address": "old@b.example"},
+            {"lightning_address": "", "lightning_checked_address": ""},
+        ):
             with self.subTest(fields=fields):
                 Shop.objects.filter(pk=self.shop.pk).update(**fields)
                 self.assertEqual(certified.refresh(now=NOW), 0)
                 self.assertIsNone(self.month())
                 Shop.objects.filter(pk=self.shop.pk).update(
-                    lightning_address="bar@b.example", lightning_status=LightningStatus.OK,
-                    lightning_checked_address="bar@b.example")
+                    lightning_address="bar@b.example",
+                    lightning_status=LightningStatus.OK,
+                    lightning_checked_address="bar@b.example",
+                )
 
     def test_revoked_is_never_certified_again(self):
         self.pass_()
@@ -128,8 +138,7 @@ class Rule(Base):
 
     def test_the_basic_pass_certifies(self):
         Trainee.objects.create(user=self.owner)
-        with patch("shops.training.parse", return_value=object()), \
-                patch("shops.training.all_modules", return_value=[]):
+        with patch("shops.training.parse", return_value=object()), patch("shops.training.all_modules", return_value=[]):
             self.assertTrue(training.settle(self.owner))
         self.assertIsNotNone(self.month())
 
@@ -145,12 +154,18 @@ class Outside(Base):
     def setUp(self):
         super().setUp()
         Shop.objects.filter(pk=self.shop.pk).update(
-            certified_month=date(2026, 9, 1), lightning_address="bar@b.example",
-            lightning_worked=timezone.now() - timedelta(days=200, hours=2))
+            certified_month=date(2026, 9, 1),
+            lightning_address="bar@b.example",
+            lightning_worked=timezone.now() - timedelta(days=200, hours=2),
+        )
         self.shop.refresh_from_db()
         Shop.objects.create(name="Plain", latitude=41.8, longitude=12.4)
-        self.secrets = ["2026-09", "2026-9", self.shop.lightning_worked.date().isoformat(),
-                        str(int(self.shop.lightning_worked.timestamp()))]
+        self.secrets = [
+            "2026-09",
+            "2026-9",
+            self.shop.lightning_worked.date().isoformat(),
+            str(int(self.shop.lightning_worked.timestamp())),
+        ]
 
     def assertNothingSecret(self, text):
         for secret in self.secrets:
@@ -226,9 +241,12 @@ class Owner(Base):
 
 class Revoke(Base):
     def test_revoked_and_allowed_again_from_the_admin(self):
-        Shop.objects.filter(pk=self.shop.pk).update(certified_month=date(2026, 9, 1), lightning_address="bar@b.example",
-                                                     lightning_status=LightningStatus.OK,
-                                                     lightning_checked_address="bar@b.example")
+        Shop.objects.filter(pk=self.shop.pk).update(
+            certified_month=date(2026, 9, 1),
+            lightning_address="bar@b.example",
+            lightning_status=LightningStatus.OK,
+            lightning_checked_address="bar@b.example",
+        )
         admin_session(self.client)
         url = "/admin/shops/shop/"
         self.client.post(url, {"action": "revoke_certificate", "_selected_action": [str(self.shop.pk)]})
@@ -246,10 +264,10 @@ class Revoke(Base):
         self.assertFalse(shop.certified_revoked)
         self.assertIsNotNone(shop.certified_month)
 
-
     def test_historic_certified_shop_keeps_the_badge_in_the_list(self):
-        Shop.objects.filter(pk=self.shop.pk).update(certified_month=date(2026, 9, 1), closed_on=date(2026, 1, 1),
-                                                     lightning_worked=timezone.now())
+        Shop.objects.filter(pk=self.shop.pk).update(
+            certified_month=date(2026, 9, 1), closed_on=date(2026, 1, 1), lightning_worked=timezone.now()
+        )
         page = self.client.get("/en/shops/map/").content.decode()
         self.assertIn("Certified shop", page)
         self.assertNotIn("Lightning, active", page.split('id="paid-texts"')[0])

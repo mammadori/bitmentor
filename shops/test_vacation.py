@@ -4,6 +4,7 @@ certificate that does not move, no alarms from the dashboard and the guardian, t
 
 Every day here is built from the community's calendar (`today()`), never as `now - timedelta(days=n)`: the tests give
 the same answer at any hour, and across the change of summer time."""
+
 from datetime import date, datetime, time, timedelta
 from datetime import timezone as dt_timezone
 from io import StringIO
@@ -51,9 +52,15 @@ class Base(TestCase):
     def setUp(self):
         cache.clear()
         self.owner = get_user_model().objects.create_user("merchant")
-        self.shop = Shop.objects.create(name="Bar", owner=self.owner, 
-                                        lightning_address="bar@example.org", latitude=41.9, longitude=12.5,
-                                        lightning=True, first_sale=timezone.now())
+        self.shop = Shop.objects.create(
+            name="Bar",
+            owner=self.owner,
+            lightning_address="bar@example.org",
+            latitude=41.9,
+            longitude=12.5,
+            lightning=True,
+            first_sale=timezone.now(),
+        )
 
     def shop_now(self):
         return fresh(self.shop)
@@ -118,9 +125,9 @@ class Days(Base):
         self.assertEqual(vacation.closed_days(self.shop_now(), date(2026, 1, 1), date(2026, 11, 1)), 304)
 
     def test_the_forgiven_days_are_a_budget_of_the_last_365_days_the_first_in_time(self):
-        make(self.shop, today() - days(500), today() - days(420))   # older than the window: no budget spent
-        make(self.shop, today() - days(200), today() - days(150))   # 50 days
-        make(self.shop, today() - days(100), today() - days(40))    # 60 days: only 42 are forgiven
+        make(self.shop, today() - days(500), today() - days(420))  # older than the window: no budget spent
+        make(self.shop, today() - days(200), today() - days(150))  # 50 days
+        make(self.shop, today() - days(100), today() - days(40))  # 60 days: only 42 are forgiven
         shop = self.shop_now()
         found = vacation.forgiven(shop, today())
         self.assertEqual(sum((last - first).days for first, last in found), vacation.MAX_CREDIT)
@@ -166,12 +173,17 @@ class Notice(Base):
     def test_closed_with_a_day_to_open(self):
         make(self.shop, today(), today() + days(15), "holiday")
         with override(language="en"):
-            self.assertEqual(vacation.note(self.shop_now()),
-                             f"Closed for holidays · back on {vacation.long_date(today() + days(15))}")
+            self.assertEqual(
+                vacation.note(self.shop_now()),
+                f"Closed for holidays · back on {vacation.long_date(today() + days(15))}",
+            )
 
     def test_the_reasons(self):
-        for reason, words in (("works", "Closed for works"), ("personal", "Closed for personal reasons"),
-                              ("other", "Closed for a while")):
+        for reason, words in (
+            ("works", "Closed for works"),
+            ("personal", "Closed for personal reasons"),
+            ("other", "Closed for a while"),
+        ):
             Closure.objects.all().delete()
             make(self.shop, today(), today() + days(2), reason)
             with override(language="en"):
@@ -203,8 +215,15 @@ class Notice(Base):
     def test_the_json_the_map_and_the_shop_page_say_it(self):
         make(self.shop, today(), today() + days(15), "works")
         found = self.client.get(reverse("shops_json")).json()["shops"][0]
-        self.assertEqual(found["break"], {"state": "closed", "reason": "works", "from": today().isoformat(),
-                                          "back": (today() + days(15)).isoformat()})
+        self.assertEqual(
+            found["break"],
+            {
+                "state": "closed",
+                "reason": "works",
+                "from": today().isoformat(),
+                "back": (today() + days(15)).isoformat(),
+            },
+        )
         # The shop stays on the map, with its pin and its discount
         self.assertEqual(found["closed_on"], None)
         page = self.client.get(reverse("shop_map")).content.decode()
@@ -245,6 +264,7 @@ class Notice(Base):
                 self.client.get(reverse("shops_json"))
                 self.client.get(reverse("shop_map"))
             return len(done)
+
         self.assertEqual(queries(2), queries(12))
 
 
@@ -297,8 +317,15 @@ class Icons(Base):
         self.assertEqual(self.band(self.shop_now()), certified.YEAR)
 
     def test_the_bands_of_an_open_shop_are_as_before(self):
-        for age, expected in ((0, certified.WEEK), (7, certified.WEEK), (8, certified.MONTH), (31, certified.MONTH),
-                              (32, certified.YEAR), (366, certified.YEAR), (367, certified.OLDER)):
+        for age, expected in (
+            (0, certified.WEEK),
+            (7, certified.WEEK),
+            (8, certified.MONTH),
+            (31, certified.MONTH),
+            (32, certified.YEAR),
+            (366, certified.YEAR),
+            (367, certified.OLDER),
+        ):
             self.assertEqual(self.band(self.paid(today() - days(age))), expected, age)
 
     def test_the_same_shop_in_memory_without_a_prefetch_gives_the_same_bands(self):
@@ -317,14 +344,19 @@ class Certificate(Base):
         self.assertEqual(self.shop_now().certified_month, date(2026, 6, 1))
         self.assertTrue(certified.owns_certified_shop(self.owner))
 
+
 class Alarms(Base):
     def setUp(self):
         super().setUp()
         now = timezone.now()
         Shop.objects.filter(pk=self.shop.pk).update(
-            lightning_status=LightningStatus.NO_ANSWER, lightning_since=now - timedelta(hours=30),
-            lightning_checked=now, lightning_worked=now - timedelta(days=3), lightning_checked_address="bar@example.org",
-            first_sale=now - timedelta(days=100))
+            lightning_status=LightningStatus.NO_ANSWER,
+            lightning_since=now - timedelta(hours=30),
+            lightning_checked=now,
+            lightning_worked=now - timedelta(days=3),
+            lightning_checked_address="bar@example.org",
+            first_sale=now - timedelta(days=100),
+        )
         Shop.objects.filter(pk=self.shop.pk).update(created=now - timedelta(days=200))
 
     def codes(self):
@@ -367,12 +399,14 @@ class Alarms(Base):
         def queries(count):
             Shop.objects.exclude(pk=self.shop.pk).delete()
             for number in range(count):
-                other = Shop.objects.create(name=f"B{number}", 
-                                            lightning_address=f"b{number}@example.org", latitude=1, longitude=2)
+                other = Shop.objects.create(
+                    name=f"B{number}", lightning_address=f"b{number}@example.org", latitude=1, longitude=2
+                )
                 make(other, today(), today() + days(3))
             with CaptureQueriesContext(connection) as done:
                 dashboard.summary()
             return len(done)
+
         self.assertEqual(queries(2), queries(10))
 
 
@@ -380,19 +414,28 @@ class Guardian(Base):
     def broken_once(self):
         now = timezone.now()
         Shop.objects.filter(pk=self.shop.pk).update(
-            lightning_status=LightningStatus.OK, lightning_since=now - timedelta(days=2), lightning_checked=now,
-            lightning_worked=now - timedelta(hours=3), lightning_failures=1,
-            lightning_failing_since=now - timedelta(hours=2), lightning_checked_address="bar@example.org")
+            lightning_status=LightningStatus.OK,
+            lightning_since=now - timedelta(days=2),
+            lightning_checked=now,
+            lightning_worked=now - timedelta(hours=3),
+            lightning_failures=1,
+            lightning_failing_since=now - timedelta(hours=2),
+            lightning_checked_address="bar@example.org",
+        )
 
     def test_a_fault_is_told_when_the_shop_is_open(self):
         self.broken_once()
-        _shop, change, recorded = lightning_watch.record(self.shop.pk, "bar@example.org", lightning_watch.NO_ANSWER_STATUS)
+        _shop, change, recorded = lightning_watch.record(
+            self.shop.pk, "bar@example.org", lightning_watch.NO_ANSWER_STATUS
+        )
         self.assertEqual((change, recorded), (lightning_watch.BROKE, True))
 
     def test_a_fault_during_a_closure_is_kept_on_the_shop_and_not_told(self):
         self.broken_once()
         make(self.shop, today(), today() + days(5))
-        shop, change, recorded = lightning_watch.record(self.shop.pk, "bar@example.org", lightning_watch.NO_ANSWER_STATUS)
+        shop, change, recorded = lightning_watch.record(
+            self.shop.pk, "bar@example.org", lightning_watch.NO_ANSWER_STATUS
+        )
         self.assertEqual((change, recorded), (None, True))
         # The guardian keeps watching: the state is on the shop, the panel shows it
         shop.refresh_from_db()
@@ -403,8 +446,11 @@ class Guardian(Base):
         self.broken_once()
         make(self.shop, today(), today() + days(5))
         Profile.objects.update_or_create(user=self.owner, defaults={"email": "merchant@example.org"})
-        with patch.object(lightning_watch, "watch_probe", return_value=lightning_watch.NO_ANSWER_STATUS), \
-                patch.object(lightning_watch, "network_ok", return_value=True), patch.object(lightning_watch, "tell_association") as told:
+        with (
+            patch.object(lightning_watch, "watch_probe", return_value=lightning_watch.NO_ANSWER_STATUS),
+            patch.object(lightning_watch, "network_ok", return_value=True),
+            patch.object(lightning_watch, "tell_association") as told,
+        ):
             call_command("check_lightning", pause=0, all=True, stdout=StringIO())
         self.assertEqual(mail.outbox, [])
         told.assert_called_once()
@@ -459,8 +505,12 @@ class Welcome(Base):
     def test_the_fault_found_meanwhile_is_said_to_the_owner_and_the_association(self):
         now = timezone.now()
         Shop.objects.filter(pk=self.shop.pk).update(
-            lightning_status=LightningStatus.NO_ANSWER, lightning_since=now - timedelta(days=3), lightning_checked=now,
-            lightning_worked=now - timedelta(days=5), lightning_checked_address="bar@example.org")
+            lightning_status=LightningStatus.NO_ANSWER,
+            lightning_since=now - timedelta(days=3),
+            lightning_checked=now,
+            lightning_worked=now - timedelta(days=5),
+            lightning_checked_address="bar@example.org",
+        )
         make(self.shop, today() - days(14), today())
         with patch.object(lightning_watch, "tell_association") as told:
             vacation.welcome_back(self.morning())
@@ -501,7 +551,9 @@ class Welcome(Base):
         Shop.objects.filter(pk=self.shop.pk).update(telegram_chat="111,@bar_chat,222")
         make(self.shop, today() - days(14), today())
         with patch("shops.notifications.requests.post") as post, self.assertLogs("shops.notifications", "ERROR"):
-            post.side_effect = lambda url, json, timeout: SimpleNamespace(status_code=403 if json["chat_id"] == "111" else 200)
+            post.side_effect = lambda url, json, timeout: SimpleNamespace(
+                status_code=403 if json["chat_id"] == "111" else 200
+            )
             self.assertEqual(len(vacation.welcome_back(self.morning())), 1)
         self.assertEqual([call.kwargs["json"]["chat_id"] for call in post.call_args_list], ["111", "@bar_chat", "222"])
 
@@ -548,7 +600,9 @@ class Welcome(Base):
         closure = make(self.shop, today() - days(5), today() - days(1))
         other = get_user_model().objects.create_user("other")
         self.client.force_login(other)
-        self.assertEqual(self.client.post(reverse("break_seen", args=[self.shop.pk]), {"closure": closure.pk}).status_code, 404)
+        self.assertEqual(
+            self.client.post(reverse("break_seen", args=[self.shop.pk]), {"closure": closure.pk}).status_code, 404
+        )
         closure.refresh_from_db()
         self.assertIsNone(closure.seen)
 
@@ -562,7 +616,9 @@ class Pages(Base):
     def send(self, follow=False, **values):
         data = {"reason": "holiday", "first_day": today().isoformat()}
         data.update(values)
-        return self.client.post(self.url, {key: value for key, value in data.items() if value is not None}, follow=follow)
+        return self.client.post(
+            self.url, {key: value for key, value in data.items() if value is not None}, follow=follow
+        )
 
     def test_the_page_opens_and_has_the_form(self):
         page = self.client.get(self.url).content.decode()
@@ -574,7 +630,9 @@ class Pages(Base):
         response = self.send(reopens_on=(today() + days(14)).isoformat(), reason="works")
         self.assertRedirects(response, f"{reverse('shops')}#break-{self.shop.pk}", fetch_redirect_response=False)
         closure = Closure.objects.get()
-        self.assertEqual((closure.first_day, closure.reopens_on, closure.reason), (today(), today() + days(14), "works"))
+        self.assertEqual(
+            (closure.first_day, closure.reopens_on, closure.reason), (today(), today() + days(14), "works")
+        )
 
     def test_until_i_say_so(self):
         self.send(until_told="on")
@@ -585,14 +643,16 @@ class Pages(Base):
         self.assertIsNone(Closure.objects.get().reopens_on)
 
     def test_the_form_refuses_what_makes_no_sense(self):
-        for values in ({"first_day": (today() - days(1)).isoformat(), "reopens_on": (today() + days(3)).isoformat()},
-                       {"reopens_on": today().isoformat()},
-                       {"reopens_on": (today() - days(2)).isoformat()},
-                       {"reopens_on": None},
-                       {"reopens_on": (today() + days(vacation.LONGEST + 5)).isoformat()},
-                       {"reopens_on": "tomorrow"},
-                       {"reason": "vacation-at-the-beach", "reopens_on": (today() + days(3)).isoformat()},
-                       {"first_day": None, "reopens_on": (today() + days(3)).isoformat()}):
+        for values in (
+            {"first_day": (today() - days(1)).isoformat(), "reopens_on": (today() + days(3)).isoformat()},
+            {"reopens_on": today().isoformat()},
+            {"reopens_on": (today() - days(2)).isoformat()},
+            {"reopens_on": None},
+            {"reopens_on": (today() + days(vacation.LONGEST + 5)).isoformat()},
+            {"reopens_on": "tomorrow"},
+            {"reason": "vacation-at-the-beach", "reopens_on": (today() + days(3)).isoformat()},
+            {"first_day": None, "reopens_on": (today() + days(3)).isoformat()},
+        ):
             response = self.send(**values)
             self.assertEqual(response.status_code, 200, values)
             self.assertEqual(Closure.objects.count(), 0, values)
@@ -604,8 +664,9 @@ class Pages(Base):
         # The form edits the same closure
         self.send(first_day=(start + days(1)).isoformat(), reopens_on=(start + days(20)).isoformat(), reason="other")
         closure = Closure.objects.get()
-        self.assertEqual((closure.first_day, closure.reopens_on, closure.reason),
-                         (start + days(1), start + days(20), "other"))
+        self.assertEqual(
+            (closure.first_day, closure.reopens_on, closure.reason), (start + days(1), start + days(20), "other")
+        )
         response = self.client.post(reverse("break_over", args=[self.shop.pk]))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Closure.objects.count(), 0)
@@ -680,21 +741,28 @@ class Pages(Base):
     def broken(self):
         now = timezone.now()
         Shop.objects.filter(pk=self.shop.pk).update(
-            lightning_status=LightningStatus.NO_ANSWER, lightning_since=now - timedelta(hours=30), lightning_checked=now,
-            lightning_worked=now - timedelta(days=3), lightning_checked_address="bar@example.org")
+            lightning_status=LightningStatus.NO_ANSWER,
+            lightning_since=now - timedelta(hours=30),
+            lightning_checked=now,
+            lightning_worked=now - timedelta(days=3),
+            lightning_checked_address="bar@example.org",
+        )
 
     def test_a_fault_kept_quiet_is_told_to_the_association_however_the_shop_reopens(self):
         self.broken()
         away = reverse("break_over", args=[self.shop.pk])
         for make_closure, act, told in (
-                (lambda: make(self.shop, today() - days(3), None), lambda: self.client.post(away), 1),
-                (lambda: make(self.shop, today(), None), lambda: self.client.post(away), 1),
-                (lambda: make(self.shop, today() - days(3), today() + days(4)),
-                 lambda: self.send(reopens_on=today().isoformat()), 1),
-                (lambda: make(self.shop, today(), today() + days(4)),
-                 lambda: self.send(reopens_on=today().isoformat()), 1),
-                # A closure still to come never kept anything quiet
-                (lambda: make(self.shop, today() + days(3), today() + days(9)), lambda: self.client.post(away), 0)):
+            (lambda: make(self.shop, today() - days(3), None), lambda: self.client.post(away), 1),
+            (lambda: make(self.shop, today(), None), lambda: self.client.post(away), 1),
+            (
+                lambda: make(self.shop, today() - days(3), today() + days(4)),
+                lambda: self.send(reopens_on=today().isoformat()),
+                1,
+            ),
+            (lambda: make(self.shop, today(), today() + days(4)), lambda: self.send(reopens_on=today().isoformat()), 1),
+            # A closure still to come never kept anything quiet
+            (lambda: make(self.shop, today() + days(3), today() + days(9)), lambda: self.client.post(away), 0),
+        ):
             Closure.objects.all().delete()
             make_closure()
             with patch.object(lightning_watch, "tell_association") as heard:
@@ -724,8 +792,9 @@ class Pages(Base):
         from django.test.utils import CaptureQueriesContext
 
         for number in range(3):
-            other = Shop.objects.create(name=f"B{number}", owner=self.owner, 
-                                        lightning_address=f"b{number}@example.org", latitude=1, longitude=2)
+            other = Shop.objects.create(
+                name=f"B{number}", owner=self.owner, lightning_address=f"b{number}@example.org", latitude=1, longitude=2
+            )
             make(other, today() - days(2), today() + days(5))
         with CaptureQueriesContext(connection) as done:
             self.client.get(reverse("shops"))
@@ -761,7 +830,7 @@ class MapScript(TestCase):
         from django.conf import settings
 
         script = (settings.BASE_DIR / "static" / "map.js").read_text()
-        body = script[script.index("function breakNote("):script.index("function note(")]
+        body = script[script.index("function breakNote(") : script.index("function note(")]
         self.assertEqual(body.count("dateText("), 1, "every date goes through `when`, which tolerates null")
         self.assertIn('const when = (iso) => (iso ? dateText(iso) : "");', body)
         self.assertNotIn("dateText(found.", body)
@@ -770,7 +839,7 @@ class MapScript(TestCase):
         from django.conf import settings
 
         script = (settings.BASE_DIR / "static" / "map.js").read_text()
-        body = script[script.index("function label("):script.index("// Closed for a while")]
+        body = script[script.index("function label(") : script.index("// Closed for a while")]
         self.assertLess(body.index("texts.discount"), body.index("breakNote(shop)"))
         self.assertIn("${name} · ${pause}", body)
 

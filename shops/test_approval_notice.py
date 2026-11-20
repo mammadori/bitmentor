@@ -1,5 +1,6 @@
 """The owner is told when the shop is approved (shops/approval.py, tell_owner): by email and in the shop's Telegram chats,
 once per approval, after the commit, never blocking or breaking the approval."""
+
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -24,8 +25,14 @@ class Notice(TestCase):
     def setUp(self):
         self.owner = get_user_model().objects.create(username="owner")
         Profile.objects.create(user=self.owner, email="mario@example.org")
-        self.shop = Shop.objects.create(name="Bar Sport", owner=self.owner, latitude=41.9, longitude=12.5,
-                                        lightning_address="mario@wallet.example", approved_on=None)
+        self.shop = Shop.objects.create(
+            name="Bar Sport",
+            owner=self.owner,
+            latitude=41.9,
+            longitude=12.5,
+            lightning_address="mario@wallet.example",
+            approved_on=None,
+        )
         self.staff = get_user_model().objects.create(username="staff", is_staff=True)
 
     def approve(self, **kwargs):
@@ -37,8 +44,9 @@ class Notice(TestCase):
     def admin(self):
         from config.urls import ADMIN_SESSION
 
-        self.staff.user_permissions.add(*Permission.objects.filter(content_type__app_label="shops",
-                                                                   codename__in=("view_shop", "change_shop")))
+        self.staff.user_permissions.add(
+            *Permission.objects.filter(content_type__app_label="shops", codename__in=("view_shop", "change_shop"))
+        )
         self.client.force_login(self.staff)
         session = self.client.session
         session[ADMIN_SESSION] = True
@@ -152,7 +160,9 @@ class Notice(TestCase):
         for change in ({"suspended": True}, {"listed": False}, {"closed_on": timezone.localdate() - timedelta(days=2)}):
             with self.subTest(change):
                 mail.outbox.clear()
-                Shop.objects.filter(pk=self.shop.pk).update(approved_on=None, suspended=False, listed=True, closed_on=None)
+                Shop.objects.filter(pk=self.shop.pk).update(
+                    approved_on=None, suspended=False, listed=True, closed_on=None
+                )
                 message = self.told(**change)
                 self.assert_only_approved(message)
                 self.assertNotIn("as soon as", message.body)
@@ -164,13 +174,23 @@ class Notice(TestCase):
     def test_as_soon_as_only_when_that_is_all_that_is_missing(self):
         wallet = {"lightning_address": "", "awaiting_wallet": True}
         nowhere = {"latitude": None, "longitude": None}
-        for change in ({"listed": False, **wallet}, {"suspended": True, **wallet}, {**nowhere, **wallet},
-                       {"listed": False, **nowhere}):
+        for change in (
+            {"listed": False, **wallet},
+            {"suspended": True, **wallet},
+            {**nowhere, **wallet},
+            {"listed": False, **nowhere},
+        ):
             with self.subTest(change):
                 mail.outbox.clear()
                 Shop.objects.filter(pk=self.shop.pk).update(
-                    approved_on=None, suspended=False, listed=True, latitude=41.9, longitude=12.5,
-                    lightning_address="mario@wallet.example", awaiting_wallet=False)
+                    approved_on=None,
+                    suspended=False,
+                    listed=True,
+                    latitude=41.9,
+                    longitude=12.5,
+                    lightning_address="mario@wallet.example",
+                    awaiting_wallet=False,
+                )
                 message = self.told(**change)
                 self.assert_only_approved(message)
                 self.assertNotIn("as soon as", message.body)
@@ -197,8 +217,10 @@ class Notice(TestCase):
     @override_settings(TELEGRAM_BOT_TOKEN="t")
     def test_a_failing_telegram_never_breaks_the_approval_nor_the_email(self):
         Shop.objects.filter(pk=self.shop.pk).update(telegram_chat="-1")
-        with patch("shops.notifications.telegram", side_effect=NotificationFailed("500")), \
-                self.assertLogs("shops.approval", "ERROR"):
+        with (
+            patch("shops.notifications.telegram", side_effect=NotificationFailed("500")),
+            self.assertLogs("shops.approval", "ERROR"),
+        ):
             outcome = self.approve()
         self.assertEqual(outcome.approved, 1)
         self.assertEqual(len(mail.outbox), 1)
@@ -217,6 +239,7 @@ class Notice(TestCase):
 
         def receiver(sender, shop, by, **kwargs):
             heard.append(by)
+
         events.shop_approved.connect(receiver)
         self.addCleanup(events.shop_approved.disconnect, receiver)
         self.approve()

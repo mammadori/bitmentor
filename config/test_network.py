@@ -11,12 +11,27 @@ from config.network import is_public, resolve
 
 class PublicAddress(SimpleTestCase):
     def test_inside_whatever_the_spelling(self):
-        for address in ("127.0.0.1", "10.0.0.5", "169.254.169.254", "100.64.0.1", "0.0.0.0", "::1", "::", "fd00::1",
-                        "fe80::1", "::ffff:10.0.0.1", "::ffff:127.0.0.1",
-                        # IPv4-compatible (deprecated): ipaddress calls them global
-                        "::127.0.0.1", "::10.0.0.1", "::8.8.8.8",
-                        # NAT64: behind a gateway these are 127.0.0.1 and 10.0.0.1
-                        "64:ff9b::7f00:1", "64:ff9b::a00:1", "64:ff9b::127.0.0.1"):
+        for address in (
+            "127.0.0.1",
+            "10.0.0.5",
+            "169.254.169.254",
+            "100.64.0.1",
+            "0.0.0.0",
+            "::1",
+            "::",
+            "fd00::1",
+            "fe80::1",
+            "::ffff:10.0.0.1",
+            "::ffff:127.0.0.1",
+            # IPv4-compatible (deprecated): ipaddress calls them global
+            "::127.0.0.1",
+            "::10.0.0.1",
+            "::8.8.8.8",
+            # NAT64: behind a gateway these are 127.0.0.1 and 10.0.0.1
+            "64:ff9b::7f00:1",
+            "64:ff9b::a00:1",
+            "64:ff9b::127.0.0.1",
+        ):
             with self.subTest(address):
                 self.assertFalse(is_public(address))
 
@@ -59,8 +74,10 @@ class Resolve(SimpleTestCase):
     def test_never_longer_than_dns_seconds_nor_than_the_time_left(self):
         answer = threading.Event()
         self.addCleanup(answer.set)
-        with patch("config.network.DNS_SECONDS", 0.2), \
-                patch("socket.getaddrinfo", side_effect=lambda *args, **kwargs: answer.wait(5) and []) as asked:
+        with (
+            patch("config.network.DNS_SECONDS", 0.2),
+            patch("socket.getaddrinfo", side_effect=lambda *args, **kwargs: answer.wait(5) and []) as asked,
+        ):
             started = time.monotonic()
             with self.assertRaises(network.SlowName):
                 resolve("slow.example.org", seconds=30)
@@ -75,8 +92,11 @@ class Resolve(SimpleTestCase):
             asked.assert_not_called()
 
     def test_a_thread_that_cannot_start_gives_its_place_back(self):
-        with patch("config.network.threading.Thread.start", side_effect=RuntimeError("can't start new thread")), \
-                patch("socket.getaddrinfo") as asked, self.assertRaises(network.SlowName):
+        with (
+            patch("config.network.threading.Thread.start", side_effect=RuntimeError("can't start new thread")),
+            patch("socket.getaddrinfo") as asked,
+            self.assertRaises(network.SlowName),
+        ):
             resolve("example.org")
         asked.assert_not_called()
         self.assertEqual(self.free(), network.DNS_AT_ONCE)
@@ -93,8 +113,10 @@ class Resolve(SimpleTestCase):
         with patch("socket.getaddrinfo", return_value=found) as asked:
             self.assertEqual(resolve("example.org", 443, proto=socket.IPPROTO_TCP), found)
         self.assertEqual(asked.call_args.kwargs, {"proto": socket.IPPROTO_TCP})
-        with patch("socket.getaddrinfo", side_effect=socket.gaierror(socket.EAI_NONAME, "x")), \
-                self.assertRaises(socket.gaierror):
+        with (
+            patch("socket.getaddrinfo", side_effect=socket.gaierror(socket.EAI_NONAME, "x")),
+            self.assertRaises(socket.gaierror),
+        ):
             resolve("nowhere.example.org")
         # The thread gives its place back as it ends, a moment after the caller has the answer
         self.assertTrue(wait_for(lambda: self.free() == network.DNS_AT_ONCE))

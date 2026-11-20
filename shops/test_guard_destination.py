@@ -1,6 +1,7 @@
 """A change of where a shop's money goes (shops/guard.py, destination_changed and deliver_destination): written in the
 register, said after the commit to the owner and the association, with the addresses short; the owner's first connection
 of a wallet is only confirmed to the owner; whatever fails in telling never stops the change."""
+
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -33,8 +34,9 @@ class as_visitor:
         current_request.reset(self.token)
 
 
-@override_settings(LANGUAGE_CODE="en", TELEGRAM_BOT_TOKEN="1:x", TELEGRAM_MODERATION_CHAT="-100",
-                   PUBLIC_URL="https://site.example.org")
+@override_settings(
+    LANGUAGE_CODE="en", TELEGRAM_BOT_TOKEN="1:x", TELEGRAM_MODERATION_CHAT="-100", PUBLIC_URL="https://site.example.org"
+)
 class Destination(TestCase):
     def setUp(self):
         self.owner = User.objects.create(username="key1")
@@ -132,8 +134,10 @@ class Destination(TestCase):
         self.assertEqual((row.told, row.not_told), ("telegram,association", "email"))
 
     def test_a_channel_that_crashes_is_only_that_channel_s_failure(self):
-        with patch("shops.guard.send_mail", side_effect=RuntimeError("a bug in a mail backend")), \
-                self.assertLogs("shops.guard", "ERROR") as logged:
+        with (
+            patch("shops.guard.send_mail", side_effect=RuntimeError("a bug in a mail backend")),
+            self.assertLogs("shops.guard", "ERROR") as logged,
+        ):
             row = self.change()
         self.assertEqual((row.told, row.not_told), ("telegram,association", "email"))
         # Only the kind of error is logged, never its text
@@ -202,8 +206,10 @@ class Destination(TestCase):
         self.assertIn("association", row.told)
 
     def test_a_guardian_that_fails_never_stops_the_change(self):
-        with patch("shops.guard.destination_lines", side_effect=RuntimeError("bug")), \
-                self.assertLogs("shops.guard", "ERROR") as logged:
+        with (
+            patch("shops.guard.destination_lines", side_effect=RuntimeError("bug")),
+            self.assertLogs("shops.guard", "ERROR") as logged,
+        ):
             self.shop.lightning_address = NEW
             self.shop.save()
         self.shop.refresh_from_db()
@@ -219,7 +225,11 @@ class Destination(TestCase):
         self.assertEqual(guard.short_address("  a@b.example "), "a@b.example")
 
     def test_the_lines_of_a_notice_say_nothing_for_an_empty_side(self):
-        self.assertEqual(guard.destination_text([("lightning_address", "", "ma…@x.example")]),
-                         ["Lightning address: nothing → ma…@x.example"])
-        self.assertEqual(guard.destination_text([("lightning_address", "ma…@x.example", "")]),
-                         ["Lightning address: ma…@x.example → nothing"])
+        self.assertEqual(
+            guard.destination_text([("lightning_address", "", "ma…@x.example")]),
+            ["Lightning address: nothing → ma…@x.example"],
+        )
+        self.assertEqual(
+            guard.destination_text([("lightning_address", "ma…@x.example", "")]),
+            ["Lightning address: ma…@x.example → nothing"],
+        )

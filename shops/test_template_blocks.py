@@ -1,5 +1,6 @@
 """The blocks a community's template extends instead of copying the page (docs/architecture.md, "The community's own
 code"): with nobody extending them the pages are byte for byte what they were, and an extension changes only its part."""
+
 import re
 import tempfile
 from pathlib import Path
@@ -15,10 +16,14 @@ from .models import Shop
 
 # Each page, the blocks it offers, and a context for each of its states
 PAGES = {
-    "shops/claim.html": (("claim_busy", "claim_gone", "claim_form", "claim_taken"),
-                         [{"busy": True}, {"gone": True}, {"code": "c" * 32}, {"code": "c" * 32, "taken": "Taken & <b>"}]),
-    "shops/register_locked.html": (("locked_owner", "locked_staff", "locked_others"),
-                                   [{"owner": True}, {"staff": True}, {}]),
+    "shops/claim.html": (
+        ("claim_busy", "claim_gone", "claim_form", "claim_taken"),
+        [{"busy": True}, {"gone": True}, {"code": "c" * 32}, {"code": "c" * 32, "taken": "Taken & <b>"}],
+    ),
+    "shops/register_locked.html": (
+        ("locked_owner", "locked_staff", "locked_others"),
+        [{"owner": True}, {"staff": True}, {}],
+    ),
 }
 BLOCK = re.compile(r"\{% (?:block (\w+)|endblock) %\}")
 CSRF = re.compile(r'name="csrfmiddlewaretoken" value="[^"]*"')
@@ -33,7 +38,7 @@ def without_blocks(text, names):
     {% endblock %} after the first line that opens the content is matched with the block it closes."""
     out, stack, position = [], [], 0
     for match in BLOCK.finditer(text):
-        out.append(text[position:match.start()])
+        out.append(text[position : match.start()])
         position = match.end()
         if match[1] is not None:
             stack.append(match[1])
@@ -69,14 +74,18 @@ class Blocks(TestCase):
 
     def test_a_community_changes_only_its_block(self):
         child = engines["django"].from_string(
-            '{% extends "shops/claim.html" %}{% block claim_gone %}<p>Ask at the desk.</p>{% endblock %}')
+            '{% extends "shops/claim.html" %}{% block claim_gone %}<p>Ask at the desk.</p>{% endblock %}'
+        )
         page = self.render(child, {"gone": True})
         self.assertIn("<p>Ask at the desk.</p>", page)
         self.assertNotIn("This link does not work", page)
         # The other states are the software's
-        self.assertEqual(self.render(child, {"busy": True}), self.render(get_template("shops/claim.html"), {"busy": True}))
+        self.assertEqual(
+            self.render(child, {"busy": True}), self.render(get_template("shops/claim.html"), {"busy": True})
+        )
         child = engines["django"].from_string(
-            '{% extends "shops/register_locked.html" %}{% block locked_staff %}<p>Call the owner.</p>{% endblock %}')
+            '{% extends "shops/register_locked.html" %}{% block locked_staff %}<p>Call the owner.</p>{% endblock %}'
+        )
         self.assertIn("<p>Call the owner.</p>", self.render(child, {"staff": True}))
         self.assertNotIn("Call the owner", self.render(child, {"owner": True}))
 
@@ -85,7 +94,8 @@ class Blocks(TestCase):
         with tempfile.TemporaryDirectory() as folder:
             (Path(folder) / "shops").mkdir()
             (Path(folder) / "shops" / "claim.html").write_text(
-                '{% extends "shops/claim.html" %}{% block claim_gone %}<p>Ask at our desk.</p>{% endblock %}')
+                '{% extends "shops/claim.html" %}{% block claim_gone %}<p>Ask at our desk.</p>{% endblock %}'
+            )
             templates = [{**settings.TEMPLATES[0], "DIRS": [folder, *settings.TEMPLATES[0]["DIRS"][1:]]}]
             with override_settings(TEMPLATES=templates):
                 self.client.force_login(get_user_model().objects.create(username="k"))

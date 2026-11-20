@@ -1,5 +1,6 @@
 """Reading the calendar events of certified organisers from Nostr: what is believed, what is refused, and the relays.
 No real relay is asked: the events are signed here and the relay is one of ours on 127.0.0.1."""
+
 import json
 import socket
 import threading
@@ -15,9 +16,8 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 from websockets.sync.server import serve
 
-from shops.nostr import decode_geohash, geohash, public_key, sign
-
 from config.community import community
+from shops.nostr import decode_geohash, geohash, public_key, sign
 
 from . import board, conf, relays
 from .models import Meetup, Reading, TrustedAuthor
@@ -36,12 +36,30 @@ def stamp(days=0, hours=0):
     return int((NOW + timedelta(days=days, hours=hours)).timestamp())
 
 
-def event(secret=SECRET_A, kind=31923, d="spritz-1", start=None, title="Wallet security", location="The Bar, Main Street 1, Example",
-          extra=(), created_at=None, tzid="Europe/Rome", content="", drop=()):
+def event(
+    secret=SECRET_A,
+    kind=31923,
+    d="spritz-1",
+    start=None,
+    title="Wallet security",
+    location="The Bar, Main Street 1, Example",
+    extra=(),
+    created_at=None,
+    tzid="Europe/Rome",
+    content="",
+    drop=(),
+):
     """A signed calendar event as an organiser's client publishes it."""
     if start is None:
         start = stamp(10) if kind == 31923 else timezone.localtime(NOW + timedelta(days=10)).date().isoformat()
-    tags = [["d", d], ["title", title], ["start", str(start)], ["start_tzid", tzid], ["location", location], *map(list, extra)]
+    tags = [
+        ["d", d],
+        ["title", title],
+        ["start", str(start)],
+        ["start_tzid", tzid],
+        ["location", location],
+        *map(list, extra),
+    ]
     tags = [tag for tag in tags if tag[0] not in drop and not (kind == 31922 and tag[0] == "start_tzid")]
     return sign(secret, kind, content, tags, created_at or stamp(-1))
 
@@ -65,17 +83,28 @@ class Checks(TestCase):
         report = run(event(extra=[["g", geohash(*EXAMPLE)]]))
         self.assertEqual((report.created, report.rejected_total), (1, 0))
         meetup = Meetup.objects.get()
-        self.assertEqual((meetup.source, meetup.title, meetup.status, meetup.nostr_author), ("nostr", "Wallet security", "confirmed", KEY_A))
+        self.assertEqual(
+            (meetup.source, meetup.title, meetup.status, meetup.nostr_author),
+            ("nostr", "Wallet security", "confirmed", KEY_A),
+        )
         self.assertEqual(meetup.starts_at, NOW + timedelta(days=10))
         self.assertEqual(meetup.nostr_address, f"31923:{KEY_A}:spritz-1")
-        self.assertEqual((meetup.place, meetup.tzid, meetup.all_day), ("The Bar, Main Street 1, Example", "Europe/Rome", False))
+        self.assertEqual(
+            (meetup.place, meetup.tzid, meetup.all_day), ("The Bar, Main Street 1, Example", "Europe/Rome", False)
+        )
 
     def test_a_false_signature_is_refused(self):
         good = event()
         other = event(d="other")
-        for bad in ({**good, "sig": other["sig"]}, {**good, "sig": "00" * 64}, {**good, "content": "changed"},
-                    {**good, "tags": [*good["tags"], ["t", "x"]]}, {**good, "created_at": good["created_at"] + 1},
-                    {**good, "id": other["id"]}, {**good, "pubkey": KEY_B}):
+        for bad in (
+            {**good, "sig": other["sig"]},
+            {**good, "sig": "00" * 64},
+            {**good, "content": "changed"},
+            {**good, "tags": [*good["tags"], ["t", "x"]]},
+            {**good, "created_at": good["created_at"] + 1},
+            {**good, "id": other["id"]},
+            {**good, "pubkey": KEY_B},
+        ):
             trust(bad["pubkey"])
             report = run(bad)
             self.assertEqual(report.rejected["unsigned"], 1, bad)
@@ -97,9 +126,24 @@ class Checks(TestCase):
             self.assertEqual(run(event(SECRET_B)).created, 1)
 
     def test_nothing_that_is_not_an_event_stops_the_others(self):
-        junk = [None, 5, "text", [], {}, {"id": "x"}, {**event(), "kind": "31923"}, {**event(), "tags": "no"}, {**event(), "tags": [["d"]]},
-                {**event(), "tags": [["d", 5]]}, {**event(), "tags": [[]]}, {**event(), "created_at": True}, {**event(), "created_at": 1.5},
-                {**event(), "content": None}, {**event(), "id": "A" * 64}, {**event(), "sig": "00"}]
+        junk = [
+            None,
+            5,
+            "text",
+            [],
+            {},
+            {"id": "x"},
+            {**event(), "kind": "31923"},
+            {**event(), "tags": "no"},
+            {**event(), "tags": [["d"]]},
+            {**event(), "tags": [["d", 5]]},
+            {**event(), "tags": [[]]},
+            {**event(), "created_at": True},
+            {**event(), "created_at": 1.5},
+            {**event(), "content": None},
+            {**event(), "id": "A" * 64},
+            {**event(), "sig": "00"},
+        ]
         report = run(*junk, event(d="fine"))
         # `["d"]` is a tag of one item, well formed: it is the id that no longer matches
         self.assertEqual((report.created, report.rejected["malformed"] + report.rejected["unsigned"]), (1, len(junk)))
@@ -129,8 +173,10 @@ class Checks(TestCase):
         with patch("meetups.nostr_read.MAX_EVENTS", 4):
             report = run(*(events * 4))
         self.assertEqual((report.seen, report.created, report.rejected["limit"]), (24, 4, 2))
-        self.assertEqual(sorted(Meetup.objects.values_list("nostr_address", flat=True)),
-                         sorted(f"31923:{KEY_A}:d{number}" for number in range(4)))
+        self.assertEqual(
+            sorted(Meetup.objects.values_list("nostr_address", flat=True)),
+            sorted(f"31923:{KEY_A}:d{number}" for number in range(4)),
+        )
         self.assertIn("over the limit of one reading: 2", report.detail())
         with patch("meetups.nostr_read.MAX_EVENTS", 10):
             self.assertEqual(run(*(events * 4)).rejected["limit"], 0)
@@ -172,16 +218,42 @@ class Dates(TestCase):
         trust(KEY_A)
 
     def test_absurd_dates_are_refused(self):
-        for start in ("0", "-5", "1", "99999999999", "abc", "1e12", "12.5", "", " 1700000000", "9" * 30, "0x10", "1700000000;",
-                      str(stamp(365 * 10)), "1230768000"):
+        for start in (
+            "0",
+            "-5",
+            "1",
+            "99999999999",
+            "abc",
+            "1e12",
+            "12.5",
+            "",
+            " 1700000000",
+            "9" * 30,
+            "0x10",
+            "1700000000;",
+            str(stamp(365 * 10)),
+            "1230768000",
+        ):
             with self.subTest(start=start):
                 report = run(event(start=start, d=f"d{start}"))
                 self.assertEqual(report.created, 0, start)
-                self.assertEqual(report.rejected["bad_start"] + report.rejected["absurd_date"] + report.rejected["too_old"], 1, start)
+                self.assertEqual(
+                    report.rejected["bad_start"] + report.rejected["absurd_date"] + report.rejected["too_old"], 1, start
+                )
 
     def test_absurd_days_are_refused(self):
-        for start in ("0000-01-01", "9999-12-31", "2026-13-01", "2026-02-30", "26-12-03", "2026-12-3", "2026/12/03", "2026-12-03T10:00",
-                      "1970-01-01", "2004-02-29"):
+        for start in (
+            "0000-01-01",
+            "9999-12-31",
+            "2026-13-01",
+            "2026-02-30",
+            "26-12-03",
+            "2026-12-3",
+            "2026/12/03",
+            "2026-12-03T10:00",
+            "1970-01-01",
+            "2004-02-29",
+        ):
             with self.subTest(start=start):
                 self.assertEqual(run(event(kind=31922, start=start, d=f"d{start}")).created, 0, start)
 
@@ -189,14 +261,18 @@ class Dates(TestCase):
         run(event(kind=31922, d="fair"))
         meetup = Meetup.objects.get()
         self.assertTrue(meetup.all_day)
-        self.assertEqual(meetup.local_start.date(), (NOW + timedelta(days=10)).astimezone(meetup.local_start.tzinfo).date())
+        self.assertEqual(
+            meetup.local_start.date(), (NOW + timedelta(days=10)).astimezone(meetup.local_start.tzinfo).date()
+        )
 
     def test_the_time_zone_is_the_events_when_it_is_one(self):
         run(event(tzid="America/New_York", d="ny"))
         self.assertEqual(Meetup.objects.get().tzid, "America/New_York")
 
     def test_a_zone_that_is_not_one_is_the_communitys(self):
-        for number, zone in enumerate(("Mars/Olympus", "../../etc/passwd", "", "Europe/Rome\x00", "A" * 100, "UTC; DROP TABLE", "/etc/localtime")):
+        for number, zone in enumerate(
+            ("Mars/Olympus", "../../etc/passwd", "", "Europe/Rome\x00", "A" * 100, "UTC; DROP TABLE", "/etc/localtime")
+        ):
             run(event(tzid=zone, d=f"z{number}"))
         self.assertEqual({m.tzid for m in Meetup.objects.all()}, {"Europe/Rome"})
         self.assertEqual(Meetup.objects.count(), 7)
@@ -208,7 +284,7 @@ class Dates(TestCase):
 
     def test_a_missing_or_odd_d_is_refused(self):
         self.assertEqual(run(event(drop=("d",))).rejected["no_d"], 1)
-        for number, d in enumerate(("", "x" * 300, "a\x00b", "line\nbreak", "‮bad")):
+        for d in ("", "x" * 300, "a\x00b", "line\nbreak", "‮bad"):
             self.assertEqual(run(event(d=d)).rejected["no_d"], 1, repr(d))
         self.assertFalse(Meetup.objects.exists())
 
@@ -218,8 +294,14 @@ class Text(TestCase):
         trust(KEY_A)
 
     def test_html_becomes_plain_text(self):
-        run(event(title="<b>Wallets</b> &amp; keys <script>alert(1)</script>", location="Caf&eacute; <i>Corner</i>, Example",
-                  extra=[["image", "https://evil.example/x.png"]], content="<script>x</script>"))
+        run(
+            event(
+                title="<b>Wallets</b> &amp; keys <script>alert(1)</script>",
+                location="Caf&eacute; <i>Corner</i>, Example",
+                extra=[["image", "https://evil.example/x.png"]],
+                content="<script>x</script>",
+            )
+        )
         meetup = Meetup.objects.get()
         self.assertEqual(meetup.title, "Wallets & keys alert(1)")
         self.assertEqual(meetup.place, "Café Corner, Example")
@@ -236,13 +318,20 @@ class Text(TestCase):
         self.assertEqual((len(meetup.title), len(meetup.place)), (200, 200))
 
     def test_the_title_may_say_it_is_off(self):
-        for number, title in enumerate(("ANNULLATO - Spritz", "Spritz (cancelled)", "Abgesagt: Spritz", "Spritz annullata")):
+        for number, title in enumerate(
+            ("ANNULLATO - Spritz", "Spritz (cancelled)", "Abgesagt: Spritz", "Spritz annullata")
+        ):
             run(event(title=title, d=f"c{number}"))
         run(event(title="Spritz of the cancellations committee", d="fine"))
         self.assertEqual(sorted(Meetup.objects.values_list("status", flat=True)), ["cancelled"] * 4 + ["confirmed"])
 
     def test_the_image_the_description_and_the_participants_are_not_kept(self):
-        run(event(extra=[["image", "https://evil.example/x.png"], ["p", KEY_B, "", "host"], ["summary", "words"]], content="long text"))
+        run(
+            event(
+                extra=[["image", "https://evil.example/x.png"], ["p", KEY_B, "", "host"], ["summary", "words"]],
+                content="long text",
+            )
+        )
         meetup = Meetup.objects.get()
         shown = " ".join(str(getattr(meetup, field.name)) for field in meetup._meta.fields)
         for text in ("evil.example", KEY_B, "words", "long text"):
@@ -259,12 +348,21 @@ class Links(TestCase):
 
     def test_when_asked_only_a_good_https_link_is_kept(self):
         with block(event_links=True):
-            run(event(extra=[["r", "javascript:alert(1)"], ["r", "http://x.org/"], ["r", "https://u:p@x.org/"], ["r", "https://app.example.org/e/1"]]))
+            run(
+                event(
+                    extra=[
+                        ["r", "javascript:alert(1)"],
+                        ["r", "http://x.org/"],
+                        ["r", "https://u:p@x.org/"],
+                        ["r", "https://app.example.org/e/1"],
+                    ]
+                )
+            )
         self.assertEqual(Meetup.objects.get().url, "https://app.example.org/e/1")
 
     def test_when_asked_a_bad_link_is_no_link(self):
         with block(event_links=True):
-            run(event(extra=[["r", "javascript:alert(1)"], ["r", "https://a.org/\" onclick=\"x"]]))
+            run(event(extra=[["r", "javascript:alert(1)"], ["r", 'https://a.org/" onclick="x']]))
         self.assertEqual(Meetup.objects.get().url, "")
 
     def test_event_links_must_be_exactly_true(self):
@@ -284,8 +382,12 @@ class Cities(TestCase):
 
     def test_the_position_decides(self):
         with block(cities=CITIES):
-            self.assertEqual(run(event(d="near", extra=[["g", geohash(41.91, 12.46)]], location="Elsewhere, 3")).created, 1)
-            self.assertEqual(run(event(d="far", extra=[["g", geohash(48.0, 2.0)]], location="Example")).rejected["outside"], 1)
+            self.assertEqual(
+                run(event(d="near", extra=[["g", geohash(41.91, 12.46)]], location="Elsewhere, 3")).created, 1
+            )
+            self.assertEqual(
+                run(event(d="far", extra=[["g", geohash(48.0, 2.0)]], location="Example")).rejected["outside"], 1
+            )
         meetup = Meetup.objects.get()
         self.assertEqual((meetup.city, meetup.place), ("Example", "Elsewhere, 3"))
 
@@ -300,8 +402,12 @@ class Cities(TestCase):
     def test_lat_and_lon_tags_work_too(self):
         with block(cities=CITIES):
             self.assertEqual(run(event(d="a", extra=[["lat", "41.91"], ["lon", "12.46"]], location="x")).created, 1)
-            self.assertEqual(run(event(d="b", extra=[["lat", "nan"], ["lon", "12.46"]], location="x")).rejected["outside"], 1)
-            self.assertEqual(run(event(d="c", extra=[["lat", "500"], ["lon", "12.46"]], location="x")).rejected["outside"], 1)
+            self.assertEqual(
+                run(event(d="b", extra=[["lat", "nan"], ["lon", "12.46"]], location="x")).rejected["outside"], 1
+            )
+            self.assertEqual(
+                run(event(d="c", extra=[["lat", "500"], ["lon", "12.46"]], location="x")).rejected["outside"], 1
+            )
 
     def test_a_bad_geohash_is_no_position(self):
         self.assertIsNone(decode_geohash("aaaa"))
@@ -311,11 +417,15 @@ class Cities(TestCase):
         self.assertAlmostEqual(lat, EXAMPLE[0], places=3)
         self.assertAlmostEqual(lon, EXAMPLE[1], places=3)
         with block(cities=CITIES):
-            self.assertEqual(run(event(d="x", extra=[["g", "AAAA"]], location="Example")).created, 1)  # no position: the name
+            self.assertEqual(
+                run(event(d="x", extra=[["g", "AAAA"]], location="Example")).created, 1
+            )  # no position: the name
 
     def test_the_nearest_city_is_the_one(self):
-        two = [{"name": "Example", "latitude": 41.9, "longitude": 12.5, "radius_km": 50},
-               {"name": "Nextville", "latitude": 42.08, "longitude": 12.58, "radius_km": 50}]
+        two = [
+            {"name": "Example", "latitude": 41.9, "longitude": 12.5, "radius_km": 50},
+            {"name": "Nextville", "latitude": 42.08, "longitude": 12.58, "radius_km": 50},
+        ]
         with block(cities=two):
             run(event(d="n", extra=[["g", geohash(42.07, 12.58)]], location="x"))
         self.assertEqual(Meetup.objects.get().city, "Nextville")
@@ -346,7 +456,11 @@ class Replacing(TestCase):
         self.assertEqual((report.created, report.updated, report.older), (0, 0, 1))
 
     def test_in_one_reading_only_the_newest_of_an_address_counts(self):
-        report = run(event(title="First", created_at=stamp(-3)), event(title="Third", created_at=stamp(-1)), event(title="Second", created_at=stamp(-2)))
+        report = run(
+            event(title="First", created_at=stamp(-3)),
+            event(title="Third", created_at=stamp(-1)),
+            event(title="Second", created_at=stamp(-2)),
+        )
         self.assertEqual((Meetup.objects.get().title, report.created, report.updated), ("Third", 1, 0))
 
     def test_two_authors_with_the_same_d_are_two_meetups(self):
@@ -362,8 +476,10 @@ class Replacing(TestCase):
         Meetup.objects.update(status="cancelled", staff_edited=True, title="Corrected")
         report = run(event(title="Second", created_at=stamp(-2), start=stamp(12)))
         meetup = Meetup.objects.get()
-        self.assertEqual((meetup.title, meetup.status, meetup.starts_at, report.kept, report.updated),
-                         ("Corrected", "cancelled", NOW + timedelta(days=10), 1, 0))
+        self.assertEqual(
+            (meetup.title, meetup.status, meetup.starts_at, report.kept, report.updated),
+            ("Corrected", "cancelled", NOW + timedelta(days=10), 1, 0),
+        )
 
     def test_handing_it_back_lets_the_reader_update(self):
         run(event(title="First", created_at=stamp(-3)))
@@ -393,7 +509,9 @@ class Replacing(TestCase):
         with patch.object(QuerySet, "first", first):
             report = run(event(created_at=stamp(-1), title="Overwritten title"))
         meetup = Meetup.objects.get()
-        self.assertEqual((meetup.title, meetup.staff_edited, report.updated, report.kept), ("Corrected by the staff", True, 0, 1))
+        self.assertEqual(
+            (meetup.title, meetup.staff_edited, report.updated, report.kept), ("Corrected by the staff", True, 0, 1)
+        )
 
     def test_what_the_staff_hid_stays_hidden_after_an_update(self):
         run(event(created_at=stamp(-3)))
@@ -462,7 +580,18 @@ class Deletions(TestCase):
         self.assertEqual(self.status(), "confirmed")
 
     def test_odd_tags_are_ignored(self):
-        run(deletion(SECRET_A, ["a"], ["a", "garbage"], ["a", "1:2"], ["a", "30023:" + KEY_A + ":spritz"], ["e", "nothex"], ["e", "A" * 64], ["x", "y"]))
+        run(
+            deletion(
+                SECRET_A,
+                ["a"],
+                ["a", "garbage"],
+                ["a", "1:2"],
+                ["a", "30023:" + KEY_A + ":spritz"],
+                ["e", "nothex"],
+                ["e", "A" * 64],
+                ["x", "y"],
+            )
+        )
         self.assertEqual(self.status(), "confirmed")
 
     def test_a_newer_version_after_the_deletion_brings_it_back(self):
@@ -488,7 +617,13 @@ class Limits(TestCase):
 
     def test_nor_more_than_the_ceiling_in_all(self):
         for number in range(3):
-            make(5 + number, source="nostr", nostr_address=f"31923:{KEY_B}:{number}", nostr_author=KEY_B, nostr_created_at=1)
+            make(
+                5 + number,
+                source="nostr",
+                nostr_address=f"31923:{KEY_B}:{number}",
+                nostr_author=KEY_B,
+                nostr_created_at=1,
+            )
         with patch.dict(community(), {"limits": {"nostr_meetups": 4}}):
             report = run(event(d="a"), event(d="b"))
         self.assertEqual((report.created, report.rejected["limit"]), (1, 1))
@@ -509,7 +644,7 @@ class FakeRelay:
 
     def __init__(self, events=(), mode="normal"):
         self.events, self.mode, self.requests = list(events), mode, []
-        self.server = serve(self.handle, "127.0.0.1", 0, max_size=2 ** 22)
+        self.server = serve(self.handle, "127.0.0.1", 0, max_size=2**22)
         self.url = f"ws://127.0.0.1:{self.server.socket.getsockname()[1]}"
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
@@ -545,7 +680,7 @@ class FakeRelay:
                     if found["kind"] in question["kinds"] and found["pubkey"] in question["authors"]:
                         ws.send(json.dumps(["EVENT", sub, found]))
                 if self.mode == "flood":
-                    for number in range(relays.MAX_EVENTS + 100):
+                    for _number in range(relays.MAX_EVENTS + 100):
                         ws.send(json.dumps(["EVENT", sub, self.events[0]]))
                 if self.mode == "drop":
                     ws.close()
@@ -684,12 +819,24 @@ class Relays(TestCase):
         self.assertEqual(relay.requests, [])
 
     def test_a_name_that_leads_inside_is_not_read(self):
-        for host, address in (("relay.example.org", "127.0.0.1"), ("relay.example.org", "10.0.0.5"), ("relay.example.org", "192.168.1.9"),
-                              ("relay.example.org", "169.254.169.254"), ("relay.example.org", "::1"), ("relay.example.org", "fd00::1"),
-                              ("relay.example.org", "::ffff:10.0.0.1"), ("relay.example.org", "100.64.0.1"), ("relay.example.org", "0.0.0.0"),
-                              ("relay.example.org", "::127.0.0.1"), ("relay.example.org", "64:ff9b::7f00:1")):
-            with self.subTest(address=address), patch("meetups.relays.socket.getaddrinfo", return_value=[(2, 1, 6, "", (address, 443))]), \
-                    patch("meetups.relays.connect") as connect:
+        for host, address in (
+            ("relay.example.org", "127.0.0.1"),
+            ("relay.example.org", "10.0.0.5"),
+            ("relay.example.org", "192.168.1.9"),
+            ("relay.example.org", "169.254.169.254"),
+            ("relay.example.org", "::1"),
+            ("relay.example.org", "fd00::1"),
+            ("relay.example.org", "::ffff:10.0.0.1"),
+            ("relay.example.org", "100.64.0.1"),
+            ("relay.example.org", "0.0.0.0"),
+            ("relay.example.org", "::127.0.0.1"),
+            ("relay.example.org", "64:ff9b::7f00:1"),
+        ):
+            with (
+                self.subTest(address=address),
+                patch("meetups.relays.socket.getaddrinfo", return_value=[(2, 1, 6, "", (address, 443))]),
+                patch("meetups.relays.connect") as connect,
+            ):
                 with self.assertRaises(relays.RelayError):
                     relays.read(f"wss://{host}", [], own=[])
                 connect.assert_not_called()
@@ -704,8 +851,11 @@ class Relays(TestCase):
     def test_a_name_that_changes_its_mind_after_the_check_reaches_nothing(self):
         # The name looks public, the connection lands on an internal address: the check on the address connected to stops it
         fake = patch("meetups.relays.socket.socket")
-        with patch("meetups.relays.socket.getaddrinfo", return_value=[(2, 1, 6, "", ("93.184.216.34", 443))]), fake as sock, \
-                patch("meetups.relays.connect") as connect:
+        with (
+            patch("meetups.relays.socket.getaddrinfo", return_value=[(2, 1, 6, "", ("93.184.216.34", 443))]),
+            fake as sock,
+            patch("meetups.relays.connect") as connect,
+        ):
             sock.return_value.getpeername.return_value = ("10.0.0.5", 443)
             with self.assertRaises(relays.RelayError):
                 relays.read("wss://relay.example.org", [], own=[])
@@ -713,8 +863,11 @@ class Relays(TestCase):
         connect.assert_not_called()
 
     def test_a_public_name_is_connected_through_the_socket_we_checked(self):
-        with patch("meetups.relays.socket.getaddrinfo", return_value=[(2, 1, 6, "", ("93.184.216.34", 443))]), \
-                patch("meetups.relays.socket.socket") as sock, patch("meetups.relays.connect") as connect:
+        with (
+            patch("meetups.relays.socket.getaddrinfo", return_value=[(2, 1, 6, "", ("93.184.216.34", 443))]),
+            patch("meetups.relays.socket.socket") as sock,
+            patch("meetups.relays.connect") as connect,
+        ):
             sock.return_value.getpeername.return_value = ("93.184.216.34", 443)
             connect.return_value.__enter__.return_value.recv.side_effect = TimeoutError
             with self.assertRaises(relays.RelayError):  # the mock says nothing: that is a relay that did not answer
@@ -742,7 +895,10 @@ class ReadCommand(TestCase):
             write("wss://relay.example.org: fake")
             return events, answered
 
-        with block(relays=["wss://relay.example.org"], past_months=12), patch("meetups.management.commands.read_meetups.relays.read_all", fake):
+        with (
+            block(relays=["wss://relay.example.org"], past_months=12),
+            patch("meetups.management.commands.read_meetups.relays.read_all", fake),
+        ):
             call_command("read_meetups", *args, stdout=out, stderr=err, **kwargs)
         return out.getvalue()
 

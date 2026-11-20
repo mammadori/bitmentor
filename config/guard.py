@@ -13,6 +13,7 @@ has to be remembered. `shops/test_guard.py` walks all the URLs of the site to ke
 What it does not stop: an account that is not staff and was changed, such as a username replaced with a key the staff
 controls, which then signs in as any merchant would. That one is seen, not stopped: see `shops/guard.py`.
 """
+
 import contextvars
 
 from django.conf import settings
@@ -93,8 +94,14 @@ def a_new_sign_in_ends_the_admin_session(sender, request, user, **kwargs):
     signed in again does not get back. And the wallet's: the one the session was opened with (set again by the wallet's
     sign-in after this) and the challenge of a wallet being linked."""
     if request is not None and hasattr(request, "session"):
-        for key in (ADMIN_SESSION, FACTOR_SESSION, SETUP_SESSION, PASSKEY_SETUP_SESSION, WALLET_SESSION,
-                    WALLET_LINK_SESSION):
+        for key in (
+            ADMIN_SESSION,
+            FACTOR_SESSION,
+            SETUP_SESSION,
+            PASSKEY_SETUP_SESSION,
+            WALLET_SESSION,
+            WALLET_LINK_SESSION,
+        ):
             request.session.pop(key, None)
 
 

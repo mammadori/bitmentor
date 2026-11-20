@@ -20,6 +20,7 @@ Two kinds:
 
 The Nostr relay is not ours: RELAY_RECOMMENDED only documents what whoever runs it should configure, nothing here
 enforces it."""
+
 import logging
 from dataclasses import dataclass
 
@@ -48,26 +49,77 @@ class Limit:
     high: int | None = None
 
 
-LIMITS = {limit.key: limit for limit in (
-    Limit("shops", 500, gettext_lazy("shops on the site (the demo shops do not count)")),
-    Limit("shops_waiting_wallet", 100, gettext_lazy("shops saved without a wallet yet (sign-ups not finished)")),
-    Limit("accounts", 2000, gettext_lazy("accounts of merchants and visitors who signed in (staff left out)")),
-    Limit("help_requests", 5000, gettext_lazy("requests for help kept, solved ones too (delete the old ones in /admin/)")),
-    Limit("nostr_meetups", 5000, gettext_lazy("meetups copied from Nostr and kept")),
-    Limit("emails_per_month", 1000, gettext_lazy("emails sent this month (the mail provider's quota; see config/mailbudget.py)")),
-    Limit("emails_per_day", 100, gettext_lazy("emails sent today (by default a tenth of the month's limit)")),
-    Limit("staff_registers_per_shop", 30, gettext_lazy("staff registers turned on at the same time in one shop"), total=False),
-    Limit("accounts_per_address_hour", 20, gettext_lazy("new accounts from one network address in an hour"), total=False),
-    Limit("shops_per_address_hour", 30, gettext_lazy("new shops or wallets connected from one network address in an hour"), total=False),
-    Limit("emails_per_address_day", 5, gettext_lazy("emails a visitor can make the site send to the same address in a day"), total=False),
-    Limit("emails_per_sender_day", 10, gettext_lazy("emails one network address can make the site send in a day (three times as many for its wider network)"), total=False),
-    Limit("emails_staff_factor", 3, gettext_lazy("times more emails (per address and per network address) for the staff and the allowed addresses, who may be testing"), total=False),
-    Limit("help_requests_per_shop_day", 3, gettext_lazy("requests for help from one shop in a day"), total=False),
-    # Not a count: how long a staff register's one-time pairing code opens it (shops/staff.py). Capped, since a code
-    # that lives longer is longer of use to whoever finds a photo of it before the person scans it
-    Limit("staff_code_hours", 24, gettext_lazy("hours a staff register's one-time pairing code works (1 to 72)"),
-          total=False, low=1, high=72),
-)}
+LIMITS = {
+    limit.key: limit
+    for limit in (
+        Limit("shops", 500, gettext_lazy("shops on the site (the demo shops do not count)")),
+        Limit("shops_waiting_wallet", 100, gettext_lazy("shops saved without a wallet yet (sign-ups not finished)")),
+        Limit("accounts", 2000, gettext_lazy("accounts of merchants and visitors who signed in (staff left out)")),
+        Limit(
+            "help_requests",
+            5000,
+            gettext_lazy("requests for help kept, solved ones too (delete the old ones in /admin/)"),
+        ),
+        Limit("nostr_meetups", 5000, gettext_lazy("meetups copied from Nostr and kept")),
+        Limit(
+            "emails_per_month",
+            1000,
+            gettext_lazy("emails sent this month (the mail provider's quota; see config/mailbudget.py)"),
+        ),
+        Limit("emails_per_day", 100, gettext_lazy("emails sent today (by default a tenth of the month's limit)")),
+        Limit(
+            "staff_registers_per_shop",
+            30,
+            gettext_lazy("staff registers turned on at the same time in one shop"),
+            total=False,
+        ),
+        Limit(
+            "accounts_per_address_hour",
+            20,
+            gettext_lazy("new accounts from one network address in an hour"),
+            total=False,
+        ),
+        Limit(
+            "shops_per_address_hour",
+            30,
+            gettext_lazy("new shops or wallets connected from one network address in an hour"),
+            total=False,
+        ),
+        Limit(
+            "emails_per_address_day",
+            5,
+            gettext_lazy("emails a visitor can make the site send to the same address in a day"),
+            total=False,
+        ),
+        Limit(
+            "emails_per_sender_day",
+            10,
+            gettext_lazy(
+                "emails one network address can make the site send in a day (three times as many for its wider network)"
+            ),
+            total=False,
+        ),
+        Limit(
+            "emails_staff_factor",
+            3,
+            gettext_lazy(
+                "times more emails (per address and per network address) for the staff and the allowed addresses, who may be testing"
+            ),
+            total=False,
+        ),
+        Limit("help_requests_per_shop_day", 3, gettext_lazy("requests for help from one shop in a day"), total=False),
+        # Not a count: how long a staff register's one-time pairing code opens it (shops/staff.py). Capped, since a code
+        # that lives longer is longer of use to whoever finds a photo of it before the person scans it
+        Limit(
+            "staff_code_hours",
+            24,
+            gettext_lazy("hours a staff register's one-time pairing code works (1 to 72)"),
+            total=False,
+            low=1,
+            high=72,
+        ),
+    )
+}
 
 # What whoever runs the Nostr relay should configure (docs/features/nostr-copies.md): kept here with the other numbers
 # so that they change together, never enforced by the site
@@ -112,24 +164,31 @@ def problems():
     if data is None:
         return []
     if not isinstance(data, dict):
-        return [f"`limits` is a block with a whole number for each limit ({', '.join(LIMITS)}): {data!r}; "
-                "every limit keeps its default"]
+        return [
+            f"`limits` is a block with a whole number for each limit ({', '.join(LIMITS)}): {data!r}; "
+            "every limit keeps its default"
+        ]
     found = []
     for key, value in data.items():
         if key not in LIMITS:
             found.append(f"`limits.{key}` is not a limit of this software (they are {', '.join(LIMITS)})")
         elif not valid(value, key) and LIMITS[key].high is not None:
-            found.append(f"`limits.{key}` is a whole number from {LIMITS[key].low} to {LIMITS[key].high}: {value!r}; "
-                         f"the default {default(key)} counts")
+            found.append(
+                f"`limits.{key}` is a whole number from {LIMITS[key].low} to {LIMITS[key].high}: {value!r}; "
+                f"the default {default(key)} counts"
+            )
         elif not valid(value, key):
-            found.append(f"`limits.{key}` is a whole number, 0 or more (0 is no limit): {value!r}; "
-                         f"the default {default(key)} counts")
+            found.append(
+                f"`limits.{key}` is a whole number, 0 or more (0 is no limit): {value!r}; "
+                f"the default {default(key)} counts"
+            )
     return found
 
 
 def counters():
     """How each total is counted. Imports here, so that this module can be imported before the apps are ready."""
     from django.contrib.auth import get_user_model
+
     from meetups.models import Meetup
     from shops.models import DEMO_PREFIX, HelpRequest, Shop
 
@@ -159,8 +218,12 @@ def refuse(key):
     """reached(), and when it is, a line in the log: `limits.<key>` in `community.yml` changes it."""
     if not reached(key):
         return False
-    logger.warning("limit reached: %s is %s (limits.%s in community.yml); nothing is deleted, new ones are refused",
-                   key, get(key), key)
+    logger.warning(
+        "limit reached: %s is %s (limits.%s in community.yml); nothing is deleted, new ones are refused",
+        key,
+        get(key),
+        key,
+    )
     return True
 
 
@@ -177,8 +240,17 @@ def rows():
         value, now = get(key), count()
         share = now / value if value else None
         level = "" if share is None else "full" if share >= 1 else "near" if share >= WARN_AT else ""
-        found.append({"key": key, "what": LIMITS[key].what, "limit": value, "used": now, "share": share, "level": level,
-                      "default": value == default(key)})
+        found.append(
+            {
+                "key": key,
+                "what": LIMITS[key].what,
+                "limit": value,
+                "used": now,
+                "share": share,
+                "level": level,
+                "default": value == default(key),
+            }
+        )
     return found
 
 
@@ -189,6 +261,10 @@ def configured():
 
 def notes():
     """One line per total that is near or at its limit, for `manage.py check` and `preflight`."""
-    return [f"{row['used']}/{row['limit']} {row['key']}: "
-            + ("full, new ones are refused" if row["level"] == "full" else f"over {int(WARN_AT * 100)}%")
-            + f" (limits.{row['key']} in community.yml)" for row in rows() if row["level"]]
+    return [
+        f"{row['used']}/{row['limit']} {row['key']}: "
+        + ("full, new ones are refused" if row["level"] == "full" else f"over {int(WARN_AT * 100)}%")
+        + f" (limits.{row['key']} in community.yml)"
+        for row in rows()
+        if row["level"]
+    ]

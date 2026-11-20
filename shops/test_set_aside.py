@@ -1,6 +1,7 @@
 """A shop that waits can be set aside (shops/approval.py, `set_aside`): not for the map, not asked about any more. It
 stays not approved: off the map, the lists, the counts and OpenStreetMap, with its register working. It can be put back
 among the waiting ones, or approved all the same."""
+
 import re
 from io import StringIO
 from types import SimpleNamespace
@@ -31,8 +32,14 @@ def approval_off():
 class Base(TestCase):
     def setUp(self):
         self.owner = User.objects.create(username="owner")
-        self.shop = Shop.objects.create(name="Trial Bar", owner=self.owner, latitude=41.9, longitude=12.5,
-                                        lightning_address="mario@wallet.example", approved_on=None)
+        self.shop = Shop.objects.create(
+            name="Trial Bar",
+            owner=self.owner,
+            latitude=41.9,
+            longitude=12.5,
+            lightning_address="mario@wallet.example",
+            approved_on=None,
+        )
         self.staff = User.objects.create(username="staff", is_staff=True)
 
     def grant(self, *codes, user=None):
@@ -44,8 +51,9 @@ class Base(TestCase):
         return self.client.post(f"/admin/today/set-aside/{self.shop.id}/")
 
     def history(self):
-        return list(LogEntry.objects.filter(object_id=str(self.shop.pk)).order_by("pk")
-                    .values_list("change_message", flat=True))
+        return list(
+            LogEntry.objects.filter(object_id=str(self.shop.pk)).order_by("pk").values_list("change_message", flat=True)
+        )
 
 
 class FromTheTodayPage(Base):
@@ -66,8 +74,10 @@ class FromTheTodayPage(Base):
         self.assertTrue(self.shop.needs_approval)
         self.assertIsNone(self.shop.approved_on)
         entry = LogEntry.objects.get()
-        self.assertEqual((entry.object_id, entry.user_id, entry.change_message),
-                         (str(self.shop.pk), self.staff.pk, "Shop set aside: not for the map"))
+        self.assertEqual(
+            (entry.object_id, entry.user_id, entry.change_message),
+            (str(self.shop.pk), self.staff.pk, "Shop set aside: not for the map"),
+        )
 
     def test_a_staff_without_the_right_cannot(self):
         self.grant("view_shop")
@@ -231,14 +241,14 @@ class PutBackAndApprove(Base):
         self.grant("view_shop", "change_shop")
         page = self.client.get(f"/admin/shops/shop/{self.shop.pk}/change/").content.decode()
         start = page.index('id="shop_form"')
-        form = page[start:page.index("</form>", start)]
+        form = page[start : page.index("</form>", start)]
         first = re.search(r'<(?:button|input)[^>]*type="submit"[^>]*>', form).group(0)
         self.assertIn('name="_save"', first)
         self.assertNotIn("put-back", form)
         self.assertNotIn("formaction", form)
         outside = page[:start]
         self.assertIn(f'action="/admin/shops/shop/{self.shop.pk}/put-back/"', outside)
-        self.assertIn('name="csrfmiddlewaretoken"', outside[outside.index("put-back"):])
+        self.assertIn('name="csrfmiddlewaretoken"', outside[outside.index("put-back") :])
 
     def test_put_back_needs_the_csrf_token(self):
         from django.test import Client
@@ -393,8 +403,10 @@ class TheOwnerReadsIt(Base):
         from django.template.loader import render_to_string
 
         self.assertIn("La comunità ha messo da parte questo negozio", self.client.get("/it/shops/").content.decode())
-        for language, words in (("it", "La comunità ha messo da parte questo negozio"),
-                                ("de", "Die Gemeinschaft hat dieses Geschäft zurückgestellt")):
+        for language, words in (
+            ("it", "La comunità ha messo da parte questo negozio"),
+            ("de", "Die Gemeinschaft hat dieses Geschäft zurückgestellt"),
+        ):
             with translation.override(language):
                 self.assertIn(words, render_to_string("shops/set_aside_note.html", {"community": community()}))
                 self.assertNotEqual(translation.gettext("Not for the map: set aside"), "Not for the map: set aside")
@@ -408,6 +420,8 @@ class GoingBack(TestCase):
         self.assertEqual(by.db_default, by.get_default())
         self.assertTrue(Shop._meta.get_field("set_aside_on").null)
         with connection.cursor() as cursor:
-            columns = {column.name: column for column in connection.introspection.get_table_description(cursor, "shops_shop")}
+            columns = {
+                column.name: column for column in connection.introspection.get_table_description(cursor, "shops_shop")
+            }
         self.assertIsNotNone(columns["set_aside_by"].default)
         self.assertTrue(columns["set_aside_on"].null_ok)

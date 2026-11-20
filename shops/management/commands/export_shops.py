@@ -2,6 +2,7 @@
 
 The file holds the shops' details (the business name and the VAT number too) and their owners' login key and recovery
 email: personal data, written readable by its owner only. Nothing about payments, sales or secrets."""
+
 import json
 import os
 
@@ -28,9 +29,15 @@ class Command(BaseCommand):
         with os.fdopen(descriptor, "w", encoding="utf-8") as file:
             json.dump(document, file, ensure_ascii=False, indent=1, sort_keys=True)
             file.write("\n")
-        self.stdout.write(f"{len(document['shops'])} shops written to {path} (format {document['format']} "
-                          f"version {document['version']}, from {document['network']}).")
+        self.stdout.write(
+            f"{len(document['shops'])} shops written to {path} (format {document['format']} "
+            f"version {document['version']}, from {document['network']})."
+        )
         for shop in lost:
-            self.stdout.write(f"- {shop.name} ({shop.pk}): its owner signs in with a password or has neither a wallet "
-                              "key nor an email; the shop moves without an owner.")
-        self.stdout.write("The file holds the owners' emails and the shops' business details: keep it private and delete it after the import.")
+            self.stdout.write(
+                f"- {shop.name} ({shop.pk}): its owner signs in with a password or has neither a wallet "
+                "key nor an email; the shop moves without an owner."
+            )
+        self.stdout.write(
+            "The file holds the owners' emails and the shops' business details: keep it private and delete it after the import."
+        )

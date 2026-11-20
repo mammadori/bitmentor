@@ -1,6 +1,7 @@
 """Probes the Lightning address of the shops that are due (shops/lightning_watch.py), one at a time, with a pause
 between them and a cap per run. bitmentor-sentinel@<project>.timer runs it every hour: a working address is probed
 every 6 hours, a failing or broken one every hour."""
+
 import logging
 import time
 
@@ -17,8 +18,12 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--pause", type=float, default=3, help="seconds between two shops (3)")
         parser.add_argument("--limit", type=int, default=100, help="at most this many shops in a run (100)")
-        parser.add_argument("--minutes", type=float, default=45,
-                            help="no new probe after this many minutes, so runs do not pile up (45)")
+        parser.add_argument(
+            "--minutes",
+            type=float,
+            default=45,
+            help="no new probe after this many minutes, so runs do not pile up (45)",
+        )
         parser.add_argument("--all", action="store_true", help="every watched shop, not only the ones due")
 
     def handle(self, *args, pause, limit, minutes, all, **options):
@@ -37,7 +42,7 @@ class Command(BaseCommand):
             shops = lightning_watch.watched().order_by(F("lightning_checked").asc(nulls_first=True), "pk")
         else:
             shops = lightning_watch.due(timezone.now())
-        ids = list(shops.values_list("pk", flat=True)[:max(limit, 0)])
+        ids = list(shops.values_list("pk", flat=True)[: max(limit, 0)])
         if ids and not lightning_watch.network_ok(lightning_watch.watched()):
             # Every address would look dead because of us: nothing is probed, and the next run tries again
             self.stderr.write("this server resolves no names: no address probed")
@@ -63,7 +68,9 @@ class Command(BaseCommand):
         # Shops already broken are expected to fail: they do not make a run look like a network problem
         fresh = [result for _pk, _address, result, broken in results if not broken and result != lightning_watch.UNSURE]
         failed = sum(1 for result in fresh if result is not None)
-        mass = (failed, len(fresh)) if len(fresh) >= lightning_watch.MASS_FAILURE_MIN and failed * 2 > len(fresh) else None
+        mass = (
+            (failed, len(fresh)) if len(fresh) >= lightning_watch.MASS_FAILURE_MIN and failed * 2 > len(fresh) else None
+        )
         changes = []
         counts = {"ok": 0, "failed": 0, "unsure": 0}
         for pk, address, result, _broken in results:
@@ -86,10 +93,14 @@ class Command(BaseCommand):
             self.stdout.write(f"{certifications} shops certified")
         if mass:
             self.stdout.write(f"{mass[0]} of {mass[1]} failed at once: nothing counted, no merchant told")
-        self.stdout.write(f"{len(results)} probed, {counts['ok']} working, {counts['failed']} failed, "
-                          f"{counts['unsure']} unsure, {len(changes)} changed, {len(ids) - len(results)} skipped, "
-                          f"{forgotten} no longer watched")
+        self.stdout.write(
+            f"{len(results)} probed, {counts['ok']} working, {counts['failed']} failed, "
+            f"{counts['unsure']} unsure, {len(changes)} changed, {len(ids) - len(results)} skipped, "
+            f"{forgotten} no longer watched"
+        )
         if errors:
             # Everything else was probed, recorded and told: the unit still ends as failed, and its alarm says to look
-            raise CommandError(f"{errors} shops raised an error the guardian does not know (see the log above): "
-                               "they are skipped at every run until it is fixed")
+            raise CommandError(
+                f"{errors} shops raised an error the guardian does not know (see the log above): "
+                "they are skipped at every run until it is fixed"
+            )

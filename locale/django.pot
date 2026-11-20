@@ -1,10 +1,13 @@
 # The texts of bitmentor, to translate into a new language: see docs/languages.md.
 # A text left empty is shown in English. Set Language and Plural-Forms below to those of your language.
+# X-Native-Reviewed: `no` until a native speaker has read the catalog, then what was read (a version, a date); the
+# language switcher marks the languages nobody has read (docs/languages.md). Here it speaks for the English texts.
 msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Language: \n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Native-Reviewed: no\n"
 
 msgid "Map"
 msgstr ""
@@ -7332,4 +7335,7 @@ msgid "{name}: removed: {removed}, now empty"
 msgstr ""
 
 msgid "This session was opened with a wallet: sign in with the password to set a password."
+msgstr ""
+
+msgid "Not read by a native speaker yet."
 msgstr ""

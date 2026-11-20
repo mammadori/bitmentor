@@ -1,6 +1,7 @@
 """The first day of a shop with a register: a few steps in the panel, each with its state. What the site knows (the shop
 on the map) it says; the rest the merchant ticks: the first sale, the sign printed, the register handed over. The site
 never sees a sale: the sales stay on the merchant's phone."""
+
 DONE = "done"
 TODO = "todo"
 # Not up to the merchant, and it does not hold the first day back: a shop taken off the map by the community

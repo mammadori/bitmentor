@@ -2,6 +2,7 @@
 are the written proof of the information, the badges, the unlock of the real till from the day the community wrote, the three rules of
 a staff register and the export for the association. The community's `training` block is the example one of
 examples/community/community.yml, read back from its comments, so the example is tested too."""
+
 import csv
 import io
 import json
@@ -33,8 +34,10 @@ def example():
     """The `training` block of examples/community/community.yml, from its comments."""
     text = (COMMUNITY_DIR / "community.yml").read_text()
     # The block ends at the first line that is only a «#»
-    block = text[text.index("# training:"):].split("\n#\n")[0]
-    return yaml.safe_load("\n".join(line[2:] if line.startswith("# ") else "" for line in block.split("\n")))["training"]
+    block = text[text.index("# training:") :].split("\n#\n")[0]
+    return yaml.safe_load("\n".join(line[2:] if line.startswith("# ") else "" for line in block.split("\n")))[
+        "training"
+    ]
 
 
 EXAMPLE = example()
@@ -70,7 +73,9 @@ class Base(TestCase):
         return f"/en/shops/training/{name}/"
 
     def quiz(self, name, answers=None, client=None):
-        return (client or self.client).post(self.module_page(name), {"action": "quiz", **(RIGHT[name] if answers is None else answers)})
+        return (client or self.client).post(
+            self.module_page(name), {"action": "quiz", **(RIGHT[name] if answers is None else answers)}
+        )
 
     def declare(self, name, client=None, ids=None):
         module = training.find_module(training.parse(), name)
@@ -83,8 +88,10 @@ class Base(TestCase):
             self.declare(name, client=client)
 
     def pass_the_basics(self, user=None, when=None):
-        Trainee.objects.update_or_create(user=user or self.owner, defaults={"base_earned": when or timezone.now(),
-                                                                            "reviewed": when or timezone.now()})
+        Trainee.objects.update_or_create(
+            user=user or self.owner,
+            defaults={"base_earned": when or timezone.now(), "reviewed": when or timezone.now()},
+        )
 
 
 class Config(Base):
@@ -106,17 +113,37 @@ class Config(Base):
             self.assertTrue(2 <= len(module.questions) <= 4)
 
     def test_what_cannot_be_used_is_left_out_and_told(self):
-        broken = changed(gate="never", review_months=0, since="soon", staff_rules=["x" * 700],
-                         modules=[*EXAMPLE["modules"], {"id": "wallet", "title": "again", "questions": []},
-                                  {"id": "Bad Id", "title": "x"}, {"id": "empty", "title": "x"},
-                                  {"id": "oops", "title": "x", "questions": [{"text": "q", "options": ["a", "b"], "answer": 3, "explain": "e"}]},
-                                  {"id": "review", "title": "reserved", "declarations": [{"id": "a", "text": "t"}]}])
+        broken = changed(
+            gate="never",
+            review_months=0,
+            since="soon",
+            staff_rules=["x" * 700],
+            modules=[
+                *EXAMPLE["modules"],
+                {"id": "wallet", "title": "again", "questions": []},
+                {"id": "Bad Id", "title": "x"},
+                {"id": "empty", "title": "x"},
+                {
+                    "id": "oops",
+                    "title": "x",
+                    "questions": [{"text": "q", "options": ["a", "b"], "answer": 3, "explain": "e"}],
+                },
+                {"id": "review", "title": "reserved", "declarations": [{"id": "a", "text": "t"}]},
+            ],
+        )
         with configured(broken):
             found = training.problems()
             cfg = training.parse()
         text = "\n".join(found)
-        for part in ("training.gate", "training.review_months", "training.since", "training.staff_rules", "no other module has",
-                     "needs questions or declarations", "the number of the right option"):
+        for part in (
+            "training.gate",
+            "training.review_months",
+            "training.since",
+            "training.staff_rules",
+            "no other module has",
+            "needs questions or declarations",
+            "the number of the right option",
+        ):
             self.assertIn(part, text)
         self.assertEqual([module.id for module in cfg.modules], ["wallet", "paid", "problems"])
         # A day that cannot be read makes the training wait (no day comes after the last one), it does not start it now
@@ -217,20 +244,31 @@ class Declarations(Base):
     def test_a_declaration_keeps_version_text_date_account_and_shop_and_nothing_else(self):
         self.quiz("wallet")
         before = timezone.now()
-        response = self.client.post(self.module_page("wallet"), {"action": "declare", "ticked": ["words-mine"]},
-                                    headers={"X-Forwarded-For": "203.0.113.9"}, REMOTE_ADDR="203.0.113.9")
+        response = self.client.post(
+            self.module_page("wallet"),
+            {"action": "declare", "ticked": ["words-mine"]},
+            headers={"X-Forwarded-For": "203.0.113.9"},
+            REMOTE_ADDR="203.0.113.9",
+        )
         self.assertEqual(response.status_code, 302)
         found = Declaration.objects.get()
         module = training.find_module(training.parse(), "wallet")
         statement = module.statements[0]
         self.assertEqual((found.user, found.shop, found.who, found.shop_name), (self.owner, self.shop, "owner", "Bar"))
         self.assertEqual((found.key, found.version, found.language), ("wallet:words-mine", statement.version, "en"))
-        self.assertEqual(found.text, "The recovery words of my wallet stay with me only. I wrote them on paper and I know where it is.")
+        self.assertEqual(
+            found.text,
+            "The recovery words of my wallet stay with me only. I wrote them on paper and I know where it is.",
+        )
         self.assertGreaterEqual(found.made, before)
         # No address of the connection, anywhere in the row
         self.assertNotIn("203.0.113.9", repr(sorted(vars(found).items())))
-        self.assertEqual(sorted(field.name for field in Declaration._meta.fields),
-                         sorted(["id", "user", "shop", "register", "who", "shop_name", "key", "version", "text", "language", "made"]))
+        self.assertEqual(
+            sorted(field.name for field in Declaration._meta.fields),
+            sorted(
+                ["id", "user", "shop", "register", "who", "shop_name", "key", "version", "text", "language", "made"]
+            ),
+        )
 
     def test_the_same_declaration_twice_is_one_row(self):
         self.quiz("wallet")
@@ -315,11 +353,14 @@ class Declarations(Base):
             self.assertEqual(Declaration.objects.get(key="terms:accept").user, self.owner)
 
     def test_a_shop_of_another_account_is_never_the_shop_of_a_declaration(self):
-        other = Shop.objects.create(owner=get_user_model().objects.create(username="other"), name="Theirs",
-                                    lightning_address="t@ln.example.org")
+        other = Shop.objects.create(
+            owner=get_user_model().objects.create(username="other"), name="Theirs", lightning_address="t@ln.example.org"
+        )
         self.quiz("paid")
-        self.client.post(self.module_page("paid") + f"?shop={other.id}", {"action": "declare", "ticked": ["paid-in-wallet"],
-                                                                         "shop": str(other.id)})
+        self.client.post(
+            self.module_page("paid") + f"?shop={other.id}",
+            {"action": "declare", "ticked": ["paid-in-wallet"], "shop": str(other.id)},
+        )
         self.assertEqual(Declaration.objects.get().shop, self.shop)
 
     def test_a_merchant_with_no_shop_yet_can_do_the_path(self):
@@ -347,17 +388,23 @@ class Declarations(Base):
         for shop in (self.shop, second):
             self.assertTrue(training.declare_step(self.owner, shop, "backup"))
         for shop in (self.shop, second):
-            self.assertRedirects(self.client.post(f"/en/shops/remove/{shop.id}/"), "/en/shops/", fetch_redirect_response=False)
+            self.assertRedirects(
+                self.client.post(f"/en/shops/remove/{shop.id}/"), "/en/shops/", fetch_redirect_response=False
+            )
         self.assertFalse(Shop.objects.exists())
-        self.assertEqual(sorted(Declaration.objects.values_list("shop", "shop_name")), [(None, "Bar"), (None, "Second")])
+        self.assertEqual(
+            sorted(Declaration.objects.values_list("shop", "shop_name")), [(None, "Bar"), (None, "Second")]
+        )
 
     def test_an_account_with_two_shops_and_the_same_declaration_can_be_deleted(self):
         second = Shop.objects.create(owner=self.owner, name="Second", lightning_address="u@ln.example.org")
         for shop in (self.shop, second):
             training.declare_step(self.owner, shop, "backup")
         self.owner.delete()
-        self.assertEqual(sorted(Declaration.objects.values_list("user", "shop", "who", "shop_name")),
-                         [(None, None, "owner", "Bar"), (None, None, "owner", "Second")])
+        self.assertEqual(
+            sorted(Declaration.objects.values_list("user", "shop", "who", "shop_name")),
+            [(None, None, "owner", "Bar"), (None, None, "owner", "Second")],
+        )
 
     def test_a_declaration_without_a_shop_is_still_one_row_beside_those_of_deleted_shops(self):
         """Made without a shop it is once per person, statement and version; the rows two deleted shops left are not it."""
@@ -374,7 +421,9 @@ class Declarations(Base):
 
 class Badges(Base):
     def test_steps_are_declared_after_a_guide_for_one_shop(self):
-        response = self.client.post("/en/shops/training/declaration/", {"step": "backup", "shop": str(self.shop.id), "agree": "1"})
+        response = self.client.post(
+            "/en/shops/training/declaration/", {"step": "backup", "shop": str(self.shop.id), "agree": "1"}
+        )
         self.assertEqual(response.status_code, 302)
         found = Declaration.objects.get()
         self.assertEqual((found.key, found.shop), ("step:backup", self.shop))
@@ -383,8 +432,11 @@ class Badges(Base):
 
     def test_a_step_needs_the_tick_and_a_known_step_and_a_shop_of_the_account(self):
         other = Shop.objects.create(owner=get_user_model().objects.create(username="other"), name="Theirs")
-        for data in ({"step": "backup", "shop": str(self.shop.id)}, {"step": "magic", "shop": str(self.shop.id), "agree": "1"},
-                     {"step": "", "agree": "1"}):
+        for data in (
+            {"step": "backup", "shop": str(self.shop.id)},
+            {"step": "magic", "shop": str(self.shop.id), "agree": "1"},
+            {"step": "", "agree": "1"},
+        ):
             self.client.post("/en/shops/training/declaration/", data)
         self.assertEqual(Declaration.objects.count(), 0)
         # A shop of somebody else falls back to the account's own, never to the other's
@@ -397,6 +449,7 @@ class Badges(Base):
         self.assertTrue(training.standing(self.owner, self.shop).steps["practice"]["earned"])
         self.assertFalse(training.standing(self.owner, second).steps["practice"]["earned"])
         self.assertFalse(training.declare_step(self.owner, Shop.objects.create(name="Not theirs"), "practice"))
+
 
 @override_settings(NETWORK="mainnet")
 class Unlock(Base):
@@ -439,7 +492,13 @@ class Unlock(Base):
 
     def test_a_shop_without_an_owner_and_a_training_site_are_never_locked(self):
         self.assertFalse(training.locked(Shop.objects.create(name="Nobody's", lightning_address="z@ln.example.org")))
-        self.assertFalse(training.locked(Shop.objects.create(owner=self.owner, name="Demo", lightning_address="z@ln.example.org", external_id="bitmentor-demo:1")))
+        self.assertFalse(
+            training.locked(
+                Shop.objects.create(
+                    owner=self.owner, name="Demo", lightning_address="z@ln.example.org", external_id="bitmentor-demo:1"
+                )
+            )
+        )
 
     def test_the_day_the_community_starts_counting_nothing_is_locked_before(self):
         # The business day, not the calendar one: until 05:00 it is still the day before
@@ -504,6 +563,7 @@ class Unlock(Base):
         self.assertContains(page, "The register is waiting for you.")
         self.assertContains(page, "Register (waiting for the pass)")
 
+
 class Certificate(Base):
     def test_the_panel_path_says_the_badge_also_needs_the_pass(self):
         shop = Shop.objects.get(pk=self.shop.pk)
@@ -514,16 +574,18 @@ class Certificate(Base):
         self.assertFalse(certificate_step(shop)["needs_pass"])
 
     def test_the_basic_pass_certifies_a_shop_whose_address_already_works(self):
-        Shop.objects.filter(pk=self.shop.pk).update(lightning_status=LightningStatus.OK,
-                                                    lightning_checked_address="s@ln.example.org")
+        Shop.objects.filter(pk=self.shop.pk).update(
+            lightning_status=LightningStatus.OK, lightning_checked_address="s@ln.example.org"
+        )
         self.finish("wallet", "paid")
         self.assertIsNone(Shop.objects.get(pk=self.shop.pk).certified_month)
         self.finish("problems")
         self.assertEqual(Shop.objects.get(pk=self.shop.pk).certified_month, certified.month_of(timezone.now()))
 
     def test_without_the_pass_a_working_address_is_not_enough(self):
-        Shop.objects.filter(pk=self.shop.pk).update(lightning_status=LightningStatus.OK,
-                                                    lightning_checked_address="s@ln.example.org")
+        Shop.objects.filter(pk=self.shop.pk).update(
+            lightning_status=LightningStatus.OK, lightning_checked_address="s@ln.example.org"
+        )
         self.assertEqual(certified.refresh(), 0)
         self.pass_the_basics()
         self.assertEqual(certified.refresh(), 1)
@@ -557,7 +619,9 @@ class Sign(Base):
         self.assertTrue(training.is_trained(Shop.objects.get(pk=self.shop.pk)))
 
     def test_the_sign_costs_one_query_for_the_whole_map(self):
-        others = [Shop.objects.create(owner=get_user_model().objects.create(username=f"o{n}"), name=f"S{n}") for n in range(5)]
+        others = [
+            Shop.objects.create(owner=get_user_model().objects.create(username=f"o{n}"), name=f"S{n}") for n in range(5)
+        ]
         self.pass_the_basics(others[0].owner)
         shops = list(Shop.objects.all())
         with self.assertNumQueries(1):
@@ -643,10 +707,15 @@ class StaffRules(Base):
         self.assertEqual(rules["Cache-Control"], "no-store")
 
     def test_i_understood_is_kept_like_a_declaration_for_the_register(self):
-        response = self.phone.post(f"/en/shops/register/p/{self.register.id}/rules/", {"k": self.register.key, "agree": "1"})
+        response = self.phone.post(
+            f"/en/shops/register/p/{self.register.id}/rules/", {"k": self.register.key, "agree": "1"}
+        )
         self.assertRedirects(response, self.page, fetch_redirect_response=False)
         found = Declaration.objects.get()
-        self.assertEqual((found.register, found.user, found.shop, found.who, found.key), (self.register, None, self.shop, "Anna", "staff:rules"))
+        self.assertEqual(
+            (found.register, found.user, found.shop, found.who, found.key),
+            (self.register, None, self.shop, "Anna", "staff:rules"),
+        )
         self.assertIn("1. A sale is paid only when the register says so.", found.text)
         self.assertIn("3. If in doubt, call the owner.", found.text)
         self.assertEqual(self.phone.get(self.page).status_code, 200)
@@ -696,31 +765,43 @@ class StaffRules(Base):
     def test_the_key_is_needed_and_a_register_turned_off_has_no_rules(self):
         self.assertEqual(self.phone.get(f"/en/shops/register/p/{self.register.id}/rules/").status_code, 404)
         self.assertEqual(self.phone.get(f"/en/shops/register/p/{self.register.id}/rules/?k=wrong").status_code, 404)
-        self.assertEqual(self.phone.post(f"/en/shops/register/p/{self.register.id}/rules/", {"k": "x" * 30, "agree": "1"}).status_code, 404)
+        self.assertEqual(
+            self.phone.post(
+                f"/en/shops/register/p/{self.register.id}/rules/", {"k": "x" * 30, "agree": "1"}
+            ).status_code,
+            404,
+        )
         StaffRegister.objects.filter(pk=self.register.pk).update(retired=timezone.now())
         self.assertEqual(self.phone.get(self.rules).status_code, 404)
         self.assertEqual(Declaration.objects.count(), 0)
 
     def test_the_phone_needs_the_csrf_token_to_say_it_understood(self):
         strict = Client(enforce_csrf_checks=True)
-        response = strict.post(f"/en/shops/register/p/{self.register.id}/rules/", {"k": self.register.key, "agree": "1"})
+        response = strict.post(
+            f"/en/shops/register/p/{self.register.id}/rules/", {"k": self.register.key, "agree": "1"}
+        )
         self.assertEqual(response.status_code, 403)
         self.assertEqual(Declaration.objects.count(), 0)
         page = strict.get(self.rules)
         token = strict.cookies["csrftoken"].value
-        ok = strict.post(f"/en/shops/register/p/{self.register.id}/rules/", {"k": self.register.key, "agree": "1",
-                                                                          "csrfmiddlewaretoken": token})
+        ok = strict.post(
+            f"/en/shops/register/p/{self.register.id}/rules/",
+            {"k": self.register.key, "agree": "1", "csrfmiddlewaretoken": token},
+        )
         self.assertEqual(ok.status_code, 302)
         self.assertContains(page, "csrfmiddlewaretoken")
 
     def test_the_practice_is_one_tap_away(self):
-        self.assertContains(self.phone.get(self.rules), f"/en/shops/register/p/{self.register.id}/practice/?k={self.register.key}")
+        self.assertContains(
+            self.phone.get(self.rules), f"/en/shops/register/p/{self.register.id}/practice/?k={self.register.key}"
+        )
 
 
 @override_settings(NETWORK="mainnet")
 class QuickStart(Base):
     """Before the pass the owner's register takes payments up to the community's `quick_start`; the count is on the phone
     (shops/test_register_flow.py), here the page, the lock for everyone else and the configuration."""
+
     block = changed(quick_start=20)
 
     def setUp(self):
@@ -728,7 +809,11 @@ class QuickStart(Base):
         self.url = f"/en/shops/register/{self.shop.id}/"
 
     def data(self, page):
-        return json.loads(re.search(r'<script id="register-data" type="application/json">(.*?)</script>', page.content.decode(), re.S).group(1))
+        return json.loads(
+            re.search(
+                r'<script id="register-data" type="application/json">(.*?)</script>', page.content.decode(), re.S
+            ).group(1)
+        )
 
     def test_the_example_has_it(self):
         self.assertEqual(EXAMPLE["quick_start"], 20)
@@ -754,7 +839,9 @@ class QuickStart(Base):
         data = self.data(page)
         self.assertEqual(data["quick_start"], {"cents": 2000, "currency": "EUR"})
         self.assertIn("{left}", data["texts"]["quick_left"])
-        self.assertEqual(data["texts"]["quick_done"], "Quick start used up. Finish the training to keep taking payments.")
+        self.assertEqual(
+            data["texts"]["quick_done"], "Quick start used up. Finish the training to keep taking payments."
+        )
 
     def test_the_words_come_in_italian_and_german(self):
         from django.utils import translation
@@ -762,7 +849,9 @@ class QuickStart(Base):
         from .views import quick_texts
 
         # The example community writes in English and Italian; German is for the communities that add it
-        self.assertIn("Avvio rapido", self.data(self.client.get(self.url.replace("/en/", "/it/")))["texts"]["quick_left"])
+        self.assertIn(
+            "Avvio rapido", self.data(self.client.get(self.url.replace("/en/", "/it/")))["texts"]["quick_left"]
+        )
         with translation.override("de"):
             self.assertIn("Schnellstart", str(quick_texts()["quick_left"]))
             self.assertIn("Schulung", str(quick_texts()["quick_done"]))
@@ -831,7 +920,9 @@ class Permissions(Base):
         strict = Client(enforce_csrf_checks=True)
         strict.force_login(self.owner)
         for url in ("/en/shops/training/wallet/", "/en/shops/training/review/", "/en/shops/training/declaration/"):
-            response = strict.post(url, {"action": "quiz", "q0": 0, "q1": 0, "step": "backup", "agree": "1", "checked": "1"})
+            response = strict.post(
+                url, {"action": "quiz", "q0": 0, "q1": 0, "step": "backup", "agree": "1", "checked": "1"}
+            )
             self.assertEqual(response.status_code, 403, url)
         self.assertEqual((ModuleResult.objects.count(), Declaration.objects.count()), (0, 0))
 
@@ -847,10 +938,14 @@ class Permissions(Base):
         stranger = Client()
         for url in (*self.URLS, "/en/shops/training/terms/"):
             theirs, ours = client.get(url), stranger.get(url)
-            self.assertEqual((theirs.status_code, theirs.get("Location")), (ours.status_code, ours.get("Location")), url)
+            self.assertEqual(
+                (theirs.status_code, theirs.get("Location")), (ours.status_code, ours.get("Location")), url
+            )
         client.post("/en/shops/training/wallet/", {"action": "quiz", **RIGHT["wallet"]})
         client.post("/en/shops/training/declaration/", {"step": "backup", "agree": "1"})
-        self.assertEqual((ModuleResult.objects.count(), Declaration.objects.count(), Trainee.objects.count()), (0, 0, 0))
+        self.assertEqual(
+            (ModuleResult.objects.count(), Declaration.objects.count(), Trainee.objects.count()), (0, 0, 0)
+        )
 
     def test_another_account_has_its_own_path(self):
         self.finish()
@@ -934,7 +1029,9 @@ class Export(Base):
         self.assertEqual(response["Content-Type"], "text/csv; charset=utf-8")
         self.assertIn("attachment", response["Content-Disposition"])
         rows = list(csv.reader(io.StringIO(response.content.decode())))
-        self.assertEqual(rows[0], ["made", "who", "shop", "shop_id", "register_id", "statement", "version", "language", "text"])
+        self.assertEqual(
+            rows[0], ["made", "who", "shop", "shop_id", "register_id", "statement", "version", "language", "text"]
+        )
         self.assertEqual(len(rows) - 1, Declaration.objects.count())
         words = next(row for row in rows if row[5] == "wallet:words-mine")
         self.assertEqual((words[1], words[2], words[3]), ("o***", "Bar", str(self.shop.id)))
@@ -958,7 +1055,9 @@ class Export(Base):
     def test_nobody_edits_or_deletes_the_proof_from_the_admin(self):
         row = Declaration.objects.first()
         self.assertEqual(self.client.get(f"/admin/shops/declaration/{row.pk}/change/").status_code, 200)
-        self.assertEqual(self.client.post(f"/admin/shops/declaration/{row.pk}/change/", {"text": "changed"}).status_code, 403)
+        self.assertEqual(
+            self.client.post(f"/admin/shops/declaration/{row.pk}/change/", {"text": "changed"}).status_code, 403
+        )
         self.assertEqual(self.client.get(f"/admin/shops/declaration/{row.pk}/delete/").status_code, 403)
         self.assertEqual(self.client.get("/admin/shops/declaration/add/").status_code, 403)
         self.assertEqual(Declaration.objects.get(pk=row.pk).text, row.text)
@@ -978,7 +1077,9 @@ class Diagnosis(Base):
     def run_check(self, owner_view=False):
         from . import diagnosis
 
-        return [finding for finding in diagnosis.diagnose(self.shop, only={diagnosis.check_training}, owner_view=owner_view)]
+        return [
+            finding for finding in diagnosis.diagnose(self.shop, only={diagnosis.check_training}, owner_view=owner_view)
+        ]
 
     def test_the_helper_is_told_the_register_waits_for_the_pass_and_what_to_say(self):
         found = self.run_check()

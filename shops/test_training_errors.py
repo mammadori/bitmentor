@@ -1,5 +1,6 @@
 """The error paths of the training (shops/training.py): a community.yml with mistakes in it must leave out what cannot be
 used and say so, a database that fails must never lock a till, and a review form written by hand must not pass."""
+
 from datetime import date, datetime
 from unittest.mock import patch
 
@@ -25,20 +26,34 @@ class Questions(SimpleTestCase):
         question, problems = told(lambda warn: training.parse_question(good, "q", warn))
         self.assertEqual((question.answer, problems), (0, []))
         for broken, saying in (
-                ("not a dict", "needs `text`"), ({**good, "text": ""}, "needs `text`"), ({**good, "explain": None}, "needs `text`"),
-                ({**good, "options": "ab"}, "2 to"), ({**good, "options": ["only one"]}, "2 to"),
-                ({**good, "options": ["a", 2]}, "2 to"), ({**good, "options": ["x"] * 7}, "2 to"),
-                ({**good, "answer": 0}, "from 1 to 2"), ({**good, "answer": 3}, "from 1 to 2"),
-                ({**good, "answer": True}, "from 1 to 2"), ({**good, "answer": "1"}, "from 1 to 2")):
-            question, problems = told(lambda warn: training.parse_question(broken, "q", warn))
+            ("not a dict", "needs `text`"),
+            ({**good, "text": ""}, "needs `text`"),
+            ({**good, "explain": None}, "needs `text`"),
+            ({**good, "options": "ab"}, "2 to"),
+            ({**good, "options": ["only one"]}, "2 to"),
+            ({**good, "options": ["a", 2]}, "2 to"),
+            ({**good, "options": ["x"] * 7}, "2 to"),
+            ({**good, "answer": 0}, "from 1 to 2"),
+            ({**good, "answer": 3}, "from 1 to 2"),
+            ({**good, "answer": True}, "from 1 to 2"),
+            ({**good, "answer": "1"}, "from 1 to 2"),
+        ):
+            question, problems = told(lambda warn, broken=broken: training.parse_question(broken, "q", warn))
             self.assertIsNone(question, broken)
             self.assertIn(saying, problems[0], broken)
 
 
 class Declarations(SimpleTestCase):
     def test_a_declaration_needs_a_new_id_and_a_text_and_there_are_not_too_many(self):
-        entries = [{"id": "one", "text": "I read it"}, {"id": "one", "text": "again"}, {"id": "Bad Id", "text": "x"},
-                   {"text": "no id"}, "not a dict", {"id": "two", "text": ""}, {"id": "three", "text": "ok"}]
+        entries = [
+            {"id": "one", "text": "I read it"},
+            {"id": "one", "text": "again"},
+            {"id": "Bad Id", "text": "x"},
+            {"text": "no id"},
+            "not a dict",
+            {"id": "two", "text": ""},
+            {"id": "three", "text": "ok"},
+        ]
         found, problems = told(lambda warn: training.parse_statements("wallet", entries, "module", warn))
         self.assertEqual([item.id for item in found], ["one", "three"])
         self.assertEqual(len(problems), 5)
@@ -59,15 +74,22 @@ class Modules(SimpleTestCase):
 
     def test_a_module_that_cannot_stand_is_left_out_and_told(self):
         question = {"text": "T", "options": ["a", "b"], "answer": 1, "explain": "E"}
-        for entry in ("text", {"id": 5, "title": "x"}, {"id": "taken", "title": "x", "questions": [question]},
-                      {"id": "ok", "title": "", "questions": [question]}, {"id": "ok", "title": "T"}):
+        for entry in (
+            "text",
+            {"id": 5, "title": "x"},
+            {"id": "taken", "title": "x", "questions": [question]},
+            {"id": "ok", "title": "", "questions": [question]},
+            {"id": "ok", "title": "T"},
+        ):
             module, problems = self.parse(entry, taken=["taken"])
             self.assertIsNone(module, entry)
             self.assertEqual(len(problems), 1, entry)
 
     def test_a_page_that_is_not_a_page_is_dropped_but_the_module_stays(self):
         question = {"text": "T", "options": ["a", "b"], "answer": 1, "explain": "E"}
-        module, problems = self.parse({"id": "ok", "title": "T", "page": "http://elsewhere.example/", "questions": [question]})
+        module, problems = self.parse(
+            {"id": "ok", "title": "T", "page": "http://elsewhere.example/", "questions": [question]}
+        )
         self.assertIsNotNone(module)
         self.assertIsNone(module.page)
         self.assertIn("`page`", problems[0])
@@ -81,7 +103,10 @@ class Modules(SimpleTestCase):
 
 class Block(SimpleTestCase):
     def problems(self, **changes):
-        block = {"modules": [{"id": "one", "title": "One", "declarations": [{"id": "a", "text": "I read it"}]}], **changes}
+        block = {
+            "modules": [{"id": "one", "title": "One", "declarations": [{"id": "a", "text": "I read it"}]}],
+            **changes,
+        }
         with configured(block):
             return training.problems()
 
@@ -97,17 +122,24 @@ class Block(SimpleTestCase):
         """A day that cannot be read must not mean "from now": the lock would fall at once because of a slip of the keyboard."""
         for since in ("soon", "2026-13-45", "01/12/2026", 20261201, datetime(2026, 12, 1, 9, 0)):
             self.assertTrue(any("training.since" in problem for problem in self.problems(since=since)), since)
-            with configured({"modules": [{"id": "one", "title": "One", "declarations": [{"id": "a", "text": "x"}]}],
-                             "since": since}):
+            with configured(
+                {"modules": [{"id": "one", "title": "One", "declarations": [{"id": "a", "text": "x"}]}], "since": since}
+            ):
                 self.assertFalse(training.in_force(training.parse()), since)
-        with configured({"modules": [{"id": "one", "title": "One", "declarations": [{"id": "a", "text": "x"}]}],
-                         "since": "2026-12-01"}):
+        with configured(
+            {
+                "modules": [{"id": "one", "title": "One", "declarations": [{"id": "a", "text": "x"}]}],
+                "since": "2026-12-01",
+            }
+        ):
             self.assertEqual(training.parse().since, date(2026, 12, 1))
             self.assertEqual(training.problems(), [])
 
     def test_a_guide_that_is_not_an_address_of_the_community_is_left_out(self):
-        block = {"modules": [{"id": "one", "title": "One", "declarations": [{"id": "a", "text": "x"}]}],
-                 "guides": {"wallet": "http://elsewhere.example/", "ok": "about/"}}
+        block = {
+            "modules": [{"id": "one", "title": "One", "declarations": [{"id": "a", "text": "x"}]}],
+            "guides": {"wallet": "http://elsewhere.example/", "ok": "about/"},
+        }
         with configured(block):
             cfg = training.parse()
             self.assertEqual(set(cfg.guides), {"ok"})

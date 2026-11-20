@@ -1,6 +1,7 @@
 """The pages of the merchant's training (shops/training.py): the path, a module with its quiz and declarations, the short
 review, the steps declared after a guide, and the three rules of a staff register. They work without JavaScript: plain forms,
 the answers graded on the server, which is the only place that knows the right ones."""
+
 import uuid
 
 from django.conf import settings
@@ -58,11 +59,19 @@ def quiz_items(module, marks=None):
     for number, question in enumerate(module.questions):
         mark = by_number.get(number)
         chosen = int(mark["given"]) if mark and mark["right"] else None
-        items.append({"number": number, "name": f"q{number}", "text": training.shown(question.text),
-                      "options": [{"value": index, "text": training.shown(option), "checked": index == chosen}
-                                  for index, option in enumerate(question.options)],
-                      "state": None if not mark else "right" if mark["right"] else "wrong",
-                      "explain": training.shown(question.explain) if mark and not mark["right"] else ""})
+        items.append(
+            {
+                "number": number,
+                "name": f"q{number}",
+                "text": training.shown(question.text),
+                "options": [
+                    {"value": index, "text": training.shown(option), "checked": index == chosen}
+                    for index, option in enumerate(question.options)
+                ],
+                "state": None if not mark else "right" if mark["right"] else "wrong",
+                "explain": training.shown(question.explain) if mark and not mark["right"] else "",
+            }
+        )
     return items
 
 
@@ -74,15 +83,39 @@ def home(request):
     shop = chosen_shop(request)
     state = training.standing(request.user, shop, cfg=cfg)
     language = request.LANGUAGE_CODE
-    modules = [{**item, "title": training.shown(item["module"].title), "page": training.page_url(item["module"], language),
-                "questions": len(item["module"].questions)} for item in state.modules]
+    modules = [
+        {
+            **item,
+            "title": training.shown(item["module"].title),
+            "page": training.page_url(item["module"], language),
+            "questions": len(item["module"].questions),
+        }
+        for item in state.modules
+    ]
     next_item = next((item for item in modules if not item["done"]), None)
-    steps = [{**badge, "guide": training.guide_url(cfg, badge["key"], language) if badge["key"] != "practice" else
-              (reverse("practice", args=[shop.pk]) if shop and (shop.has_register or not shop.closed) else "")}
-             for badge in state.badges if badge.get("step")]
-    return render(request, "shops/training.html", {
-        "state": state, "modules": modules, "next_item": next_item, "steps": steps, "shop": shop,
-        "shops": list(request.user.shops.order_by("created")), "real_money": settings.NETWORK == "mainnet"})
+    steps = [
+        {
+            **badge,
+            "guide": training.guide_url(cfg, badge["key"], language)
+            if badge["key"] != "practice"
+            else (reverse("practice", args=[shop.pk]) if shop and (shop.has_register or not shop.closed) else ""),
+        }
+        for badge in state.badges
+        if badge.get("step")
+    ]
+    return render(
+        request,
+        "shops/training.html",
+        {
+            "state": state,
+            "modules": modules,
+            "next_item": next_item,
+            "steps": steps,
+            "shop": shop,
+            "shops": list(request.user.shops.order_by("created")),
+            "real_money": settings.NETWORK == "mainnet",
+        },
+    )
 
 
 @views.not_indexed
@@ -109,8 +142,13 @@ def module(request, slug):
                 training.settle(request.user, cfg)
                 messages.success(request, _("All the answers are right."))
                 return back(request, shop, "training_module", slug)
-            messages.info(request, _("Some answers are not right yet. Read the lines under them and try again: there is "
-                                     "no penalty and no limit."))
+            messages.info(
+                request,
+                _(
+                    "Some answers are not right yet. Read the lines under them and try again: there is "
+                    "no penalty and no limit."
+                ),
+            )
         elif action == "declare" and training.quiz_passed(found, results):
             new = training.declare(request.user, found, set(request.POST.getlist("ticked")), shop)
             earned = training.settle(request.user, cfg)
@@ -123,13 +161,27 @@ def module(request, slug):
             return back(request, shop, "training_module", slug)
     state = training.standing(request.user, shop, cfg=cfg)
     item = next(item for item in state.modules if item["id"] == slug)
-    statements = [{"id": statement.id, "text": training.shown(statement.text), "state": state_name}
-                  for statement, state_name in zip(found.statements, item["states"])]
+    statements = [
+        {"id": statement.id, "text": training.shown(statement.text), "state": state_name}
+        for statement, state_name in zip(found.statements, item["states"])
+    ]
     following = next((other for other in state.modules if not other["done"] and other["id"] != slug), None)
-    return render(request, "shops/training_module.html", {
-        "state": state, "module": found, "item": item, "title": training.shown(found.title), "shop": shop,
-        "page": training.page_url(found, request.LANGUAGE_CODE), "items": quiz_items(found, marks), "marks": marks,
-        "statements": statements, "following": following and {"id": following["id"], "title": training.shown(following["module"].title)}})
+    return render(
+        request,
+        "shops/training_module.html",
+        {
+            "state": state,
+            "module": found,
+            "item": item,
+            "title": training.shown(found.title),
+            "shop": shop,
+            "page": training.page_url(found, request.LANGUAGE_CODE),
+            "items": quiz_items(found, marks),
+            "marks": marks,
+            "statements": statements,
+            "following": following and {"id": following["id"], "title": training.shown(following["module"].title)},
+        },
+    )
 
 
 @views.not_indexed
@@ -141,8 +193,11 @@ def step(request):
     shop = chosen_shop(request)
     if busy(request):
         messages.error(request, _("Too many tries in a short time: wait a few minutes."))
-    elif request.POST.get("step") in training.step_keys() and request.POST.get("agree") and training.declare_step(
-            request.user, shop, request.POST["step"]):
+    elif (
+        request.POST.get("step") in training.step_keys()
+        and request.POST.get("agree")
+        and training.declare_step(request.user, shop, request.POST["step"])
+    ):
         messages.success(request, _("Saved. Thank you."))
     else:
         messages.info(request, _("Tick the box to say you did it, then press the button."))
@@ -180,12 +235,21 @@ def review(request):
         question = module_.questions[picks[module_.id]]
         mark = by_module.get(module_.id)
         chosen = int(mark["given"]) if mark and mark["right"] else None
-        items.append({"module": module_, "title": training.shown(module_.title), "index": picks[module_.id],
-                      "text": training.shown(question.text), "name": f"a-{module_.id}",
-                      "options": [{"value": index, "text": training.shown(option), "checked": index == chosen}
-                                  for index, option in enumerate(question.options)],
-                      "state": None if not mark else "right" if mark["right"] else "wrong",
-                      "explain": training.shown(question.explain) if mark and not mark["right"] else ""})
+        items.append(
+            {
+                "module": module_,
+                "title": training.shown(module_.title),
+                "index": picks[module_.id],
+                "text": training.shown(question.text),
+                "name": f"a-{module_.id}",
+                "options": [
+                    {"value": index, "text": training.shown(option), "checked": index == chosen}
+                    for index, option in enumerate(question.options)
+                ],
+                "state": None if not mark else "right" if mark["right"] else "wrong",
+                "explain": training.shown(question.explain) if mark and not mark["right"] else "",
+            }
+        )
     return render(request, "shops/training_review.html", {"state": state, "items": items, "shop": shop})
 
 
@@ -204,12 +268,31 @@ def staff_rules(request, register):
         raise Http404
     if request.method == "POST":
         if ratelimit.over_limit(f"staff-rules:{ratelimit.client_ip(request)}", RULES_PER_IP, WINDOW):
-            return staff_registers.private(render(request, "shops/staff_rules.html", {"staff": staff, "key": key, "busy": True,
-                                                                                         "rules": []}, status=429))
+            return staff_registers.private(
+                render(
+                    request,
+                    "shops/staff_rules.html",
+                    {"staff": staff, "key": key, "busy": True, "rules": []},
+                    status=429,
+                )
+            )
         if request.POST.get("agree"):
             training.accept_staff_rules(staff, cfg)
             return staff_registers.private(redirect(staff_registers.page_url(staff)))
-    return staff_registers.private(render(request, "shops/staff_rules.html", {
-        "staff": staff, "shop": staff.shop, "key": key, "rules": training.staff_lines(cfg), "missing": request.method == "POST",
-        "practice": f"{reverse('staff_practice', args=[staff.id])}?k={staff.key}" if features.enabled(features.PRACTICE) else "",
-        "register": staff_registers.page_url(staff)}))
+    return staff_registers.private(
+        render(
+            request,
+            "shops/staff_rules.html",
+            {
+                "staff": staff,
+                "shop": staff.shop,
+                "key": key,
+                "rules": training.staff_lines(cfg),
+                "missing": request.method == "POST",
+                "practice": f"{reverse('staff_practice', args=[staff.id])}?k={staff.key}"
+                if features.enabled(features.PRACTICE)
+                else "",
+                "register": staff_registers.page_url(staff),
+            },
+        )
+    )

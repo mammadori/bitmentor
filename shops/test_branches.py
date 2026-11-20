@@ -1,6 +1,7 @@
 """Branches of the views that guard money, access and the site's email that the other tests did not walk: the account cap
 at the wallet sign-in, a claim lost to another account, the email budget at the recovery address, the email budget
 failing open, the owner's address change refused under its lock or past its tries, and the training's tries."""
+
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -38,12 +39,15 @@ class Claim(TestCase):
         reset_limits()
         self.user = get_user_model().objects.create(username="email:abc")
         self.client.force_login(self.user)
-        self.shop = Shop.objects.create(name="Bar", lightning_address="bar@ln.example.org",
-                                        claim_hash=claim_digest(CODE))
+        self.shop = Shop.objects.create(
+            name="Bar", lightning_address="bar@ln.example.org", claim_hash=claim_digest(CODE)
+        )
 
     def test_a_claim_another_account_took_meanwhile_is_gone(self):
         def taken_meanwhile(*args, **kwargs):
-            Shop.objects.filter(pk=self.shop.pk).update(owner=get_user_model().objects.create(username="other"), claim_hash="")
+            Shop.objects.filter(pk=self.shop.pk).update(
+                owner=get_user_model().objects.create(username="other"), claim_hash=""
+            )
             return False
 
         with patch("shops.views.certified.address_taken", side_effect=taken_meanwhile):
@@ -85,13 +89,22 @@ class BudgetFailsOpen(TestCase):
         reset_limits()
 
     def test_a_visitor_is_allowed_when_the_count_cannot_be_read(self):
-        with patch("config.mailbudget.blocked", side_effect=DatabaseError), self.assertLogs("config.mailbudget", "ERROR"):
+        with (
+            patch("config.mailbudget.blocked", side_effect=DatabaseError),
+            self.assertLogs("config.mailbudget", "ERROR"),
+        ):
             self.assertTrue(mailbudget.visitor_allowed("a@example.org"))
 
     def test_the_backend_sends_when_the_count_cannot_be_read_or_written(self):
-        with patch("config.mailbudget.blocked", side_effect=DatabaseError), self.assertLogs("config.mailbudget", "ERROR"):
+        with (
+            patch("config.mailbudget.blocked", side_effect=DatabaseError),
+            self.assertLogs("config.mailbudget", "ERROR"),
+        ):
             self.assertEqual(ask(), 1)
-        with patch("config.mailbudget.record", side_effect=DatabaseError), self.assertLogs("config.mailbudget", "ERROR"):
+        with (
+            patch("config.mailbudget.record", side_effect=DatabaseError),
+            self.assertLogs("config.mailbudget", "ERROR"),
+        ):
             self.assertEqual(ask(), 1)
         self.assertEqual(len(mail.outbox), 2)
 
@@ -126,7 +139,9 @@ class AddressChange(TestCase):
         """Another owner's shop took the address between the form's check and the write."""
         with patch("shops.address_change.address_taken", return_value=True):
             response = self.client.post(self.url, {"lightning_address": self.NEW})
-        self.assertRedirects(response, reverse("edit_shop", kwargs={"shop": self.shop.pk}), fetch_redirect_response=False)
+        self.assertRedirects(
+            response, reverse("edit_shop", kwargs={"shop": self.shop.pk}), fetch_redirect_response=False
+        )
         self.assertEqual(Shop.objects.get(pk=self.shop.pk).lightning_address, self.OLD)
 
     def test_too_many_tries_are_429(self):
@@ -159,12 +174,12 @@ class TrainingTries(TestCase):
     def test_the_review_past_the_tries_is_not_marked(self):
         from .models import Trainee
 
-        Trainee.objects.create(user=self.owner, base_earned=timezone.now(), reviewed=timezone.now() - timedelta(days=400))
+        Trainee.objects.create(
+            user=self.owner, base_earned=timezone.now(), reviewed=timezone.now() - timedelta(days=400)
+        )
         response = self.client.post(reverse("training_review"), {"a-wallet": 0}, follow=True)
         self.assertContains(response, "Too many tries in a short time")
         self.assertLess(Trainee.objects.get().reviewed, timezone.now() - timedelta(days=399))
-
-
 
 
 class LinkForACommunity(TestCase):
@@ -172,6 +187,7 @@ class LinkForACommunity(TestCase):
 
     def test_true_when_it_left_false_when_not(self):
         from shops import views
+
         self.assertIs(views.send_link("Subject", "Intro", "https://example.org/x", "a@example.org"), True)
         self.assertEqual(mail.outbox[-1].to, ["a@example.org"])
         for refusal in ({"side_effect": OSError}, {"return_value": 0}):

@@ -6,6 +6,7 @@ Only a queue. The site never writes to OpenStreetMap by itself: a person of the 
 day, and a telegram message tells the moderators, as for the requests for help. Telegram that does not answer never loses
 the request: it stays in /admin/ and on top of the dashboard (shops/dashboard.py). Nothing a merchant writes is kept: the
 request carries only the lines the site itself worked out."""
+
 import logging
 from datetime import timedelta
 
@@ -43,8 +44,10 @@ def lines_for(shop, now=None):
     today = certified.local_day(now or timezone.now())
     state = osm.page(shop, now)
     if state and state["changes"]:
-        return "\n".join(f"{change['tag']} = {change['new']}" if change["new"] is not None else f"{change['tag']}: remove"
-                         for change in state["changes"])
+        return "\n".join(
+            f"{change['tag']} = {change['new']}" if change["new"] is not None else f"{change['tag']}: remove"
+            for change in state["changes"]
+        )
     return osm.request_summary(osm.wanted_tags(shop, config, today))
 
 
@@ -59,14 +62,16 @@ def create(shop, user, now=None):
             # A request of the owner before this one: the shop changed hands, and the new owner did not ask. It is closed
             # (the staff sees who did), and does not block the new owner, nor does it pass for theirs
             shop.osm_requests.filter(state=State.OPEN).exclude(asked_by_id=user.pk).update(
-                state=State.DECLINED, done=now, done_by="site: the shop changed owner")
+                state=State.DECLINED, done=now, done_by="site: the shop changed owner"
+            )
             open_one = shop.osm_requests.filter(state=State.OPEN).first()
             if open_one:
                 return open_one, False
             if shop.osm_requests.filter(created__gte=now - ASK_WINDOW).count() >= ASK_PER_DAY:
                 raise TooMany
-            return OsmRequest.objects.create(shop=shop, asked_by=user, kind=kind, created=now,
-                                             summary=lines_for(shop, now)[:4000]), True
+            return OsmRequest.objects.create(
+                shop=shop, asked_by=user, kind=kind, created=now, summary=lines_for(shop, now)[:4000]
+            ), True
     except IntegrityError:
         return shop.osm_requests.filter(state=State.OPEN).first(), False
 
@@ -78,7 +83,10 @@ def message(row):
         from .management.commands.dashboard import site_label
 
         link = f"{settings.PUBLIC_URL}{reverse('admin:shops_osmrequest_change', args=[row.pk])}"
-        lines = [site_label(), _("{shop} asks the association to {what}.").format(shop=alert_name(row.shop), what=row.get_kind_display())]
+        lines = [
+            site_label(),
+            _("{shop} asks the association to {what}.").format(shop=alert_name(row.shop), what=row.get_kind_display()),
+        ]
         if row.shop.osm_ref:
             lines.append(osm.element_url(row.shop.osm_ref))
         lines.append(_("The request: {link}").format(link=link))
@@ -119,9 +127,16 @@ def own(shop):
 
 
 def state(row):
-    return {"request": row, "open": row.state == State.OPEN, "done": row.state == State.DONE, "declined": row.state == State.DECLINED,
-            "when": lightning_watch.when(row.created), "done_when": lightning_watch.when(row.done) if row.done else "",
-            "delivered": row.delivery == HelpRequest.Delivery.SENT, "kind": row.get_kind_display()}
+    return {
+        "request": row,
+        "open": row.state == State.OPEN,
+        "done": row.state == State.DONE,
+        "declined": row.state == State.DECLINED,
+        "when": lightning_watch.when(row.created),
+        "done_when": lightning_watch.when(row.done) if row.done else "",
+        "delivered": row.delivery == HelpRequest.Delivery.SENT,
+        "kind": row.get_kind_display(),
+    }
 
 
 def panel(shop, now=None):
@@ -129,5 +144,6 @@ def panel(shop, now=None):
     now = now or timezone.now()
     rows = list(own(shop)[:5])
     chosen = next((row for row in rows if row.state == State.OPEN), None) or next(
-        (row for row in rows if row.done and row.done >= now - SHOWN), None)
+        (row for row in rows if row.done and row.done >= now - SHOWN), None
+    )
     return state(chosen) if chosen else None

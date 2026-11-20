@@ -1,4 +1,5 @@
 """The meetup board: settings, the administration, the board and the calendar feed. Nostr is in test_nostr.py."""
+
 import types
 from datetime import date, datetime, timedelta
 from datetime import timezone as dt_timezone
@@ -6,24 +7,24 @@ from unittest import skipUnless
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
-from config.test_translations import python_ids, untranslated
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import checks
 from django.core.cache import cache
 from django.db import connection
+from django.db.models.signals import post_init
 from django.template import engines
 from django.test import RequestFactory, override_settings
 from django.test import TestCase as DjangoTestCase
 from django.utils import timezone, translation
 
+from config.test_translations import python_ids, untranslated
 from shops.tests import admin_session, reset_limits
 
 from . import board, conf, ical
 from .keys import to_hex, to_npub
 from .models import Meetup, TrustedAuthor
 from .nostr_read import plain_text
-
 
 
 class TestCase(DjangoTestCase):
@@ -53,9 +54,16 @@ def on(**fields):
 
 def make(days=0, hours=19, **fields):
     """A meetup `days` from today (negative: past) at `hours` o'clock in Rome."""
-    local = (timezone.localtime(timezone.now(), ROME) + timedelta(days=days)).replace(hour=hours, minute=0, second=0, microsecond=0)
-    values = {"starts_at": local.astimezone(dt_timezone.utc), "tzid": "Europe/Rome", "city": "Example", "place": "The Bar",
-              "title": "Spritz"}
+    local = (timezone.localtime(timezone.now(), ROME) + timedelta(days=days)).replace(
+        hour=hours, minute=0, second=0, microsecond=0
+    )
+    values = {
+        "starts_at": local.astimezone(dt_timezone.utc),
+        "tzid": "Europe/Rome",
+        "city": "Example",
+        "place": "The Bar",
+        "title": "Spritz",
+    }
     values.update(fields)
     return Meetup.objects.create(**values)
 
@@ -70,7 +78,9 @@ class DeletedByThePreviousImage(TestCase):
             with connection.cursor() as cursor:
                 cursor.execute(
                     "SELECT c.confdeltype FROM pg_constraint c JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey) "
-                    "WHERE c.contype = 'f' AND c.conrelid = %s::regclass AND a.attname = %s", [table, column])
+                    "WHERE c.contype = 'f' AND c.conrelid = %s::regclass AND a.attname = %s",
+                    [table, column],
+                )
                 self.assertEqual([row[0] for row in cursor.fetchall()], ["n"], f"{table}.{column}")
 
     def test_an_account_the_old_image_deletes_stays_in_the_new_tables_as_nobody(self):
@@ -92,15 +102,29 @@ class Keys(TestCase):
         self.assertEqual(to_npub(to_hex(NPUB)), NPUB)
 
     def test_a_wrong_key_is_refused(self):
-        for text in (NPUB[:-1] + ("q" if NPUB[-1] != "q" else "p"), NPUB[:-3], "npub1", KEY[:-1], KEY + "0", "zz" * 32, "",
-                     "nsec1" + NPUB[5:], NPUB.replace("npub", "nsec", 1), None, 5):
+        for text in (
+            NPUB[:-1] + ("q" if NPUB[-1] != "q" else "p"),
+            NPUB[:-3],
+            "npub1",
+            KEY[:-1],
+            KEY + "0",
+            "zz" * 32,
+            "",
+            "nsec1" + NPUB[5:],
+            NPUB.replace("npub", "nsec", 1),
+            None,
+            5,
+        ):
             with self.subTest(text=text), self.assertRaises(ValueError):
                 to_hex(text)
 
 
 class PlainText(TestCase):
     def test_markup_and_entities_become_plain_text(self):
-        self.assertEqual(plain_text("Caff&egrave; <b>da</b> <script>alert(1)</script> Mario &amp; Co", 100), "Caffè da alert(1) Mario & Co")
+        self.assertEqual(
+            plain_text("Caff&egrave; <b>da</b> <script>alert(1)</script> Mario &amp; Co", 100),
+            "Caffè da alert(1) Mario & Co",
+        )
 
     def test_control_and_direction_characters_go(self):
         self.assertEqual(plain_text("a\x00b‮evil‬​ c\r\nd\te", 100), "abevil c d e")
@@ -123,9 +147,24 @@ class Settings(TestCase):
         for good in ("https://t.me/example", "https://example.org/a?b=c#d", "https://example.org:8443/x"):
             with self.subTest(good=good):
                 self.assertEqual(conf.safe_link(good), good)
-        for bad in ("http://example.org", "javascript:alert(1)", "//example.org", "https://", "https://a b.org", "https://u:p@example.org/",
-                    "https://example.org/è", "https://example.org/\"onmouseover=1", "https://example.org/\r\nX: 1", "ftp://x.org/",
-                    "https://example.org/" + "a" * 600, "https://example.org:port/", "", None, 7, "https://x.org/<b>"):
+        for bad in (
+            "http://example.org",
+            "javascript:alert(1)",
+            "//example.org",
+            "https://",
+            "https://a b.org",
+            "https://u:p@example.org/",
+            "https://example.org/è",
+            'https://example.org/"onmouseover=1',
+            "https://example.org/\r\nX: 1",
+            "ftp://x.org/",
+            "https://example.org/" + "a" * 600,
+            "https://example.org:port/",
+            "",
+            None,
+            7,
+            "https://x.org/<b>",
+        ):
             with self.subTest(bad=bad):
                 self.assertEqual(conf.safe_link(bad), "")
 
@@ -149,9 +188,22 @@ class Settings(TestCase):
 
     def test_relays_are_wss_with_a_name(self):
         warnings = []
-        with block(relays=["wss://relay.example.org", "ws://relay.example.org", "wss://1.2.3.4", "wss://[::1]/", "https://x.org",
-                           "wss://relay.example.org", 7, "wss://ok.example.org:7777/path", "wss://a b.org"]):
-            self.assertEqual(conf.relays(warnings.append), ["wss://relay.example.org", "wss://ok.example.org:7777/path"])
+        with block(
+            relays=[
+                "wss://relay.example.org",
+                "ws://relay.example.org",
+                "wss://1.2.3.4",
+                "wss://[::1]/",
+                "https://x.org",
+                "wss://relay.example.org",
+                7,
+                "wss://ok.example.org:7777/path",
+                "wss://a b.org",
+            ]
+        ):
+            self.assertEqual(
+                conf.relays(warnings.append), ["wss://relay.example.org", "wss://ok.example.org:7777/path"]
+            )
         self.assertEqual(len(warnings), 6)
 
     def test_without_relays_the_sites_own_are_read_and_may_be_plain(self):
@@ -163,19 +215,36 @@ class Settings(TestCase):
 
     def test_trusted_authors_need_a_note_and_a_real_key(self):
         warnings = []
-        with block(trusted=[{"npub": NPUB, "note": "  Certified by the staff, 2026-11-05  "}, {"npub": NPUB, "note": "again"},
-                            {"npub": KEY.replace("1", "2"), "note": "hex works"}, {"npub": NPUB},
-                            {"npub": "npub1wrong", "note": "bad"}, "text", {"note": "no key"}]):
+        with block(
+            trusted=[
+                {"npub": NPUB, "note": "  Certified by the staff, 2026-11-05  "},
+                {"npub": NPUB, "note": "again"},
+                {"npub": KEY.replace("1", "2"), "note": "hex works"},
+                {"npub": NPUB},
+                {"npub": "npub1wrong", "note": "bad"},
+                "text",
+                {"note": "no key"},
+            ]
+        ):
             found = conf.trusted(warnings.append)
-        self.assertEqual(found, [{"pubkey": KEY, "note": "Certified by the staff, 2026-11-05"},
-                                 {"pubkey": "22" * 32, "note": "hex works"}])
+        self.assertEqual(
+            found,
+            [{"pubkey": KEY, "note": "Certified by the staff, 2026-11-05"}, {"pubkey": "22" * 32, "note": "hex works"}],
+        )
         self.assertEqual(len(warnings), 4)
 
     def test_cities_have_a_position(self):
         warnings = []
-        with block(cities=[{"name": "Example", "latitude": 41.9, "longitude": 12.5}, {"name": "Far", "latitude": 95, "longitude": 0},
-                           {"name": "Wide", "latitude": 41.0, "longitude": 12.5, "radius_km": 5000}, {"latitude": 1, "longitude": 1},
-                           {"name": "Ok", "latitude": 45, "longitude": 11, "radius_km": 4}, {"name": "Str", "latitude": "45", "longitude": 1}]):
+        with block(
+            cities=[
+                {"name": "Example", "latitude": 41.9, "longitude": 12.5},
+                {"name": "Far", "latitude": 95, "longitude": 0},
+                {"name": "Wide", "latitude": 41.0, "longitude": 12.5, "radius_km": 5000},
+                {"latitude": 1, "longitude": 1},
+                {"name": "Ok", "latitude": 45, "longitude": 11, "radius_km": 4},
+                {"name": "Str", "latitude": "45", "longitude": 1},
+            ]
+        ):
             found = conf.cities(warnings.append)
         self.assertEqual([c["name"] for c in found], ["Example", "Ok"])
         self.assertEqual((found[0]["radius_km"], found[1]["radius_km"]), (15.0, 4.0))
@@ -196,8 +265,18 @@ class Admin(TestCase):
         admin_session(self.client)
 
     def post_new(self, **fields):
-        data = {"day": "2026-12-04", "hour": "19:00", "tzid": "Europe/Rome", "city": "Example", "place": "The Bar", "title": "Spritz",
-                "url": "", "status": "confirmed", "moved_to": "", "visible": "on"}
+        data = {
+            "day": "2026-12-04",
+            "hour": "19:00",
+            "tzid": "Europe/Rome",
+            "city": "Example",
+            "place": "The Bar",
+            "title": "Spritz",
+            "url": "",
+            "status": "confirmed",
+            "moved_to": "",
+            "visible": "on",
+        }
         data.update(fields)
         data = {key: value for key, value in data.items() if value is not None}
         return self.client.post("/admin/meetups/meetup/add/", data)
@@ -205,7 +284,9 @@ class Admin(TestCase):
     def test_a_meetup_is_written_in_its_own_time_zone(self):
         self.assertEqual(self.post_new().status_code, 302)
         meetup = Meetup.objects.get()
-        self.assertEqual(meetup.starts_at, datetime(2026, 12, 4, 18, 0, tzinfo=dt_timezone.utc))  # winter: Rome is UTC+1
+        self.assertEqual(
+            meetup.starts_at, datetime(2026, 12, 4, 18, 0, tzinfo=dt_timezone.utc)
+        )  # winter: Rome is UTC+1
         self.assertEqual((meetup.source, meetup.entered_by.username), ("staff", "boss"))
         self.post_new(day="2026-07-10", tzid="America/New_York", title="Summer")
         summer = Meetup.objects.get(title="Summer")
@@ -238,14 +319,30 @@ class Admin(TestCase):
         self.assertIsNone(Meetup.objects.get(title="b").moved_to)
 
     def test_correcting_what_came_from_nostr_protects_it_from_the_reader(self):
-        nostr = make(10, source="nostr", nostr_address="31923:" + KEY + ":x", nostr_author=KEY, nostr_event_id="a" * 64, nostr_created_at=5)
+        nostr = make(
+            10,
+            source="nostr",
+            nostr_address="31923:" + KEY + ":x",
+            nostr_author=KEY,
+            nostr_event_id="a" * 64,
+            nostr_created_at=5,
+        )
         self.assertFalse(nostr.staff_edited)
         page = self.client.get(f"/admin/meetups/meetup/{nostr.pk}/change/")
         self.assertContains(page, "Read from Nostr")
         self.assertContains(page, 'name="staff_edited"')
         local = nostr.local_start
-        data = {"day": local.date().isoformat(), "hour": local.strftime("%H:%M:%S"), "tzid": "Europe/Rome", "city": "Example",
-                "place": "The Bar", "title": "Spritz", "url": "", "status": "cancelled", "visible": "on"}
+        data = {
+            "day": local.date().isoformat(),
+            "hour": local.strftime("%H:%M:%S"),
+            "tzid": "Europe/Rome",
+            "city": "Example",
+            "place": "The Bar",
+            "title": "Spritz",
+            "url": "",
+            "status": "cancelled",
+            "visible": "on",
+        }
         self.client.post(f"/admin/meetups/meetup/{nostr.pk}/change/", data)
         nostr.refresh_from_db()
         self.assertEqual((nostr.status, nostr.staff_edited), ("cancelled", True))
@@ -264,9 +361,20 @@ class Admin(TestCase):
 
     def test_what_the_staff_wrote_does_not_get_the_protection_box(self):
         meetup = make(3)
-        self.client.post(f"/admin/meetups/meetup/{meetup.pk}/change/", {
-            "day": meetup.local_start.date().isoformat(), "hour": "20:30", "tzid": "Europe/Rome", "city": "Example", "place": "", "title": "",
-            "url": "", "status": "confirmed", "visible": "on"})
+        self.client.post(
+            f"/admin/meetups/meetup/{meetup.pk}/change/",
+            {
+                "day": meetup.local_start.date().isoformat(),
+                "hour": "20:30",
+                "tzid": "Europe/Rome",
+                "city": "Example",
+                "place": "",
+                "title": "",
+                "url": "",
+                "status": "confirmed",
+                "visible": "on",
+            },
+        )
         meetup.refresh_from_db()
         self.assertEqual((meetup.local_start.hour, meetup.local_start.minute, meetup.staff_edited), (20, 30, False))
 
@@ -274,7 +382,9 @@ class Admin(TestCase):
         nostr = make(10, source="nostr", nostr_address="31923:" + KEY + ":x", nostr_author=KEY)
         own = make(11)
         self.assertEqual(self.client.get(f"/admin/meetups/meetup/{nostr.pk}/delete/").status_code, 403)
-        self.client.post("/admin/meetups/meetup/", {"action": "delete_selected", "_selected_action": [nostr.pk], "post": "yes"})
+        self.client.post(
+            "/admin/meetups/meetup/", {"action": "delete_selected", "_selected_action": [nostr.pk], "post": "yes"}
+        )
         self.assertTrue(Meetup.objects.filter(pk=nostr.pk).exists())
         self.client.post(f"/admin/meetups/meetup/{own.pk}/delete/", {"post": "yes"})
         self.assertFalse(Meetup.objects.filter(pk=own.pk).exists())
@@ -287,11 +397,15 @@ class Admin(TestCase):
         self.client.post("/admin/meetups/meetup/", {"action": "mark_cancelled", "_selected_action": [one.pk, two.pk]})
         one.refresh_from_db()
         two.refresh_from_db()
-        self.assertEqual((one.status, one.staff_edited, two.status, two.staff_edited), ("cancelled", False, "cancelled", True))
+        self.assertEqual(
+            (one.status, one.staff_edited, two.status, two.staff_edited), ("cancelled", False, "cancelled", True)
+        )
 
     def test_the_form_does_not_say_the_hour_is_the_servers(self):
         # The built image names static files with their hash (ManifestStaticFilesStorage): meetups-admin.<hash>.css
-        self.assertRegex(self.client.get("/admin/meetups/meetup/add/").content.decode(), r"meetups-admin(\.[0-9a-f]+)?\.css")
+        self.assertRegex(
+            self.client.get("/admin/meetups/meetup/add/").content.decode(), r"meetups-admin(\.[0-9a-f]+)?\.css"
+        )
 
     def test_the_list_opens(self):
         make(3)
@@ -301,7 +415,9 @@ class Admin(TestCase):
         self.assertContains(page, "Nostr (corrected)")
 
     def test_trusted_authors_are_added_with_an_npub_and_a_note(self):
-        response = self.client.post("/admin/meetups/trustedauthor/add/", {"pubkey": NPUB, "note": "Certified by the staff", "active": "on"})
+        response = self.client.post(
+            "/admin/meetups/trustedauthor/add/", {"pubkey": NPUB, "note": "Certified by the staff", "active": "on"}
+        )
         self.assertEqual(response.status_code, 302)
         author = TrustedAuthor.objects.get()
         self.assertEqual((author.pubkey, author.added_by.username), (KEY, "boss"))
@@ -309,14 +425,23 @@ class Admin(TestCase):
         self.assertContains(self.client.get(f"/admin/meetups/trustedauthor/{author.pk}/change/"), NPUB)
 
     def test_a_trusted_author_without_a_note_or_with_a_wrong_key_is_refused(self):
-        self.assertContains(self.client.post("/admin/meetups/trustedauthor/add/", {"pubkey": NPUB, "note": ""}), "required")
-        self.assertContains(self.client.post("/admin/meetups/trustedauthor/add/", {"pubkey": "npub1wrong", "note": "x"}), "not a valid npub")
-        self.assertContains(self.client.post("/admin/meetups/trustedauthor/add/", {"pubkey": "abc", "note": "x"}), "64 hexadecimal")
+        self.assertContains(
+            self.client.post("/admin/meetups/trustedauthor/add/", {"pubkey": NPUB, "note": ""}), "required"
+        )
+        self.assertContains(
+            self.client.post("/admin/meetups/trustedauthor/add/", {"pubkey": "npub1wrong", "note": "x"}),
+            "not a valid npub",
+        )
+        self.assertContains(
+            self.client.post("/admin/meetups/trustedauthor/add/", {"pubkey": "abc", "note": "x"}), "64 hexadecimal"
+        )
         self.assertFalse(TrustedAuthor.objects.exists())
 
     def test_the_trusted_authors_of_the_block_are_mentioned(self):
         with block(trusted=[{"npub": NPUB, "note": "n"}]):
-            self.assertContains(self.client.get("/admin/meetups/trustedauthor/"), "1 more authors are written in community.yml")
+            self.assertContains(
+                self.client.get("/admin/meetups/trustedauthor/"), "1 more authors are written in community.yml"
+            )
 
     def test_readings_are_only_read(self):
         self.assertEqual(self.client.get("/admin/meetups/reading/").status_code, 200)
@@ -331,11 +456,15 @@ class Board(TestCase):
         make(5, title="From an organiser", source=Meetup.Source.NOSTR, nostr_address="30311:ab:x")
         with block(name="Spritz Club", link="https://t.me/example"):
             rows = board.board()["upcoming"]
-        self.assertEqual([(r["title"], r["topic"], r["url"]) for r in rows], [
-            ("Spritz Club Example", "the first with the new register", "https://t.me/example"),
-            ("Closing toast", "", ""),
-            ("Workshop", "", "https://example.org/workshop"),
-            ("Spritz Club Example", "", "https://t.me/example")])
+        self.assertEqual(
+            [(r["title"], r["topic"], r["url"]) for r in rows],
+            [
+                ("Spritz Club Example", "the first with the new register", "https://t.me/example"),
+                ("Closing toast", "", ""),
+                ("Workshop", "", "https://example.org/workshop"),
+                ("Spritz Club Example", "", "https://t.me/example"),
+            ],
+        )
 
     def test_next_and_last_ones(self):
         make(2, title="Soon")
@@ -368,9 +497,13 @@ class Board(TestCase):
     def test_a_day_without_an_hour_is_next_all_day(self):
         local = timezone.localtime(timezone.now(), ROME).replace(hour=0, minute=0, second=0, microsecond=0)
         Meetup.objects.create(starts_at=local, all_day=True, tzid="Europe/Rome", city="Example", title="Today")
-        Meetup.objects.create(starts_at=local - timedelta(days=1), all_day=True, tzid="Europe/Rome", city="Example", title="Yesterday")
+        Meetup.objects.create(
+            starts_at=local - timedelta(days=1), all_day=True, tzid="Europe/Rome", city="Example", title="Yesterday"
+        )
         found = board.board()
-        self.assertEqual(([r["title"] for r in found["upcoming"]], [r["title"] for r in found["past"]]), (["Today"], ["Yesterday"]))
+        self.assertEqual(
+            ([r["title"] for r in found["upcoming"]], [r["title"] for r in found["past"]]), (["Today"], ["Yesterday"])
+        )
         self.assertEqual(found["upcoming"][0]["time"], "")
 
     def test_cancelled_and_postponed_stay_and_are_said(self):
@@ -397,7 +530,9 @@ class Board(TestCase):
         make(5, title="Broken", url="javascript:alert(1)")
         with block(link="https://t.me/group"):
             rows = {r["title"]: r["url"] for r in board.board()["upcoming"]}
-        self.assertEqual(rows, {"Own": "https://example.org/event", "Group": "https://t.me/group", "Broken": "https://t.me/group"})
+        self.assertEqual(
+            rows, {"Own": "https://example.org/event", "Group": "https://t.me/group", "Broken": "https://t.me/group"}
+        )
         with block(past_months=3):
             self.assertEqual({r["url"] for r in board.board()["upcoming"]} - {"https://example.org/event"}, {""})
 
@@ -415,8 +550,10 @@ class Board(TestCase):
         make(3, status="cancelled")
         make(4, status="postponed", moved_to=date(2027, 2, 12))
         make(5, status="informal")
-        for language, words in (("it", ["Annullato", "Rinviato al 12 febbraio 2027", "Ritrovo informale"]),
-                                ("de", ["Abgesagt", "Verschoben auf den 12. Februar 2027", "Informelles Treffen"])):
+        for language, words in (
+            ("it", ["Annullato", "Rinviato al 12 febbraio 2027", "Ritrovo informale"]),
+            ("de", ["Abgesagt", "Verschoben auf den 12. Februar 2027", "Informelles Treffen"]),
+        ):
             translation.activate(language)
             rows = board.board()["upcoming"]
             self.assertEqual([r["status_text"] for r in rows], words, language)
@@ -426,9 +563,15 @@ class Board(TestCase):
     def test_the_language_changes_the_day_names(self):
         make(3)
         translation.activate("it")
-        self.assertIn(board.board()["upcoming"][0]["weekday"].lower(), ("lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"))
+        self.assertIn(
+            board.board()["upcoming"][0]["weekday"].lower(),
+            ("lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"),
+        )
         translation.activate("en")
-        self.assertIn(board.board()["upcoming"][0]["weekday"], ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))
+        self.assertIn(
+            board.board()["upcoming"][0]["weekday"],
+            ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"),
+        )
 
     def test_next_one_skips_what_is_off(self):
         make(2, title="Off", status="cancelled")
@@ -444,20 +587,30 @@ class Board(TestCase):
             make(-number)
         with patch("meetups.board.PAGE_LIMIT", 3):
             found = board.board()
-        self.assertEqual((len(found["upcoming"]), len(found["past"]), found["more_upcoming"], found["more_past"]), (3, 3, 4, 4))
+        self.assertEqual(
+            (len(found["upcoming"]), len(found["past"]), found["more_upcoming"], found["more_past"]), (3, 3, 4, 4)
+        )
 
     def test_the_limits_cut_and_say_how_many_are_left(self):
         for number in range(1, 5):
             make(number)
             make(-number)
         found = board.board(upcoming=2, past=1)
-        self.assertEqual((len(found["upcoming"]), len(found["past"]), found["more_upcoming"], found["more_past"]), (2, 1, 2, 3))
+        self.assertEqual(
+            (len(found["upcoming"]), len(found["past"]), found["more_upcoming"], found["more_past"]), (2, 1, 2, 3)
+        )
         self.assertEqual(len(board.board(upcoming=0, past=0)["upcoming"]), 0)
 
 
 def nostr(days, key=KEY, created=100, **fields):
-    return make(days, source="nostr", nostr_address=f"31923:{key}:{days}-{fields.get('title', '')}", nostr_author=key,
-                nostr_created_at=created, **fields)
+    return make(
+        days,
+        source="nostr",
+        nostr_address=f"31923:{key}:{days}-{fields.get('title', '')}",
+        nostr_author=key,
+        nostr_created_at=created,
+        **fields,
+    )
 
 
 class Copies(TestCase):
@@ -525,8 +678,19 @@ class Pages(TestCase):
             page = self.client.get("/en/meetups/")
         self.assertEqual(page.status_code, 200)
         html = page.content.decode()
-        for text in ("Next meetups", "Latest meetups", "Wallet security", "The Bar", "Example", "Cancelled", "Last time",
-                     "https://t.me/example", "https://example.org/e", "/meetups.ics", "Add the meetups to your calendar"):
+        for text in (
+            "Next meetups",
+            "Latest meetups",
+            "Wallet security",
+            "The Bar",
+            "Example",
+            "Cancelled",
+            "Last time",
+            "https://t.me/example",
+            "https://example.org/e",
+            "/meetups.ics",
+            "Add the meetups to your calendar",
+        ):
             self.assertIn(text, html)
         self.assertNotIn("simone", html)
         self.assertEqual(html.count("<h1"), 1)
@@ -562,8 +726,14 @@ class Pages(TestCase):
 
         make(3, title="Wallet security")
         text = "---\ntitle: Our meetups\n---\n# Our meetups\n\n{% meetup_board level=2 %}\n"
-        with on(), patch("website.views.page_path", return_value=types.SimpleNamespace(exists=lambda: True, read_text=lambda: text)), \
-                patch("meetups.views.page_path", return_value=types.SimpleNamespace(exists=lambda: True)):
+        with (
+            on(),
+            patch(
+                "website.views.page_path",
+                return_value=types.SimpleNamespace(exists=lambda: True, read_text=lambda: text),
+            ),
+            patch("meetups.views.page_path", return_value=types.SimpleNamespace(exists=lambda: True)),
+        ):
             page = self.client.get("/en/meetups/")
         self.assertContains(page, "Our meetups")
         self.assertContains(page, "Wallet security")
@@ -579,7 +749,11 @@ class Pages(TestCase):
 
     def test_the_sitemap_does_not_list_it_twice_when_a_page_has_the_address(self):
         taken = types.SimpleNamespace(exists=lambda: True)
-        with on(), patch("meetups.views.page_path", return_value=taken), patch("website.views.public_slugs", return_value=["meetups"]):
+        with (
+            on(),
+            patch("meetups.views.page_path", return_value=taken),
+            patch("website.views.public_slugs", return_value=["meetups"]),
+        ):
             sitemap = self.client.get("/sitemap.xml").content.decode()
         self.assertEqual(sitemap.count(f"<loc>{settings.PUBLIC_URL}/en/meetups/</loc>"), 1)
 
@@ -664,7 +838,7 @@ class Tags(TestCase):
             self.assertEqual(self.render("{% meetup_next %}").strip(), "")
 
     def test_text_from_outside_is_escaped(self):
-        make(2, title='<img src=x onerror=alert(1)>', place="<script>alert(2)</script>", city='Test"ville')
+        make(2, title="<img src=x onerror=alert(1)>", place="<script>alert(2)</script>", city='Test"ville')
         with on():
             html = self.render("{% meetup_board %}")
         self.assertNotIn("<img", html)
@@ -684,7 +858,9 @@ class Tags(TestCase):
         self.assertNotIn("javascript:", html)
         self.assertNotIn("<img", html)
         self.assertIn("Example", html)
-        self.assertEqual(html.count("<a "), html.count('href="/en/meetups/"') + html.count('href="https://t.me/example"'))
+        self.assertEqual(
+            html.count("<a "), html.count('href="/en/meetups/"') + html.count('href="https://t.me/example"')
+        )
 
 
 class Feed(TestCase):
@@ -706,7 +882,12 @@ class Feed(TestCase):
         self.assertTrue(text.startswith("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n"))
         self.assertTrue(text.endswith("END:VCALENDAR\r\n"))
         self.assertNotIn("\n", text.replace("\r\n", ""))
-        for line in ("SUMMARY:Wallet security", "LOCATION:The Bar\\, Example", "URL:https://example.org/e", "STATUS:CONFIRMED"):
+        for line in (
+            "SUMMARY:Wallet security",
+            "LOCATION:The Bar\\, Example",
+            "URL:https://example.org/e",
+            "STATUS:CONFIRMED",
+        ):
             self.assertIn(line + "\r\n", text)
         start = [line for line in text.split("\r\n") if line.startswith("DTSTART")][0]
         self.assertRegex(start, r"^DTSTART:\d{8}T\d{6}Z$")
@@ -720,7 +901,9 @@ class Feed(TestCase):
         self.assertIn(expected, text)
 
     def test_a_day_alone_is_a_date(self):
-        local = (timezone.localtime(timezone.now(), ROME) + timedelta(days=4)).replace(hour=0, minute=0, second=0, microsecond=0)
+        local = (timezone.localtime(timezone.now(), ROME) + timedelta(days=4)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
         Meetup.objects.create(starts_at=local, all_day=True, tzid="Europe/Rome", city="Example", title="Fair")
         self.assertIn(f"DTSTART;VALUE=DATE:{local:%Y%m%d}\r\n", self.get().content.decode())
 
@@ -734,8 +917,13 @@ class Feed(TestCase):
         self.assertIn("SUMMARY:Postponed to 12 February 2027: Moved\r\n", text)
 
     def test_a_title_cannot_add_lines_or_fields(self):
-        Meetup.objects.create(starts_at=timezone.now() + timedelta(days=2), city="Test;ville,", title="A\r\nATTENDEE:mailto:x@y.z",
-                              place="B\\C", url="https://example.org/a\r\nX-EVIL:1")
+        Meetup.objects.create(
+            starts_at=timezone.now() + timedelta(days=2),
+            city="Test;ville,",
+            title="A\r\nATTENDEE:mailto:x@y.z",
+            place="B\\C",
+            url="https://example.org/a\r\nX-EVIL:1",
+        )
         text = self.get().content.decode()
         self.assertNotIn("\r\nATTENDEE", text)
         self.assertNotIn("X-EVIL", text.replace("\r\n ", ""))
@@ -757,8 +945,10 @@ class Feed(TestCase):
         first, second = self.get().content.decode(), self.get().content.decode()
         self.assertEqual(first.count("BEGIN:VEVENT"), 1)
         self.assertIn(f"UID:{meetup.id}@{settings.SITE_HOST}", first)
-        self.assertEqual([line for line in first.split("\r\n") if line.startswith("UID")],
-                         [line for line in second.split("\r\n") if line.startswith("UID")])
+        self.assertEqual(
+            [line for line in first.split("\r\n") if line.startswith("UID")],
+            [line for line in second.split("\r\n") if line.startswith("UID")],
+        )
 
     def test_only_reading_and_a_limit(self):
         with on():
@@ -789,15 +979,29 @@ class Feed(TestCase):
 
     def test_the_ceiling_with_more_rows_than_it_in_the_real_numbers(self):
         now = timezone.now()
-        Meetup.objects.bulk_create([
-            Meetup(starts_at=now - timedelta(days=300) + timedelta(days=number * 0.75), tzid="Europe/Rome", city=f"C{number}", title=f"T{number}")
-            for number in range(1200)])
+        Meetup.objects.bulk_create(
+            [
+                Meetup(
+                    starts_at=now - timedelta(days=300) + timedelta(days=number * 0.75),
+                    tzid="Europe/Rome",
+                    city=f"C{number}",
+                    title=f"T{number}",
+                )
+                for number in range(1200)
+            ]
+        )
         board.forget()
         titles = self.titles()
         self.assertEqual(len(titles), board.FEED_LIMIT)
         self.assertIn("T1199", titles)  # the last one, in the future: never cut for the sake of an older one
-        self.assertEqual(sum(1 for number in range(1200) if now - timedelta(days=300) + timedelta(days=number * 0.75) > now
-                             and f"T{number}" in titles), sum(1 for number in range(1200) if number * 0.75 > 300))
+        self.assertEqual(
+            sum(
+                1
+                for number in range(1200)
+                if now - timedelta(days=300) + timedelta(days=number * 0.75) > now and f"T{number}" in titles
+            ),
+            sum(1 for number in range(1200) if number * 0.75 > 300),
+        )
 
     def test_an_empty_calendar_is_a_calendar(self):
         text = self.get().content.decode()
@@ -809,7 +1013,9 @@ class Translations(TestCase):
     """Every string of the board's code is in every language of locale/ (the templates: config/test_translations.py)."""
 
     def test_every_language(self):
-        ids = python_ids(path for path in (settings.BASE_DIR / "meetups").glob("*.py") if not path.name.startswith("test"))
+        ids = python_ids(
+            path for path in (settings.BASE_DIR / "meetups").glob("*.py") if not path.name.startswith("test")
+        )
         self.assertGreater(len(ids), 20)
         untranslated(self, ids)
 
@@ -864,12 +1070,32 @@ class Kept(TestCase):
 
     def test_a_table_full_of_meetups_is_not_read_whole(self):
         now = timezone.now()
-        Meetup.objects.bulk_create([Meetup(starts_at=now + timedelta(hours=number - 150, minutes=30), tzid="Europe/Rome", city="Example", title=f"T{number}")
-                                    for number in range(300)])
-        with patch("meetups.board.PAGE_LIMIT", 10), patch.object(Meetup, "from_db", wraps=Meetup.from_db) as read:
-            found = board.board()
+        Meetup.objects.bulk_create(
+            [
+                Meetup(
+                    starts_at=now + timedelta(hours=number - 150, minutes=30),
+                    tzid="Europe/Rome",
+                    city="Example",
+                    title=f"T{number}",
+                )
+                for number in range(300)
+            ]
+        )
+        read = []
+
+        def count(sender, **kwargs):
+            read.append(1)
+
+        # Each row read from the table is an object made: counted by the signal, with nothing of Django replaced
+        post_init.connect(count, sender=Meetup)
+        try:
+            with patch("meetups.board.PAGE_LIMIT", 10):
+                found = board.board()
+        finally:
+            post_init.disconnect(count, sender=Meetup)
         self.assertEqual((len(found["upcoming"]), len(found["past"])), (10, 10))
-        self.assertLessEqual(read.call_count, 2 * (2 * 10 + board.MARGIN))
+        self.assertTrue(read)
+        self.assertLessEqual(len(read), 2 * (2 * 10 + board.MARGIN))
         # 153 meetups are not older than three hours (T147 is 2.5 hours old) and 147 are: the rest is counted and not read
         self.assertEqual((found["more_upcoming"], found["more_past"]), (143, 137))
         self.assertEqual((found["upcoming"][0]["title"], found["past"][0]["title"]), ("T147", "T146"))
@@ -888,7 +1114,11 @@ class Kept(TestCase):
 
 class FeedByCity(TestCase):
     """`/meetups.ics?city=<name>`: only the meetups of a city the community or the board knows."""
-    CITIES = ({"name": "Example", "latitude": 41.9, "longitude": 12.5}, {"name": "Northtown", "latitude": 45.9, "longitude": 11})
+
+    CITIES = (
+        {"name": "Example", "latitude": 41.9, "longitude": 12.5},
+        {"name": "Northtown", "latitude": 45.9, "longitude": 11},
+    )
 
     def setUp(self):
         reset_limits()
@@ -913,8 +1143,10 @@ class FeedByCity(TestCase):
         self.assertEqual(self.titles("?city=%20northTOWN%20"), ["There"])
         self.assertEqual(self.titles("?city=southvillage"), ["Elsewhere"])
         response = self.get("?city=Example")
-        self.assertEqual((response["Content-Type"], response["Cache-Control"], response["Content-Disposition"]),
-                         ("text/calendar; charset=utf-8", "public, max-age=900", 'inline; filename="meetups.ics"'))
+        self.assertEqual(
+            (response["Content-Type"], response["Cache-Control"], response["Content-Disposition"]),
+            ("text/calendar; charset=utf-8", "public, max-age=900", 'inline; filename="meetups.ics"'),
+        )
 
     def test_a_city_known_to_the_community_with_no_meetups_is_an_empty_calendar(self):
         with on(cities=[*self.CITIES, {"name": "Quiet", "latitude": 1, "longitude": 1}]):
@@ -925,8 +1157,17 @@ class FeedByCity(TestCase):
     def test_any_other_city_is_not_found_and_gets_no_cache_entry(self):
         make(6, title="Hidden", city="Secret", visible=False)
         with patch("meetups.ical.build", wraps=ical.build) as built:
-            for query in ("?city=", "?city=Nowhere", "?city=Secret", "?city=Exam", "?city=%25", "?city=Exampl_",
-                          "?city=" + "x" * 101, "?city=Example%0D%0AX-EVIL:1", "?city=%3Cb%3EExample"):
+            for query in (
+                "?city=",
+                "?city=Nowhere",
+                "?city=Secret",
+                "?city=Exam",
+                "?city=%25",
+                "?city=Exampl_",
+                "?city=" + "x" * 101,
+                "?city=Example%0D%0AX-EVIL:1",
+                "?city=%3Cb%3EExample",
+            ):
                 self.assertEqual(self.get(query).status_code, 404, query)
             self.assertEqual(built.call_count, 0)
             # Each known city, once, whatever the capitals
@@ -937,7 +1178,9 @@ class FeedByCity(TestCase):
     def test_without_the_city_the_feed_is_the_same_bytes_under_the_same_key(self):
         with on(cities=list(self.CITIES)):
             before = ical.calendar(now=timezone.now())
-            key = board.cache_key("feed", settings.LANGUAGE_CODE, conf.past_months(), conf.default_link(settings.LANGUAGE_CODE))
+            key = board.cache_key(
+                "feed", settings.LANGUAGE_CODE, conf.past_months(), conf.default_link(settings.LANGUAGE_CODE)
+            )
             whole = self.client.get("/meetups.ics").content
             self.assertEqual(cache.get(key), whole.decode())
             self.client.get("/meetups.ics?city=Example")
@@ -946,5 +1189,8 @@ class FeedByCity(TestCase):
 
     def test_the_city_counts_against_the_same_limit(self):
         with on(cities=list(self.CITIES)), patch("meetups.views.FEED_PER_HOUR", 2):
-            statuses = [self.client.get(f"/meetups.ics{query}").status_code for query in ("?city=Example", "?city=Nowhere", "", "?city=Example")]
+            statuses = [
+                self.client.get(f"/meetups.ics{query}").status_code
+                for query in ("?city=Example", "?city=Nowhere", "", "?city=Example")
+            ]
         self.assertEqual(statuses, [200, 404, 429, 429])

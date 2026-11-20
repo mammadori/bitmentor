@@ -55,6 +55,7 @@ is always PUBLIC_URL. On the onion or another name of the machine the pages say 
 Linking, removing, the reset and every sign-in are written in the account's history; linking, removing and the reset
 are also told to the people who look after the site (config/second_factor.py, `record_change`).
 """
+
 import hmac
 import logging
 import secrets
@@ -151,9 +152,11 @@ def known_elsewhere(key):
     from shops.models import WalletKey
     from team.models import TeamKey
 
-    return (WalletKey.objects.filter(key=key).exists()
-            or get_user_model()._default_manager.filter(username=key).exists()
-            or TeamKey.objects.filter(linking_key=key).exists())
+    return (
+        WalletKey.objects.filter(key=key).exists()
+        or get_user_model()._default_manager.filter(username=key).exists()
+        or TeamKey.objects.filter(linking_key=key).exists()
+    )
 
 
 def short_key(key):
@@ -294,14 +297,23 @@ def login_page(request):
     request.current_app = site.name
     target = str(request.GET.get(REDIRECT_FIELD_NAME, ""))[:2000]
     password_url = reverse("admin:login", current_app=site.name)
-    context = {**site.each_context(request), "title": _("Log in"), "subtitle": None, "here": here(request),
-               "public_url": settings.PUBLIC_URL, "status_url": reverse("admin_wallet_status"),
-               "password_url": f"{password_url}?{urlencode({REDIRECT_FIELD_NAME: target})}" if target else password_url}
+    context = {
+        **site.each_context(request),
+        "title": _("Log in"),
+        "subtitle": None,
+        "here": here(request),
+        "public_url": settings.PUBLIC_URL,
+        "status_url": reverse("admin_wallet_status"),
+        "password_url": f"{password_url}?{urlencode({REDIRECT_FIELD_NAME: target})}" if target else password_url,
+    }
     # A visitor whose session holds no code gets one here, and with it a row of the sessions' table (also with a made-up
     # session cookie): no more of them per address than this, or the table would grow at the cost of a GET. Past it
     # the page has no code, and says to wait
-    if context["here"] and SIGN_IN_SESSION not in request.session and ratelimit.over_address_limits(
-            request, "admin-wallet-page", *PAGES, WINDOW):
+    if (
+        context["here"]
+        and SIGN_IN_SESSION not in request.session
+        and ratelimit.over_address_limits(request, "admin-wallet-page", *PAGES, WINDOW)
+    ):
         context.update(here=False, busy=True)
     if context["here"]:
         context.update(code_of(own_or_new(request, SIGN_IN_SESSION, SIGN_IN, next=target), "login"))
@@ -344,8 +356,13 @@ def login_status(request):
         return response
     wallet = AdminWallet.objects.filter(linking_key=row.linking_key).select_related("user").first()
     user = wallet.user if wallet else None
-    if (user is None or not (user.is_active and user.is_staff) or not here(request)
-            or second_factor.accepted_factors(user) or not known_device(request, user.get_username())):
+    if (
+        user is None
+        or not (user.is_active and user.is_staff)
+        or not here(request)
+        or second_factor.accepted_factors(user)
+        or not known_device(request, user.get_username())
+    ):
         logger.info("admin wallet: sign-in refused")
         return state("refused")
     auth_login(request, user, backend=settings.AUTHENTICATION_BACKENDS[0])
@@ -354,7 +371,9 @@ def login_status(request):
     AdminWallet.objects.filter(pk=wallet.pk).update(last_used=timezone.now())
     LogEntry.objects.log_actions(user.pk, [user], LOGGED_CHANGE, change_message=SIGNED_IN, single_object=True)
     logger.info("admin wallet: signed in account %s", user.pk)
-    if not url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+    if not url_has_allowed_host_and_scheme(
+        target, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
         target = reverse("admin:index", current_app=admin.site.name)
     return JsonResponse({"state": "ok", "next": target})
 
@@ -404,10 +423,17 @@ def page_context(request):
     if not on():
         return {}
     wallets = list(AdminWallet.objects.filter(user=request.user))
-    context = {"wallet_on": True, "wallets": wallets, "wallet_limit": MAX_WALLETS, "wallet_signs_in": signs_in(),
-               "wallet_mode": second_factor.mode(), "wallet_has_factor": bool(second_factor.factors_of_request(request)),
-               "wallet_here": here(request), "public_url": settings.PUBLIC_URL,
-               "wallet_status_url": reverse("admin_wallet_link_status")}
+    context = {
+        "wallet_on": True,
+        "wallets": wallets,
+        "wallet_limit": MAX_WALLETS,
+        "wallet_signs_in": signs_in(),
+        "wallet_mode": second_factor.mode(),
+        "wallet_has_factor": bool(second_factor.factors_of_request(request)),
+        "wallet_here": here(request),
+        "public_url": settings.PUBLIC_URL,
+        "wallet_status_url": reverse("admin_wallet_link_status"),
+    }
     if second_factor.bootstrap_session(request):
         context["wallet_locked"] = True
         return context
@@ -455,7 +481,8 @@ def action(request, name):
         request.session.pop(WALLET_LINK_SESSION, None)
         # Used once, whichever button and however many times it is pressed
         taken = signed is not None and AdminWalletChallenge.objects.filter(pk=signed.pk, used=None).update(
-            used=timezone.now())
+            used=timezone.now()
+        )
         if name == "wallet-link":
             if taken:
                 link(request, signed.linking_key, second_factor.clean_name(request.POST.get("name")))
@@ -469,12 +496,15 @@ def action(request, name):
     if wallet is None:
         return back_to_page()
     if name == "wallet-rename":
-        AdminWallet.objects.filter(pk=wallet.pk, user=user).update(name=second_factor.clean_name(request.POST.get("name")))
+        AdminWallet.objects.filter(pk=wallet.pk, user=user).update(
+            name=second_factor.clean_name(request.POST.get("name"))
+        )
         return back_to_page()
     with transaction.atomic():
         if AdminWallet.objects.filter(pk=wallet.pk, user=user).delete()[0]:
-            second_factor.record_change(user, "Wallet removed (sign-in to /admin/)", REMOVED, by=user, code=CHANGE,
-                                        subject=SUBJECT)
+            second_factor.record_change(
+                user, "Wallet removed (sign-in to /admin/)", REMOVED, by=user, code=CHANGE, subject=SUBJECT
+            )
     # A session opened with it ends at its next page (session_holds)
     messages.success(request, _("The wallet is removed: it no longer signs in to /admin/."))
     return back_to_page()
@@ -485,8 +515,10 @@ def link(request, key, name):
     from shops.models import AdminWallet
 
     user = request.user
-    refused = _("This wallet cannot be linked here: it already has another use on this site. Use another wallet, or "
-                "another account in your wallet.")
+    refused = _(
+        "This wallet cannot be linked here: it already has another use on this site. Use another wallet, or "
+        "another account in your wallet."
+    )
     if AdminWallet.objects.filter(user=user, linking_key=key).exists():
         messages.info(request, _("This wallet is already linked to your account."))
         return
@@ -505,8 +537,9 @@ def link(request, key, name):
             # key a moment ago
             if known_elsewhere(key):
                 raise IntegrityError("the key has another role")
-            second_factor.record_change(user, "Wallet linked (sign-in to /admin/)", LINKED, by=user, code=CHANGE,
-                                        subject=SUBJECT)
+            second_factor.record_change(
+                user, "Wallet linked (sign-in to /admin/)", LINKED, by=user, code=CHANGE, subject=SUBJECT
+            )
     except IntegrityError:
         messages.error(request, refused)
         return

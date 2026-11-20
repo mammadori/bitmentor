@@ -4,6 +4,7 @@ community either: the Django test does that for the image, which holds no docume
 
 Usage: python3 deploy/tests/test_documents.py   (from the root of the repository, or with it as the argument)
 Exit code 0 when everything holds, 1 otherwise. Only the standard library: it runs without Django."""
+
 import os
 import re
 import sys
@@ -81,7 +82,9 @@ def problems():
                 blocks = re.findall("<!-- " + "origin -->.*?<!-- /origin -->", text, flags=re.S)
                 if len(blocks) != 1 or blocks[0].count("\n") >= 6:
                     yield "README.md: the origin block must be one, under six lines"
-                text = re.sub("<!-- " + "origin -->.*?<!-- /origin -->", lambda m: "\n" * m.group().count("\n"), text, flags=re.S)
+                text = re.sub(
+                    "<!-- " + "origin -->.*?<!-- /origin -->", lambda m: "\n" * m.group().count("\n"), text, flags=re.S
+                )
             for number, line in enumerate(text.splitlines(), 1):
                 if forbidden.search(line):
                     yield f"{doc.relative_to(ROOT)}:{number}: a forbidden name"

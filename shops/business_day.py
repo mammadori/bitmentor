@@ -1,5 +1,6 @@
 """The days of the community's calendar, as a shop lives them: today, the business day that runs past midnight. A day is a calendar day, never 24 hours: the day the clocks change is 23 or
 25 hours long."""
+
 from datetime import timedelta
 
 from django.utils import timezone
@@ -19,4 +20,3 @@ def shift_day(now=None):
     now = now or timezone.now()
     local = timezone.localtime(now)
     return today(now) - timedelta(days=1) if local.hour < SHIFT_NIGHT_HOUR else today(now)
-

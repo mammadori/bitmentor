@@ -12,7 +12,6 @@ from django.utils import dateformat, timezone
 from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -21,7 +20,9 @@ class LoginChallenge(models.Model):
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     linking_key = models.CharField(max_length=66, blank=True)
     # A challenge to connect a wallet to this account (shops/views.py, link_wallet), never to sign in
-    link_user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE, related_name="+")
+    link_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE, related_name="+"
+    )
     # When the site acted on the signature. The row stays until it is old, so that a wallet that asks again gets the
     # same «OK» and does not tell its owner that the sign-in failed
     used = models.DateTimeField(null=True, blank=True)
@@ -34,6 +35,7 @@ class LoginChallenge(models.Model):
 class WalletKey(models.Model):
     """A wallet connected to an account that was already there (one born from an email, or from another wallet): its
     LNURL-auth key signs in to that account. The key an account was born from is its `username` and has no row here."""
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wallet_keys")
     key = models.CharField(max_length=66, unique=True)
     added = models.DateTimeField(auto_now_add=True)
@@ -64,24 +66,34 @@ class Profile(models.Model):
     temporary_password = models.CharField(max_length=128, blank=True, default="", db_default="", editable=False)
 
     class Meta:
-        constraints = [models.UniqueConstraint(Lower("email"), condition=~models.Q(email=""), name="unique_recovery_email")]
+        constraints = [
+            models.UniqueConstraint(Lower("email"), condition=~models.Q(email=""), name="unique_recovery_email")
+        ]
 
 
 class AccountChange(models.Model):
     """The register of what whoever runs the site changed in the account of a shop's owner (shops/guard.py): what,
     when, by whom and who was told. Read only, also in the admin. Names of what changed, never their values: no password
     and no key is written here. It outlives the account and the shop: the names of the shops are copied."""
+
     class Via(models.TextChoices):
         """Where the change came from, as the words of «from {via}»: a page of /admin/, a page of the site, or no
         request at all (a command, a shell)."""
+
         ADMIN = "admin", _("the admin")
         SITE = "site", _("the pages of the site")
         COMMAND = "command", _("a command or the shell")
         # The owner's own act from the panel (a wallet connected): the register keeps it, and the owner is told it was them
         OWNER = "owner", _("the owner's panel")
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
-                             related_name="account_changes", editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="account_changes",
+        editable=False,
+    )
     shops = models.CharField(_("shops"), max_length=300, blank=True, editable=False)
     # What changed, as codes joined by commas: guard.WORDS says them in words
     changed = models.CharField(_("what changed"), max_length=200, editable=False)
@@ -103,8 +115,10 @@ class AdminSecondFactor(models.Model):
     account's authenticator app. A row without `confirmed` is a set-up not finished, and does nothing. Not in the admin,
     never shown after its set-up, never written by a form: the account turns it on and off itself, `manage.py admin_totp
     reset` removes it. The secret is readable by whoever reads the database or a backup of it."""
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="admin_second_factor",
-                                editable=False)
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="admin_second_factor", editable=False
+    )
     # Base32, 160 bits (config/totp.py)
     secret = models.CharField(max_length=64, editable=False)
     created = models.DateTimeField(default=timezone.now, editable=False)
@@ -120,8 +134,10 @@ class AdminSecondFactor(models.Model):
 class AdminPasskeyHandle(models.Model):
     """The opaque id a staff account has for the authenticators of its passkeys (WebAuthn's `user.id`): random, never
     the username or the account's key, the same for all its passkeys. Made with its first passkey."""
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="admin_passkey_handle",
-                                editable=False)
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="admin_passkey_handle", editable=False
+    )
     # 32 random bytes in base64url
     handle = models.CharField(max_length=64, unique=True, editable=False)
 
@@ -133,8 +149,10 @@ class AdminPasskey(models.Model):
     """A passkey of a staff account, a second factor of its sign-in to /admin/ (config/second_factor.py,
     config/webauthn.py): the public key an authenticator made for this site, never a secret. Not in the admin, never
     written by a form: the account adds, renames and removes its own, `manage.py admin_passkey reset` removes them all."""
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="admin_passkeys",
-                             editable=False)
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="admin_passkeys", editable=False
+    )
     # The authenticator's id of the credential, base64url: unique across the site
     credential_id = models.CharField(max_length=1400, unique=True, editable=False)
     # SubjectPublicKeyInfo, DER
@@ -162,8 +180,10 @@ class AdminWallet(models.Model):
     ADMIN_WALLET_SIGN_IN): the linking key the wallet made for this site only, a public key, never a secret. Not in the
     admin, never written by a form: the account links, renames and removes its own, `manage.py admin_wallet reset`
     removes them all. A key here is never a shop owner's nor a team key, and the other way round."""
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="admin_wallets",
-                             editable=False)
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="admin_wallets", editable=False
+    )
     # LUD-04's compressed secp256k1 key, in lowercase hex (shops/lnurl_auth.py, LINKING_KEY)
     linking_key = models.CharField(max_length=66, unique=True, editable=False)
     # What the person called it: «phone», «Anna's test wallet»
@@ -182,6 +202,7 @@ class AdminWalletChallenge(models.Model):
     """A k1 a wallet signed (LUD-04) on the way into /admin/, to sign in or to link a wallet (config/admin_wallet.py):
     written only by a right signature of a valid, live k1, with the key that signed first. Five minutes, bound to the
     session that was shown it, used once. The k1 is not the primary key, and no admin shows it."""
+
     k1 = models.CharField(max_length=64, unique=True, editable=False)
     created = models.DateTimeField(default=timezone.now, db_index=True, editable=False)
     # The key that signed it first: a second signature does not replace it
@@ -203,6 +224,7 @@ class RequestCount(models.Model):
     """A counter for request limits (config.ratelimit.over_limit), by name and time window. In the database: with the file cache
     two simultaneous requests read the same count, and cleaning a full cache also deleted counters at random. The key
     is a hash: the emails that go into the names are not left written."""
+
     key = models.CharField(max_length=64, unique=True)
     count = models.PositiveIntegerField(default=1)
     expires = models.DateTimeField(db_index=True)
@@ -214,6 +236,7 @@ OSM_REF = r"^(node|way|relation)/[1-9][0-9]{0,15}$"
 
 class LightningStatus(models.TextChoices):
     """What the guardian knows of a shop's Lightning address. Empty: not checked yet, or not watched."""
+
     OK = "ok", _("Works")
     NO_ANSWER = "no_answer", _("Does not answer")
     NO_CONFIRMATION = "no_confirmation", _("Does not confirm payments")
@@ -252,9 +275,9 @@ def still_trading(today=None):
 # The shops whose owner changed the Lightning address and whose new one the guardian has not yet seen working
 # (shops/address_change.py): their certificate and the private part wait for it. Without a date, kept for whoever
 # imports it: the site uses address_pending(), which leaves out the historic shops
-ADDRESS_PENDING = (models.Q(lightning_changed__isnull=False)
-                   & (~models.Q(lightning_checked_address=models.F("lightning_address"))
-                      | models.Q(lightning_worked__isnull=True)))
+ADDRESS_PENDING = models.Q(lightning_changed__isnull=False) & (
+    ~models.Q(lightning_checked_address=models.F("lightning_address")) | models.Q(lightning_worked__isnull=True)
+)
 
 
 def address_pending(today=None):
@@ -301,18 +324,22 @@ class ShopQuerySet(models.QuerySet):
 class Shop(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # Empty for imported shops, until the owner claims them
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE,
-                              related_name="shops")
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE, related_name="shops"
+    )
     external_id = models.CharField(max_length=64, blank=True, db_index=True)
     name = models.CharField(_("name"), max_length=120)
     # A cap: the description goes into the map, /shops.json and Nostr events, and a million characters blocked them
-    description = models.TextField(_("description"), blank=True, max_length=DESCRIPTION_LENGTH,
-                                   validators=[MaxLengthValidator(DESCRIPTION_LENGTH)])
+    description = models.TextField(
+        _("description"), blank=True, max_length=DESCRIPTION_LENGTH, validators=[MaxLengthValidator(DESCRIPTION_LENGTH)]
+    )
     address = models.CharField(_("address"), max_length=200, blank=True)
-    latitude = models.FloatField(_("latitude"), null=True, blank=True,
-                                 validators=[MinValueValidator(-90), MaxValueValidator(90)])
-    longitude = models.FloatField(_("longitude"), null=True, blank=True,
-                                  validators=[MinValueValidator(-180), MaxValueValidator(180)])
+    latitude = models.FloatField(
+        _("latitude"), null=True, blank=True, validators=[MinValueValidator(-90), MaxValueValidator(90)]
+    )
+    longitude = models.FloatField(
+        _("longitude"), null=True, blank=True, validators=[MinValueValidator(-180), MaxValueValidator(180)]
+    )
     city = models.CharField(_("city"), max_length=100, blank=True)
     website = models.URLField(_("website"), blank=True)
     email = models.EmailField(_("email"), blank=True)
@@ -332,8 +359,9 @@ class Shop(models.Model):
     show_email = models.BooleanField(_("show the email"), default=False, db_default=False)
     show_legal_name = models.BooleanField(_("show the business name"), default=False, db_default=False)
     show_vat_number = models.BooleanField(_("show the VAT number"), default=False, db_default=False)
-    discount = models.PositiveSmallIntegerField(_("discount for bitcoin payments (%)"), default=0,
-                                                validators=[MaxValueValidator(100)])
+    discount = models.PositiveSmallIntegerField(
+        _("discount for bitcoin payments (%)"), default=0, validators=[MaxValueValidator(100)]
+    )
     listed = models.BooleanField(default=True, help_text="The owner agrees to appear on maps and lists")
     lightning = models.BooleanField(default=False)
     # The owner says the till takes on-chain payments too: a sign for the map, nothing more. Where on-chain payments go
@@ -341,35 +369,57 @@ class Shop(models.Model):
     onchain = models.BooleanField(_("I take on-chain payments too"), default=False, db_default=False)
     # Where the money goes: public data, never a secret. A shop with an address has a register (`has_register`)
     lightning_address = models.CharField(_("Lightning address"), max_length=200, blank=True)
-    nostr_pubkey = models.CharField(_("Nostr public key (hex)"), max_length=64, blank=True,
-                                    validators=[RegexValidator(r"^[0-9a-f]{64}$", _("64 hexadecimal characters."))])
+    nostr_pubkey = models.CharField(
+        _("Nostr public key (hex)"),
+        max_length=64,
+        blank=True,
+        validators=[RegexValidator(r"^[0-9a-f]{64}$", _("64 hexadecimal characters."))],
+    )
     nip05_name = models.SlugField(_("Nostr name"), max_length=60, blank=True)
     # Up to SHOP_CHATS chats, separated by commas: each one gets its own copy of the shop's notices (shops/forms.py
     # refuses a repeated chat and the moderators' ones; shops/guard.py tells each chat apart)
-    telegram_chat = models.CharField(_("Telegram chat for notifications"), max_length=120, blank=True, validators=[
-        RegexValidator(rf"^{SHOP_CHAT}(\s*,\s*{SHOP_CHAT}){{0,{SHOP_CHATS - 1}}}$",
-                       _("Up to three chat numbers or @names, separated by commas."))])
+    telegram_chat = models.CharField(
+        _("Telegram chat for notifications"),
+        max_length=120,
+        blank=True,
+        validators=[
+            RegexValidator(
+                rf"^{SHOP_CHAT}(\s*,\s*{SHOP_CHAT}){{0,{SHOP_CHATS - 1}}}$",
+                _("Up to three chat numbers or @names, separated by commas."),
+            )
+        ],
+    )
     suspended = models.BooleanField(default=False, help_text="Hides from maps and lists, leaves the register alone")
     # No shop goes on the maps, the lists and the counts until someone of the community approved it (shops/approval.py).
     # The register works before that. Shops imported from a list, moved from another site or written in /admin/ are
     # approved by whoever imports or writes them
-    approved_on = models.DateTimeField(_("approved on"), null=True, blank=True, help_text=_(
-        "Empty: the shop waits for an approval, off maps and lists. The register works all the same."))
+    approved_on = models.DateTimeField(
+        _("approved on"),
+        null=True,
+        blank=True,
+        help_text=_("Empty: the shop waits for an approval, off maps and lists. The register works all the same."),
+    )
     approved_by = models.CharField(_("approved by"), max_length=150, blank=True, db_default="")
     # A shop that waited and is not for the map (a trial of the team's, a duplicate, written by mistake), set aside from
     # /admin/today/ (shops/approval.py, `set_aside`): still not approved, so off the map like a waiting shop, but no
     # longer asked about. Empty: not set aside. Approving the shop, or putting it back among the waiting ones, empties both
     set_aside_on = models.DateTimeField(_("set aside on"), null=True, blank=True, editable=False)
-    set_aside_by = models.CharField(_("set aside by"), max_length=150, blank=True, default="", db_default="",
-                                    editable=False)
+    set_aside_by = models.CharField(
+        _("set aside by"), max_length=150, blank=True, default="", db_default="", editable=False
+    )
     # The column of 0.1.2, which marked new shops instead: no longer read or written, kept one release so that 0.1.2
     # put back on this database still works (docs/releases.md, "Going back"). To be removed with the next migration
     awaiting_approval = models.BooleanField(default=False, db_default=False, editable=False)
     # Decided by the association, not by the owner: no form on the site shows it
-    closed_on = models.DateField(null=True, blank=True, help_text=(
-        "The last day of trading. From the day after, history: stays on the map with a different marker, does not "
-        "count among the places to pay. Up to and including that day nothing changes and the shop reads «closes on …». "
-        "The register and the sign stay with the owner"))
+    closed_on = models.DateField(
+        null=True,
+        blank=True,
+        help_text=(
+            "The last day of trading. From the day after, history: stays on the map with a different marker, does not "
+            "count among the places to pay. Up to and including that day nothing changes and the shop reads «closes on …». "
+            "The register and the sign stay with the owner"
+        ),
+    )
     created = models.DateTimeField(auto_now_add=True)
     # Every column below that cannot be NULL has a db_default, not only a default: when a release does not answer, deploy/release.sh
     # puts the previous image back on the migrated database, and that image does not know these columns, so its INSERTs
@@ -386,23 +436,36 @@ class Shop(models.Model):
     # A shop saved by its owner before having a wallet (the new shop form, "I do not have a wallet yet"): its page is
     # ready, but it has no register, and stays off the map and the lists until the owner adds the
     # wallet (views.wallet_steps), which makes the register like for any new shop. Never set or cleared by a form.
-    awaiting_wallet = models.BooleanField(_("waiting for the owner's wallet"), default=False, db_default=False, editable=False)
+    awaiting_wallet = models.BooleanField(
+        _("waiting for the owner's wallet"), default=False, db_default=False, editable=False
+    )
     # Shops moved here from another bitmentor site (shops/moving.py, manage.py import_moved_shops): when they arrived,
     # and whether they had a register there. Such a shop has no register here until its owner connects a wallet, and
     # stays off the map until then (shops/directory.py). Written only by the import, never by a form.
     moved_in = models.DateTimeField(_("moved here on"), null=True, blank=True, editable=False)
     # The shop's id there: a second import of the same file finds it. Never reused as the id here, since the id opens
     # the register, and a register link handed out on the other site must not open this one.
-    moved_from = models.CharField(_("id on the other site"), max_length=36, blank=True, editable=False, db_index=True, default="", db_default="")
-    moved_register = models.BooleanField(_("had a register on the other site"), default=False, db_default=False, editable=False)
+    moved_from = models.CharField(
+        _("id on the other site"), max_length=36, blank=True, editable=False, db_index=True, default="", db_default=""
+    )
+    moved_register = models.BooleanField(
+        _("had a register on the other site"), default=False, db_default=False, editable=False
+    )
     # A moved shop waiting for its owner: the SHA-256 of the one-time link's code (claim_digest). The code itself is
     # only in the list of owners the import writes. Emptied when the owner takes the shop.
     claim_hash = models.CharField(max_length=64, blank=True, editable=False, db_index=True, default="", db_default="")
 
     # The guardian of the Lightning address (shops/lightning_watch.py): what the last probes found, read by the panel
     # and /admin/. Only written by the probes, never by a form: none of these changes where the money goes.
-    lightning_status = models.CharField(_("Lightning address status"), max_length=20, choices=LightningStatus.choices,
-                                        blank=True, editable=False, default="", db_default="")
+    lightning_status = models.CharField(
+        _("Lightning address status"),
+        max_length=20,
+        choices=LightningStatus.choices,
+        blank=True,
+        editable=False,
+        default="",
+        db_default="",
+    )
     lightning_since = models.DateTimeField(_("Lightning status since"), null=True, blank=True, editable=False)
     lightning_checked = models.DateTimeField(_("Lightning address last checked"), null=True, blank=True, editable=False)
     lightning_worked = models.DateTimeField(_("Lightning address last worked"), null=True, blank=True, editable=False)
@@ -414,9 +477,12 @@ class Shop(models.Model):
     # The owner's last change of the Lightning address from the panel (shops/address_change.py): when, and the address before.
     # The date paces the changes and keeps the badge waiting for the guardian; the old address's provider stays open to
     # the registers for a while, so that the sales already shown on it are still recognised
-    lightning_changed = models.DateTimeField(_("Lightning address changed by the owner"), null=True, blank=True, editable=False)
-    lightning_previous = models.CharField(_("previous Lightning address"), max_length=200, blank=True, default="",
-                                          db_default="", editable=False)
+    lightning_changed = models.DateTimeField(
+        _("Lightning address changed by the owner"), null=True, blank=True, editable=False
+    )
+    lightning_previous = models.CharField(
+        _("previous Lightning address"), max_length=200, blank=True, default="", db_default="", editable=False
+    )
     # The certified shop (shops/certified.py), never written by a form: the Lightning address answers the guardian, and the
     # owner has the basic pass of the training. Outside the site only `certified` leaves, never the month.
     # The first calendar month in which all of it held: once certified, always certified (it is a fact of the past),
@@ -426,21 +492,32 @@ class Shop(models.Model):
     # The private part of the pages (website/visibility.py) is opened to a certified shop's owner only by a person of the
     # association, by hand from /admin/: when and who (the username, kept even if that account goes). Empty: not approved
     private_approved = models.DateTimeField(_("private part approved on"), null=True, blank=True, editable=False)
-    private_approved_by = models.CharField(_("private part approved by"), max_length=150, blank=True, default="",
-                                           db_default="", editable=False)
+    private_approved_by = models.CharField(
+        _("private part approved by"), max_length=150, blank=True, default="", db_default="", editable=False
+    )
     # The shop's entry on OpenStreetMap (shops/osm.py): "node/123", "way/123" or "relation/123". Set by the association in
     # /admin/, or by manage.py osm_sync when a shop and an element are the same place beyond doubt. Never by the owner, and
     # it has nothing to do with where the money goes. It lets the sync fill the details the shop has not written yet.
-    osm_ref = models.CharField(_("OpenStreetMap element"), max_length=30, blank=True, default="", db_default="", validators=[
-        RegexValidator(OSM_REF, _("Write it like node/123456, way/123456 or relation/123456."))],
-        help_text=_("The shop's entry on OpenStreetMap, like node/123456 (the last number of its address on "
-                    "openstreetmap.org). Empty: not linked."))
+    osm_ref = models.CharField(
+        _("OpenStreetMap element"),
+        max_length=30,
+        blank=True,
+        default="",
+        db_default="",
+        validators=[RegexValidator(OSM_REF, _("Write it like node/123456, way/123456 or relation/123456."))],
+        help_text=_(
+            "The shop's entry on OpenStreetMap, like node/123456 (the last number of its address on "
+            "openstreetmap.org). Empty: not linked."
+        ),
+    )
     # The last sync that found the linked element on OpenStreetMap
     osm_seen = models.DateTimeField(_("seen on OpenStreetMap"), null=True, blank=True, editable=False)
     # An element the reading found beyond doubt to be the same place, waiting for the association to confirm it in /admin/
     # (an action): nothing is read from it, nothing is written for it, until then. Anybody can put a place on OpenStreetMap
     # next to a shop with its name, so a match is only a proposal. Written only by manage.py osm_sync and the admin's actions.
-    osm_proposed = models.CharField(_("OpenStreetMap element proposed"), max_length=30, blank=True, default="", db_default="", editable=False)
+    osm_proposed = models.CharField(
+        _("OpenStreetMap element proposed"), max_length=30, blank=True, default="", db_default="", editable=False
+    )
     # What the reading did to this shop, so that it is not done twice (shops/osm.py): the elements the association refused,
     # and for each field the value it filled or offered and what became of it. A field the owner emptied on purpose is not
     # filled again; a value the association declined is not offered again. Never shown to the owner.
@@ -450,11 +527,21 @@ class Shop(models.Model):
 
     class Meta:
         # The name is a Nostr identity: /.well-known/nostr.json publishes only one, even if the admin saves two
-        constraints = [models.UniqueConstraint(Lower("nip05_name"), condition=~models.Q(nip05_name=""), name="unique_nip05_name",
-                                               violation_error_message=_("This name is already taken.")),
-                       # An element is one place: two shops on it would share the details written to the empty fields
-                       models.UniqueConstraint(fields=["osm_ref"], condition=~models.Q(osm_ref=""), name="unique_osm_ref",
-                                               violation_error_message=_("Another shop is already linked to this element."))]
+        constraints = [
+            models.UniqueConstraint(
+                Lower("nip05_name"),
+                condition=~models.Q(nip05_name=""),
+                name="unique_nip05_name",
+                violation_error_message=_("This name is already taken."),
+            ),
+            # An element is one place: two shops on it would share the details written to the empty fields
+            models.UniqueConstraint(
+                fields=["osm_ref"],
+                condition=~models.Q(osm_ref=""),
+                name="unique_osm_ref",
+                violation_error_message=_("Another shop is already linked to this element."),
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -469,8 +556,11 @@ class Shop(models.Model):
     def save(self, *args, **kwargs):
         # The private part was approved for the owner who had the shop (shops/certified.py): another owner starts
         # without it. Read only for an approved shop, so the ordinary saves pay no query
-        if self.private_approved is not None and "private_approved" not in self.get_deferred_fields() \
-                and self.owner_changed():
+        if (
+            self.private_approved is not None
+            and "private_approved" not in self.get_deferred_fields()
+            and self.owner_changed()
+        ):
             self.private_approved, self.private_approved_by = None, ""
             if kwargs.get("update_fields") is not None:
                 kwargs["update_fields"] = {*kwargs["update_fields"], "private_approved", "private_approved_by"}
@@ -518,8 +608,11 @@ class Shop(models.Model):
     def address_pending(self):
         """True while a Lightning address the owner changed has not been seen working by the guardian (address_pending()).
         Never for a historic shop (Shop.closed): nobody watches its address, so it would wait for ever."""
-        return bool(self.lightning_changed and not self.closed
-                    and (self.lightning_checked_address != self.lightning_address or self.lightning_worked is None))
+        return bool(
+            self.lightning_changed
+            and not self.closed
+            and (self.lightning_checked_address != self.lightning_address or self.lightning_worked is None)
+        )
 
     @property
     def closed(self):
@@ -570,6 +663,7 @@ class ShopPlace(models.Model):
     Lightning address, and a point on the map for each branch. The shop's own position (`Shop.latitude`,
     `Shop.longitude`, with its address and town) is the first place and stays where it was; these are the others. A
     place decides nothing about where the money goes."""
+
     # More than this is a list of shops, not a shop
     MAX = 20
 
@@ -581,25 +675,37 @@ class ShopPlace(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     # The place's own entry on OpenStreetMap, as Shop.osm_ref is the shop's: set by the association in /admin/, never by
     # the owner. With it the reading knows that element is this shop, and proposes for it what it proposes for the shop
-    osm_ref = models.CharField(_("OpenStreetMap element"), max_length=30, blank=True, default="", db_default="", validators=[
-        RegexValidator(OSM_REF, _("Write it like node/123456, way/123456 or relation/123456."))],
-        help_text=_("This place's entry on OpenStreetMap, like node/123456. Empty: not linked."))
+    osm_ref = models.CharField(
+        _("OpenStreetMap element"),
+        max_length=30,
+        blank=True,
+        default="",
+        db_default="",
+        validators=[RegexValidator(OSM_REF, _("Write it like node/123456, way/123456 or relation/123456."))],
+        help_text=_("This place's entry on OpenStreetMap, like node/123456. Empty: not linked."),
+    )
 
     class Meta:
         ordering = ["pk"]
         verbose_name = _("other place")
         verbose_name_plural = _("other places")
-        constraints = [models.UniqueConstraint(fields=["osm_ref"], condition=~models.Q(osm_ref=""), name="unique_place_osm_ref")]
+        constraints = [
+            models.UniqueConstraint(fields=["osm_ref"], condition=~models.Q(osm_ref=""), name="unique_place_osm_ref")
+        ]
 
     def clean(self):
         super().clean()
         from django.core.exceptions import ValidationError
+
         # One element is one place: not also a shop's own entry (the constraint keeps two places apart)
         if self.osm_ref and Shop.objects.filter(osm_ref=self.osm_ref).exists():
             raise ValidationError({"osm_ref": _("This element is already the entry of a shop.")})
 
     def __str__(self):
-        return ", ".join(part for part in (self.address, self.city) if part) or f"{self.latitude:.5f}, {self.longitude:.5f}"
+        return (
+            ", ".join(part for part in (self.address, self.city) if part)
+            or f"{self.latitude:.5f}, {self.longitude:.5f}"
+        )
 
 
 class StaffRegister(models.Model):
@@ -611,6 +717,7 @@ class StaffRegister(models.Model):
     through a one-time code (`code`), so a photo of the code taken after it was used, or after `code_until`, opens
     nothing. Turned off (`retired`), the register takes no new payments, but a sale already on its screen still shows
     how it ends: turning a register off must never hide a payment in progress. Never deleted: the sales keep its name."""
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name="staff_registers")
     name = models.CharField(_("name"), max_length=40)
@@ -623,8 +730,14 @@ class StaffRegister(models.Model):
     opened = models.DateTimeField(null=True, blank=True, editable=False)
     # Which of the shop's other places it is used at, if the owner says: a label for the owner's list, nothing more. The
     # pairing, the register's page and what its phone receives do not change with it
-    place = models.ForeignKey(ShopPlace, on_delete=models.SET_NULL, null=True, blank=True, related_name="staff_registers",
-                              verbose_name=_("place"))
+    place = models.ForeignKey(
+        ShopPlace,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="staff_registers",
+        verbose_name=_("place"),
+    )
 
     class Meta:
         ordering = ["retired", "-created"]
@@ -636,6 +749,7 @@ class StaffRegister(models.Model):
 class ChainCount(models.Model):
     """The next index of one on-chain chain of a shop, shared by all its registers (shops/chain_count.py). `chain` is a
     SHA-256 of the chain's extended key, never the key: the site cannot derive an address."""
+
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name="chain_counts")
     chain = models.CharField(max_length=64)
     next = models.PositiveBigIntegerField(default=0, db_default=0)
@@ -651,6 +765,7 @@ class ChainCount(models.Model):
 class DashboardDigest(models.Model):
     """The last morning summary sent by `manage.py dashboard --send`: the things to do it named (code and shop, no
     text) and when. One row: the next summary goes only when the list changes, or a week later as a reminder."""
+
     sent = models.DateTimeField()
     items = models.JSONField(default=list)
 
@@ -679,8 +794,12 @@ class Closure(models.Model):
 
     class Meta:
         ordering = ["first_day", "pk"]
-        constraints = [models.CheckConstraint(condition=models.Q(reopens_on__isnull=True) | models.Q(reopens_on__gt=models.F("first_day")),
-                                              name="closure_reopens_after_it_closes")]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(reopens_on__isnull=True) | models.Q(reopens_on__gt=models.F("first_day")),
+                name="closure_reopens_after_it_closes",
+            )
+        ]
 
     def __str__(self):
         return f"{self.shop_id}: {self.first_day} - {self.reopens_on or '…'}"
@@ -709,6 +828,7 @@ class HelpRequest(models.Model):
 
     class Channel(models.TextChoices):
         """How the merchant wants to be called back, among what the shop already has. `page`: they wait on the panel."""
+
         EMAIL = "email", _("by email")
         TELEGRAM = "telegram", _("on Telegram")
         PHONE = "phone", _("by phone")
@@ -717,6 +837,7 @@ class HelpRequest(models.Model):
     class Delivery(models.TextChoices):
         """The message to the moderators' Telegram chat: taken, refused, not possible (no bot or no chat), or not
         delivered for now. Without «sent» the request is still on the dashboard."""
+
         SENT = "sent", _("sent")
         REFUSED = "refused", _("refused by Telegram")
         OFF = "off", _("no Telegram bot or chat")
@@ -724,8 +845,14 @@ class HelpRequest(models.Model):
 
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name="help_requests")
     # The owner who asked: after a change of owner the new one does not read the old one's requests
-    asked_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
-                                 related_name="help_requests", editable=False)
+    asked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="help_requests",
+        editable=False,
+    )
     symptom = models.CharField(_("symptom"), max_length=10, choices=Symptom.choices)
     # One line of plain text the merchant wrote: no control characters, no secret (shops/helpdesk.py cleans it)
     note = models.CharField(_("what the merchant wrote"), max_length=200, blank=True)
@@ -752,6 +879,7 @@ class OsmRun(models.Model):
     fields filled, the new candidates, the doubtful matches, the shops OpenStreetMap says no longer accept bitcoin, the
     shops verified more recently there than here, and the changes proposed for OpenStreetMap, shop by shop. Nothing in it
     is a secret. The last twelve are kept."""
+
     created = models.DateTimeField(default=timezone.now, db_index=True)
     ok = models.BooleanField(default=True)
     # Why it did not work, in a line: no address, no body
@@ -784,15 +912,23 @@ class OsmRequest(models.Model):
 
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name="osm_requests")
     # The owner who asked: after a change of owner the new one does not read the old one's requests
-    asked_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
-                                 related_name="osm_requests", editable=False)
+    asked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="osm_requests",
+        editable=False,
+    )
     kind = models.CharField(_("what is asked"), max_length=10, choices=Kind.choices)
     created = models.DateTimeField(_("asked"), default=timezone.now, db_index=True)
     # The lines to write, as the site had them when the merchant asked: for the person who does it, no secret in them
     summary = models.TextField(_("what to write"), blank=True)
     state = models.CharField(_("state"), max_length=10, choices=State.choices, default=State.OPEN, db_index=True)
     # The message to the moderators' Telegram chat, as for the help requests
-    delivery = models.CharField(_("message to the association"), max_length=10, choices=HelpRequest.Delivery.choices, blank=True)
+    delivery = models.CharField(
+        _("message to the association"), max_length=10, choices=HelpRequest.Delivery.choices, blank=True
+    )
     done = models.DateTimeField(_("done on"), null=True, blank=True)
     done_by = models.CharField(_("done by"), max_length=150, blank=True)
     # A line for the merchant when it could not be done: written by the staff, shown in the panel
@@ -800,7 +936,9 @@ class OsmRequest(models.Model):
 
     class Meta:
         ordering = ["-created", "-pk"]
-        constraints = [models.UniqueConstraint(fields=["shop"], condition=models.Q(state="open"), name="osm_request_one_open")]
+        constraints = [
+            models.UniqueConstraint(fields=["shop"], condition=models.Q(state="open"), name="osm_request_one_open")
+        ]
         verbose_name = _("OpenStreetMap request")
         verbose_name_plural = _("OpenStreetMap requests")
 
@@ -809,6 +947,7 @@ class Trainee(models.Model):
     """What the site keeps of a merchant's training (shops/training.py): one row for each account, made when the account
     first meets the training. The modules and the declarations are in `ModuleResult` and `Declaration`; this row holds
     only the facts that are not derived from them. Written by the training pages (shops/training.py), never by a form."""
+
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="trainee")
     created = models.DateTimeField(default=timezone.now, editable=False)
     # The day the basic pass was earned, once: a fact of the past, kept even if the community adds a module later
@@ -827,6 +966,7 @@ class Trainee(models.Model):
 class ModuleResult(models.Model):
     """The quiz of one module of the training, for one account. `passed` is set when every answer was right, once; tries
     only count, with no penalty. A module is a name written in `community.yml`, so there is no foreign key to it."""
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="training_results")
     module = models.CharField(max_length=40)
     passed = models.DateTimeField(null=True, blank=True)
@@ -842,13 +982,22 @@ class Declaration(models.Model):
     wrote, in every language), the text exactly as it was shown (`text`, in `language`), when, who and for which shop.
     No address of the connection and no other detail of the device. Append only: a changed text makes a new version, asked
     again, and the old rows stay. It outlives the shop and the account (they are emptied, the names are copied)."""
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
-                             related_name="declarations", editable=False)
-    shop = models.ForeignKey(Shop, null=True, blank=True, on_delete=models.SET_NULL, related_name="declarations",
-                             editable=False)
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="declarations",
+        editable=False,
+    )
+    shop = models.ForeignKey(
+        Shop, null=True, blank=True, on_delete=models.SET_NULL, related_name="declarations", editable=False
+    )
     # A staff register's «I understood» has no account: the register that made it
-    register = models.ForeignKey(StaffRegister, null=True, blank=True, on_delete=models.SET_NULL,
-                                 related_name="declarations", editable=False)
+    register = models.ForeignKey(
+        StaffRegister, null=True, blank=True, on_delete=models.SET_NULL, related_name="declarations", editable=False
+    )
     # The account's name, or the register's, as they were: the row says who even when the account is gone
     who = models.CharField(_("who"), max_length=150, editable=False)
     shop_name = models.CharField(_("shop"), max_length=120, blank=True, editable=False)
@@ -863,14 +1012,24 @@ class Declaration(models.Model):
         verbose_name = _("declaration")
         verbose_name_plural = _("declarations")
         constraints = [
-            models.UniqueConstraint(fields=["user", "key", "version", "shop"], name="declaration_once_by_user",
-                                    condition=models.Q(user__isnull=False, shop__isnull=False)),
+            models.UniqueConstraint(
+                fields=["user", "key", "version", "shop"],
+                name="declaration_once_by_user",
+                condition=models.Q(user__isnull=False, shop__isnull=False),
+            ),
             # Only the rows made without a shop (no name copied): a row whose shop was deleted keeps the name and loses
             # the link, and two of those, for two shops of one owner, are two proofs, not one twice
-            models.UniqueConstraint(fields=["user", "key", "version"], name="declaration_once_by_user_no_shop",
-                                    condition=models.Q(user__isnull=False, shop__isnull=True, shop_name="")),
-            models.UniqueConstraint(fields=["register", "key", "version"], name="declaration_once_by_register",
-                                    condition=models.Q(register__isnull=False))]
+            models.UniqueConstraint(
+                fields=["user", "key", "version"],
+                name="declaration_once_by_user_no_shop",
+                condition=models.Q(user__isnull=False, shop__isnull=True, shop_name=""),
+            ),
+            models.UniqueConstraint(
+                fields=["register", "key", "version"],
+                name="declaration_once_by_register",
+                condition=models.Q(register__isnull=False),
+            ),
+        ]
 
     def __str__(self):
         return f"{self.who}: {self.key}"
@@ -880,6 +1039,7 @@ class EmailSent(models.Model):
     """One outgoing email handed to the mail server (config/mailbudget.py counts them): the provider's quota is per month, so
     the count must survive a restart. Only a print of the recipient is kept (to cap what one address receives in a day),
     never the address or the text. Rows older than two months are dropped as new ones are written."""
+
     sent = models.DateTimeField(default=timezone.now, db_index=True)
     recipient = models.CharField(max_length=64, db_index=True)
 

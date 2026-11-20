@@ -1,5 +1,6 @@
 """The edges of the guardian of the Lightning addresses (shops/lightning_watch.py): the number of failures that makes a
 fault, and every sentence of the message to the association."""
+
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -35,8 +36,14 @@ class Message(TestCase):
         self.now = timezone.now()
 
     def shop(self, name, status, worked, **more):
-        return Shop.objects.create(name=name, lightning_address=f"{name.lower()}@example.org", lightning_status=status,
-                                   lightning_worked=worked, lightning_since=self.now - timedelta(days=1), **more)
+        return Shop.objects.create(
+            name=name,
+            lightning_address=f"{name.lower()}@example.org",
+            lightning_status=status,
+            lightning_worked=worked,
+            lightning_since=self.now - timedelta(days=1),
+            **more,
+        )
 
     def said(self, changes, mass=None):
         with patch("shops.lightning_watch.telegram") as sent:
@@ -46,14 +53,22 @@ class Message(TestCase):
         return sent.call_args.args[1]
 
     def test_every_kind_of_change_has_its_own_sentence(self):
-        text = self.said([
-            (self.shop("Never", LightningStatus.NO_ANSWER, None), BROKE),
-            (self.shop("Unconfirmed", LightningStatus.NO_CONFIRMATION, None), BROKE),
-            (self.shop("Stopped", LightningStatus.NO_ANSWER, self.now - timedelta(days=9)), BROKE),
-            (self.shop("Mute", LightningStatus.NO_CONFIRMATION, self.now - timedelta(days=9)), BROKE),
-            (self.shop("Back", LightningStatus.OK, self.now), FIXED)])
-        for line in ("Never: does not answer", "Unconfirmed: does not confirm payments", "Stopped: stopped answering",
-                     "Mute: stopped confirming payments", "Back: works again"):
+        text = self.said(
+            [
+                (self.shop("Never", LightningStatus.NO_ANSWER, None), BROKE),
+                (self.shop("Unconfirmed", LightningStatus.NO_CONFIRMATION, None), BROKE),
+                (self.shop("Stopped", LightningStatus.NO_ANSWER, self.now - timedelta(days=9)), BROKE),
+                (self.shop("Mute", LightningStatus.NO_CONFIRMATION, self.now - timedelta(days=9)), BROKE),
+                (self.shop("Back", LightningStatus.OK, self.now), FIXED),
+            ]
+        )
+        for line in (
+            "Never: does not answer",
+            "Unconfirmed: does not confirm payments",
+            "Stopped: stopped answering",
+            "Mute: stopped confirming payments",
+            "Back: works again",
+        ):
             self.assertIn(line, text)
         self.assertIn("/admin/shops/shop/?lightning=broken", text)
 

@@ -19,8 +19,9 @@ and scripts, the logos in `docs/img/` and the example community's logo were made
 ## Leaflet
 
 - **What:** the JavaScript library that draws the maps (the shop map, a shop's page, the shop form, the route page).
-- **Where:** `static/vendor/leaflet/leaflet.js`, `static/vendor/leaflet/leaflet.css` and the three images in
-  `static/vendor/leaflet/images/` (`marker-icon.png`, `marker-icon-2x.png`, `marker-shadow.png`).
+- **Where:** `static/vendor/leaflet/leaflet.js`, `static/vendor/leaflet/leaflet.css` and the five images in
+  `static/vendor/leaflet/images/` (`marker-icon.png`, `marker-icon-2x.png`, `marker-shadow.png`, `layers.png`,
+  `layers-2x.png`).
 - **Upstream:** <https://leafletjs.com>, <https://github.com/Leaflet/Leaflet>
 - **Version:** 1.9.4, the files of the published `dist/`, unchanged (same bytes).
 - **License:** BSD-2-Clause.
@@ -438,19 +439,19 @@ direct dependencies of `requirements.txt`, at the versions `requirements.lock` p
 
 | Package | Version | License |
 |---|---|---|
-| Django | 5.2.18 | BSD-3-Clause |
-| gunicorn | 23.0.0 | MIT |
-| psycopg, psycopg-binary | 3.2.13 | LGPL-3.0-only |
-| requests | 2.33.1 | Apache-2.0 |
+| Django | 6.1.3 | BSD-3-Clause |
+| gunicorn | 27.0.1 | MIT |
+| psycopg, psycopg-binary | 3.3.9 | LGPL-3.0-only |
+| requests | 2.34.2 | Apache-2.0 |
 | PyYAML | 6.0.3 | MIT |
-| Markdown | 3.11.2 | BSD-3-Clause |
+| Markdown | 3.11.3 | BSD-3-Clause |
 | whitenoise | 6.12.0 | MIT |
 | coincurve | 22.0.0.dev0 (upstream commit 2d11b11) | MIT OR Apache-2.0 |
 | segno | 1.6.6 | BSD-3-Clause |
 | bech32 | 1.2.0 | MIT |
-| websockets | 15.0.1 | BSD-3-Clause |
+| websockets | 17.4 | BSD-3-Clause |
 | cryptography | 50.0.2 | Apache-2.0 OR BSD-3-Clause |
 
 The complete pinned set, with what these depend on, is [requirements.lock](requirements.lock). The checks image adds
-tblib 3.2.2 (BSD-2-Clause, `requirements-test.lock`), never in production. All of these licenses are compatible with
+tblib 3.2.2 (BSD-2-Clause) and ruff 0.17.5 (MIT), both in `requirements-test.lock`, never in production. All of these licenses are compatible with
 the AGPLv3.

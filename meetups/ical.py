@@ -1,12 +1,14 @@
 """The meetups as an iCalendar feed (RFC 5545), for whoever wants them in their own calendar. Plain data: when, where,
 what and whether it is on. No person, no organiser, no description from outside, no counts."""
+
 import re
 from datetime import timezone as dt_timezone
 
 from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
-from django.utils.translation import gettext as _, override
+from django.utils.translation import gettext as _
+from django.utils.translation import override
 
 from config.community import community, localized
 
@@ -44,12 +46,18 @@ def fold(line):
 
 def summary(meetup, row):
     base = meetup.title or (_("Meetup in %(city)s") % {"city": meetup.city} if meetup.city else _("Meetup"))
-    return f"{row['status_text']}: {base}" if meetup.status in (Meetup.Status.CANCELLED, Meetup.Status.POSTPONED) else base
+    return (
+        f"{row['status_text']}: {base}" if meetup.status in (Meetup.Status.CANCELLED, Meetup.Status.POSTPONED) else base
+    )
 
 
 def event(meetup, row, host):
-    lines = ["BEGIN:VEVENT", f"UID:{meetup.id}@{host}", f"DTSTAMP:{meetup.updated.astimezone(dt_timezone.utc).strftime(STAMP)}",
-             f"LAST-MODIFIED:{meetup.updated.astimezone(dt_timezone.utc).strftime(STAMP)}"]
+    lines = [
+        "BEGIN:VEVENT",
+        f"UID:{meetup.id}@{host}",
+        f"DTSTAMP:{meetup.updated.astimezone(dt_timezone.utc).strftime(STAMP)}",
+        f"LAST-MODIFIED:{meetup.updated.astimezone(dt_timezone.utc).strftime(STAMP)}",
+    ]
     if meetup.all_day:
         lines.append(f"DTSTART;VALUE=DATE:{meetup.local_start:%Y%m%d}")
     else:
@@ -61,8 +69,10 @@ def event(meetup, row, host):
     if row["url"]:
         lines.append(f"URL:{row['url']}")
     # A cancelled meeting, and the old day of a postponed one, are not on: calendars show them as such
-    lines.append("STATUS:" + ("CANCELLED" if meetup.status in (Meetup.Status.CANCELLED, Meetup.Status.POSTPONED)
-                              else "CONFIRMED"))
+    lines.append(
+        "STATUS:"
+        + ("CANCELLED" if meetup.status in (Meetup.Status.CANCELLED, Meetup.Status.POSTPONED) else "CONFIRMED")
+    )
     if row["status_text"]:
         lines.append(f"DESCRIPTION:{escape(row['status_text'])}")
     lines.append("END:VEVENT")
@@ -88,8 +98,13 @@ def calendar(now=None, city=None):
     gave, keeps only the meetups of that city."""
     if now is not None:
         return build(now, city)
-    key = board.cache_key("feed", settings.LANGUAGE_CODE, conf.past_months(), conf.default_link(settings.LANGUAGE_CODE),
-                          *((city.casefold(),) if city else ()))
+    key = board.cache_key(
+        "feed",
+        settings.LANGUAGE_CODE,
+        conf.past_months(),
+        conf.default_link(settings.LANGUAGE_CODE),
+        *((city.casefold(),) if city else ()),
+    )
     found = cache.get(key)
     if found is None:
         found = build(timezone.now(), city)
@@ -103,9 +118,9 @@ def chosen(now, city=None):
     coming, gone = board.sides(now)
     if city:
         coming, gone = coming.filter(city__iexact=city), gone.filter(city__iexact=city)
-    ahead = board.collapse(list(coming[:board.FEED_LIMIT + board.MARGIN]))[:board.FEED_LIMIT]
+    ahead = board.collapse(list(coming[: board.FEED_LIMIT + board.MARGIN]))[: board.FEED_LIMIT]
     room = board.FEED_LIMIT - len(ahead)
-    behind = board.collapse(list(gone[:room + board.MARGIN]))[-room:] if room > 0 else []
+    behind = board.collapse(list(gone[: room + board.MARGIN]))[-room:] if room > 0 else []
     return behind + ahead
 
 
@@ -114,8 +129,14 @@ def build(now, city=None):
         meetups = chosen(now, city)
         link = conf.default_link(settings.LANGUAGE_CODE)
         name = localized(community().get("name", ""), settings.LANGUAGE_CODE)
-        lines = ["BEGIN:VCALENDAR", "VERSION:2.0", f"PRODID:{PRODID}", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
-                 f"X-WR-CALNAME:{escape(_('Meetups of %(community)s') % {'community': name})}"]
+        lines = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            f"PRODID:{PRODID}",
+            "CALSCALE:GREGORIAN",
+            "METHOD:PUBLISH",
+            f"X-WR-CALNAME:{escape(_('Meetups of %(community)s') % {'community': name})}",
+        ]
         for meetup in meetups:
             lines += event(meetup, board.row(meetup, now, link), settings.SITE_HOST)
         lines.append("END:VCALENDAR")
