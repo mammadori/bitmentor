@@ -1050,6 +1050,12 @@ def other_places(shops, elements, by_ref, taken, config, report):
     pairs, open_places = [], []
     for place in ShopPlace.objects.filter(shop_id__in=list(by_pk)).order_by("shop_id", "pk"):
         shop = by_pk[place.shop_id]
+        if not place.shown:
+            # A place that waits, is off the map or was taken away is not read, and nothing is proposed for it. Its
+            # element, if it has one, is still the shop's: never a stranger that takes bitcoin
+            if place.osm_ref:
+                taken.add(place.osm_ref)
+            continue
         if not place.osm_ref:
             open_places.append((shop, place))
         elif place.osm_ref in by_ref:

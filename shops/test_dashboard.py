@@ -190,8 +190,9 @@ class Items(TestCase):
 
         self.assertEqual(queries(2), queries(40))
         # The shops, the money owed by the shops no longer trading, the moved shops, the requests for help, the requests
-        # about OpenStreetMap (its settings, which ask nothing, are off here), and one count for each total of the limits
-        self.assertLessEqual(queries(2), 7 + len(limits.counters()))
+        # about OpenStreetMap (its settings, which ask nothing, are off here), the places that wait for an approval and
+        # the ones taken away long ago, and one count for each total of the limits
+        self.assertLessEqual(queries(2), 9 + len(limits.counters()))
 
     def test_no_other_server_is_asked(self):
         register(

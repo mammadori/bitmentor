@@ -86,7 +86,8 @@ copies and on Nostr. A register turned off keeps its name.
 
 A shop with other places (one shop, several branches: «More than one place? Add the others» in its page) can say
 where each register is used: «Where it is used», when adding one and under «Rename or change the place». The choice is
-among the shop's other places only (the site refuses a place of another shop), or «No place chosen», the default. The
+among the shop's other places only (the site refuses a place of another shop; one the owner keeps off the map is
+offered, one taken away is not), or «No place chosen», the default. The
 list then groups the registers turned on by place, the ones without one last. It is a label for the owner's list and
 nothing more: the pairing, the register's page and what its phone receives do not change, and the person at the
 register does not see it. Removing a place leaves its registers on, without a place.

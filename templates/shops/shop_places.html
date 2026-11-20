@@ -3,12 +3,19 @@
 {% block content %}
 <nav class="crumbs"><a href="{% url 'shops' %}">{% translate "Your shops" %}</a> <a href="{% url 'edit_shop' shop.id %}">{{ shop.name }}</a></nav>
 <header class="page-head"><h1>{% translate "The other places of your shop" %}</h1>
-<p>{% translate "A shop with several branches is one shop here: one register, one Lightning address, and a point on the map for each place. The first place is the shop's own position, which you change with its details." %}</p></header>
+<p>{% translate "A shop with several branches is one shop here: one register, one Lightning address, and a point on the map for each place. The first place is the shop's own position, which you change with its details." %}</p>
+<p class="muted">{% translate "A new place, or a new address of one, goes on the map when someone of the community has approved it. The phone, and whether a place is on the map, are yours to change at once." %}</p></header>
 {% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
-{% if places %}<ul id="places" class="facts">{% for place in places %}<li>{{ place }}
+{% if places %}<ul id="places" class="facts">{% for place in places %}<li>{{ place }}{% if place.phone %} · {{ place.phone }}{% endif %}
   <a href="?edit={{ place.pk|unlocalize }}">{% translate "Change" %}</a>
-  <form method="post" class="inline">{% csrf_token %}<button class="linklike" name="remove" value="{{ place.pk }}">{% translate "Remove" %}</button></form></li>{% endfor %}</ul>
+  <form method="post" class="inline">{% csrf_token %}<button class="linklike" name="remove" value="{{ place.pk }}">{% translate "Remove" %}</button></form>
+  {% if not place.approved_on %}<br><span class="muted place-state">{% translate "Waiting for an approval: not on the map yet." %}</span>{% elif place.asked %}<br><span class="muted place-state">{% blocktranslate with address=place.asked %}New address waiting for an approval: {{ address }}{% endblocktranslate %}</span>{% endif %}
+  {% if not place.on_map %}<br><span class="muted place-state">{% translate "Not on the map: you chose so." %}</span>{% endif %}</li>{% endfor %}</ul>
 {% else %}<p class="muted">{% translate "No other place yet." %}</p>{% endif %}
+{% if trash %}<details id="places-trash"><summary>{% translate "Places you took away" %}</summary>
+<p class="muted">{% blocktranslate with days=trash_days %}Customers do not see them. You can take one back for {{ days }} days after you took it away; then it is deleted.{% endblocktranslate %}</p>
+<ul class="facts">{% for place in trash %}<li>{{ place }}
+  <form method="post" class="inline">{% csrf_token %}<button class="linklike" name="restore" value="{{ place.pk }}">{% translate "Take it back" %}</button></form></li>{% endfor %}</ul></details>{% endif %}
 {% if full and not editing %}<p class="notice" role="status">{% translate "This shop has the most places it can have: remove one to add another." %}</p>
 {% else %}<h2>{% if editing %}{% translate "Change a place" %}{% else %}{% translate "Add a place" %}{% endif %}</h2>
 <form method="post" class="shop-form" data-saving="{% translate 'Saving...' %}">{% csrf_token %}
@@ -23,6 +30,9 @@
     <details{% if form.latitude.errors or form.longitude.errors %} open{% endif %}><summary>{% translate "Type the coordinates" %}</summary>
       {{ form.latitude.as_field_group }}{{ form.longitude.as_field_group }}
     </details>
+  </fieldset>
+  <fieldset><legend>{% translate "What customers see" %}</legend>
+    {{ form.on_map.as_field_group }}{{ form.phone.as_field_group }}
   </fieldset>
   {% if editing %}<button class="button" type="submit">{% translate "Save this place" %}</button>
   <a class="button button-quiet" href="{% url 'shop_places' shop.id %}">{% translate "Cancel" %}</a>{% else %}<button class="button" type="submit">{% translate "Add this place" %}</button>{% endif %}</form>

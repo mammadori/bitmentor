@@ -94,6 +94,12 @@ The shop's page in `/admin/` lists the same signals; the list of shops does not.
 shop starts with "⚠ Check before approving" and the signals' sentences, with the shops' names only. The owner is told
 nothing about them.
 
+**The other places of a shop that wait.** A shop already approved whose owner added a place, or asked for a new
+address or point of one, is one line, with everything it asks under it (each with its point) and the button
+**Approve the places: on the map**, which approves what the line says and nothing changed since. The places of a
+new shop that waits are listed under the shop's own line and approved with it:
+[A shop with several places](shop-places.md).
+
 **A new shop that is not for the map: set aside.** Under the approval of each waiting shop, a quieter button, **Not for
 the map: set aside**, is for a shop that should never go on the map: a trial the team wrote to try its own site, a
 duplicate, a shop written by mistake. The shop stays not approved (off the map, the lists, the counts and

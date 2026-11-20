@@ -15,9 +15,16 @@ def languages():
     return sorted(path.parent.parent.name for path in LOCALE.glob("*/LC_MESSAGES/django.po"))
 
 
+PLACEHOLDER = re.compile(r"%\([a-z_0-9]+\)[sd]|%[sd%]|\{[a-z_0-9]*\}|</?[a-z][a-z0-9]*|&[a-z]+;")
+
+
 def catalogue(language):
     """{msgid: msgstr} of locale/<language>/LC_MESSAGES/django.po (the singular forms)."""
-    text = (LOCALE / language / "LC_MESSAGES" / "django.po").read_text()
+    return catalogue_of(LOCALE / language / "LC_MESSAGES" / "django.po")
+
+
+def catalogue_of(path):
+    text = path.read_text(encoding="utf-8")
     found = {}
     for match in re.finditer(r'^msgid ((?:".*"\n)+)msgstr ((?:".*"\n?)+)', text, re.M):
         msgid, msgstr = ("".join(re.findall(r'"(.*)"', group)).replace('\\"', '"') for group in match.groups())
@@ -78,6 +85,44 @@ class Translations(SimpleTestCase):
         self.assertGreater(len(ids), 500)
         # Django's own words, translated by Django
         untranslated(self, ids, exempt={"Home"})
+
+    def test_the_software_carries_these_languages(self):
+        self.assertEqual(languages(), ["de", "es", "fr", "it", "nl", "pt", "sl"])
+
+    def test_every_catalog_has_every_text_of_the_template(self):
+        """A language of the software is whole: no text falls back to English in the middle of a page."""
+        wanted = set(catalogue_of(LOCALE / "django.pot"))
+        self.assertGreater(len(wanted), 2000)
+        for language in languages():
+            found = catalogue(language)
+            self.assertEqual(set(found), wanted, language)
+            self.assertEqual([msgid for msgid, msgstr in found.items() if msgid and not msgstr], [], language)
+
+    def test_a_translation_keeps_the_placeholders_and_the_tags_of_its_text(self):
+        """`%(name)s`, `{name}`, the HTML tags and entities: a missing or misspelt one breaks the page or shows raw."""
+        for language in languages():
+            for msgid, msgstr in catalogue(language).items():
+                if msgid:
+                    self.assertEqual(
+                        sorted(PLACEHOLDER.findall(msgstr)), sorted(PLACEHOLDER.findall(msgid)), f"{language}: {msgid}"
+                    )
+
+    def test_every_catalog_says_whether_a_native_speaker_read_it(self):
+        from config.languages import header
+
+        for language in languages():
+            self.assertIsNotNone(header(LOCALE / language / "LC_MESSAGES" / "django.po"), language)
+
+    def test_the_plural_forms_are_the_ones_of_each_language(self):
+        """Slovenian has four forms: one, two, three or four, the others."""
+        from django.utils.translation import ngettext, override
+
+        for language in languages():
+            with override(language):
+                for count in (1, 2, 3, 5, 101):
+                    text = ngettext("…and 1 more", "…and %(counter)s more", count) % {"counter": count}
+                    self.assertNotIn("more", text, f"{language} {count}")
+                    self.assertNotIn("%(", text, f"{language} {count}")
 
 
 class Template(SimpleTestCase):

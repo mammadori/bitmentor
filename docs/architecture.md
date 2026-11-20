@@ -43,8 +43,8 @@ Rules:
 - The languages are those in `languages`, as many as you like; the first one is the default. The software's texts are
   in `locale/<lang>/` (the sources are in English). A page missing in a language returns 404 and is left out of the
   sitemap and of the `hreflang` links, and the language switcher leads to that language's home page; a `community.yml`
-  text without that language uses the default one. Visitors who reach `/` with the browser set to a listed language go
-  to `/<lang>/`: its home page must exist before the language is listed. A language the software does not carry:
+  text without that language uses English where the site has it, then the default one. Visitors who reach `/` with
+  the browser set to a listed language go to `/<lang>/`: its home page must exist before the language is listed. A language the software does not carry:
   [Adding a language](languages.md).
 - Pages go through the template engine: `{{ community.name }}` and `{{ tagline }}` follow `community.yml`, and
   `{% include "website/route.html" %}` puts stops and map where they are needed; the community's meetings have their

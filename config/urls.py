@@ -18,7 +18,7 @@ from config.guard import ADMIN_SESSION
 from meetups import views as meetups
 from shops import explorer, staff
 from shops import views as shops
-from shops.admin import approve_view, dashboard_view, set_aside_view
+from shops.admin import approve_places_view, approve_view, dashboard_view, set_aside_view
 from website.views import robots, sitemap, switch_view, theme_file
 
 # The admin opens only with a session born from the password, here (ADMIN_SESSION, config/guard.py), or from a staff
@@ -270,6 +270,11 @@ urlpatterns = [
     path("admin/today/", admin.site.admin_view(dashboard_view), name="admin_dashboard"),
     path("admin/today/approve/<uuid:shop>/", admin.site.admin_view(approve_view), name="admin_approve_shop"),
     path("admin/today/set-aside/<uuid:shop>/", admin.site.admin_view(set_aside_view), name="admin_set_aside_shop"),
+    path(
+        "admin/today/approve-places/<uuid:shop>/",
+        admin.site.admin_view(approve_places_view),
+        name="admin_approve_places",
+    ),
     path("admin/", admin.site.urls),
     path(".well-known/nostr.json", shops.nostr_names, name="nostr_names"),
     path("register/<uuid:shop>/manifest.webmanifest", shops.register_manifest, name="register_manifest"),

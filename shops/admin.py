@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.utils.formats import date_format
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ngettext
 from django.views.decorators.http import require_POST
 
 from config import features
@@ -139,7 +140,26 @@ class PlaceInline(admin.TabularInline):
     model = ShopPlace
     extra = 0
     max_num = ShopPlace.MAX
-    fields = ("address", "city", "latitude", "longitude", "osm_ref")
+    fields = ("address", "city", "latitude", "longitude", "phone", "on_map", "osm_ref", "state")
+    readonly_fields = ("state",)
+
+    def get_queryset(self, request):
+        # The places their owner has: one taken away is the owner's to take back or lose (shops/places.py)
+        return super().get_queryset(request).filter(removed_on=None)
+
+    @admin.display(description=_("state"))
+    def state(self, place):
+        """What the public sees of the place and what waits (shops/places.py). A new place written here is approved;
+        one that waits is approved on the page of the day, where the address its owner asked for is read first."""
+        if place is None or place.pk is None:
+            return ""
+        if place.approved_on is None:
+            return _("waits for an approval")
+        if place.asked_on:
+            from . import places
+
+            return _("approved; a new address waits: %(address)s") % {"address": places.described(place)[0]}
+        return _("approved")
 
 
 class ClosureInline(admin.TabularInline):
@@ -487,6 +507,32 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
         if self.is_set_aside(shop) and request.user.has_perm("shops.change_shop"):
             extra_context["put_back_url"] = reverse("admin:shops_shop_put_back", args=[shop.pk])
         return super().change_view(request, object_id, form_url, extra_context)
+
+    def save_formset(self, request, form, formset, change):
+        """An address the staff corrects here on a place whose owner asked for another one: the staff's is the
+        address, and the request is dropped. Approving it afterwards would put the owner's over the correction."""
+        if formset.model is ShopPlace:
+            for row in formset.forms:
+                if (
+                    row.instance.pk
+                    and row.instance.asked_on
+                    and set(row.changed_data)
+                    & {
+                        "address",
+                        "city",
+                        "latitude",
+                        "longitude",
+                    }
+                ):
+                    place = row.instance
+                    place.asked_address, place.asked_city, place.asked_latitude, place.asked_longitude = (
+                        "",
+                        "",
+                        None,
+                        None,
+                    )
+                    place.asked_on = None
+        super().save_formset(request, form, formset, change)
 
     def get_urls(self):
         from django.urls import path
@@ -992,6 +1038,40 @@ def approve_view(request, shop):
         )
     else:
         messages.info(request, _("%(name)s was already approved.") % {"name": shop.name})
+    return redirect("admin_dashboard")
+
+
+@require_POST
+def approve_places_view(request, shop):
+    """The one-click approval, on /admin/today/, of everything the other places of a shop wait for (shops/places.py):
+    staff with the permission to change shops."""
+    from django.core.exceptions import PermissionDenied
+
+    from . import places
+
+    if not request.user.has_perm("shops.change_shop"):
+        raise PermissionDenied
+    shop = get_object_or_404(Shop, pk=shop, approved_on__isnull=False)
+    # Only what the line of the page said: places changed or added since are read again first
+    count = places.approve(shop, request.user.get_username(), request.user, seen=request.POST.get("seen", ""))
+    if count is None:
+        messages.error(
+            request,
+            _("%(name)s changed its places while you were reading: look at its line again, then approve.")
+            % {"name": shop.name},
+        )
+    elif count:
+        messages.success(
+            request,
+            ngettext(
+                "%(name)s: %(count)d place approved, it is on the map as its owner wants.",
+                "%(name)s: %(count)d places approved, they are on the map as their owner wants.",
+                count,
+            )
+            % {"name": shop.name, "count": count},
+        )
+    else:
+        messages.info(request, _("%(name)s has no place waiting.") % {"name": shop.name})
     return redirect("admin_dashboard")
 
 

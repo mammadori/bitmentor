@@ -170,7 +170,7 @@ export SECRET_KEY=try DEBUG=1 && .venv/bin/python manage.py migrate && .venv/bin
 Open `http://localhost:8000`. `.venv/bin/python manage.py demo_data --links` prints the sign-in links of the made-up owners: see
 [A training site in five minutes](docs/features/demo.md). To try your own community, copy `examples/community` and
 start with `COMMUNITY_DIR=<the copy>`. On Debian or Ubuntu `python3 -m venv` needs `apt install python3-venv`. The
-Italian and German pages need `manage.py compilemessages` (from the `gettext` package); English works without.
+pages in a language other than English need `manage.py compilemessages` (from the `gettext` package); English works without.
 
 coincurve 22.0.0, the first with Python 3.14 wheels, is not on PyPI yet. Until it is, on x86_64 Linux
 `requirements.txt` downloads a wheel of upstream commit 2d11b11 from this repository's release
@@ -206,7 +206,7 @@ languages live in its own folder, given to the site with `COMMUNITY_DIR`.
 
 ## Tests
 
-In the environment of [Try it](#1-try-it), compile the Italian and German texts first (`compilemessages` needs the
+In the environment of [Try it](#1-try-it), compile the translated texts first (`compilemessages` needs the
 `gettext` package): the tests of those languages fail without them.
 
 ```bash

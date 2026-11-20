@@ -45,7 +45,7 @@ Write texts and `external_id`s between quotes: in a `{…}` a comma ends the tex
 reads `012:` as an octal number, 10.
 
 A link is the path of a page after `/<lang>/`, as in `menu`, or a full `https://` address; both can also be written per
-language, `{en: …, it: …}`. `www.example.org/…`, `mailto:` and other schemes are not links to pages, and stay out. A text without the page's language uses the default one. bitmentor names no wallet: the
+language, `{en: …, it: …}`. `www.example.org/…`, `mailto:` and other schemes are not links to pages, and stay out. A text without the page's language uses English where the site has it, then the default one. bitmentor names no wallet: the
 community picks the page. `stories` appear under "In our story" on every page of that shop but a suspended one, a
 historic one included. A link or a text that cannot be used stays off the page, and `manage.py check` says why, in
 every language (`website.W002`).

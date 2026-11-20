@@ -82,7 +82,9 @@ openstreetmap.org). Two shops never share an element.
 ## A shop with several places
 
 A shop with several branches is one shop with a point on the map for each place
-([the features](README.md)); on OpenStreetMap each branch is an element of its own. The shop's link (`Shop.osm_ref`)
+([A shop with several places](shop-places.md)); on OpenStreetMap each branch is an element of its own. Only the places
+the public sees are read: one that waits for an approval, that its owner keeps off the map or took away is left out,
+and nothing is proposed for it. The shop's link (`Shop.osm_ref`)
 is the element of its own position. Each other place can have its link too, written by the association on the place,
 in the shop's page of `/admin/` («other places»); never by the owner. An owner who changes a place (its address, town
 or point) keeps its link, as a shop that moves keeps its own: the association changes or clears it in `/admin/`.

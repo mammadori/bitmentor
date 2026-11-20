@@ -205,6 +205,45 @@ Read them from a machine you trust, right after the CI pipeline of the tag, and 
   ([Copies on Nostr](features/nostr-copies.md#turning-it-on)). Every address written before means what it meant.
 - An example git hook, `examples/git-hooks/commit-msg`, for whoever works on the code: off until it is linked.
 
+### From 0.3.0 to 0.4.0
+
+- **One migration** (`shops.0015`): ten columns more on the other places of a shop. It only adds; every place that is
+  there is approved and on the map, as it was. No new variable in the `.env`; one new optional key in
+  `community.yml`, `fallback_language`. There was no 0.3.1: what was meant for it is here.
+- **The other places of a shop** ([A shop with several places](features/shop-places.md)):
+  - the owner says for each place whether it is on the map, and can write its phone;
+  - a place its owner adds, and a new address or point of an approved one, **wait for the community's approval**
+    where new shops do (`features: {approval: false}` turns both off): they were on the map as they were saved. One
+    line of `/admin/today/` for each shop says what its owner asked, and one button approves all of it;
+  - «Remove» hides a place at once and keeps it 30 days for the owner to take back; it deleted it.
+- `/shops.json`: `places` has only the places the public sees, and each has `phone` when its owner wrote one. A shop
+  whose places all wait, are off the map or were taken away has no `places`, as a shop with none.
+- For a community's own code: `ShopPlace.objects.create(...)` and a place saved in `/admin/` are approved as they
+  are saved, as before. `shop.places.all()` now also has the places that wait, are off the map or were taken away:
+  what shows them to the public reads `place.shown`, or `shops.places.shown(shop)`.
+- 28 new texts to translate in a catalog of your own, all about the places (`python -m config.pot --since 0.3.0`
+  lists them).
+- **Five more languages**: the software's texts (panel, register, map, emails) now come in Spanish, French, Dutch,
+  Portuguese and Slovenian (`es`, `fr`, `nl`, `pt`, `sl`), beside Italian and German. None of the five has been read
+  by a native speaker yet, and each says so: the language switcher shows them with the `*`
+  ([Adding a language](languages.md#read-by-a-native-speaker-or-not)).
+- What changes for a site that already lists one of these languages in `languages`:
+  - with no catalog of its own for it, the software's texts were in English and are now in that language, and the
+    language gets the `*` in the switcher (`native_reviewed` in `community.yml` takes it away);
+  - with a catalog of its own, that catalog still comes first, text by text: only the texts it leaves out change, from
+    English to the software's translation. Whether the language has the `*` is still what that catalog says.
+- **A text of `community.yml` missing in a language is shown in English** when English is one of the site's
+  languages, and only then in the default language (it was the default language straight away). It changes what a
+  visitor sees only on a site whose default language is not English, which has English, and where a text written
+  per language lacks a third language: that visitor read the default language and now reads English.
+  `fallback_language: false` in `community.yml` keeps it as it was, and the key can name another language, for all
+  or one at a time ([Adding a language](languages.md#a-text-missing-in-a-language)). One new optional key.
+- With images, the new catalogs are compiled at the build like the others; from the sources, run
+  `manage.py compilemessages` once.
+- Going back to 0.3.0: it runs on the migrated database, but it knows none of the new columns, so it shows on the
+  map **every** place, the ones that wait, the ones off the map and the ones taken away included, and its «Remove»
+  deletes. Before going back for longer than a moment, look at what `/admin/today/` has waiting.
+
 ### From 0.2.1 to 0.3.0
 
 - No migration and no new variable in the `.env`; one new text, one new optional key in `community.yml`. What changes

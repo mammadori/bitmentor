@@ -120,11 +120,28 @@ def public_slugs(language):
     return [slug for slug in page_slugs(language) if not private_page(language, slug)]
 
 
+def fallbacks(language):
+    """Where to look for a text, in order: the language asked for, the fallback language when the site has it
+    (English, unless `fallback_language` in community.yml names another, for every language or one at a time;
+    `false` for none), the default language."""
+    chosen = community().get("fallback_language")
+    if isinstance(chosen, dict):
+        chosen = chosen.get(language)
+    if chosen is None:
+        # Nothing said, or the key left empty: English
+        chosen = "en"
+    codes = [language]
+    if isinstance(chosen, str) and any(code == chosen for code, _ in settings.LANGUAGES):
+        codes.append(chosen)
+    return [*codes, settings.LANGUAGE_CODE]
+
+
 def localized(value, language):
-    """The text in the requested language; if the community has not written it yet, the one in the default language."""
+    """The text in the requested language; if the community has not written it yet, the one in the fallback language
+    (English, where the site has it), then the one in the default language."""
     if not isinstance(value, dict):
         return value
-    for code in (language, settings.LANGUAGE_CODE):
+    for code in fallbacks(language):
         if code in value:
             return value[code]
     return next(iter(value.values()))

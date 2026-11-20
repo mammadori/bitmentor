@@ -48,6 +48,9 @@ tagline:
 languages:
   en: English
   it: Italiano
+# A text not written in a language is shown in English where the site has English, then in the first language.
+# Another language, for all or one at a time ({de: it}), or `false` for the first language straight away:
+# fallback_language: en
 # The language switcher marks with a * the languages no native speaker has read; each catalog says it of itself
 # (docs/languages.md). Here the community has the last word, one language at a time, or `true` for no mark at all.
 # native_reviewed:

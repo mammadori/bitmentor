@@ -7339,3 +7339,91 @@ msgstr ""
 
 msgid "Not read by a native speaker yet."
 msgstr ""
+
+msgid "A new place, or a new address of one, goes on the map when someone of the community has approved it. The phone, and whether a place is on the map, are yours to change at once."
+msgstr ""
+
+msgid "Waiting for an approval: not on the map yet."
+msgstr ""
+
+msgid "New address waiting for an approval: %(address)s"
+msgstr ""
+
+msgid "Not on the map: you chose so."
+msgstr ""
+
+msgid "Places you took away"
+msgstr ""
+
+msgid "Customers do not see them. You can take one back for %(days)s days after you took it away; then it is deleted."
+msgstr ""
+
+msgid "Take it back"
+msgstr ""
+
+msgid "Approve the places: on the map"
+msgstr ""
+
+msgid "Phone of this place (optional)"
+msgstr ""
+
+msgid "Show this place on the map"
+msgstr ""
+
+msgid "Customers see it next to this place. Leave it empty to show none."
+msgstr ""
+
+msgid "Off, the place stays here for you and for your staff's registers, and customers do not see it."
+msgstr ""
+
+msgid "Place taken away: customers no longer see it. You can take it back for %(days)s days."
+msgstr ""
+
+msgid "Place taken back, as it was."
+msgstr ""
+
+msgid "This place cannot be taken back: remove another one first."
+msgstr ""
+
+msgid "Place saved. The new address goes on the map when someone of the community has approved it; until then customers see the one before."
+msgstr ""
+
+msgid "Place added: it goes on the map when someone of the community has approved it."
+msgstr ""
+
+msgid "new address %(new)s (it was %(old)s)"
+msgstr ""
+
+msgid "new place %(place)s"
+msgstr ""
+
+msgid "Check that the places are this shop's; if all is well, approve them, all at once."
+msgstr ""
+
+msgid "%(name)s has no place waiting."
+msgstr ""
+
+msgid "waits for an approval"
+msgstr ""
+
+msgid "approved; a new address waits: %(address)s"
+msgstr ""
+
+msgid "on the map"
+msgstr ""
+
+msgid "%(count)d place of this shop waits for your approval before it goes on the map."
+msgid_plural "%(count)d places of this shop wait for your approval before they go on the map."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(name)s: %(count)d place approved, it is on the map as its owner wants."
+msgid_plural "%(name)s: %(count)d places approved, they are on the map as their owner wants."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(name)s changed its places while you were reading: look at its line again, then approve."
+msgstr ""
+
+msgid "Write the number alone: digits, spaces and the signs + ( ) . / -"
+msgstr ""

@@ -1330,8 +1330,12 @@ class NativeReviewed(TestCase):
         # English is the language the texts are written in: the template speaks for it
         self.assertIs(self.languages.declared("en"), False)
         # A language with no catalog: nobody says, and nothing is marked
-        self.assertIsNone(self.languages.declared("sl"))
-        self.assertTrue(self.languages.reviewed("sl"))
+        self.assertIsNone(self.languages.declared("fi"))
+        self.assertTrue(self.languages.reviewed("fi"))
+
+    def test_the_languages_translated_but_not_read_say_so(self):
+        for code in ("es", "fr", "nl", "pt", "sl"):
+            self.assertIs(self.languages.declared(code), False, code)
 
     def test_a_header_is_read_from_the_first_entry_only(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -1355,6 +1359,36 @@ class NativeReviewed(TestCase):
         # A value that is not yes or no for a language leaves the catalog's word
         with patch("config.languages.community", return_value={**data, "native_reviewed": {"de": "maybe"}}):
             self.assertFalse(self.languages.reviewed("de"))
+
+    def test_a_text_missing_in_a_language_is_shown_in_english_before_the_default_language(self):
+        from config.community import fallbacks, localized
+
+        text = {"it": "Ciao", "en": "Hello", "de": "Hallo"}
+        languages = [("it", "Italiano"), ("en", "English"), ("de", "Deutsch"), ("fr", "Français")]
+        data = dict(community())
+        with override_settings(LANGUAGE_CODE="it", LANGUAGES=languages):
+            self.assertEqual(localized(text, "de"), "Hallo")
+            self.assertEqual(localized(text, "fr"), "Hello")
+            self.assertEqual(localized({"it": "Ciao"}, "fr"), "Ciao")
+            self.assertEqual(localized("Ciao", "fr"), "Ciao")
+            self.assertEqual(fallbacks("fr"), ["fr", "en", "it"])
+            # The community says otherwise: one language for all, one at a time, or none
+            with patch("config.community.community", return_value={**data, "fallback_language": "de"}):
+                self.assertEqual(localized(text, "fr"), "Hallo")
+            with patch("config.community.community", return_value={**data, "fallback_language": {"fr": "it"}}):
+                self.assertEqual(localized(text, "fr"), "Ciao")
+                self.assertEqual(localized({"it": "Ciao", "en": "Hello"}, "de"), "Hello")
+            # The key left empty, or a language the mapping does not name: English, as with no key
+            for unsaid in (None, {"de": "it"}, {"fr": None}):
+                with patch("config.community.community", return_value={**data, "fallback_language": unsaid}):
+                    self.assertEqual(localized(text, "fr"), "Hello", unsaid)
+            for off in (False, "xx", 3, {"fr": False}):
+                with patch("config.community.community", return_value={**data, "fallback_language": off}):
+                    self.assertEqual(localized(text, "fr"), "Ciao", off)
+        # A site without English: the default language, as before
+        with override_settings(LANGUAGE_CODE="it", LANGUAGES=[("it", "Italiano"), ("fr", "Français")]):
+            self.assertEqual(localized(text, "fr"), "Ciao")
+            self.assertEqual(localized({"de": "Hallo"}, "fr"), "Hallo")
 
     def test_the_mark_is_in_the_switcher_and_never_on_the_community_s_own_language(self):
         # The example community: English first, then Italian. English is not read, but it is the community's own

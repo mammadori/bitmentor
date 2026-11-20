@@ -8,6 +8,7 @@
   <p class="muted">{% blocktranslate with when=row.when %}Written {{ when }}.{% endblocktranslate %}</p>
   {% if row.contacts %}<ul>{% for label, value in row.contacts %}<li><span class="muted">{{ label }}:</span> {{ value|short_addresses }}</li>{% endfor %}</ul>{% endif %}
   {% if row.description %}<p>{{ row.description }}</p>{% endif %}
+  {% if item.asks %}<ul class="shop-asks">{% for ask in item.asks %}<li>{{ ask }}</li>{% endfor %}</ul>{% endif %}
 {% if item.checks or item.unchecked %}  <p><span class="help-tag">{% translate "Check first" %}</span> <strong>{% if item.unchecked %}{% translate "The checks could not be run" %}{% else %}{% translate "Check before approving" %}{% endif %}</strong></p>
   {% if item.checks %}<ul>{% for signal in item.checks %}<li>{{ signal.text|short_addresses }}</li>{% if signal.advice %}<li>{{ signal.advice|short_addresses }}</li>{% endif %}{% endfor %}</ul>{% endif %}
   <p class="notice">{% translate "This shop is not approved from here: an administrator looks at it and approves it from the administration." %}</p>

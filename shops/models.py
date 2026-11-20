@@ -7,7 +7,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.core.validators import MaxLengthValidator, MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
-from django.db.models.functions import Lower
+from django.db.models.functions import Lower, Now
 from django.utils import dateformat, timezone
 from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
@@ -662,10 +662,18 @@ class ShopPlace(models.Model):
     """One more place of a shop: a business with several branches is one shop, with one owner, one register and one
     Lightning address, and a point on the map for each branch. The shop's own position (`Shop.latitude`,
     `Shop.longitude`, with its address and town) is the first place and stays where it was; these are the others. A
-    place decides nothing about where the money goes."""
+    place decides nothing about where the money goes.
+
+    The public sees a place when three things hold (`shown`): someone of the community approved it (`approved_on`), its
+    owner wants it on the map (`on_map`), and the owner has not taken it away (`removed_on`). A place the owner writes
+    waits for the approval, and so does a new address or position of an approved one, kept in the `asked_*` columns
+    while the public keeps reading the approved one (shops/places.py). A place written by anyone else (an import,
+    /admin/, a community's own code) is approved as it is saved, like a shop brought that way. A place taken away
+    stays for TRASH_DAYS, hidden, so that its owner can take it back with no new approval; then it is deleted."""
 
     # More than this is a list of shops, not a shop
     MAX = 20
+    TRASH_DAYS = 30
 
     shop = models.ForeignKey("Shop", on_delete=models.CASCADE, related_name="places")
     address = models.CharField(_("address"), max_length=200, blank=True)
@@ -684,6 +692,25 @@ class ShopPlace(models.Model):
         validators=[RegexValidator(OSM_REF, _("Write it like node/123456, way/123456 or relation/123456."))],
         help_text=_("This place's entry on OpenStreetMap, like node/123456. Empty: not linked."),
     )
+    # The place's own phone, for the public: shown when it is written, and it waits for no approval
+    phone = models.CharField(_("phone"), max_length=40, blank=True, default="", db_default="")
+    # What the owner wants: off, the place stays in the panel and for the staff registers, and off the map
+    on_map = models.BooleanField(_("on the map"), default=True, db_default=True)
+    # Empty: the place waits for an approval, off the map. Whoever saves a place without saying is approving it
+    # (imports, /admin/, a community's code, and the places that were there before these columns); the owner's page
+    # empties it (shops/places.py)
+    approved_on = models.DateTimeField(
+        _("approved on"), null=True, blank=True, default=timezone.now, db_default=Now(), editable=False
+    )
+    approved_by = models.CharField(max_length=150, blank=True, default="", db_default="", editable=False)
+    # A new address or position the owner asked for an approved place, waiting: the columns above stay the approved ones
+    asked_address = models.CharField(max_length=200, blank=True, default="", db_default="", editable=False)
+    asked_city = models.CharField(max_length=100, blank=True, default="", db_default="", editable=False)
+    asked_latitude = models.FloatField(null=True, blank=True, editable=False)
+    asked_longitude = models.FloatField(null=True, blank=True, editable=False)
+    asked_on = models.DateTimeField(null=True, blank=True, editable=False)
+    # Taken away by the owner: hidden at once, deleted after TRASH_DAYS
+    removed_on = models.DateTimeField(null=True, blank=True, editable=False)
 
     class Meta:
         ordering = ["pk"]
@@ -700,6 +727,26 @@ class ShopPlace(models.Model):
         # One element is one place: not also a shop's own entry (the constraint keeps two places apart)
         if self.osm_ref and Shop.objects.filter(osm_ref=self.osm_ref).exists():
             raise ValidationError({"osm_ref": _("This element is already the entry of a shop.")})
+
+    @property
+    def shown(self):
+        """Whether the public sees this place: approved, wanted on the map by its owner, not taken away."""
+        return self.approved_on is not None and self.on_map and self.removed_on is None
+
+    @property
+    def waits(self):
+        """Whether someone of the community is asked about it: a new place, or a new address of an approved one."""
+        return self.removed_on is None and (self.approved_on is None or self.asked_on is not None)
+
+    @property
+    def asked(self):
+        """The address the owner asked for, as text, "" when none waits."""
+        if self.asked_on is None:
+            return ""
+        return (
+            ", ".join(part for part in (self.asked_address, self.asked_city) if part)
+            or f"{self.asked_latitude:.5f}, {self.asked_longitude:.5f}"
+        )
 
     def __str__(self):
         return (

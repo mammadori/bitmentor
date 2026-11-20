@@ -7352,3 +7352,91 @@ msgstr "Questa sessione è stata aperta con un wallet: accedi con la password pe
 
 msgid "Not read by a native speaker yet."
 msgstr "Non ancora riletto da un madrelingua."
+
+msgid "A new place, or a new address of one, goes on the map when someone of the community has approved it. The phone, and whether a place is on the map, are yours to change at once."
+msgstr "Una sede nuova, o un nuovo indirizzo di una sede, va in mappa quando qualcuno della comunità l'ha approvato. Il telefono, e se una sede è in mappa o no, li cambi tu subito."
+
+msgid "Waiting for an approval: not on the map yet."
+msgstr "In attesa di approvazione: non ancora in mappa."
+
+msgid "New address waiting for an approval: %(address)s"
+msgstr "Nuovo indirizzo in attesa di approvazione: %(address)s"
+
+msgid "Not on the map: you chose so."
+msgstr "Non in mappa: l'hai scelto tu."
+
+msgid "Places you took away"
+msgstr "Sedi che hai tolto"
+
+msgid "Customers do not see them. You can take one back for %(days)s days after you took it away; then it is deleted."
+msgstr "I clienti non le vedono. Puoi riprenderne una per %(days)s giorni da quando l'hai tolta; poi viene cancellata."
+
+msgid "Take it back"
+msgstr "Riprendila"
+
+msgid "Approve the places: on the map"
+msgstr "Approva le sedi: in mappa"
+
+msgid "Phone of this place (optional)"
+msgstr "Telefono di questa sede (facoltativo)"
+
+msgid "Show this place on the map"
+msgstr "Mostra questa sede sulla mappa"
+
+msgid "Customers see it next to this place. Leave it empty to show none."
+msgstr "I clienti lo vedono accanto a questa sede. Lascialo vuoto per non mostrarne nessuno."
+
+msgid "Off, the place stays here for you and for your staff's registers, and customers do not see it."
+msgstr "Spenta, la sede resta qui per te e per le casse di chi lavora con te, e i clienti non la vedono."
+
+msgid "Place taken away: customers no longer see it. You can take it back for %(days)s days."
+msgstr "Sede tolta: i clienti non la vedono più. Puoi riprenderla per %(days)s giorni."
+
+msgid "Place taken back, as it was."
+msgstr "Sede ripresa, com'era."
+
+msgid "This place cannot be taken back: remove another one first."
+msgstr "Questa sede non si può riprendere: prima togline un'altra."
+
+msgid "Place saved. The new address goes on the map when someone of the community has approved it; until then customers see the one before."
+msgstr "Sede salvata. Il nuovo indirizzo va in mappa quando qualcuno della comunità l'ha approvato; fino ad allora i clienti vedono quello di prima."
+
+msgid "Place added: it goes on the map when someone of the community has approved it."
+msgstr "Sede aggiunta: va in mappa quando qualcuno della comunità l'ha approvata."
+
+msgid "new address %(new)s (it was %(old)s)"
+msgstr "nuovo indirizzo %(new)s (era %(old)s)"
+
+msgid "new place %(place)s"
+msgstr "sede nuova %(place)s"
+
+msgid "Check that the places are this shop's; if all is well, approve them, all at once."
+msgstr "Controllate che le sedi siano di questo negozio; se è tutto a posto, approvatele, tutte insieme."
+
+msgid "%(name)s has no place waiting."
+msgstr "%(name)s non ha sedi in attesa."
+
+msgid "waits for an approval"
+msgstr "aspetta un'approvazione"
+
+msgid "approved; a new address waits: %(address)s"
+msgstr "approvata; un nuovo indirizzo aspetta: %(address)s"
+
+msgid "on the map"
+msgstr "sulla mappa"
+
+msgid "%(count)d place of this shop waits for your approval before it goes on the map."
+msgid_plural "%(count)d places of this shop wait for your approval before they go on the map."
+msgstr[0] "Una sede di questo negozio aspetta la vostra approvazione prima di andare in mappa."
+msgstr[1] "%(count)d sedi di questo negozio aspettano la vostra approvazione prima di andare in mappa."
+
+msgid "%(name)s: %(count)d place approved, it is on the map as its owner wants."
+msgid_plural "%(name)s: %(count)d places approved, they are on the map as their owner wants."
+msgstr[0] "%(name)s: %(count)d sede approvata, è in mappa come vuole il titolare."
+msgstr[1] "%(name)s: %(count)d sedi approvate, sono in mappa come vuole il titolare."
+
+msgid "%(name)s changed its places while you were reading: look at its line again, then approve."
+msgstr "%(name)s ha cambiato le sue sedi mentre leggevate: riguardate la sua riga, poi approvate."
+
+msgid "Write the number alone: digits, spaces and the signs + ( ) . / -"
+msgstr "Scrivi solo il numero: cifre, spazi e i segni + ( ) . / -"

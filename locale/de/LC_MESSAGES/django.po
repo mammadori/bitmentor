@@ -4270,7 +4270,7 @@ msgid "One more thing:"
 msgstr "Noch etwas:"
 
 msgid "the badge also needs your basic pass. It takes a few minutes."
-msgstr "das Zeichen verlangt auch Ihren Basis-Thekenschein. Das dauert nur wenige Minuten."
+msgstr "das Abzeichen verlangt auch Ihren Basis-Thekenschein. Das dauert nur wenige Minuten."
 
 msgid "Start the path"
 msgstr "Weg beginnen"
@@ -7452,3 +7452,91 @@ msgstr "Diese Sitzung wurde mit einer Wallet geöffnet: Melden Sie sich mit dem 
 
 msgid "Not read by a native speaker yet."
 msgstr "Noch nicht von Muttersprachlern gelesen."
+
+msgid "A new place, or a new address of one, goes on the map when someone of the community has approved it. The phone, and whether a place is on the map, are yours to change at once."
+msgstr "Ein neuer Standort oder eine neue Adresse eines Standorts kommt auf die Karte, sobald jemand aus der Gemeinschaft ihn freigegeben hat. Das Telefon und ob ein Standort auf der Karte ist, ändern Sie selbst sofort."
+
+msgid "Waiting for an approval: not on the map yet."
+msgstr "Wartet auf die Freigabe: noch nicht auf der Karte."
+
+msgid "New address waiting for an approval: %(address)s"
+msgstr "Neue Adresse wartet auf die Freigabe: %(address)s"
+
+msgid "Not on the map: you chose so."
+msgstr "Nicht auf der Karte: Sie haben es so gewählt."
+
+msgid "Places you took away"
+msgstr "Standorte, die Sie entfernt haben"
+
+msgid "Customers do not see them. You can take one back for %(days)s days after you took it away; then it is deleted."
+msgstr "Kunden sehen sie nicht. Sie können einen Standort %(days)s Tage lang zurückholen, nachdem Sie ihn entfernt haben; danach wird er gelöscht."
+
+msgid "Take it back"
+msgstr "Zurückholen"
+
+msgid "Approve the places: on the map"
+msgstr "Standorte freigeben: auf die Karte"
+
+msgid "Phone of this place (optional)"
+msgstr "Telefon dieses Standorts (optional)"
+
+msgid "Show this place on the map"
+msgstr "Diesen Standort auf der Karte zeigen"
+
+msgid "Customers see it next to this place. Leave it empty to show none."
+msgstr "Kunden sehen es neben diesem Standort. Lassen Sie es leer, um keines zu zeigen."
+
+msgid "Off, the place stays here for you and for your staff's registers, and customers do not see it."
+msgstr "Ausgeschaltet bleibt der Standort hier für Sie und für die Kassen Ihrer Mitarbeiter, und Kunden sehen ihn nicht."
+
+msgid "Place taken away: customers no longer see it. You can take it back for %(days)s days."
+msgstr "Standort entfernt: Kunden sehen ihn nicht mehr. Sie können ihn %(days)s Tage lang zurückholen."
+
+msgid "Place taken back, as it was."
+msgstr "Standort zurückgeholt, so wie er war."
+
+msgid "This place cannot be taken back: remove another one first."
+msgstr "Dieser Standort kann nicht zurückgeholt werden: Entfernen Sie zuerst einen anderen."
+
+msgid "Place saved. The new address goes on the map when someone of the community has approved it; until then customers see the one before."
+msgstr "Standort gespeichert. Die neue Adresse kommt auf die Karte, sobald jemand aus der Gemeinschaft sie freigegeben hat; bis dahin sehen Kunden die bisherige."
+
+msgid "Place added: it goes on the map when someone of the community has approved it."
+msgstr "Standort hinzugefügt: Er kommt auf die Karte, sobald jemand aus der Gemeinschaft ihn freigegeben hat."
+
+msgid "new address %(new)s (it was %(old)s)"
+msgstr "neue Adresse %(new)s (bisher %(old)s)"
+
+msgid "new place %(place)s"
+msgstr "neuer Standort %(place)s"
+
+msgid "Check that the places are this shop's; if all is well, approve them, all at once."
+msgstr "Prüfen Sie, ob die Standorte zu diesem Geschäft gehören; wenn alles stimmt, geben Sie sie frei, alle auf einmal."
+
+msgid "%(name)s has no place waiting."
+msgstr "%(name)s hat keinen wartenden Standort."
+
+msgid "waits for an approval"
+msgstr "wartet auf die Freigabe"
+
+msgid "approved; a new address waits: %(address)s"
+msgstr "freigegeben; eine neue Adresse wartet: %(address)s"
+
+msgid "on the map"
+msgstr "auf der Karte"
+
+msgid "%(count)d place of this shop waits for your approval before it goes on the map."
+msgid_plural "%(count)d places of this shop wait for your approval before they go on the map."
+msgstr[0] "Ein Standort dieses Geschäfts wartet auf Ihre Freigabe, bevor er auf die Karte kommt."
+msgstr[1] "%(count)d Standorte dieses Geschäfts warten auf Ihre Freigabe, bevor sie auf die Karte kommen."
+
+msgid "%(name)s: %(count)d place approved, it is on the map as its owner wants."
+msgid_plural "%(name)s: %(count)d places approved, they are on the map as their owner wants."
+msgstr[0] "%(name)s: %(count)d Standort freigegeben, er ist auf der Karte, wie der Inhaber es will."
+msgstr[1] "%(name)s: %(count)d Standorte freigegeben, sie sind auf der Karte, wie der Inhaber es will."
+
+msgid "%(name)s changed its places while you were reading: look at its line again, then approve."
+msgstr "%(name)s hat seine Standorte geändert, während Sie gelesen haben: Sehen Sie sich die Zeile noch einmal an, dann geben Sie frei."
+
+msgid "Write the number alone: digits, spaces and the signs + ( ) . / -"
+msgstr "Schreiben Sie nur die Nummer: Ziffern, Leerzeichen und die Zeichen + ( ) . / -"

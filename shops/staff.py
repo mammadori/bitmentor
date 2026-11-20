@@ -29,6 +29,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404, redirect, render
@@ -76,7 +77,10 @@ class StaffRegisterForm(forms.ModelForm):
     def __init__(self, *args, shop=None, has_places=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.shop = shop
-        places = shop.places.all() if shop else None
+        # The places the owner has: one taken away is not offered, unless this register is used there (it may come
+        # back, and a rename must not lose it)
+        mine = self.instance.place_id if self.instance else None
+        places = shop.places.filter(Q(removed_on=None) | Q(pk=mine)) if shop else None
         if places is None or not (places.exists() if has_places is None else has_places):
             del self.fields["place"]
         else:

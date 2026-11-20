@@ -166,12 +166,27 @@ class ShopPlaceForm(forms.ModelForm):
 
     class Meta:
         model = ShopPlace
-        fields = ["address", "city", "latitude", "longitude"]
+        fields = ["address", "city", "latitude", "longitude", "phone", "on_map"]
         field_classes = {"latitude": CoordinateField, "longitude": CoordinateField}
+        labels = {"phone": _("Phone of this place (optional)"), "on_map": _("Show this place on the map")}
+        widgets = {"phone": forms.TextInput(attrs={"inputmode": "tel"})}
+        help_texts = {
+            "phone": _("Customers see it next to this place. Leave it empty to show none."),
+            "on_map": _(
+                "Off, the place stays here for you and for your staff's registers, and customers do not see it."
+            ),
+        }
+
+    def clean_phone(self):
+        # Shown to customers as soon as it is saved, with no approval: a number, not a line of text
+        phone = INVISIBLE_CONTROLS.sub("", self.cleaned_data.get("phone") or "").strip()
+        if phone and not re.fullmatch(r"[0-9+ ()./-]+", phone):
+            raise forms.ValidationError(_("Write the number alone: digits, spaces and the signs + ( ) . / -"))
+        return phone
 
     def clean(self):
         data = super().clean()
-        for field in ("address", "city"):
+        for field in ("address", "city", "phone"):
             warning = secret_warning(str(self.data.get(field, "")))
             if warning:
                 self.add_error(field, warning)

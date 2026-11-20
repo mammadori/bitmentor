@@ -253,6 +253,7 @@ class StaffWalk(Base):
                 "admin/second-factor/",
                 "admin/second-factor/wallet/status/",
                 "admin/today/",
+                "admin/today/approve-places/<uuid:shop>/",
                 "admin/today/approve/<uuid:shop>/",
                 "admin/today/set-aside/<uuid:shop>/",
             ],

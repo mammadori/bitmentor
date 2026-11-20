@@ -33,7 +33,7 @@
       {% include "shops/shop_facts.html" with rows=facts %}
     </ul>
     {% if places %}<h3 class="shop-places-title">{% translate "Also here" %}</h3>
-    <ul class="facts" id="shop-places">{% for place in places %}<li>{{ place.line|default:place.position }} · <a href="https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&amp;to={{ place.position|urlencode }}" rel="noopener">{% translate "Get directions" %}</a></li>{% endfor %}</ul>{% endif %}
+    <ul class="facts" id="shop-places">{% for place in places %}<li>{{ place.line|default:place.position }}{% if place.phone %} · <a href="tel:{{ place.phone|cut:" " }}">{{ place.phone }}</a>{% endif %} · <a href="https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&amp;to={{ place.position|urlencode }}" rel="noopener">{% translate "Get directions" %}</a></li>{% endfor %}</ul>{% endif %}
     {% if shop.external_id and not shop.owner_id %}<p class="muted owner-note">{% blocktranslate with email=community.email %}Is this your shop? To update these details, write to <a href="mailto:{{ email }}">{{ email }}</a>.{% endblocktranslate %}</p>{% endif %}
     {% if shop.latitude is not None and shop.longitude is not None %}<a class="button" id="shop-route" href="https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&amp;to={{ shop.latitude|unlocalize }}%2C{{ shop.longitude|unlocalize }}" rel="noopener">{% translate "Get directions" %}</a>{% endif %}
   </div>

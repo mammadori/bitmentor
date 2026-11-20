@@ -148,6 +148,10 @@ def approve_or_hold(shops, user, *, confirmed=False, by=None):
         if still.update(approved_on=now, approved_by=name[:150], set_aside_on=None, set_aside_by=""):
             shop.approved_on, shop.approved_by = now, name[:150]
             shop.set_aside_on, shop.set_aside_by = None, ""
+            # The other places its owner wrote while it waited go on the map with it (shops/places.py)
+            from . import places
+
+            places.approve(shop, name)
             events.send(events.shop_approved, Shop, shop=shop, by=shop.approved_by)
             # The owner hears of it after the commit, from a thread: never a receiver of `shop_approved`, which is the
             # communities' own

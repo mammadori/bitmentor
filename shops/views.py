@@ -65,6 +65,7 @@ from . import (
     training,
     vacation,
 )
+from . import places as branches
 from .directory import nearby_shops, public_shops, waiting_for_wallet, waits_for_wallet
 from .forms import (
     NewShopForm,
@@ -747,7 +748,7 @@ def map_listing():
         shop.break_note = vacation.note(shop)
         # The towns of a shop with several places, each once, the shop's own first
         shop.towns = ", ".join(
-            dict.fromkeys(town for town in (shop.city, *(place.city for place in shop.places.all())) if town)
+            dict.fromkeys(town for town in (shop.city, *(place.city for place in branches.shown(shop))) if town)
         )
     texts = certified.texts()
     if not certified.enabled():
@@ -776,7 +777,8 @@ def shops_json(request):
 
 
 def other_places(shop):
-    """The other places of a shop as /shops.json and the map give them. `shop.places` is prefetched by the callers."""
+    """The other places of a shop as /shops.json and the map give them: the ones the public sees (shops/places.py).
+    `shop.places` is prefetched by the callers."""
     with_address = details.chosen(shop, "address")
     return [
         {
@@ -784,8 +786,10 @@ def other_places(shop):
             "city": place.city,
             "latitude": place.latitude,
             "longitude": place.longitude,
+            # The place's own phone, when its owner wrote one
+            **({"phone": place.phone} if place.phone else {}),
         }
-        for place in shop.places.all()
+        for place in branches.shown(shop)
     ]
 
 
@@ -820,7 +824,7 @@ def shops_json_body():
                     "longitude": shop.longitude,
                     # The other places of a shop with several branches (ShopPlace), only when it has some: the fields above are
                     # the first place. An address only when the owner shows the shop's
-                    **({"places": other_places(shop)} if shop.places.all() else {}),
+                    **({"places": other_places(shop)} if branches.shown(shop) else {}),
                     "url": reverse("shop_detail", args=[shop.id]),
                     "closed_on": shop.closed_on,
                     # Only the flag and the bands (shops/certified.py): never the dates, counts or amounts behind them
@@ -861,8 +865,9 @@ def shop_detail(request, shop):
             {
                 "line": ", ".join(part for part in ((place.address if with_address else ""), place.city) if part),
                 "position": f"{place.latitude:.6f},{place.longitude:.6f}",
+                "phone": place.phone,
             }
-            for place in shop.places.all()
+            for place in branches.shown(shop)
         ]
     )
     response = render(
@@ -1368,49 +1373,81 @@ def shop_places(request, shop):
     one register, a point on the map for each place; the shop's own position is the first and is changed with the
     shop's details."""
     shop = get_object_or_404(request.user.shops, pk=shop)
-    editing = None
-    if "remove" not in request.POST:
+    branches.purge(shop)
+    editing = approved = None
+    moving = next((name for name in ("remove", "restore") if name in request.POST), None)
+    if moving is None:
         # Only a place of this shop, which is one of the signed-in owner's: any other number is not found
         key = request.POST.get("place") if request.method == "POST" else request.GET.get("edit")
         if key is not None:
             if not (key.isascii() and key.isdecimal() and len(key) < 19):
                 raise Http404
-            editing = get_object_or_404(shop.places, pk=int(key))
-    form = ShopPlaceForm(request.POST or None if "remove" not in request.POST else None, instance=editing)
+            editing = get_object_or_404(branches.kept(shop), pk=int(key))
+            # The form starts from the address the owner last asked for, the approved one is kept to compare
+            approved = branches.for_form(editing)
+    # A new place starts on the map when the shop itself is in the lists
+    initial = None if editing is not None else {"on_map": shop.listed}
+    form = ShopPlaceForm(request.POST or None if moving is None else None, instance=editing, initial=initial)
     if request.method == "POST":
         if ratelimit.over_limit(f"edit-shop-user:{request.user.pk}", EDITS_PER_USER, OWNER_WINDOW):
             messages.error(request, _("You saved many times in a short while: wait a few minutes and try again."))
             return redirect("shop_places", shop=shop.id)
-        number = request.POST.get("remove", "")
-        if "remove" in request.POST:
+        if moving is not None:
+            number = request.POST.get(moving, "")
             if number.isascii() and number.isdecimal() and len(number) < 19:
-                shop.places.filter(pk=int(number)).delete()
+                if moving == "remove" and branches.remove(shop, int(number)):
+                    messages.success(
+                        request,
+                        _("Place taken away: customers no longer see it. You can take it back for %(days)s days.")
+                        % {"days": ShopPlace.TRASH_DAYS},
+                    )
+                elif moving == "restore":
+                    if branches.restore(shop, int(number)):
+                        messages.success(request, _("Place taken back, as it was."))
+                    else:
+                        messages.error(request, _("This place cannot be taken back: remove another one first."))
             return redirect("shop_places", shop=shop.id)
         if editing is not None:
             if form.is_valid():
                 # Only the owner's columns: the link to OpenStreetMap, written by the association, stays as it is, as it
                 # does when the owner moves the shop itself (edit_shop)
-                form.save(commit=False).save(update_fields=ShopPlaceForm.Meta.fields)
-                messages.success(request, _("Place saved."))
+                if branches.write(form.save(commit=False), shop, approved) == "waits" and editing.approved_on:
+                    messages.success(
+                        request,
+                        _(
+                            "Place saved. The new address goes on the map when someone of the community has "
+                            "approved it; until then customers see the one before."
+                        ),
+                    )
+                else:
+                    messages.success(request, _("Place saved."))
                 return redirect("shop_places", shop=shop.id)
-        elif shop.places.count() >= ShopPlace.MAX:
+        elif branches.kept(shop).count() >= ShopPlace.MAX:
             form.add_error(
                 None, _("This shop has %(count)s other places, the most it can have.") % {"count": ShopPlace.MAX}
             )
         elif form.is_valid():
             place = form.save(commit=False)
-            place.shop = shop
-            place.save()
-            messages.success(request, _("Place added: it is a point of your shop on the map."))
+            if branches.write(place, shop) == "waits":
+                messages.success(
+                    request, _("Place added: it goes on the map when someone of the community has approved it.")
+                )
+            elif place.on_map:
+                messages.success(request, _("Place added: it is a point of your shop on the map."))
+            else:
+                messages.success(request, _("Place saved."))
             return redirect("shop_places", shop=shop.id)
+    kept = list(branches.kept(shop))
     return render(
         request,
         "shops/shop_places.html",
         {
             "form": form,
             "shop": shop,
-            "places": list(shop.places.all()),
-            "full": shop.places.count() >= ShopPlace.MAX,
+            "places": kept,
+            "trash": list(branches.trash(shop)),
+            "trash_days": ShopPlace.TRASH_DAYS,
+            "full": len(kept) >= ShopPlace.MAX,
             "editing": editing,
         },
         status=400 if form.is_bound and form.errors else 200,

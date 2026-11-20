@@ -58,6 +58,12 @@ class Item:
     last: bool = False
     # What the merchant wrote in a request for help (plain text, one line): shown, never put in a message
     wrote: str = ""
+    # What the places of the shop ask, one line each with the address and the point (shops/places.py, `described`):
+    # for whoever approves, on /admin/today/ and on the page of a team key that approves. Never in `what`, which the
+    # team's area shows to every key: an address that waits is nobody else's to read
+    asks: list = field(default_factory=list)
+    # For `approve_places`: the code of what `asks` says (shops/places.py, `seal`)
+    seal: str = ""
 
     @property
     def when(self):
@@ -282,20 +288,67 @@ def approval_items():
     """The new shops waiting for someone to approve them (shops/approval.py, `waiting`: not those set aside), the oldest
     first: one line each, with the buttons on the page. Read on their own: a shop without a wallet yet waits too, and is
     not among the trading ones."""
+    from . import places
     from .approval import waiting
 
-    return [
-        Item(
-            WARNING,
-            "approve",
-            _("A new shop waits for your approval before it goes on the map."),
-            shop=shop,
-            since=shop.created,
-            do=_("Look at the shop and its owner; if all is well, approve it."),
-            links=[shop_link(shop)],
+    found = []
+    for shop in waiting().prefetch_related("places").order_by("created")[:50]:
+        found.append(
+            Item(
+                WARNING,
+                "approve",
+                _("A new shop waits for your approval before it goes on the map."),
+                # The other places its owner wrote are approved with it: whoever approves reads them (`asks`)
+                asks=[
+                    _("new place %(place)s") % {"place": places.described(place)[0]}
+                    for place in shop.places.all()
+                    if place.waits
+                ],
+                shop=shop,
+                since=shop.created,
+                do=_("Look at the shop and its owner; if all is well, approve it."),
+                links=[shop_link(shop)],
+            )
         )
-        for shop in waiting().order_by("created")[:50]
-    ]
+    return found
+
+
+def place_items():
+    """The approved shops whose owner asked something about their other places (shops/places.py): a new place, a new
+    address of one. One line for each shop, with everything it asks, and one button approves it all."""
+    from . import places
+
+    # The places taken away long enough ago are deleted here, once a day at least (the `dashboard` command)
+    places.purge()
+    found = []
+    for shop, waiting in places.waiting()[:50]:
+        asks = []
+        for place in waiting:
+            new, old = places.described(place)
+            asks.append(
+                _("new address %(new)s (it was %(old)s)") % {"new": new, "old": old}
+                if old
+                else _("new place %(place)s") % {"place": new}
+            )
+        found.append(
+            Item(
+                WARNING,
+                "approve_places",
+                ngettext(
+                    "%(count)d place of this shop waits for your approval before it goes on the map.",
+                    "%(count)d places of this shop wait for your approval before they go on the map.",
+                    len(waiting),
+                )
+                % {"count": len(waiting)},
+                asks=asks,
+                shop=shop,
+                since=min(place.asked_on or place.created for place in waiting),
+                do=_("Check that the places are this shop's; if all is well, approve them, all at once."),
+                links=[shop_link(shop)],
+                seal=places.seal(waiting),
+            )
+        )
+    return found
 
 
 def certificate_items(found_shops):
@@ -820,6 +873,7 @@ def summary(now=None):
     items += training_items(open_shops, now)
     items += certificate_items(found_shops)
     items += approval_items()
+    items += place_items()
     limit_rows = limits.rows()
     items += limit_items(limit_rows)
     # The merchants who asked for OpenStreetMap wait like those who asked for help: on top. The rest goes with the others
