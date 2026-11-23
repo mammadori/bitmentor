@@ -1,7 +1,7 @@
 {% extends "team/area_base.html" %}{% load i18n %}
 {% block area %}
 <h2 id="changes">{% translate "Changes to the owners' accounts" %}</h2>
-<p class="muted">{% translate "What whoever runs the site changed in the accounts of shops' owners, newest first: a second pair of eyes on the people who can change them. It names who did it. If a change looks wrong, ask the merchant whether they expected it, and tell the association." %}</p>
+<p class="muted">{% translate "What whoever runs the site changed in the accounts of shops' owners, newest first: a second pair of eyes on the people who can change them. It names who did it. If a change looks wrong, ask the merchant whether they expected it, and tell the community." %}</p>
 {% if rows %}<ol class="help-facts" aria-labelledby="changes">
 {% for entry in rows %}{% with row=entry.row %}<li class="help-fact">
   <p><strong>{{ entry.shops|default:"–" }}</strong> · {{ entry.what }}</p>

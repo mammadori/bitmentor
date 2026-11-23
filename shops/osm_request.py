@@ -1,4 +1,4 @@
-"""«The association does it for me»: a merchant asks, from the panel, for someone of the staff to bring the shop's entry on
+"""«The community does it for me»: a merchant asks, from the panel, for someone of the staff to bring the shop's entry on
 OpenStreetMap up to date, or to put the shop there (`OsmRequest`, shops/osm_views.py).
 
 Only a queue. The site never writes to OpenStreetMap by itself: a person of the staff does it by hand, in the editor or with
@@ -77,7 +77,7 @@ def create(shop, user, now=None):
 
 
 def message(row):
-    """The text for the moderators' chat, in the association's language: the site, the shop, what is asked, the lines the
+    """The text for the moderators' chat, in the community's language: the site, the shop, what is asked, the lines the
     site worked out (no more than a few) and the link. Never anything the merchant wrote: nothing is asked of them."""
     with translation.override(settings.LANGUAGE_CODE):
         from .management.commands.dashboard import site_label
@@ -85,7 +85,7 @@ def message(row):
         link = f"{settings.PUBLIC_URL}{reverse('admin:shops_osmrequest_change', args=[row.pk])}"
         lines = [
             site_label(),
-            _("{shop} asks the association to {what}.").format(shop=alert_name(row.shop), what=row.get_kind_display()),
+            _("{shop} asks the community to {what}.").format(shop=alert_name(row.shop), what=row.get_kind_display()),
         ]
         if row.shop.osm_ref:
             lines.append(osm.element_url(row.shop.osm_ref))

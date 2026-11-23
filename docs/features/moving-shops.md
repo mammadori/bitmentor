@@ -17,7 +17,7 @@ docker compose exec web python manage.py import_moved_shops /tmp/shops.json --ap
 
 - **What moves**: the shop's details (name, description, address, position, city, website, email and phone, business
   name and VAT number, discount, Nostr key and name, Telegram chat for the shop's notices), what its owner chose to show of them
-  ([What customers see of a shop](shop-details.md)), what the association decided (listed, suspended, historic,
+  ([What customers see of a shop](shop-details.md)), what the community decided (listed, suspended, historic,
   external id), and how to reach the owner: the recovery email and whether they
   sign in with a wallet. Not the wallet's login key: LNURL-auth gives each domain its own key, so on the new site the
   same wallet signs in as someone else. Staff accounts sign in with a password, which never travels: their shops arrive

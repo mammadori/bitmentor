@@ -1,5 +1,5 @@
 """Reads OpenStreetMap and keeps the shops and their entries in step (shops/osm.py): proposes a link for the shops that are
-beyond doubt the same place (the association confirms it in /admin/), fills the address, town and position a confirmed shop
+beyond doubt the same place (the community confirms it in /admin/), fills the address, town and position a confirmed shop
 has empty, offers its website and phone, lists the places that take bitcoin and are not among the shops,
 and works out the changes OpenStreetMap should get from what this site knows. It never writes to OpenStreetMap: that is
 `manage.py osm_upload`, run by hand.

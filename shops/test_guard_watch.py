@@ -1,5 +1,5 @@
 """The changes to the account of a shop's owner (shops/guard.py): written in a register, told to the owner and to the
-association, shown to the owner's panel."""
+community, shown to the owner's panel."""
 
 from datetime import timedelta
 from unittest.mock import patch
@@ -84,7 +84,7 @@ class Watch(Base):
         self.assertIn("Bar, Pub", message.body)
         self.assertIn("write to info@example.org now", message.body)
         self.assertNotIn("nobody told", message.body + message.subject)
-        # In the Telegram chat of each of their shops, and the association's
+        # In the Telegram chat of each of their shops, and the community's
         chats = sorted(call.args[0] for call in self.telegram.call_args_list)
         self.assertEqual(chats, ["-100", "111", "222"])
         association = next(call.args[1] for call in self.telegram.call_args_list if call.args[0] == "-100")
@@ -336,7 +336,7 @@ class Watch(Base):
             self.telegram.side_effect = guard.NotificationFailed("500")
             row = self.change()
         self.assertEqual((row.told, row.not_told), ("", "email,telegram,association"))
-        # A Telegram that does not answer is not asked again for the next chat: the association was the first and only try
+        # A Telegram that does not answer is not asked again for the next chat: the community was the first and only try
         self.assertEqual([call.args[0] for call in self.telegram.call_args_list], ["-100"])
 
     def test_the_association_is_told_first_then_the_owner(self):
@@ -358,7 +358,7 @@ class Watch(Base):
             Shop.objects.create(owner=self.owner, name=f"Shop {number}", telegram_chat=f"{number}00")
         row = self.change()
         self.assertEqual((row.told, row.not_told), ("email,association", "telegram"))
-        # The association and MAX_CHATS chats, no more
+        # The community and MAX_CHATS chats, no more
         self.assertEqual(len(self.telegram.call_args_list), 1 + guard.MAX_CHATS)
 
     def test_each_channel_on_its_own(self):
@@ -451,7 +451,7 @@ class Register(Base):
         AccountChange.objects.filter(pk=self.row.pk).update(told="email,telegram", not_told="association")
         page = self.client.get("/admin/shops/accountchange/").content.decode()
         self.assertIn("email, Telegram chat of the shop", page)
-        self.assertIn("chat of the association", page)
+        self.assertIn("chat of the community", page)
         self.assertIn("?via__exact=admin", page)
 
     def test_it_reads_in_italian_for_whoever_runs_the_site_in_italian(self):

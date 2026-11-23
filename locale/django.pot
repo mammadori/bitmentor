@@ -343,9 +343,6 @@ msgstr ""
 msgid "Your shop is ready."
 msgstr ""
 
-msgid "Register for whoever works with you"
-msgstr ""
-
 msgid "Code that opens the register"
 msgstr ""
 
@@ -355,7 +352,7 @@ msgstr ""
 msgid "Link copied"
 msgstr ""
 
-msgid "On the shop phone, add the page to the home screen from the browser menu: it opens like an app."
+msgid "On the shop phone, add the register to the home screen from the phone's menu (⋮ on Android, Share on iPhone): it opens with one tap, like an app, with nothing to install."
 msgstr ""
 
 msgid "Your account"
@@ -1105,7 +1102,7 @@ msgstr ""
 msgid "the register shown to the staff"
 msgstr ""
 
-msgid "The association has taken your shop off the map and the lists for now. The register still works."
+msgid "The community has taken your shop off the map and the lists for now. The register still works."
 msgstr ""
 
 msgid "Your shop is not shown on the map or in the lists, as you chose. The register works the same."
@@ -1302,9 +1299,6 @@ msgid_plural "Registers for your staff: %(counter)s turned on"
 msgstr[0] ""
 msgstr[1] ""
 
-msgid "Give a register to someone"
-msgstr ""
-
 msgid "Or share your own register"
 msgstr ""
 
@@ -1351,7 +1345,7 @@ msgstr ""
 msgid "Open the link and press «Open the register on this phone»."
 msgstr ""
 
-msgid "From the browser menu, add the page to the home screen: it opens like an app."
+msgid "From the phone's menu (⋮ on Android, Share on iPhone), add the register to the home screen: it opens with one tap, like an app, with nothing to install."
 msgstr ""
 
 msgid "Code that puts the register on a phone"
@@ -1402,7 +1396,7 @@ msgstr ""
 msgid "Open the register on this phone"
 msgstr ""
 
-msgid "The code works only once: then the register stays on this phone. Add it to the home screen from the browser menu."
+msgid "The code works only once: then the register stays on this phone. Add it to the home screen from the phone's menu (⋮ on Android, Share on iPhone)."
 msgstr ""
 
 msgid "This code opens nothing"
@@ -1425,9 +1419,6 @@ msgid "Not opened on a phone yet: the code is waiting."
 msgstr ""
 
 msgid "Not opened on a phone yet."
-msgstr ""
-
-msgid "Put it on a phone"
 msgstr ""
 
 #, python-format
@@ -1680,7 +1671,7 @@ msgstr ""
 msgid "Send the owner again the one-time link from the list of owners the import wrote. If that link is lost, the command below makes a new one for this shop only, from the same file of the import, in a new list of owners: the old link stops working, the other shops keep theirs."
 msgstr ""
 
-msgid "in the browser"
+msgid "on any phone or computer, nothing to install"
 msgstr ""
 
 msgid "I do not have a wallet yet: save my shop, I add the wallet afterwards"
@@ -1978,7 +1969,7 @@ msgstr ""
 msgid "If you know why, you do not need to do anything. If you do not, write to {email} now."
 msgstr ""
 
-msgid "If you know why, you do not need to do anything. If you do not, tell the association now."
+msgid "If you know why, you do not need to do anything. If you do not, tell the community now."
 msgstr ""
 
 #, python-brace-format
@@ -2066,7 +2057,7 @@ msgstr ""
 msgid "Telegram chat of the shop"
 msgstr ""
 
-msgid "chat of the association"
+msgid "chat of the community"
 msgstr ""
 
 msgid "account change"
@@ -2641,10 +2632,10 @@ msgstr ""
 msgid "The owner opens «Registers for your staff», chooses the register and makes a new code, then the person scans it with their phone. The code is never read out on the phone."
 msgstr ""
 
-msgid "The association has taken the certificate away from your shop: ask them why."
+msgid "The community has taken the certificate away from your shop: ask them why."
 msgstr ""
 
-msgid "It was revoked in the administration and the site will not give it again until that is undone. Ask the association before saying more."
+msgid "It was revoked in the administration and the site will not give it again until that is undone. Ask the community before saying more."
 msgstr ""
 
 msgid "Customers who scan the card for people without a wallet see only the shop page, because nobody can pay at this shop now."
@@ -2659,7 +2650,7 @@ msgstr ""
 msgid "Your shop is here, but nobody has taken it yet: tell us who you are and we help you take it."
 msgstr ""
 
-msgid "Nothing to fix. To change the dates the merchant uses «Change the dates» in their panel; the association edits the closure under the shop in the administration."
+msgid "Nothing to fix. To change the dates the merchant uses «Change the dates» in their panel; the community edits the closure under the shop in the administration."
 msgstr ""
 
 msgid "You are marked as closed, but your shop is not on the map, so nobody reads the notice. The register works the same."
@@ -2726,7 +2717,7 @@ msgstr ""
 msgid "Something wrong?"
 msgstr ""
 
-msgid "Tell us what is happening. We show you what the site already knows about your shop and what to do now. If it is not enough, you ask the association for help with one tap."
+msgid "Tell us what is happening. We show you what the site already knows about your shop and what to do now. If it is not enough, you ask the community for help with one tap."
 msgstr ""
 
 msgid "What is happening?"
@@ -2735,22 +2726,22 @@ msgstr ""
 msgid "Your requests"
 msgstr ""
 
-msgid "The message to the association did not go out, but the request is saved."
+msgid "The message to the community did not go out, but the request is saved."
 msgstr ""
 
 msgid "We never ask for the secret words of your wallet, for a key or for a password. If someone asks you, it is not us."
 msgstr ""
 
-msgid "You asked %(when)s. Waiting for the association."
+msgid "You asked %(when)s. Waiting for the community."
 msgstr ""
 
 msgid "You asked %(when)s. Solved %(solved)s."
 msgstr ""
 
-msgid "The association has been told."
+msgid "The community has been told."
 msgstr ""
 
-msgid "The request is saved and the association will see it."
+msgid "The request is saved and the community will see it."
 msgstr ""
 
 msgid "What the site knows about your shop"
@@ -2777,10 +2768,10 @@ msgstr ""
 msgid "Look again, asking your Lightning wallet"
 msgstr ""
 
-msgid "Ask the association for help"
+msgid "Ask the community for help"
 msgstr ""
 
-msgid "One tap and the association receives your request together with what you see above. We never ask for the secret words of your wallet, for a key or for a password."
+msgid "One tap and the community receives your request together with what you see above. We never ask for the secret words of your wallet, for a key or for a password."
 msgstr ""
 
 msgid "Please look at what is marked below."
@@ -2798,7 +2789,7 @@ msgstr ""
 msgid "You asked for help %(when)s."
 msgstr ""
 
-msgid "The request is saved and the association will see it, even if the message to them did not go out."
+msgid "The request is saved and the community will see it, even if the message to them did not go out."
 msgstr ""
 
 msgid "The payment does not go through, the register does not open, a lost phone…"
@@ -2948,24 +2939,24 @@ msgstr ""
 msgid "The request and its diagnosis: {link}"
 msgstr ""
 
-msgid "You have looked many times in a short while: wait a few minutes. Meanwhile, you can ask the association for help."
+msgid "You have looked many times in a short while: wait a few minutes. Meanwhile, you can ask the community for help."
 msgstr ""
 
 msgid "Too many requests in a short time: try again in a while."
 msgstr ""
 
 #, python-brace-format
-msgid "You have already asked {count} times today, and the association has your requests: we answer them one by one. If it is urgent, write to {email}."
+msgid "You have already asked {count} times today, and the community has your requests: we answer them one by one. If it is urgent, write to {email}."
 msgstr ""
 
 msgid "You asked a moment ago, and we have your request."
 msgstr ""
 
-msgid "We have your request. The association has been told, and has what the site knows about your shop in front of it."
+msgid "We have your request. The community has been told, and has what the site knows about your shop in front of it."
 msgstr ""
 
 #, python-brace-format
-msgid "We have your request and it is saved: the association sees it in its list. The message to them did not go out right now, so if it is urgent write to {email}."
+msgid "We have your request and it is saved: the community sees it in its list. The message to them did not go out right now, so if it is urgent write to {email}."
 msgstr ""
 
 msgid "They asked to be called back by email."
@@ -3070,7 +3061,7 @@ msgstr ""
 msgid "what the site knew"
 msgstr ""
 
-msgid "message to the association"
+msgid "message to the community"
 msgstr ""
 
 msgid "solved"
@@ -3331,7 +3322,7 @@ msgstr ""
 msgid "Business details: name on the invoices, VAT number"
 msgstr ""
 
-msgid "The association keeps them. Customers do not see them unless you choose so."
+msgid "The community keeps them. Customers do not see them unless you choose so."
 msgstr ""
 
 msgid "Choose what customers see"
@@ -3390,7 +3381,7 @@ msgstr ""
 msgid "Meetup"
 msgstr ""
 
-msgid "This is not a time zone name: write it like Europe/Rome."
+msgid "This is not a time zone name: write it like Europe/Berlin or America/New_York."
 msgstr ""
 
 msgid "A link starts with https:// and has no spaces."
@@ -3438,7 +3429,7 @@ msgstr ""
 msgid "time zone"
 msgstr ""
 
-msgid "The time is written and shown in this zone, like Europe/Rome."
+msgid "The time is written and shown in this zone, like Europe/Berlin or America/New_York."
 msgstr ""
 
 msgid "title or topic"
@@ -3557,7 +3548,7 @@ msgstr ""
 msgid "If it was you, you do not need to do anything. If it was not, write to {email} now."
 msgstr ""
 
-msgid "If it was you, you do not need to do anything. If it was not, tell the association now."
+msgid "If it was you, you do not need to do anything. If it was not, tell the community now."
 msgstr ""
 
 msgid "you changed where your shop gets paid"
@@ -3621,17 +3612,17 @@ msgid "The full report and the proposals: {link}"
 msgstr ""
 
 #, python-brace-format
-msgid "{shop} asks the association to {what}."
+msgid "{shop} asks the community to {what}."
 msgstr ""
 
 #, python-brace-format
 msgid "The request: {link}"
 msgstr ""
 
-msgid "We have your request. A person of the association does it by hand, and you see here when it is done."
+msgid "We have your request. A person of the community does it by hand, and you see here when it is done."
 msgstr ""
 
-msgid "The association does it for me"
+msgid "The community does it for me"
 msgstr ""
 
 msgid "There is nothing to send for this shop right now."
@@ -3641,7 +3632,7 @@ msgid "Tick the box to send the request."
 msgstr ""
 
 #, python-brace-format
-msgid "You have already asked {count} times today, and the association has your requests: we do them one by one. If it is urgent, write to {email}."
+msgid "You have already asked {count} times today, and the community has your requests: we do them one by one. If it is urgent, write to {email}."
 msgstr ""
 
 msgid "OpenStreetMap"
@@ -3672,13 +3663,13 @@ msgstr ""
 msgid "%(count)d requests marked as done."
 msgstr ""
 
-msgid "Asked the association to put the shop on OpenStreetMap."
+msgid "Asked the community to put the shop on OpenStreetMap."
 msgstr ""
 
-msgid "Asked the association to update the shop's entry on OpenStreetMap."
+msgid "Asked the community to update the shop's entry on OpenStreetMap."
 msgstr ""
 
-msgid "We have your request about OpenStreetMap: a person of the association does it by hand."
+msgid "We have your request about OpenStreetMap: a person of the community does it by hand."
 msgstr ""
 
 #, python-format
@@ -3793,10 +3784,10 @@ msgstr ""
 msgid "A person does it by hand, with their own account: it can take a few days. You will see here when it is done."
 msgstr ""
 
-msgid "Your shop's entry on OpenStreetMap was updated by the association. Thank you."
+msgid "Your shop's entry on OpenStreetMap was updated by the community. Thank you."
 msgstr ""
 
-msgid "The association could not do it."
+msgid "The community could not do it."
 msgstr ""
 
 msgid "Your shop is on OpenStreetMap"
@@ -3865,13 +3856,13 @@ msgstr ""
 msgid "Press «Save», write a few words about what you changed (for example «bitcoin payments») and send it. You need a free OpenStreetMap account: the editor guides you."
 msgstr ""
 
-msgid "Or let the association do it"
+msgid "Or let the community do it"
 msgstr ""
 
-msgid "You have asked already: the request is waiting for a person of the association."
+msgid "You have asked already: the request is waiting for a person of the community."
 msgstr ""
 
-msgid "A person of the association does it by hand, with their own account. You do not need an account on OpenStreetMap."
+msgid "A person of the community does it by hand, with their own account. You do not need an account on OpenStreetMap."
 msgstr ""
 
 msgid "Send the request"
@@ -3881,7 +3872,7 @@ msgid "OpenStreetMap is public: everything you write there can be read by everyb
 msgstr ""
 
 #, python-format
-msgid "You asked the association %(when)s."
+msgid "You asked the community %(when)s."
 msgstr ""
 
 #, python-format
@@ -3903,14 +3894,14 @@ msgstr ""
 msgid "A person does it by hand: you see here when it is done."
 msgstr ""
 
-msgid "Your shop on OpenStreetMap: the association could not do it."
+msgid "Your shop on OpenStreetMap: the community could not do it."
 msgstr ""
 
 msgid "See what the map says about you, and update it."
 msgstr ""
 
 #, python-format
-msgid "You asked the association about OpenStreetMap %(when)s."
+msgid "You asked the community about OpenStreetMap %(when)s."
 msgstr ""
 
 #, python-format
@@ -4016,10 +4007,10 @@ msgstr ""
 msgid "OpenStreetMap says that your shop does not take bitcoin any more."
 msgstr ""
 
-msgid "If that is not true, ask the association below: we look at it with you."
+msgid "If that is not true, ask the community below: we look at it with you."
 msgstr ""
 
-msgid "Something on OpenStreetMap is not like on this site, and a person of the association has to look at it. You do not need to do anything."
+msgid "Something on OpenStreetMap is not like on this site, and a person of the community has to look at it. You do not need to do anything."
 msgstr ""
 
 msgid "We have not compared it for a while. These are the lines it should have:"
@@ -4363,7 +4354,7 @@ msgstr ""
 msgid "Your Lightning wallet receives, but it does not tell the register when a payment arrives: check each payment in your wallet app before you confirm it on the register."
 msgstr ""
 
-msgid "The register cannot take payments: write to the association."
+msgid "The register cannot take payments: write to the community."
 msgstr ""
 
 msgid "A customer paid more than the price: the extra is theirs. Give it back from your wallet."
@@ -4397,10 +4388,10 @@ msgstr ""
 msgid "Give each person who takes payments their own register. With it they can only take payments, which go to your wallet: they see where the money goes, and nothing else of your wallet, your sales or your settings."
 msgstr ""
 
-msgid "Nothing to do now: the association hears about it the day the closure ends."
+msgid "Nothing to do now: the community hears about it the day the closure ends."
 msgstr ""
 
-msgid "Nothing to do now: the merchant and the association hear about it the day the shop opens again."
+msgid "Nothing to do now: the merchant and the community hear about it the day the shop opens again."
 msgstr ""
 
 #, python-format
@@ -4617,7 +4608,7 @@ msgid "This register was paired, but its pairing no longer matches the site's se
 msgstr ""
 
 #, python-brace-format
-msgid "The shop's Lightning address changed: before it was {before}, now it is {after}. If you did not change it, do not take payments and tell the association."
+msgid "The shop's Lightning address changed: before it was {before}, now it is {after}. If you did not change it, do not take payments and tell the community."
 msgstr ""
 
 #, python-brace-format
@@ -4763,7 +4754,7 @@ msgstr ""
 msgid "Just a moment..."
 msgstr ""
 
-msgid "This browser cannot encrypt the copy: try another browser."
+msgid "This device cannot encrypt the copy: try an up-to-date Chrome or Safari."
 msgstr ""
 
 msgid "Copy downloaded. Keep it somewhere other than this phone, and keep the passphrase too."
@@ -4858,7 +4849,7 @@ msgstr ""
 msgid "The shop's Lightning address is {after}, but the register on this phone takes payments into {before}. Open your register first and check it: no code until they are the same."
 msgstr ""
 
-msgid "The code cannot be made on this browser: try another browser, or open this page on the phone with your register."
+msgid "The code cannot be made on this device: try an up-to-date Chrome or Safari, or open this page on the phone with your register."
 msgstr ""
 
 msgid "The shop's Lightning wallet does not answer: the register cannot charge."
@@ -4939,7 +4930,7 @@ msgstr ""
 msgid "Sales on this phone"
 msgstr ""
 
-msgid "This browser may delete the sales when it needs room: keep your copies up to date."
+msgid "This device may delete the sales when it needs room: keep your copies up to date."
 msgstr ""
 
 msgid "End of shift"
@@ -5361,8 +5352,8 @@ msgid "Sales already started on the old address are still recognised for a few d
 msgstr ""
 
 #, python-format
-msgid "We send you a confirmation and tell the association. The address can be changed again after a day."
-msgid_plural "We send you a confirmation and tell the association. The address can be changed again after %(days)s days."
+msgid "We send you a confirmation and tell the community. The address can be changed again after a day."
+msgid_plural "We send you a confirmation and tell the community. The address can be changed again after %(days)s days."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -5373,7 +5364,7 @@ msgid "Change the address"
 msgstr ""
 
 #, python-format
-msgid "On %(when)s you changed the Lightning address from %(before)s to %(after)s. Open each register again and confirm it; give your staff new pairing codes. The printed sign stays valid. If it was not you, write to the association now."
+msgid "On %(when)s you changed the Lightning address from %(before)s to %(after)s. Open each register again and confirm it; give your staff new pairing codes. The printed sign stays valid. If it was not you, write to the community now."
 msgstr ""
 
 msgid "We are checking the new address: until then the certified badge is paused."
@@ -5486,10 +5477,10 @@ msgstr ""
 msgid "requests for help from one shop in a day"
 msgstr ""
 
-msgid "This site cannot take more of this for now: the association has been told. Please try again later."
+msgid "This site cannot take more of this for now: the community has been told. Please try again later."
 msgstr ""
 
-msgid "The association cannot take more requests here right now. Please write to {email}."
+msgid "The community cannot take more requests here right now. Please write to {email}."
 msgstr ""
 
 msgid "%(what)s: %(used)d of %(limit)d. The limit is reached: the site refuses new ones, and keeps all it has."
@@ -6687,7 +6678,7 @@ msgstr ""
 msgid "The editor"
 msgstr ""
 
-msgid "The merchant asked the association to put the shop on OpenStreetMap, or to update its entry. You do it by hand on openstreetmap.org, with your own account, using the lines of the request: the site writes nothing there. Then mark it done: the merchant sees it in the panel."
+msgid "The merchant asked the community to put the shop on OpenStreetMap, or to update its entry. You do it by hand on openstreetmap.org, with your own account, using the lines of the request: the site writes nothing there. Then mark it done: the merchant sees it in the panel."
 msgstr ""
 
 msgid "The shop's entry"
@@ -6702,7 +6693,7 @@ msgstr ""
 msgid "What to write:"
 msgstr ""
 
-msgid "What whoever runs the site changed in the accounts of shops' owners, newest first: a second pair of eyes on the people who can change them. It names who did it. If a change looks wrong, ask the merchant whether they expected it, and tell the association."
+msgid "What whoever runs the site changed in the accounts of shops' owners, newest first: a second pair of eyes on the people who can change them. It names who did it. If a change looks wrong, ask the merchant whether they expected it, and tell the community."
 msgstr ""
 
 msgid "Written %(when)s."
@@ -7336,10 +7327,11 @@ msgstr ""
 msgid "A new place, or a new address of one, goes on the map when someone of the community has approved it. The phone, and whether a place is on the map, are yours to change at once."
 msgstr ""
 
-msgid "Waiting for an approval: not on the map yet."
+msgid "Waiting for the community to approve it: not on the map yet."
 msgstr ""
 
-msgid "New address waiting for an approval: %(address)s"
+#, python-format
+msgid "New address, waiting for the community to approve it: %(address)s"
 msgstr ""
 
 msgid "Not on the map: you chose so."
@@ -7419,4 +7411,12 @@ msgid "%(name)s changed its places while you were reading: look at its line agai
 msgstr ""
 
 msgid "Write the number alone: digits, spaces and the signs + ( ) . / -"
+msgstr ""
+
+#, python-format
+msgid "Register added: «%(name)s»."
+msgstr ""
+
+#, python-format
+msgid "Updated on %(day)s"
 msgstr ""

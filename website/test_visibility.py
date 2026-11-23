@@ -403,6 +403,20 @@ class PublicView(CommunityWithPrivatePages):
         self.assertEqual(self.get("/it/strange/").status_code, 404)
         self.assertNotIn("strange", self.get("/sitemap.xml").content.decode())
 
+    def test_the_check_names_a_page_whose_day_is_not_one(self):
+        from config import community as community_config
+
+        (community_config.COMMUNITY_DIR / "pages/it/dated.md").write_text(
+            "---\ntitle: X\nupdated: 2026-11-23\n---\nText\n"
+        )
+        self.assertEqual(wrong_marks(None), [])
+        (community_config.COMMUNITY_DIR / "pages/it/dated.md").write_text(
+            "---\ntitle: X\nupdated: last week\n---\nText\n"
+        )
+        (problem,) = wrong_marks(None)
+        self.assertEqual((problem.id, problem.msg), ("website.W014", "it/dated.md: updated is 'last week'"))
+        self.assertEqual(self.get("/it/dated/").status_code, 200)
+
     def test_the_check_warns_about_shared_networks(self):
         cases = {
             "203.0.113.7 2001:db8::1": 0,

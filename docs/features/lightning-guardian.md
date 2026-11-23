@@ -16,8 +16,8 @@ goes, and the register is never blocked by it.
   `docker compose exec -T web python manage.py check_lightning` from cron.
 - **Not the server's fault.** A provider answering 429 or 5xx is "do not know", not a failure. If this server resolves
   no names at all, the run is skipped. If more than half of the addresses of a run fail at once (at least 4, the ones
-  already broken left out), nothing is counted and no merchant is told: only the association hears it. At most 4
-  notices a day per shop to the merchant (the email and the chats together), and 4 lines to the association, for an
+  already broken left out), nothing is counted and no merchant is told: only the community hears it. At most 4
+  notices a day per shop to the merchant (the email and the chats together), and 4 lines to the community, for an
   address that goes up and down.
 - **Who hears about it, only when the status changes.** The merchant by email, in the community's main language:
   what happened, what customers see, what to do now; and a short email when it works again. Only to the email to get
@@ -27,7 +27,7 @@ goes, and the register is never blocked by it.
   panel, which says what to do. The email and the chats follow one rule: told at the same change, never again for the
   same fault, and «works again» the same way. A chat that refuses, or Telegram not answering, stops neither the email
   nor the run. An owner with no confirmed email but with a chat is now told there (before, nobody was). A shop of the
-  training site writes to no chat. The association on Telegram in
+  training site writes to no chat. The community on Telegram in
   `TELEGRAM_MODERATION_CHAT`, one message per run with the shops and the reason, and the link to the shops with a
   problem in `/admin/`.
 - **Where it shows.** In the merchant's panel, a warning on the shop with what to do and a "Try again now" button
@@ -36,7 +36,7 @@ goes, and the register is never blocked by it.
   not work, and whether the guardian has stopped, without failing for it.
 
 A shop closed for a while ([Closed for a while](vacation.md)) is still probed and the panel shows what is found, but nobody is
-written to: when it opens again the merchant hears "welcome back" (with the fault, if there is one) and the association hears about the fault.
+written to: when it opens again the merchant hears "welcome back" (with the fault, if there is one) and the community hears about the fault.
 
 A shop with another Lightning address starts from scratch; a suspended or closed shop, or one without Lightning, is
 not tried and loses its status.

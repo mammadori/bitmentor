@@ -51,7 +51,11 @@ Rules:
   own board ([Meetups](features/meetups.md)).
 - The metadata at the top of a page: `title` and `description` go into the page head and into the preview shown when
   someone shares the link; `image` picks the preview image instead of `share_image` from `community.yml`;
-  `layout: wide` widens the page; `connect` is described above.
+  `layout: wide` widens the page; `connect` is described above. `updated: 2026-11-23` says the day the page was last
+  gone over: the page shows it under its title ("Updated on 23 November 2026", in the visitor's language) and gives it
+  to search engines (`article:modified_time`, and `dateModified` in the structured data of a page with a title). It is
+  for the pages that age, like those on rules or tools; a page without it shows nothing, and a value that is not a
+  day is left out and named by the check `website.W014`.
 - `examples/community/` is a neutral and complete example, to copy and rewrite: a test checks that the project works
   with it, in every language.
 

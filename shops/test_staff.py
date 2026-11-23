@@ -61,6 +61,18 @@ class StaffRegisters(TestCase):
         self.shop.refresh_from_db()
         self.assertIsNotNone(self.shop.register_shared)
 
+    def test_the_code_page_says_the_register_was_added_and_the_list_calls_it_by_its_title(self):
+        added = self.client.post(self.manage, {"name": "Anna"}, follow=True)
+        self.assertContains(added, '<p class="notice no-print" role="status">Register added: «Anna».</p>')
+        self.assertContains(added, "<h1>The register for Anna</h1>")
+        register = StaffRegister.objects.get(shop=self.shop)
+        code_page = f"/en/shops/registers/{self.shop.id}/{register.id}/"
+        # Said once, on arriving from the list
+        self.assertNotContains(self.client.get(code_page), "Register added")
+        self.assertContains(
+            self.client.get(self.manage), f'<a class="button button-quiet" href="{code_page}">The register for Anna</a>'
+        )
+
     def test_only_the_owner_sees_and_changes_the_registers(self):
         register = self.add()
         other = self.client_class()
@@ -425,6 +437,8 @@ class StaffRegisters(TestCase):
         panel = self.client.get("/en/shops/")
         self.assertContains(panel, self.manage)
         self.assertContains(panel, "Registers for your staff: 1 turned on")
+        self.assertContains(panel, "<summary>Registers for your staff</summary>")
+        self.assertContains(panel, f'href="/en/shops/places/{self.shop.id}/">The other places of your shop</a>')
 
     def test_the_panel_names_the_registers_turned_on(self):
         from django.db import connection

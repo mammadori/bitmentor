@@ -229,7 +229,7 @@ def refuse(key):
 
 def message():
     """What a visitor is told when a total is full: no number, no key."""
-    return _("This site cannot take more of this for now: the association has been told. Please try again later.")
+    return _("This site cannot take more of this for now: the community has been told. Please try again later.")
 
 
 def rows():

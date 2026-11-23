@@ -1,5 +1,5 @@
-"""«Your shop on OpenStreetMap» for the merchant, and what the association sees (shops/osm_views.py, osm_request.py): who may open
-the page, what it says from the database alone, the request «The association does it for me» (the tick, the CSRF token, the
+"""«Your shop on OpenStreetMap» for the merchant, and what the community sees (shops/osm_views.py, osm_request.py): who may open
+the page, what it says from the database alone, the request «The community does it for me» (the tick, the CSRF token, the
 limits, one open request per shop, the message to the moderators), the administration, the dashboard and the panel. Nothing
 here writes to OpenStreetMap or asks any server."""
 
@@ -183,7 +183,7 @@ class Page(Base):
         self.assertContains(response, "payment:lightning=yes")
         self.assertContains(response, "currency:XBT:discount=10%")
         self.assertContains(response, "Click on your shop on the map")
-        # What needs a person's judgement is the association's, not the merchant's
+        # What needs a person's judgement is the community's, not the merchant's
         self.assertNotContains(response, "old.example")
         self.assertNotContains(response, "payment:bitcoin:operator")
 
@@ -238,7 +238,7 @@ class Page(Base):
         self.assertContains(response, 'href="%s"' % self.url("osm_home"))
         self.assertContains(response, "Your shop on OpenStreetMap")
         self.tick()
-        self.assertContains(self.client.get(reverse("shops")), "You asked the association about OpenStreetMap")
+        self.assertContains(self.client.get(reverse("shops")), "You asked the community about OpenStreetMap")
         OsmRequest.objects.update(state="done", done=timezone.now(), done_by="boss")
         self.assertContains(self.client.get(reverse("shops")), "Your shop on OpenStreetMap: done")
 
@@ -265,11 +265,11 @@ class Ask(Base):
         self.assertIn("currency:XBT = yes", row.summary)
         self.assertEqual(chat.call_args.args[0], MODERATORS)
         text = chat.call_args.args[1]
-        self.assertIn("Central Bar asks the association to put the shop on OpenStreetMap", text)
+        self.assertIn("Central Bar asks the community to put the shop on OpenStreetMap", text)
         self.assertIn(f"/admin/shops/osmrequest/{row.pk}/change/", text)
         self.assertNotIn("mario.rossi", text)
         self.assertNotIn("bar@ln.example.org", text)
-        self.assertContains(self.page(), "You asked the association")
+        self.assertContains(self.page(), "You asked the community")
 
     def test_a_request_for_a_linked_shop_is_to_update_it(self):
         Shop.objects.filter(pk=self.shop.pk).update(osm_ref="node/77")
@@ -495,7 +495,7 @@ class Administration(Base):
         row.refresh_from_db()
         self.assertEqual((row.state, row.done_by), ("declined", "boss"))
         page = self.client.get(self.url("osm_home"))
-        self.assertContains(page, "The association could not do it.")
+        self.assertContains(page, "The community could not do it.")
         self.assertContains(page, "We could not find the place on the map.")
         # Reopened by mistake: it waits again, and nobody is named
         self.staff.post(url, {"state": "open", "answer": ""})
@@ -561,7 +561,7 @@ class Dashboard(Base):
         self.assertIn("The site never writes to OpenStreetMap by itself.", item.do)
         self.assertNotIn("command", item.do)
         # What the merchant is told is the same: a person does it by hand
-        self.assertIn("a person of the association does it by hand", item.say)
+        self.assertIn("a person of the community does it by hand", item.say)
 
     def test_with_the_upload_off_the_proposals_are_what_openstreetmap_should_say(self):
         run = osm.save_run(
@@ -633,7 +633,7 @@ class Dashboard(Base):
         staff = Client()
         admin_session(staff)
         page = staff.get(reverse("admin_dashboard"))
-        self.assertContains(page, "Asked the association to put the shop on OpenStreetMap.")
+        self.assertContains(page, "Asked the community to put the shop on OpenStreetMap.")
         self.assertContains(page, "never writes to OpenStreetMap by itself")
 
 
@@ -730,7 +730,7 @@ class Honest(Base):
         )
         response = self.page()
         self.assertNotContains(response, "Nothing to do.")
-        self.assertContains(response, "a person of the association has to look at it")
+        self.assertContains(response, "a person of the community has to look at it")
         self.assertNotContains(response, "old.example")
         state = osm.page(self.shop)
         self.assertEqual((state["up_to_date"], state["review"], state["lines"]), (False, True, ""))
@@ -769,7 +769,7 @@ class Honest(Base):
 
 
 class ConfirmLinks(Base):
-    """The link a reading proposes becomes the shop's only when the association confirms it in /admin/."""
+    """The link a reading proposes becomes the shop's only when the community confirms it in /admin/."""
 
     def setUp(self):
         super().setUp()
@@ -887,7 +887,7 @@ class OwnerChange(Base):
         Shop.objects.filter(pk=self.shop.pk).update(owner=newcomer)
         self.client.force_login(newcomer)
         page = self.page()
-        self.assertNotContains(page, "You asked the association")
+        self.assertNotContains(page, "You asked the community")
         self.assertContains(page, "Send the request")
         with patch("shops.osm_request.telegram", return_value=True) as chat:
             response = self.tick(follow=True)

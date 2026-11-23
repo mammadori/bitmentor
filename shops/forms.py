@@ -286,7 +286,7 @@ class ShopDetailsForm(VatNumberMixin, forms.ModelForm):
 
     def clean_nip05_name(self):
         """The name is an identity: `_` is the community's, and two shops do not share one. Names that a Nostr
-        client would show as the association's own (info@, admin@, the community name) are not shops."""
+        client would show as the community's own (info@, admin@, the community name) are not shops."""
         name = self.cleaned_data["nip05_name"].lower()
         reserved = RESERVED_NIP05 | {slugify(community().get("name", "")), slugify(settings.SITE_HOST.split(".")[0])}
         if name in reserved or (

@@ -21,7 +21,7 @@ practice offers it only in its exercise «The customer does not understand your 
 - [The game: levels and badges](#the-game-levels-and-badges)
 - [The unlock of the real till](#the-unlock-of-the-real-till)
 - [The registers of whoever works with the owner](#the-registers-of-whoever-works-with-the-owner)
-- [What the association sees and exports](#what-the-association-sees-and-exports)
+- [What the community sees and exports](#what-the-community-sees-and-exports)
 - [Going back, tests and limits](#going-back-tests-and-limits)
 
 ## What the merchant sees
@@ -41,7 +41,7 @@ practice offers it only in its exercise «The customer does not understand your 
   knows the right ones. No script was added to these pages.
 
 When the community has `merchant_terms` (or `help_terms`: both names are read), a page of the community that says what the
-association's help is and what stays with the merchant, accepting it is the **first statement of the path**, as the module
+community's help is and what stays with the merchant, accepting it is the **first statement of the path**, as the module
 `terms`.
 
 ## What the community writes
@@ -192,7 +192,7 @@ shop, the text shown, the version). A register that has accepted them once is ne
 sale: a new text of the rules is asked of the registers paired after it. The page has a
 button to the staff practice register too.
 
-## What the association sees and exports
+## What the community sees and exports
 
 - **`/admin/shops/declaration/`**: the declarations, newest first, by statement, language, shop, who and version. To look
   at and to export: the action **Export the selected declarations as a spreadsheet (CSV)** (with «Select all» it is every

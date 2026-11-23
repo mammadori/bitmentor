@@ -3,6 +3,7 @@
 import json
 import os
 import re
+from datetime import date
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -62,6 +63,15 @@ def visibility(meta):
     and the check website.W005 says so. The key in any case, the value in any case and between quotes."""
     value = next((value for key, value in meta.items() if key.lower() == "visibility"), "")
     return VISIBILITIES.get(value.strip().strip("\"'").strip().lower())
+
+
+def updated_on(meta):
+    """The day the community last went over the page, `updated: 2026-11-23` in its metadata; None when the page says
+    nothing. A value that is not a date raises ValueError: the page then shows no date, and the check website.W014 says
+    which page it is."""
+    # The key in any case, as `visibility`
+    value = next((value for key, value in meta.items() if key.lower() == "updated"), "").strip().strip("\"'").strip()
+    return date.fromisoformat(value) if value else None
 
 
 def private_meta(meta):

@@ -361,7 +361,7 @@ class OwnerOfAShop(Base):
 
 def admin_urls():
     """Every page of the admin that can be named without a row: the index, each app's and each model's list and add
-    page, the account's own pages, the second factor's set-up, and the association's list."""
+    page, the account's own pages, the second factor's set-up, and the community's list."""
     urls = {
         reverse("admin:index"),
         reverse("admin:password_change"),

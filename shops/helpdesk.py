@@ -1,5 +1,5 @@
 """«Something wrong?»: the merchant tells the symptom, the site says what it already knows about the shop and what to do
-now, and, if that is not enough, one tap asks the association for help, with the diagnosis attached.
+now, and, if that is not enough, one tap asks the community for help, with the diagnosis attached.
 
 The page starts from the symptom (`KINDS`): a few words the merchant would use at the till. For each one, two lists of
 the checks of shops/diagnosis.py: `local`, which only read the database and run while the page loads, and `deep`,
@@ -410,7 +410,7 @@ def codes_line(findings, level):
 
 
 def message(row, findings):
-    """The text for the moderators' chat, in the association's language: the shop, the symptom, the line the merchant
+    """The text for the moderators' chat, in the community's language: the shop, the symptom, the line the merchant
     wrote as plain text, the codes of the diagnosis (never its sentences or details: they name addresses) and the link."""
     with translation.override(settings.LANGUAGE_CODE):
         from .management.commands.dashboard import site_label

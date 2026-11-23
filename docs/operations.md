@@ -1,4 +1,4 @@
-# The association's handbook
+# The community's handbook
 
 For the volunteers who run a bitmentor site for their community. It lists the tasks by how often they come: every
 day, every week, when a merchant calls, before a release, and when something breaks. Each task says why it matters,
@@ -35,7 +35,7 @@ What you need:
   site has every right already;
 - if you also have a shop: a second, ordinary account for it. A staff account is a visitor outside `/admin/`, and the
   pages of a shop do not open for it ([Staff and shops kept apart](features/staff-and-shops.md));
-- a place in the association's Telegram chats: the machine's alerts go to the chats of `alerts.env`, the shop alerts
+- a place in the community's Telegram chats: the machine's alerts go to the chats of `alerts.env`, the shop alerts
   of the site (Lightning addresses, requests for help) to `TELEGRAM_MODERATION_CHAT`;
 - for the commands, a shell on the machine as root (or a user in the `docker` group).
 
@@ -49,7 +49,7 @@ Four rules never change for whoever answers a merchant. They are in [helpdesk.md
   their wallet.
 
 A fifth is for whoever has rights over accounts: never give a merchant's account a password or staff status, and never
-replace its sign-in name. The site writes it in a register and tells the merchant and the association
+replace its sign-in name. The site writes it in a register and tells the merchant and the community
 ([Staff and shops kept apart](features/staff-and-shops.md)).
 
 **A new staff account.** Create it in `/admin/auth/user/` with staff status (or with `createsuperuser`) and hand the
@@ -420,7 +420,7 @@ within a minute ([releases.md](releases.md#releases-from-images)). Only the main
 1. **The tests** pass in the CI of the tag. A community that extends the image runs its own too.
 2. **The configuration**: `preflight`, as in [Every week](#check-the-configuration).
 3. **A sale**, on a test site before the release and on the site itself after it: open a shop's register with a
-   Lightning address of the association kept for this, never a merchant's, make a sale of a small amount and pay it. The register must say
+   Lightning address of the community kept for this, never a merchant's, make a sale of a small amount and pay it. The register must say
    it is paid. The site does not handle the payment (the register talks to the shop's Lightning address), so what a
    release can break is the register page itself: [releases.md](releases.md#before-a-release).
 
@@ -589,7 +589,7 @@ the log of `web` (`settings watch:`).
 
 **What you see.** Many shops of the same provider at once in the guardian's message, or in `/admin/today/` with
 `lightning_no_answer`. If more than half of the addresses of a run fail at once, the guardian counts nothing and tells
-no merchant: only the association hears it.
+no merchant: only the community hears it.
 
 **What merchants see.** The register cannot get an invoice, so no Lightning QR. Where the community turned on-chain on
 (an experimental feature, off by default), a shop that set it up on its phone still shows the on-chain one.

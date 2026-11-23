@@ -6,7 +6,7 @@ any merchant would), a shop handed to another account, the chat that receives a 
 are seen here, and not left silent:
 
 - the owner is told, by email (the recovery email) and in the Telegram chat of each of their shops;
-- the association is told, in the moderation chat (TELEGRAM_MODERATION_CHAT);
+- the community is told, in the moderation chat (TELEGRAM_MODERATION_CHAT);
 - the change is written in `AccountChange`, a register that the admin shows and nobody edits there, and the owner's
   `Profile.account_changed` takes the date, for the panel's notice and for whoever needs it (`recently_changed`).
 
@@ -25,13 +25,13 @@ Today none does: the panel only says it (`notice`).
 Where a shop's money goes (its Lightning address, `FIELDS`) is watched on every road: `save()`, `QuerySet.update()` and `bulk_update()` (`ShopQuerySet`), from a page of the
 admin, a command or a shell. The owner's first connection of a wallet from the panel is written down and confirmed to the
 owner alone ("you changed ..."). The owner's change of an address that existed (shops/address_change.py) is confirmed to
-the owner the same way (email, the chats of their shops) and told to the association too; any other change is an alarm
-to the owner and to the association. The notices carry the
+the owner the same way (email, the chats of their shops) and told to the community too; any other change is an alarm
+to the owner and to the community. The notices carry the
 Lightning address short, never whole. The administration cannot change these columns at all (`refuse_from_admin`).
 
 What it does not see, honestly: a change that skips Django (SQL, `QuerySet.raw`, a dump loaded into the database), and everything done by
 whoever has the shell or the database, who can also delete the register. This is a witness, not a lock: against them
-only another person's eyes help (the moderation chat is read by the association, not by the one who made the change).
+only another person's eyes help (the moderation chat is read by the community, not by the one who made the change).
 """
 
 import contextvars
@@ -124,7 +124,7 @@ VIA = {via.value: via.label for via in AccountChange.Via}
 CHANNELS = {
     "email": gettext_lazy("email"),
     "telegram": gettext_lazy("Telegram chat of the shop"),
-    "association": gettext_lazy("chat of the association"),
+    "association": gettext_lazy("chat of the community"),
 }
 
 _local = threading.local()
@@ -162,12 +162,12 @@ def recently_changed(user, within=RECENT):
 
 
 def advice(contact):
-    """What the owner does: nothing if they know why, and otherwise tell the association at once."""
+    """What the owner does: nothing if they know why, and otherwise tell the community at once."""
     if contact:
         return _("If you know why, you do not need to do anything. If you do not, write to {email} now.").format(
             email=contact
         )
-    return _("If you know why, you do not need to do anything. If you do not, tell the association now.")
+    return _("If you know why, you do not need to do anything. If you do not, tell the community now.")
 
 
 def notice(user):
@@ -198,7 +198,7 @@ def pending():
 
 
 def record(user, codes, shops, chats, mark=True, deleting=False):
-    """Writes the change down and, when the transaction commits, tells the owner and the association. `shops` are the
+    """Writes the change down and, when the transaction commits, tells the owner and the community. `shops` are the
     shops it is about (their names go in the register), `chats` the Telegram chats of the owner's notices as they were
     before the change. Nothing for an account with no shop. The messages go after the commit and never fail the change:
     a change must not be lost because an email cannot go."""
@@ -284,7 +284,7 @@ def attempt(row_pk, channel, function):
 
 
 def deliver(key, row_pk):
-    """The messages, after the commit: a rolled back change says nothing. The association first (it is the witness the
+    """The messages, after the commit: a rolled back change says nothing. The community first (it is the witness the
     change cannot silence), then the owner by email, then the owner's chats. Each channel that got through, and each that
     did not, is written in the register."""
     entry = pending().pop(key, None)
@@ -340,7 +340,7 @@ def deliver(key, row_pk):
         ]
         for channel, function in channels:
             if function is None:
-                # The association is always said: «not told» is a fact the register keeps. The owner's channels only if
+                # The community is always said: «not told» is a fact the register keeps. The owner's channels only if
                 # the owner has them
                 if channel == "association":
                     not_told.append(channel)
@@ -467,7 +467,7 @@ def destination_changed(shop, before, after):
     """A shop's destination was changed, by a save or an update, from wherever. Written in the register and said, after the
     commit: the owner's first connection of a wallet from the panel (`Via.OWNER`) is confirmed to the owner alone; any other
     change, a destination that existed replaced by the owner's own account included, is an alarm to the owner, in the chats
-    of all their shops, and to the association. Returns the row's key, or None if nothing changed or
+    of all their shops, and to the community. Returns the row's key, or None if nothing changed or
     the shop is not watched (`outside`)."""
     lines = destination_lines(before, after)
     if not lines or outside(shop) or shop.owner_id is None:
@@ -478,7 +478,7 @@ def destination_changed(shop, before, after):
     visitor = getattr(request, "user", None) if request is not None else None
     # The owner's own act from a page of the site (the first connection of a wallet, or the change of the address from the
     # panel, shops/address_change.py) is confirmed to the owner as theirs. Only the FIRST connection stays the owner's
-    # business alone: replacing a destination that existed is told to the association too, whoever's account asks, since
+    # business alone: replacing a destination that existed is told to the community too, whoever's account asks, since
     # a stolen account would otherwise change it with a confirmation to a channel the thief may have changed first
     first = not before["lightning_address"]
     # A replacement counts as the owner's only from the one page made for it (address_change.apply marks it)
@@ -526,7 +526,7 @@ def destination_text(lines):
 
 def deliver_destination(payload):
     """The messages of a destination change, after the commit. The owner's own change goes to the owner (email, chats) as a
-    confirmation; any other goes to the association first, then to the owner. Each channel is written in the register."""
+    confirmation; any other goes to the community first, then to the owner. Each channel is written in the register."""
     row_pk = payload["row"]
     row = AccountChange.objects.filter(pk=row_pk).first()
     if row is None:
@@ -544,7 +544,7 @@ def deliver_destination(payload):
                     email=contact
                 )
                 if contact
-                else _("If it was you, you do not need to do anything. If it was not, tell the association now.")
+                else _("If it was you, you do not need to do anything. If it was not, tell the community now.")
             )
             subject = f"{name}: {_('you changed where your shop gets paid')}"
         else:

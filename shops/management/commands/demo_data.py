@@ -7,7 +7,7 @@ from shops import demo
 
 class Command(BaseCommand):
     help = (
-        "Fills a test installation with a small made-up community in every state a merchant or the association "
+        "Fills a test installation with a small made-up community in every state a merchant or the community "
         "meets, or puts it back as it was (the dates move to today). --remove takes it away. Never on mainnet "
         "or in production mode; asks nothing of any provider."
     )
@@ -40,7 +40,7 @@ class Command(BaseCommand):
         for spec in demo.SHOPS:
             self.stdout.write(f"  {spec['name']:<26} {spec['story']}")
         self.stdout.write(
-            "\nSign in as an owner: manage.py demo_data --links. The association's list: /admin/today/. "
+            "\nSign in as an owner: manage.py demo_data --links. The community's list: /admin/today/. "
             "Run this command again to put everything back as it was, with the dates moved to today. "
             "Take it all away: manage.py demo_data --remove."
         )

@@ -1,4 +1,4 @@
-"""The association's dashboard: what to do today about the shops' registers, in one page of /admin/ (and in text with
+"""The community's dashboard: what to do today about the shops' registers, in one page of /admin/ (and in text with
 `manage.py dashboard`, for a daily message).
 
 One item per thing to do: the shop, what happened in plain words, since when, what to do now (the shop in /admin/, the
@@ -79,7 +79,7 @@ class Item:
 
 def trading(now):
     """Shops with a register, still trading, as lightning_watch.watched: a historic shop (Shop.closed) keeps its
-    register, but is no longer a place to pay the association looks after."""
+    register, but is no longer a place to pay the community looks after."""
     return Shop.objects.filter(HAS_REGISTER).filter(still_trading(timezone.localdate(now)))
 
 
@@ -139,7 +139,7 @@ def lightning_item(shop):
 
 
 def first_day_items(shop):
-    """The first day, with the rules of first_day: what the merchant left halfway that the association can help with."""
+    """The first day, with the rules of first_day: what the merchant left halfway that the community can help with."""
     if not first_day.applies(shop):
         return []
     found = []
@@ -164,16 +164,16 @@ def first_day_items(shop):
 def closed_lightning_items(shop):
     """A shop kept quiet by a closure whose Lightning address does not work: one line to know, never an alarm. Also with
     the closures turned off (`features.vacation`): a closure written before keeps the alarms quiet until its day, and the
-    fault must not stay unknown until then; the association is told the day it ends (vacation.welcome_back)."""
+    fault must not stay unknown until then; the community is told the day it ends (vacation.welcome_back)."""
     watch = lightning_watch.panel(shop)
     if not (watch and watch["broken"]):
         return []
     # Nobody is told while it is closed: the line is here for whoever looks, and the day the shop opens again the
-    # merchant (if closures are on) and the association are told
+    # merchant (if closures are on) and the community are told
     if vacation.enabled():
-        do = _("Nothing to do now: the merchant and the association hear about it the day the shop opens again.")
+        do = _("Nothing to do now: the merchant and the community hear about it the day the shop opens again.")
     else:
-        do = _("Nothing to do now: the association hears about it the day the closure ends.")
+        do = _("Nothing to do now: the community hears about it the day the closure ends.")
     return [
         Item(
             INFO,
@@ -192,7 +192,7 @@ def closed_lightning_items(shop):
 
 def closed_items(shop, today):
     """A shop closed for a while for more than three months: ask whether it is coming back (the icons stop forgiving the
-    days after that, and no alarm reaches the association for it)."""
+    days after that, and no alarm reaches the community for it)."""
     found = closed_lightning_items(shop)
     first = vacation.long_closure(shop, today)
     if first is not None:
@@ -352,7 +352,7 @@ def place_items():
 
 
 def certificate_items(found_shops):
-    """The association's two jobs about certified shops: a certified shop waiting for a person to open the private part
+    """The community's two jobs about certified shops: a certified shop waiting for a person to open the private part
     to its owner (shops/certified.py, `waiting_approval`), and a Lightning address found on shops of different owners,
     written before the site refused it (`shared_with_another_owner`): none of those shops is certified while it lasts.
     Only the trading shops are listed, each with its own line; the other shop may be historic. A share between two
@@ -540,7 +540,7 @@ def help_items(now):
 
 
 def osm_items(now):
-    """OpenStreetMap (shops/osm.py): the merchants who asked the association to do their entry (people waiting, on top with
+    """OpenStreetMap (shops/osm.py): the merchants who asked the community to do their entry (people waiting, on top with
     the requests for help), the changes proposed that a person has not sent yet, and a reading that failed or is late.
     Nothing here is sent by the site: the proposals wait for `manage.py osm_upload`, run by hand. That command is an
     experimental feature (config/features.py): while it is off nothing here names it, and the changes are for a person to
@@ -555,9 +555,9 @@ def osm_items(now):
             Item(
                 WARNING,
                 "osm_request",
-                _("Asked the association to put the shop on OpenStreetMap.")
+                _("Asked the community to put the shop on OpenStreetMap.")
                 if adding
-                else _("Asked the association to update the shop's entry on OpenStreetMap."),
+                else _("Asked the community to update the shop's entry on OpenStreetMap."),
                 shop=row.shop,
                 since=row.created,
                 do=(
@@ -579,7 +579,7 @@ def osm_items(now):
                         "the panel. The site never writes to OpenStreetMap by itself."
                     )
                 ),
-                say=_("We have your request about OpenStreetMap: a person of the association does it by hand."),
+                say=_("We have your request about OpenStreetMap: a person of the community does it by hand."),
                 command=COMMAND.format(command="osm_upload") if upload and not adding else "",
                 links=[
                     {

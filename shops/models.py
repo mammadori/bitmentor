@@ -344,7 +344,7 @@ class Shop(models.Model):
     website = models.URLField(_("website"), blank=True)
     email = models.EmailField(_("email"), blank=True)
     phone = models.CharField(_("phone"), max_length=40, blank=True)
-    # The business behind the shop, as on its invoices. The association keeps them; customers see them only if the owner
+    # The business behind the shop, as on its invoices. The community keeps them; customers see them only if the owner
     # turns them on (shops/details.py). Never in diagnose_shop, the logs or a Nostr event.
     # Every new column that cannot be null says its starting value in the database too (db_default, the same as the Python
     # default): the previous image, put back on a database this release migrated (deploy/release.sh), does not name them
@@ -410,7 +410,7 @@ class Shop(models.Model):
     # The column of 0.1.2, which marked new shops instead: no longer read or written, kept one release so that 0.1.2
     # put back on this database still works (docs/releases.md, "Going back"). To be removed with the next migration
     awaiting_approval = models.BooleanField(default=False, db_default=False, editable=False)
-    # Decided by the association, not by the owner: no form on the site shows it
+    # Decided by the community, not by the owner: no form on the site shows it
     closed_on = models.DateField(
         null=True,
         blank=True,
@@ -486,16 +486,16 @@ class Shop(models.Model):
     # The certified shop (shops/certified.py), never written by a form: the Lightning address answers the guardian, and the
     # owner has the basic pass of the training. Outside the site only `certified` leaves, never the month.
     # The first calendar month in which all of it held: once certified, always certified (it is a fact of the past),
-    # unless the association revokes it from /admin/, which also stops the site from certifying the shop again
+    # unless the community revokes it from /admin/, which also stops the site from certifying the shop again
     certified_month = models.DateField(_("certified since the month of"), null=True, blank=True, editable=False)
     certified_revoked = models.BooleanField(_("certificate revoked"), default=False, db_default=False, editable=False)
     # The private part of the pages (website/visibility.py) is opened to a certified shop's owner only by a person of the
-    # association, by hand from /admin/: when and who (the username, kept even if that account goes). Empty: not approved
+    # community, by hand from /admin/: when and who (the username, kept even if that account goes). Empty: not approved
     private_approved = models.DateTimeField(_("private part approved on"), null=True, blank=True, editable=False)
     private_approved_by = models.CharField(
         _("private part approved by"), max_length=150, blank=True, default="", db_default="", editable=False
     )
-    # The shop's entry on OpenStreetMap (shops/osm.py): "node/123", "way/123" or "relation/123". Set by the association in
+    # The shop's entry on OpenStreetMap (shops/osm.py): "node/123", "way/123" or "relation/123". Set by the community in
     # /admin/, or by manage.py osm_sync when a shop and an element are the same place beyond doubt. Never by the owner, and
     # it has nothing to do with where the money goes. It lets the sync fill the details the shop has not written yet.
     osm_ref = models.CharField(
@@ -512,15 +512,15 @@ class Shop(models.Model):
     )
     # The last sync that found the linked element on OpenStreetMap
     osm_seen = models.DateTimeField(_("seen on OpenStreetMap"), null=True, blank=True, editable=False)
-    # An element the reading found beyond doubt to be the same place, waiting for the association to confirm it in /admin/
+    # An element the reading found beyond doubt to be the same place, waiting for the community to confirm it in /admin/
     # (an action): nothing is read from it, nothing is written for it, until then. Anybody can put a place on OpenStreetMap
     # next to a shop with its name, so a match is only a proposal. Written only by manage.py osm_sync and the admin's actions.
     osm_proposed = models.CharField(
         _("OpenStreetMap element proposed"), max_length=30, blank=True, default="", db_default="", editable=False
     )
-    # What the reading did to this shop, so that it is not done twice (shops/osm.py): the elements the association refused,
+    # What the reading did to this shop, so that it is not done twice (shops/osm.py): the elements the community refused,
     # and for each field the value it filled or offered and what became of it. A field the owner emptied on purpose is not
-    # filled again; a value the association declined is not offered again. Never shown to the owner.
+    # filled again; a value the community declined is not offered again. Never shown to the owner.
     osm_notes = models.JSONField(default=dict, db_default={}, blank=True, editable=False)
 
     objects = ShopQuerySet.as_manager()
@@ -681,7 +681,7 @@ class ShopPlace(models.Model):
     latitude = models.FloatField(_("latitude"), validators=[MinValueValidator(-90), MaxValueValidator(90)])
     longitude = models.FloatField(_("longitude"), validators=[MinValueValidator(-180), MaxValueValidator(180)])
     created = models.DateTimeField(auto_now_add=True)
-    # The place's own entry on OpenStreetMap, as Shop.osm_ref is the shop's: set by the association in /admin/, never by
+    # The place's own entry on OpenStreetMap, as Shop.osm_ref is the shop's: set by the community in /admin/, never by
     # the owner. With it the reading knows that element is this shop, and proposes for it what it proposes for the shop
     osm_ref = models.CharField(
         _("OpenStreetMap element"),
@@ -859,7 +859,7 @@ class Closure(models.Model):
 
 
 class HelpRequest(models.Model):
-    """A merchant asking the association for help from «Something wrong?» (shops/helpdesk.py): the shop, what the
+    """A merchant asking the community for help from «Something wrong?» (shops/helpdesk.py): the shop, what the
     merchant chose as the symptom, a short line they wrote, how they want to be called back, and what the site knew about
     the shop at that moment (`summary`, written by the diagnosis: no secret, no key). It stays on the dashboard
     (/admin/today/) on top, until someone marks it solved in /admin/: `resolved` and `resolved_by`. Written only by the
@@ -907,7 +907,7 @@ class HelpRequest(models.Model):
     created = models.DateTimeField(_("asked"), default=timezone.now, db_index=True)
     # The diagnosis at that moment, in the lines a helper reads (shops/diagnosis.py): empty while it is being made
     summary = models.TextField(_("what the site knew"), blank=True)
-    delivery = models.CharField(_("message to the association"), max_length=10, choices=Delivery.choices, blank=True)
+    delivery = models.CharField(_("message to the community"), max_length=10, choices=Delivery.choices, blank=True)
     resolved = models.DateTimeField(_("solved"), null=True, blank=True, db_index=True)
     resolved_by = models.CharField(_("solved by"), max_length=150, blank=True)
 
@@ -922,7 +922,7 @@ class HelpRequest(models.Model):
 
 class OsmRun(models.Model):
     """One reading of OpenStreetMap by `manage.py osm_sync` (shops/osm.py): when, whether it worked, and what it found, as
-    a report the association reads in /admin/ and the merchant's page draws on. `report` holds the links made, the
+    a report the community reads in /admin/ and the merchant's page draws on. `report` holds the links made, the
     fields filled, the new candidates, the doubtful matches, the shops OpenStreetMap says no longer accept bitcoin, the
     shops verified more recently there than here, and the changes proposed for OpenStreetMap, shop by shop. Nothing in it
     is a secret. The last twelve are kept."""
@@ -943,8 +943,8 @@ class OsmRun(models.Model):
 
 
 class OsmRequest(models.Model):
-    """A merchant asking the association to bring the shop's entry on OpenStreetMap up to date, or to put the shop there
-    (shops/osm_views.py): «The association does it for me». Only a queue: the site never writes to OpenStreetMap by
+    """A merchant asking the community to bring the shop's entry on OpenStreetMap up to date, or to put the shop there
+    (shops/osm_views.py): «The community does it for me». Only a queue: the site never writes to OpenStreetMap by
     itself. One is open at a time for a shop; someone of the staff does it, by hand or with `manage.py osm_upload`, and
     marks it done in /admin/ (`done` and `done_by`). The merchant sees its state in the panel."""
 
@@ -974,7 +974,7 @@ class OsmRequest(models.Model):
     state = models.CharField(_("state"), max_length=10, choices=State.choices, default=State.OPEN, db_index=True)
     # The message to the moderators' Telegram chat, as for the help requests
     delivery = models.CharField(
-        _("message to the association"), max_length=10, choices=HelpRequest.Delivery.choices, blank=True
+        _("message to the community"), max_length=10, choices=HelpRequest.Delivery.choices, blank=True
     )
     done = models.DateTimeField(_("done on"), null=True, blank=True)
     done_by = models.CharField(_("done by"), max_length=150, blank=True)

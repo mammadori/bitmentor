@@ -92,7 +92,7 @@ def og_locale(code):
     return name if "_" in name else locale.normalize(name).split(".")[0].split("@")[0]
 
 
-def structured_data(data, slug, title, canonical, languages):
+def structured_data(data, slug, title, canonical, languages, updated=None):
     """schema.org data made only of what the community wrote: on the home page who it is, on the other pages where one is."""
     root = absolute("/")
     if slug == "home":
@@ -126,6 +126,17 @@ def structured_data(data, slug, title, canonical, languages):
                 ],
             }
         ]
+        # The day the page was last gone over, when the page says it (`updated:` in its metadata)
+        if updated:
+            graph.append(
+                {
+                    "@type": "WebPage",
+                    "@id": canonical,
+                    "url": canonical,
+                    "name": title,
+                    "dateModified": updated.isoformat(),
+                }
+            )
     else:
         return ""
     text = json.dumps({"@context": "https://schema.org", "@graph": graph}, ensure_ascii=False)
@@ -165,6 +176,12 @@ def page_meta(context):
         "other_locales": [og_locale(code) for code, _href in found if code != language],
         "image": {"url": absolute(iri_to_uri(image)), "width": width, "height": height} if image else None,
         "structured": structured_data(
-            data, context.get("slug"), context.get("page_title"), canonical, [code for code, _href in found]
+            data,
+            context.get("slug"),
+            context.get("page_title"),
+            canonical,
+            [code for code, _href in found],
+            context.get("page_updated"),
         ),
+        "updated": context.get("page_updated"),
     }

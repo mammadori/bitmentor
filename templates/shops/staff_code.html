@@ -8,7 +8,7 @@
   <ol class="staff-steps">
     <li>{% translate "Open the camera of the phone that will take payments and point it at this code." %}</li>
     <li>{% translate "Open the link and press «Open the register on this phone»." %}</li>
-    <li>{% translate "From the browser menu, add the page to the home screen: it opens like an app." %}</li>
+    <li>{% translate "From the phone's menu (⋮ on Android, Share on iPhone), add the register to the home screen: it opens with one tap, like an app, with nothing to install." %}</li>
   </ol>
   <p class="muted no-print">{% if experimental.onchain %}{% translate "The code pairs the register with yours: it carries where the money goes and your preferences, read from this phone. Open this page on the phone with your register, so that on-chain and your settings come along. The site never sees them." %}{% else %}{% translate "The code pairs the register with yours: it carries where the money goes and your preferences, read from this phone. Open this page on the phone with your register, so that your settings come along. The site never sees them." %}{% endif %}</p>
   <div class="qr-box"><img id="pair-qr" class="qr" alt="{% translate 'Code that puts the register on a phone' %}" hidden></div>

@@ -27,9 +27,10 @@ def skipped_shop_links(app_configs, **kwargs):
 
 def wrong_marks(app_configs, **kwargs):
     """The private part of the pages (website/visibility.py). A page with wrong marks answers 404 rather than risk showing a
-    private block (W003); a `visibility` the software does not understand makes the page private (W005). DEV_ALLOWED_IPS
+    private block (W003); a `visibility` the software does not understand makes the page private (W005); an `updated`
+    that is not a day is not shown (W014). DEV_ALLOWED_IPS
     must name people, not networks everyone shares (W004)."""
-    from config.community import COMMUNITY_DIR, front_matter, visibility
+    from config.community import COMMUNITY_DIR, front_matter, updated_on, visibility
     from website.visibility import MarkError, address_problems, lines_by_block
 
     problems = []
@@ -50,6 +51,16 @@ def wrong_marks(app_configs, **kwargs):
                     f"{name}: visibility is {meta.get('visibility')!r}",
                     id="website.W005",
                     hint="Write `visibility: private`, `staff` or `public`; until then the page is private",
+                )
+            )
+        try:
+            updated_on(meta)
+        except ValueError:
+            problems.append(
+                checks.Warning(
+                    f"{name}: updated is {next(v for k, v in meta.items() if k.lower() == 'updated')!r}",
+                    id="website.W014",
+                    hint="Write the day as `updated: 2026-11-23`; until then the page shows no day",
                 )
             )
     problems += [

@@ -331,7 +331,7 @@ class PublicOutputs(TestCase):
         """The one way to the details is details.shown. Under shops/, website/, templates/, config/ and the
         scripts of static/, in Python, templates, texts and JavaScript, any `x.phone`, `x.email`, `x.legal_name`,
         `x.vat_number`, `x.address` or `x.website` is either on a receiver that is not a shop (a profile, a form, the
-        community, a Lightning address) or one of the few places that are for the owner or the association, named below. A
+        community, a Lightning address) or one of the few places that are for the owner or the community, named below. A
         page that reads `shop.phone` directly shows it whatever the owner chose, and fails here."""
         root = Path(__file__).resolve().parent.parent
         pattern = re.compile(r"""([\w\])"']+(?:\.\w+)*)\.(phone|email|legal_name|vat_number|address|website)\b""")
@@ -369,7 +369,7 @@ class PublicOutputs(TestCase):
             ("shops/osm.py", "shop", "address"),
             ("shops/osm.py", "shop", "website"),
             ("shops/osm.py", "shop", "phone"),
-            # The approval's signals compare the contacts of two shops for the association and name only the kind
+            # The approval's signals compare the contacts of two shops for the community and name only the kind
             *(
                 ("shops/approval_signals.py", receiver, detail)
                 for receiver in ("shop", "other")
@@ -1182,7 +1182,7 @@ class Moving(TestCase):
 
 
 class Privacy(TestCase):
-    """The business name and the VAT number go to the association's database and to the owner's own screens, and nowhere
+    """The business name and the VAT number go to the community's database and to the owner's own screens, and nowhere
     else: not to the helper's diagnosis, not to the logs, not to the reports of the commands."""
 
     def setUp(self):

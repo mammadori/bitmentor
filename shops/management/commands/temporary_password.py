@@ -1,5 +1,5 @@
 """Marks the password an account has now as temporary: whoever signs in to the admin with it is sent to change it
-(config/temporary.py). For the accounts of the staff, whose password the association hands over in person.
+(config/temporary.py). For the accounts of the staff, whose password the community hands over in person.
 
     manage.py temporary_password <username>           mark the current password as temporary
     manage.py temporary_password <username> --clear   take the mark away

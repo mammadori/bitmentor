@@ -1,5 +1,5 @@
 """«Your shop on OpenStreetMap» for the merchant (shops/osm.py, shops/osm_request.py): what the site knows of the shop's
-entry there, the steps to do it alone with the editor already on the right place, and one tap that asks the association to
+entry there, the steps to do it alone with the editor already on the right place, and one tap that asks the community to
 do it. Only the shop's owner; the one page that changes anything is a POST with the CSRF token and a limit of requests.
 Nothing here writes to OpenStreetMap, and no server is asked while the page loads: it shows what the last monthly reading
 found. The staff and the sessions of /admin/ are visitors here (config/guard.py)."""
@@ -29,11 +29,11 @@ MESSAGE_WINDOW = 3600
 
 
 class AskForm(forms.Form):
-    """The tick «The association does it for me»: nothing is sent without it."""
+    """The tick «The community does it for me»: nothing is sent without it."""
 
     association = forms.BooleanField(
         required=True,
-        label=gettext_lazy("The association does it for me"),
+        label=gettext_lazy("The community does it for me"),
         error_messages={"required": gettext_lazy("Tick the box to send the request.")},
     )
 
@@ -89,7 +89,7 @@ def ask(request, shop):
         messages.error(
             request,
             _(
-                "You have already asked {count} times today, and the association has your requests: "
+                "You have already asked {count} times today, and the community has your requests: "
                 "we do them one by one. If it is urgent, write to {email}."
             ).format(count=osm_request.ASK_PER_DAY, email=community()["email"]),
         )
@@ -104,6 +104,6 @@ def ask(request, shop):
     osm_request.finish(row, notify=not any(spent))
     messages.success(
         request,
-        _("We have your request. A person of the association does it by hand, and you see here when it is done."),
+        _("We have your request. A person of the community does it by hand, and you see here when it is done."),
     )
     return redirect("osm_home", shop.pk)

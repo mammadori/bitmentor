@@ -197,6 +197,45 @@ class StructuredData(TestCase):
             ],
         )
 
+    def test_a_page_says_when_it_was_updated(self):
+        with patch(
+            "website.views.parse", return_value=({"title": "Rules", "updated": "2026-11-23"}, "# Rules\n\ntext")
+        ):
+            response = self.client.get("/it/about/")
+            graph = self.structured("/it/about/")
+        self.assertContains(response, '</h1><p class="page-updated muted">Aggiornata il 23 novembre 2026</p>')
+        self.assertContains(response, '<meta property="article:modified_time" content="2026-11-23">')
+        page = next(node for node in graph if node["@type"] == "WebPage")
+        self.assertEqual(
+            (page["dateModified"], page["name"], page["url"]),
+            ("2026-11-23", "Rules", "https://website.example/it/about/"),
+        )
+
+    def test_the_day_goes_first_on_a_page_without_a_title(self):
+        with patch("website.views.parse", return_value=({"Updated": '"2026-11-23"'}, "text")):
+            response = self.client.get("/en/about/")
+        self.assertContains(response, '<article class="page"><p class="page-updated muted">Updated on')
+        self.assertNotContains(response, "application/ld+json")
+
+    def test_a_page_without_a_day_says_nothing(self):
+        with patch("website.views.parse", return_value=({"title": "Rules"}, "# Rules")):
+            response = self.client.get("/it/about/")
+            graph = self.structured("/it/about/")
+        self.assertNotContains(response, "page-updated")
+        self.assertNotContains(response, "article:modified_time")
+        self.assertEqual([node["@type"] for node in graph], ["BreadcrumbList"])
+
+    def test_a_day_that_is_not_one_is_left_out(self):
+        for wrong in ("yesterday", "23/11/2026", "2026-13-01"):
+            with (
+                self.subTest(wrong),
+                patch("website.views.parse", return_value=({"title": "Rules", "updated": wrong}, "# Rules")),
+            ):
+                response = self.client.get("/it/about/")
+                self.assertEqual(response.status_code, 200)
+                self.assertNotContains(response, "page-updated")
+                self.assertNotContains(response, "article:modified_time")
+
     def test_a_page_without_a_title_has_no_structured_data(self):
         with patch("website.views.parse", return_value=({}, "text")):
             self.assertNotContains(self.client.get("/it/about/"), "application/ld+json")

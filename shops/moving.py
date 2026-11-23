@@ -3,7 +3,7 @@ import_moved_shops` reads it on the other site.
 
 The file carries what the shop *is*, never how it gets paid. In it: the shop's details (name, texts, position,
 discount, contacts, business name and VAT number, Nostr identity, Telegram chat for alerts), what its owner chose to show
-of them (shops/details.py), what the association decided about it (listed, suspended, historic), and what is needed to
+of them (shops/details.py), what the community decided about it (listed, suspended, historic), and what is needed to
 tell its owner on the other site: the recovery email, and whether they sign in with a wallet. A file without the
 business details (version 1) is read too: its shops start with the phone and the email shown, for a shop that had
 an owner. Never in it: the wallet's login key, which is worth nothing on another
@@ -125,7 +125,7 @@ def waiting_for(shop, today=None):
     """What a shop moved here from another site still waits for, or None. "unclaimed": its owner has not opened the
     one-time link (which exists); "no_owner": nobody to give it to; "no_wallet": the owner took it, but it has no
     register. A shop that has its register, a historic one (Shop.closed: its owner may still take it and connect a
-    wallet, but it is no longer a place to pay the association looks after), or one that did not move here waits for
+    wallet, but it is no longer a place to pay the community looks after), or one that did not move here waits for
     nothing. The same rule as the dashboard's list of moved shops (`dashboard.moved_items`), for one shop already read:
     a test keeps the two in step. `today` is no longer read: Shop.closed reads the local date."""
     if shop.moved_in is None or shop.closed:

@@ -2,10 +2,10 @@
 
 A certified shop is a shop whose Lightning address answers the guardian (`lightning_status` OK on the address it has now,
 shops/lightning_watch.py) and whose owner has earned the basic pass of the merchant's training (`Trainee.base_earned`,
-shops/training.py), unless the association revoked its certificate. The site sees no sale: the certificate rests on
+shops/training.py), unless the community revoked its certificate. The site sees no sale: the certificate rests on
 what it can check, the address, and on the merchant's commitment, the training. Its page and its card on the map carry a
 small "Certified shop". The private part of the pages (website/visibility.py, through `sees_private_part`) is not
-automatic: its owner sees it once a person of the association approved the shop by hand in /admin/
+automatic: its owner sees it once a person of the community approved the shop by hand in /admin/
 (`private_approved`, `private_approved_by`).
 
 - `certified_month`: the first calendar month, in the community's time zone, in which all of it held. Once certified,
@@ -13,11 +13,11 @@ automatic: its owner sees it once a person of the association approved the shop 
   every run of the guardian (manage.py check_lightning).
 - A Lightning address the owner changed from the panel (shops/address_change.py, `address_pending()`) holds the badge and
   the private part back, without touching `certified_month` or the approval, until the guardian sees the new address work.
-- `certified_revoked`: the association took the certificate away from /admin/; the site does not give it back by itself.
+- `certified_revoked`: the community took the certificate away from /admin/; the site does not give it back by itself.
 
 One Lightning address belongs to one owner: several shops of the same owner may share it, shops of different owners
 never (`address_taken`). The forms refuse it, and a shop whose address is also on a shop of another owner is not
-certified (`qualifies`): data written before the rule is listed in the association's dashboard and gives no private part (`shared_with_another_owner`).
+certified (`qualifies`): data written before the rule is listed in the community's dashboard and gives no private part (`shared_with_another_owner`).
 
 The map's icons say how recently the Lightning address last answered (`lightning_worked`), in bands of whole days of the
 community's calendar (`bands`): never the date itself. Only the days the shop was open count (`vacation.open_days`).
@@ -108,7 +108,7 @@ def owns_certified_shop(user):
 
 
 def sees_private_part(user):
-    """True if `user` owns a certified shop the community has not suspended and that the association approved by hand
+    """True if `user` owns a certified shop the community has not suspended and that the community approved by hand
     for the private part. Never an error, one small query; never true when the badge is turned off."""
     if not enabled() or not getattr(user, "is_authenticated", False):
         return False
@@ -195,7 +195,7 @@ def meets_rule(shop):
 
 def refresh(shops=None, now=None):
     """Certifies the shops of `shops` (all of them by default) that meet the rule now and are not certified yet, with
-    this month. Returns how many. Never takes a certificate away: only the association does, from /admin/."""
+    this month. Returns how many. Never takes a certificate away: only the community does, from /admin/."""
     shops = Shop.objects.all() if shops is None else shops
     month = month_of(now or timezone.now())
     try:

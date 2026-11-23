@@ -1,6 +1,6 @@
 """What a shop tells the public, and what its owner has chosen to keep to themselves (docs/features/shop-details.md).
 
-The association keeps the shop's data in the database; the owner chooses which of it customers see. The name is always
+The community keeps the shop's data in the database; the owner chooses which of it customers see. The name is always
 shown. Of the rest the owner turns on or off the website, the address, the phone, the email, the business name and the
 VAT number: `Shop.show_<detail>` holds the choice, and nothing else decides it.
 
@@ -49,7 +49,7 @@ def shown(shop):
 
 
 def shown_on_a_suspended_page(shop):
-    """A shop the association took off the map keeps its page for the sign's QR code, with no contacts: the address and
+    """A shop the community took off the map keeps its page for the sign's QR code, with no contacts: the address and
     nothing else."""
     return {name: value for name, value in shown(shop).items() if name == "address"}
 
@@ -115,7 +115,7 @@ def italian_check(digits):
 
 def vat_doubt(text):
     """Why a VAT number looks wrong, or "". It is a doubt, never a refusal: an unusual number is saved as written and the
-    association decides. Only what is known is looked at: with `IT` in front, eleven digits whose last one checks the
+    community decides. Only what is known is looked at: with `IT` in front, eleven digits whose last one checks the
     others; with the letters of another country of the EU, a few digits or letters after them. Any other number, with
     the letters of a country outside the EU or with none, is the tax number of a place whose rules the software does
     not know: no doubt, whatever its shape, and never taken for an Italian one."""

@@ -2,11 +2,11 @@
 
 `manage.py osm_sync` (once a month, bitmentor-osm@<project>.timer) READS OpenStreetMap through Overpass and:
 - PROPOSES a link between a shop and its element (`Shop.osm_proposed`) when the name is alike and the place is close, and
-  nothing else is: the association confirms it in /admin/ (`Shop.osm_ref`). A doubtful match is never proposed: it goes in
+  nothing else is: the community confirms it in /admin/ (`Shop.osm_ref`). A doubtful match is never proposed: it goes in
   the report. Anybody can put a place next to a shop on OpenStreetMap, so nothing is read from an element, or written for
   it, before the confirmation;
 - for a confirmed link, fills the address, the city and the position (inside the area) a shop has EMPTY, never a field
-  somebody wrote, and OFFERS the website and the phone for the association to accept; everything it writes is in the
+  somebody wrote, and OFFERS the website and the phone for the community to accept; everything it writes is in the
   report and remembered (`Shop.osm_notes`), so that nothing is filled twice;
 - lists the elements that accept bitcoin and are not ours (candidates, never created by themselves);
 - works out which tags OpenStreetMap should have from what this site knows (accepts bitcoin or not, Lightning and
@@ -645,12 +645,12 @@ def match(shops, elements, config):
 # --- Filling our empty fields -----------------------------------------------------------------------------------------
 
 URL_RULES = URLValidator(schemes=["http", "https"])
-# What the reading fills by itself, for a link the association confirmed: the address, the town and the position (inside the
-# area). What it only OFFERS, for the association to accept: the website and the phone, which a stranger can write to send
+# What the reading fills by itself, for a link the community confirmed: the address, the town and the position (inside the
+# area). What it only OFFERS, for the community to accept: the website and the phone, which a stranger can write to send
 # customers somewhere else.
 AUTO_FIELDS = ("address", "city", "position")
 CONTACT_FIELDS = ("website", "phone")
-# What became of a value: written by the reading, offered and waiting, accepted by the association, or declined
+# What became of a value: written by the reading, offered and waiting, accepted by the community, or declined
 FILLED, OFFERED, ACCEPTED, DECLINED = "filled", "offered", "accepted", "declined"
 
 
@@ -715,7 +715,7 @@ DECISIONS_KEPT = 50
 
 
 def decided(notes, what, by, now=None, **more):
-    """Writes down who decided what and when (the association's confirmations, refusals, acceptances): the shop's notes keep
+    """Writes down who decided what and when (the community's confirmations, refusals, acceptances): the shop's notes keep
     the last DECISIONS_KEPT, for whoever asks later why a field says what it says."""
     notes["decisions"].append({"what": what, "by": str(by)[:150], "at": (now or timezone.now()).isoformat(), **more})
     notes["decisions"] = notes["decisions"][-DECISIONS_KEPT:]
@@ -733,7 +733,7 @@ def offers_of(shop):
 def fillable(shop, element, config):
     """What the element could give to the fields this shop has empty: {field: value}, `position` as (latitude, longitude)
     and only if it falls inside the area. Nothing for a field with a value, whoever wrote it, and nothing for a field the
-    reading already filled or the association already took or declined (see `notes_of`): an owner who emptied a field on
+    reading already filled or the community already took or declined (see `notes_of`): an owner who emptied a field on
     purpose does not see it filled again. Contacts come with the same rule, but are offered, not written."""
     found = {}
     tags = element.tags
@@ -771,7 +771,7 @@ def remember(notes, name, value, state):
 def fill(shop, element, config):
     """Writes the address, the town and the position the element gives to the fields this shop has empty, a field at a time
     and only if it is still empty when the write happens (the owner may be saving the same shop), and notes the value
-    written. The website and the phone are not written: they are offered, and wait for the association. Returns
+    written. The website and the phone are not written: they are offered, and wait for the community. Returns
     (written, offered), each {field: value}, the values as they went in. A conditional UPDATE, not a save: nothing else of the
     shop is rewritten."""
     found = fillable(shop, element, config)
@@ -804,7 +804,7 @@ def fill(shop, element, config):
 
 
 def accept_contacts(shop, by=""):
-    """The association accepts what OpenStreetMap offered (the website, the phone): written to the fields that are still
+    """The community accepts what OpenStreetMap offered (the website, the phone): written to the fields that are still
     empty, and remembered, with who accepted and when, so that it is not offered again. A field that has a value by now
     declines the offer."""
     notes = notes_of(shop)
@@ -835,8 +835,8 @@ def decline_contacts(shop, by=""):
 
 
 def propose_link(shop, element, alike=None, metres=None):
-    """Puts the element next to the shop as a link waiting for the association (`Shop.osm_proposed`), if the shop has neither
-    a link nor a proposal and the association never refused this element, and keeps what the association needs to look at it
+    """Puts the element next to the shop as a link waiting for the community (`Shop.osm_proposed`), if the shop has neither
+    a link nor a proposal and the community never refused this element, and keeps what the community needs to look at it
     (the element's name, how alike it is, how far). False when somebody got there first."""
     notes = notes_of(shop)
     if element.ref in notes["rejected"]:
@@ -856,7 +856,7 @@ def propose_link(shop, element, alike=None, metres=None):
 
 
 def confirm_link(shop, by="", now=None):
-    """The association confirms the proposed link: it becomes the shop's link, with who confirmed it and when written in the
+    """The community confirms the proposed link: it becomes the shop's link, with who confirmed it and when written in the
     notes. False when there is nothing proposed, the shop has a link already, or another shop got the element."""
     if not shop.osm_proposed or shop.osm_ref:
         return False
@@ -885,7 +885,7 @@ def confirm_link(shop, by="", now=None):
 
 
 def reject_link(shop, by=""):
-    """The association refuses the proposed link: it is cleared and never proposed again for this shop."""
+    """The community refuses the proposed link: it is cleared and never proposed again for this shop."""
     if not shop.osm_proposed:
         return False
     notes = notes_of(shop)
@@ -1041,9 +1041,9 @@ def wanted_tags(shop, config, today):
 
 
 def other_places(shops, elements, by_ref, taken, config, report):
-    """The other places of the shops with several branches (ShopPlace). A place linked by the association
+    """The other places of the shops with several branches (ShopPlace). A place linked by the community
     (`ShopPlace.osm_ref`) takes its element: it is the shop, not a stranger that takes bitcoin, and never another shop's
-    match. For a place not linked, the one element with the shop's name close to it is listed for the association to
+    match. For a place not linked, the one element with the shop's name close to it is listed for the community to
     write in /admin/: nothing is linked by the reading. Adds the elements to `taken`, writes `place_missing` and
     `place_links` in the report, and returns the linked (shop, place, element) that were read whole."""
     by_pk = {shop.pk: shop for shop in shops}
@@ -1113,7 +1113,7 @@ def view(shop, element, **more):
 
 def synchronize(config, elements, skipped=0, now=None, apply=True, previous=None):
     """The whole reading, as a report (a dict of plain values for OsmRun.report). With `apply` it proposes the links that
-    are beyond doubt (if `auto_link`: the association confirms them in /admin/), and for the shops whose link is
+    are beyond doubt (if `auto_link`: the community confirms them in /admin/), and for the shops whose link is
     confirmed it fills the address, the town and the position they have empty, offers the website and the phone, and
     stamps `osm_seen`; without `apply` it only says what it would do. `previous` is the report of the last reading that
     was told, to say which candidates are new."""
@@ -1317,7 +1317,7 @@ def plausible(count, previous):
 
 
 def previous_run():
-    """The report of the last reading that worked and that the association was told about (or that needed no telling): what
+    """The report of the last reading that worked and that the community was told about (or that needed no telling): what
     the next reading compares with, to tell what is new. Not a reading whose summary did not go out, and not one made by
     hand without --send, which told nobody."""
     for run in OsmRun.objects.filter(ok=True)[:KEEP_RUNS]:
@@ -1745,7 +1745,7 @@ def page(shop, now=None):
     """What the merchant's page about OpenStreetMap says, from the database only (no server is asked while it loads):
     None when the community does not use it. `linked`: the shop has an element and what differs from this site's data
     as of the last reading; otherwise the tags a new entry would carry. A change that needs a person's judgement is not
-    shown to the merchant: the association looks at it, and the page says so instead of saying that all is well. It never
+    shown to the merchant: the community looks at it, and the page says so instead of saying that all is well. It never
     says that all is well on a reading older than LATE_DAYS, nor while OpenStreetMap says the shop takes no bitcoin."""
     config = settings()
     if config is None or not shop.name:

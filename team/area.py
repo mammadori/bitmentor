@@ -553,7 +553,7 @@ def approve(request, key, shop):  # BEYOND_THE_GROUP["approve"]
 @area_view
 @require_GET
 def osm_requests(request, key):  # BEYOND_THE_GROUP: the group has no right on these requests
-    """The merchants' requests for the association to do their entry on OpenStreetMap: what to write, the entry if the
+    """The merchants' requests for the community to do their entry on OpenStreetMap: what to write, the entry if the
     shop has one, and «Mark as done», the admin's own action. The work itself is done by a person on openstreetmap.org
     with their own account: the site writes nothing there. The ones closed in the last days below, to read."""
     now = timezone.now()

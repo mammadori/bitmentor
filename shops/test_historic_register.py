@@ -125,7 +125,7 @@ class Historic(TestCase):
         self.assertNotIn("Historic shop: no register.", page)
 
     def test_a_moved_shop_waits_for_the_wallet_until_its_closing_day(self):
-        """The association's list of moved shops is about places to pay: a historic one waits for nothing there, and its
+        """The community's list of moved shops is about places to pay: a historic one waits for nothing there, and its
         owner may still connect a wallet."""
         from . import moving
 

@@ -2,7 +2,7 @@
 
 A new installation is empty: no shops, no certificates, an empty list for the day. Nearly everything the site
 does for the people who run it is understood only with data in front of you. `manage.py demo_data` fills a **test**
-installation with a small made-up community, in every state a merchant or the association meets, so that the volunteers
+installation with a small made-up community, in every state a merchant or the community meets, so that the volunteers
 learn on it (who answers the phone, who helps a merchant sign up) and a merchant can see the site before signing up.
 
 Nothing in it is real. It runs only on an **empty** test installation (a laptop, a development site made for training),
@@ -33,7 +33,7 @@ docker compose exec web python manage.py demo_data --links
 
 Each link is the one the «send me a link» page would email: it lasts 15 minutes and works once, and opens a page with
 a button. The owners have no password, and the accounts are plain merchants: none of them is staff. To see the
-association's side, `/admin/today/` needs a staff account of your own (`manage.py createsuperuser`, then the admin's
+community's side, `/admin/today/` needs a staff account of your own (`manage.py createsuperuser`, then the admin's
 password page). Use the owners' links, not an email of your own: a merchant's account that is not a demo owner makes
 the site «not empty», and the next run refuses (delete that account in `/admin/` to go on).
 
@@ -61,7 +61,7 @@ docker compose exec web python manage.py demo_data --remove
 
 ## A tour for the volunteers
 
-About half an hour, with one person playing the merchant and one the association.
+About half an hour, with one person playing the merchant and one the community.
 
 1. **The list for the day.** Open `/admin/today/`. On top, three numbers (registers taking payments, shops to look at,
    closed for a while). Below, problems first, then what to look at, then what to know. Read one line out loud: the shop, what
@@ -76,7 +76,7 @@ About half an hour, with one person playing the merchant and one the association
    phone switches off during a sale.
 5. **The staff.** Sign in as `tailor`: the staff registers, one turned off. The sales of a staff register stay on
    its phone and reach the owner's, never the site: what does the owner do at the end of the shift? What does the
-   association say when a phone is lost?
+   community say when a phone is lost?
 6. **A moved shop.** `demo_data --links` also prints the link that takes Grandma's Kitchen. Sign in as any owner (say
    `pencil`), open that link and press the button: the shop is in the account. Run `demo_data` again to give it back to
    its waiting state and do it with someone else.

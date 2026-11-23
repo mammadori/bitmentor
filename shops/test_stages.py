@@ -241,6 +241,8 @@ class Panel(TestCase):
             "Add a shop",
         ):
             self.assertIn(piece, fold)
+        # The staff registers are not folded a second time inside the fold
+        self.assertIn(f'<details class="handover" id="handover-{self.shop.id}" open>', fold)
         # in the image the static files carry a fingerprint in their name (stages.<hash>.js)
         self.assertRegex(top, r'src="/static/stages(\.[0-9a-f]+)?\.js"')
 
@@ -437,7 +439,8 @@ class Panel(TestCase):
     def test_off_the_panel_is_byte_for_byte_the_one_without_stages(self):
         """testdata/panel_without_stages.html is the panel before the stages (e0b4c4cf), plus exactly the lines later
         commits changed on purpose, all in «To print»: the sign line that says the card for customers waits too and the
-        card's button hidden while the shop waits (ad605163), and the sign line of a shop set aside (38dd10a0)."""
+        card's button hidden while the shop waits (ad605163), and the sign line of a shop set aside (38dd10a0); and the
+        staff registers under one name, open at once when the panel has stages, and the button of the other places."""
         Shop.objects.create(name="Old", owner=self.owner, closed_on=timezone.localdate() - timedelta(days=3))
         Shop.objects.create(owner=self.owner, name="New", awaiting_wallet=True)
         Shop.objects.create(owner=self.owner, name="Waiting", lightning_address="w@wallet.example", approved_on=None)

@@ -13,7 +13,7 @@ from shops import certified, lightning_watch, vacation
 
 
 class Command(BaseCommand):
-    help = "Probes the Lightning address of the shops with a register, and tells merchant and association what changed"
+    help = "Probes the Lightning address of the shops with a register, and tells the merchant and the community what changed"
 
     def add_arguments(self, parser):
         parser.add_argument("--pause", type=float, default=3, help="seconds between two shops (3)")

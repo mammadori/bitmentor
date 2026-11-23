@@ -14,7 +14,7 @@ from django.conf import settings
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.template import engines
-from django.template.loader import select_template
+from django.template.loader import render_to_string, select_template
 from django.urls import reverse
 from django.utils._os import safe_join
 from django.utils.html import escape
@@ -25,7 +25,7 @@ from django.utils.translation import gettext as _
 from django.views.static import serve
 
 from config import ratelimit
-from config.community import COMMUNITY_DIR, community, front_matter, localized, page_path, public_slugs
+from config.community import COMMUNITY_DIR, community, front_matter, localized, page_path, public_slugs, updated_on
 from config.middleware import CSP, csp_with_connect
 from meetups import conf as meetups_conf
 from shops import details, events
@@ -252,6 +252,12 @@ def page_html(text, backlink):
     return convert(text, backlink)
 
 
+def with_updated(body, line):
+    """The page with the line of its day right under its first title, or first of all on a page without one."""
+    head, title, rest = body.partition("</h1>")
+    return mark_safe(f"{head}{title}{line}{rest}" if title else f"{line}{body}")
+
+
 def page(request, slug):
     # Every answer of a page, a 404 too, has the same cache headers: they must not tell which pages have a private part
     request.visibility_varies = True
@@ -287,6 +293,13 @@ def render_page(request, slug):
     }
     html = engines["django"].from_string(text).render(data, request)
     body = page_html(html, _("Back to note %d in the text"))
+    # `updated:` in the page's metadata: the day goes under the title, and into what search engines read (head.py)
+    try:
+        updated = updated_on(meta)
+    except ValueError:
+        updated = None  # not a date: no line at all, and the check website.W014 names the page
+    if updated:
+        body = with_updated(body, render_to_string("partials/page_updated.html", {"updated": updated}))
     template = select_template([f"website/{slug}.html", "website/page.html"])
     response = render(
         request,
@@ -297,6 +310,7 @@ def render_page(request, slug):
             "page_title": meta.get("title", ""),
             "page_description": meta.get("description", ""),
             "page_image": meta.get("image", ""),
+            "page_updated": updated,
             "wide": meta.get("layout") == "wide",
         },
     )

@@ -7,17 +7,17 @@ guardian of the Lightning addresses found the address the shop has today working
 on what it can check, the address, and on the merchant's commitment, the training. Its page, its line in the list and
 its card on the map carry a small "Certified shop". Once certified,
 always certified: it is a fact of the past (`certified_month`, the first calendar month in the community's time zone in
-which all of it held). The association can revoke a certificate from `/admin/` (action "Revoke the certificate", for
+which all of it held). The community can revoke a certificate from `/admin/` (action "Revoke the certificate", for
 whoever has the right to change shops: not the moderators' group); the site then never certifies that shop again, until
 "Allow the certificate again", which certifies it at once if it meets the rule, or when it gets there.
 
 **The private part is opened by hand.** The badge is automatic, the private part of the pages
 ([Public and private parts of a page](private-pages.md)) is not: the owner of a certified shop sees it only once a person
-of the association approved that shop in `/admin/` (action "Open the private part to the owner", for whoever may change
+of the community approved that shop in `/admin/` (action "Open the private part to the owner", for whoever may change
 shops). The shop keeps when and who (`private_approved`, `private_approved_by`, read-only), and the shop's history in
 the admin has the line. "Close the private part to the owner" takes it back; revoking the certificate takes it back
 too, and a certificate allowed again waits for a new approval. A certified shop not approved yet, with a register that still trades, is a line of the
-association's dashboard (`/admin/today/`) and the filter "Certified, private part waiting for approval" of the list.
+community's dashboard (`/admin/today/`) and the filter "Certified, private part waiting for approval" of the list.
 A suspended shop gives no private part. The approval is for the owner who had the shop: when the shop changes owner
 (from `/admin/`, a command or a shell) it is taken away, and the admin's history says so.
 

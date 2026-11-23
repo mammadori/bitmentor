@@ -841,7 +841,7 @@ def shops_json_body():
 
 
 def shop_detail(request, shop):
-    """The page stays even for a suspended shop: the QR of the sign leads here. But the association took it off the
+    """The page stays even for a suspended shop: the QR of the sign leads here. But the community took it off the
     maps, maybe for a site or a text that are wrong: no description or contacts, and no search engines.
 
     Whoever scans the sign stands at the till: the page says how to pay there and has a card to show the cashier,
@@ -853,7 +853,7 @@ def shop_detail(request, shop):
     shop.trained = not reduced and training.is_trained(shop)
     language = get_language()
     extras = shop_page_links(language, shop.external_id)
-    # What the owner shows (shops/details.py); a shop the association took off the map shows no contacts
+    # What the owner shows (shops/details.py); a shop the community took off the map shows no contacts
     shown = details.shown_on_a_suspended_page(shop) if reduced else details.shown(shop)
     # The other places of a shop with several branches, with the address only if the owner shows the shop's; none for a
     # shop off the map
@@ -986,7 +986,7 @@ RETRY_SECONDS = 15
 @require_POST
 def lightning_retry(request, shop):
     """The owner asks to probe the shop's Lightning address again now, after fixing it. Only reads: the address stays as
-    it is. The answer goes in the panel, so no email for a change seen there; the association hears it."""
+    it is. The answer goes in the panel, so no email for a change seen there; the community hears it."""
     shop = get_object_or_404(lightning_watch.watched().filter(owner=request.user), pk=shop)
     back = redirect(f"{reverse('shops')}#lightning-{shop.id}")
     tag = f"lightning lightning-{shop.id}"
@@ -1211,7 +1211,7 @@ def connect_wallet(request, shop, form):
     if problem:
         form.add_error("lightning_address", problem)
         return None
-    # Written only if the shop is still as it was: something changed meanwhile (the association suspended it, a second
+    # Written only if the shop is still as it was: something changed meanwhile (the community suspended it, a second
     # submit connected it) and nothing is written, never a register for a shop that may not have one
     saved = Shop.objects.filter(pk=shop.pk, owner=request.user, lightning_address="", suspended=False).update(
         lightning_address=address, lightning=True, awaiting_wallet=False
@@ -1243,7 +1243,7 @@ PLATFORM_NAMES = {
     "windows": "Windows",
     "macos": "Mac",
     "linux": "Linux",
-    "web": gettext_lazy("in the browser"),
+    "web": gettext_lazy("on any phone or computer, nothing to install"),
 }
 
 
@@ -1308,7 +1308,7 @@ def shop_saved():
 
 def needs_wallet(shop):
     """A shop of its owner with no register yet: a shop moved from another site, or a shop of the directory given to its
-    owner. A historic shop takes one too, its register has no end; one the association suspended takes none. Once set,
+    owner. A historic shop takes one too, its register has no end; one the community suspended takes none. Once set,
     the owner changes the address from its own page (shops/address_change.py): this page never opens again for it."""
     return not (shop.lightning_address or shop.suspended)
 
@@ -1409,7 +1409,7 @@ def shop_places(request, shop):
             return redirect("shop_places", shop=shop.id)
         if editing is not None:
             if form.is_valid():
-                # Only the owner's columns: the link to OpenStreetMap, written by the association, stays as it is, as it
+                # Only the owner's columns: the link to OpenStreetMap, written by the community, stays as it is, as it
                 # does when the owner moves the shop itself (edit_shop)
                 if branches.write(form.save(commit=False), shop, approved) == "waits" and editing.approved_on:
                     messages.success(
@@ -1455,7 +1455,7 @@ def shop_places(request, shop):
 
 
 def warn_about_vat(request, form):
-    """A VAT number that looks wrong is saved as it was written; the owner is told, once, and the association decides. The
+    """A VAT number that looks wrong is saved as it was written; the owner is told, once, and the community decides. The
     number is not in the message: it is on the page the owner is going to."""
     why = form.doubt()
     if why:

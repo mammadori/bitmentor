@@ -32,7 +32,7 @@
   {{ form.discount.as_field_group }}{% if form.onchain %}{{ form.onchain.as_field_group }}{% endif %}{{ form.description.as_field_group }}{{ form.website.as_field_group }}{{ form.email.as_field_group }}{{ form.phone.as_field_group }}
 </details>
 <details{% if form.legal_name.errors or form.vat_number.errors %} open{% endif %}><summary>{% translate "Business details: name on the invoices, VAT number" %}</summary>
-  <p class="muted">{% translate "The association keeps them. Customers do not see them unless you choose so." %}</p>
+  <p class="muted">{% translate "The community keeps them. Customers do not see them unless you choose so." %}</p>
   {{ form.legal_name.as_field_group }}{{ form.vat_number.as_field_group }}
 </details>
 <details{% if form.nostr_pubkey.errors or form.nip05_name.errors or form.telegram_chat.errors %} open{% endif %}><summary>{% translate "Advanced options" %}</summary>

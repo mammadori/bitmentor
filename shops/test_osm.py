@@ -950,7 +950,7 @@ class Report(Guard, TestCase):
             node(4, "Hotel Stella", lat=41.99, **{"payment:lightning": "yes"}),
         )
         known.refresh_from_db(), linked.refresh_from_db()
-        # A match is only a proposal: nothing is written for it, and nothing is filled, until the association confirms it
+        # A match is only a proposal: nothing is written for it, and nothing is filled, until the community confirms it
         self.assertEqual((known.osm_ref, known.osm_proposed), ("", "node/1"))
         self.assertEqual((known.address, known.website, known.phone, known.osm_seen), ("", "", "", None))
         self.assertEqual([item["name"] for item in report["link_proposals"]], ["Bar Aurora"])
@@ -976,7 +976,7 @@ class Report(Guard, TestCase):
             node(2, "Gelato Luna", **{"currency:XBT": "no"}),
         )
         self.assertEqual((again["link_proposals"], again["waiting_links"]), ([], 1))
-        # The association confirms it: from the next reading, its element is read and compared
+        # The community confirms it: from the next reading, its element is read and compared
         osm.confirm_link(Shop.objects.get(pk=known.pk))
         third = self.run_it(node(1, "Bar Aurora", lat=41.9002, **{"currency:XBT": "yes", "addr:street": "Main Street"}))
         self.assertEqual({item["name"] for item in third["filled"]}, {"Bar Aurora"})

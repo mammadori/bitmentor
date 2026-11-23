@@ -179,7 +179,7 @@ These pages, and nothing else:
 
   `/admin/` is unchanged: the Moderators group sees the whole diagnosis there.
 - **`/team/shops/`**, only for a key an administrator allowed to approve (below): the new shops that wait.
-- **`/team/osm/`**: the merchants' requests for the association to put the shop on OpenStreetMap or update its entry,
+- **`/team/osm/`**: the merchants' requests for the community to put the shop on OpenStreetMap or update its entry,
   with the lines to write, a link to the shop's entry and to the editor, and **Mark as done**, the admin's own action.
   The work is done by the volunteer on openstreetmap.org with their own account: the site writes nothing there. A
   request that cannot be done is answered by an administrator, who writes the merchant why (the area has no field for a

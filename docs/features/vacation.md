@@ -5,7 +5,7 @@ Without this, the map shows it open, its icons fade, the guardian of the Lightni
 customer arrives in front of a closed shutter. `closed_on` is something else: a shop that closed for good, kept on the
 map as history ([Shop page](shop-page.md), [Features](README.md)).
 
-**Can be turned off.** `features.vacation: false` in `community.yml` takes the card, the pages, the notice on the map and the welcome back away, and keeps the closures written (and the Closures table in `/admin/`): a closure with a day to open again keeps the alarms quiet until that day, and the association is told then of a Lightning address that broke meanwhile. See [Turning features off](README.md#turning-features-off).
+**Can be turned off.** `features.vacation: false` in `community.yml` takes the card, the pages, the notice on the map and the welcome back away, and keeps the closures written (and the Closures table in `/admin/`): a closure with a day to open again keeps the alarms quiet until that day, and the community is told then of a Lightning address that broke meanwhile. See [Turning features off](README.md#turning-features-off).
 
 A closure is a range of days of the community's calendar (`Closure`, `shops/vacation.py`): the first closed day, the day
 the shop opens again (or none: "I open again when I say so"), and a reason from a list: holidays, building works,
@@ -20,7 +20,7 @@ only the days the shop was open.
   today, until I say so" in one tap (reason: other). A closure to come can be changed or cancelled; one in course can be
   shortened, lengthened, or ended with "I am back today". The days are the community's: today and later for the first
   day, a day after it for the day the shop opens again, at most a year.
-- **The association**, in `/admin/`, under the shop: the "Closures" table, with the first day free (a merchant phones to
+- **The community**, in `/admin/`, under the shop: the "Closures" table, with the first day free (a merchant phones to
   say they closed on Monday). The same rules apply from there.
 
 ## What the public sees
@@ -44,7 +44,7 @@ There is never a free text: the reason comes from a list, and "personal reasons"
   shop looks quiet again.
 - **The certificate.** The rule does not move for a closure: a closed shop is not asked less or more (a Lightning address
   that works and the owner's basic pass), and a certified shop stays certified (it is a fact of the past, only the
-  association revokes it).
+  community revokes it).
 - **Alarms.** For a shop closed today the dashboard (`/admin/today/` and `manage.py dashboard`, so the
   morning message too) lists no problem with the Lightning address; on top, how many shops
   are closed for a while. The site sees no sale, so it cannot tell a shop that sells while it says it is closed:
@@ -54,16 +54,16 @@ There is never a free text: the reason comes from a list, and "personal reasons"
   The path says "You are closed for
   now: there is nothing to check". The guardian ([The guardian of the Lightning addresses](lightning-guardian.md))
   keeps probing the address and the panel shows what it finds, but nobody is written to (not the merchant, not the
-  association) while the shop is closed.
+  community) while the shop is closed.
 
 ## When the shop opens again
 
 From 8:00 of the community's morning of the day the shop opens again, `manage.py check_lightning` (the guardian's timer,
 every hour) writes once to the merchant: "Welcome back! … try a small payment of your own", by email (the address to get
 back in, as the guardian does) and on the shop's Telegram chat, whichever the merchant has; if the Lightning address does
-not work, the same message says so (and asks for the small payment once it works again), and the association hears it
+not work, the same message says so (and asks for the small payment once it works again), and the community hears it
 on Telegram. A merchant who ends the closure by hand ("I am back today", or the form with today as the day, or a closure
-that began today and is cancelled) is not written to, since they are in the panel, but the association hears about a
+that began today and is cancelled) is not written to, since they are in the panel, but the community hears about a
 fault of the address at that moment, whichever way the shop reopens. For two weeks the panel shows a "Welcome back" card on the shop; once the guardian finds
 the Lightning address working on or after the day it opened again, the card says so, and the merchant closes it with
 "Got it".

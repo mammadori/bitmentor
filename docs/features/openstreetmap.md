@@ -62,7 +62,7 @@ Only `bbox` is needed. A value that cannot be used is left at its default and `m
 A shop has a field, `osm_ref` (`node/123456`, `way/123456` or `relation/123456`: the last part of its address on
 openstreetmap.org). Two shops never share an element.
 
-- **The association** sets it in `/admin/`, in the shop's page, where a link to the element lets it check the place.
+- **The community** sets it in `/admin/`, in the shop's page, where a link to the element lets it check the place.
   The shops can be filtered by "OpenStreetMap: linked / link proposed / not linked", and the list has a column with the
   element proposed for each shop (its name, how far it is, how alike), to confirm from the list. A link written by hand is the link:
   whatever the reading had proposed is gone.
@@ -72,7 +72,7 @@ openstreetmap.org). Two shops never share an element.
   shop and no other shop fits that element) it puts the element next to the shop as a **link proposed**
   (`osm_proposed`, `auto_link: true`). Anybody can put a place on OpenStreetMap next to a shop, with the shop's name:
   a match is a proposal, not a fact. **Nothing is read from the element, and nothing is written for it, until the
-  association confirms** it in `/admin/` (the action "Confirm the OpenStreetMap link proposed", after looking at the
+  community confirms** it in `/admin/` (the action "Confirm the OpenStreetMap link proposed", after looking at the
   element through the link in the shop's page; "Refuse" clears it and the element is never proposed again for that
   shop). A **doubtful** match (two elements fit, two shops fit one element) goes in the report and is never proposed; so
   does a name that fits at up to five times the distance, and a shop without a position: for a person to look at, and to
@@ -85,15 +85,15 @@ A shop with several branches is one shop with a point on the map for each place
 ([A shop with several places](shop-places.md)); on OpenStreetMap each branch is an element of its own. Only the places
 the public sees are read: one that waits for an approval, that its owner keeps off the map or took away is left out,
 and nothing is proposed for it. The shop's link (`Shop.osm_ref`)
-is the element of its own position. Each other place can have its link too, written by the association on the place,
+is the element of its own position. Each other place can have its link too, written by the community on the place,
 in the shop's page of `/admin/` («other places»); never by the owner. An owner who changes a place (its address, town
-or point) keeps its link, as a shop that moves keeps its own: the association changes or clears it in `/admin/`.
+or point) keeps its link, as a shop that moves keeps its own: the community changes or clears it in `/admin/`.
 
 - **Linked**, the element is the shop: it is not listed among the strangers that take bitcoin, it is never proposed as
   another shop's match, and the reading prepares for it the same tags as for the shop's own element. Those changes are
   listed apart in the report, for a person to make by hand: `osm_upload` sends only the shops' own.
 - **Not linked**, the reading looks for it: one element with the shop's name (`name_similarity`) within
-  `distance_metres` of the place, and no other that fits, is listed in the report for the association to write on the
+  `distance_metres` of the place, and no other that fits, is listed in the report for the community to write on the
   place. Nothing is linked by the reading, and a doubt (two elements at a place, one element between two places)
   lists nothing.
 - A linked element that is gone from OpenStreetMap is said in the report, as for a shop.
@@ -111,7 +111,7 @@ The reading fills nothing on a place: its address, town and position are the own
   written**: a stranger can write a website on a map to send customers somewhere else, so they wait in
   `/admin/` ("Offered by OpenStreetMap" in the shop's page) for the action "Accept the website and phone offered by
   OpenStreetMap", which writes them to the fields that are still empty, or "Decline". A field somebody wrote, the owner or
-  the association, is never touched, not even when it is different: the write is a conditional update, so an owner who
+  the community, is never touched, not even when it is different: the write is a conditional update, so an owner who
   saves at the same moment wins. The email is not taken, and neither is the discount: a discount promised to
   customers is not read from a map anyone can edit.
   **Every value written is in the report** (`/admin/shops/osmrun/`, "Fields written"), so that it can be undone, and
@@ -214,7 +214,7 @@ Turned on:
 - what was sent is no longer proposed, and the merchants' requests it did are marked done.
 
 Before turning it on and before the first upload, tell the local OpenStreetMap community what this does (the forum and the wiki of OpenStreetMap
-have a place for it), use an account of the association and not a personal one, and look at the first changeset.
+have a place for it), use an account of the community and not a personal one, and look at the first changeset.
 
 ## The merchant
 
@@ -223,13 +223,13 @@ only (no server is asked while it loads):
 
 - if the shop is linked: a link to its element, and which lines are missing or different there, as of the last
   reading, with the day of that reading. The proposals that need a person are not shown to the merchant, and the page
-  then says that a person of the association has to look at it, instead of saying that all is well; it says so, too,
+  then says that a person of the community has to look at it, instead of saying that all is well; it says so, too,
   when OpenStreetMap says the shop does not take bitcoin any more, and when the last reading is more than 45 days old;
 - if it is not: what is needed to add it (a name, a place on the map, the kind of place, which the merchant chooses in
   the editor) and the lines about bitcoin to write;
 - the steps to do it alone, in plain words, with the editor already on the shop's place or element and the lines to
   copy. A tag is explained once;
-- a tick, **The association does it for me**, and a button. It makes an `OsmRequest` (shop, date, what is asked: put the
+- a tick, **The community does it for me**, and a button. It makes an `OsmRequest` (shop, date, what is asked: put the
   shop there or update its entry, the lines, the state and who did it), tells `TELEGRAM_MODERATION_CHAT` as a request
   for help does, and appears as a line on top of `/admin/today/` and in `/admin/shops/osmrequest/`. Only a queue:
   a person of the staff does it, by hand in the editor (or with `osm_upload`, where it is turned on), and marks it done
@@ -238,12 +238,12 @@ only (no server is asked while it loads):
   in `/admin/`. The request carries nothing the merchant wrote. A request left open by a previous owner of the shop is
   closed ("the shop changed owner") when the new owner asks, and is never shown to them as theirs.
 
-## For the association
+## For the community
 
 - `/admin/today/`: a line for each open request; a line "tags of our shops on OpenStreetMap are not what this site
   knows" while there are some, for a person to change by hand (with `osm_upload` turned on: "changes proposed for
   OpenStreetMap wait for a person to send them", and the command); a line for the links proposed and one for the contacts offered that wait for the
-  association; a line when the last reading failed, or none worked for 45 days.
+  community; a line when the last reading failed, or none worked for 45 days.
 - The monthly message (`TELEGRAM_MODERATION_CHAT`, else the community's email or `moderators_emails`, **only when there is something new since
   the last summary**; at most 3900 characters): how many changes are proposed in all, and by name what is new: links
   proposed, fields written, contacts offered, the new places, the shops OpenStreetMap marks as no longer taking bitcoin,

@@ -233,7 +233,7 @@ class StaffWalk(Base):
     def test_only_the_admin_lives_under_the_admins_path(self):
         """The staff keeps its account on /admin/..., so nothing of a merchant may answer there: the routes that start with
         admin/ are the admin site, its login with the second factor's code, the account's own second factor and the
-        association's list, and nothing else. And the wallet's sign-in to the admin, and the status of a wallet being
+        community's list, and nothing else. And the wallet's sign-in to the admin, and the status of a wallet being
         linked (config/admin_wallet.py): staff pages, 404 unless ADMIN_WALLET_SIGN_IN is on."""
         from config import admin_wallet
 

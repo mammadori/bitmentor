@@ -63,12 +63,12 @@ urlpatterns = [
     path("register/p/<uuid:register>/sw.js", staff.worker, name="staff_worker"),
     path("register/p/<uuid:register>/chain/", gated(ONCHAIN, chain_count.staff_claim), name="staff_chain"),
     path("register/p/<uuid:register>/practice/", gated(PRACTICE, practice.staff_practice), name="staff_practice"),
-    # «Something wrong?» (shops/helpdesk.py): the symptoms, what the site knows, and the request to the association
+    # «Something wrong?» (shops/helpdesk.py): the symptoms, what the site knows, and the request to the community
     path("help/<uuid:shop>/", help_views.home, name="help_home"),
     path("help/<uuid:shop>/ask/", help_views.ask, name="help_ask"),
     path("help/<uuid:shop>/<slug:slug>/", help_views.symptom, name="help_symptom"),
     path("help/<uuid:shop>/<slug:slug>/again/", help_views.again, name="help_again"),
-    # Your shop on OpenStreetMap (shops/osm.py): what the site knows, the steps, and the request to the association
+    # Your shop on OpenStreetMap (shops/osm.py): what the site knows, the steps, and the request to the community
     path("openstreetmap/<uuid:shop>/", osm_views.home, name="osm_home"),
     path("openstreetmap/<uuid:shop>/ask/", osm_views.ask, name="osm_ask"),
     # The merchant's training (shops/training.py): the path, a module with its quiz, the review, the steps, the staff's rules

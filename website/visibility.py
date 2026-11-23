@@ -17,7 +17,7 @@ leaves alone. A page with `visibility: private` in its front matter is private a
 and never in the sitemap or the menu.
 
 Who has the private view is decided here, on the server: an address in DEV_ALLOWED_IPS, the owner of a certified
-shop that the association approved by hand (shops/certified.py, `sees_private_part`). A cookie only lets them switch
+shop that the community approved by hand (shops/certified.py, `sees_private_part`). A cookie only lets them switch
 the private part off and on again; on its own it gives nothing. The static copy of the site (X-Static-Copy: 1) is
 always public.
 
@@ -239,7 +239,7 @@ def from_allowed_address(request):
 
 
 def entitled_account(user):
-    """True if the account may see the private part: the owner of a certified shop approved by the association, or an
+    """True if the account may see the private part: the owner of a certified shop approved by the community, or an
     account the community's own rule lets in (config/hooks.py, `private_ok`), asked only when the first says no."""
     from config import hooks
     from shops.certified import sees_private_part

@@ -205,6 +205,38 @@ Read them from a machine you trust, right after the CI pipeline of the tag, and 
   ([Copies on Nostr](features/nostr-copies.md#turning-it-on)). Every address written before means what it meant.
 - An example git hook, `examples/git-hooks/commit-msg`, for whoever works on the code: off until it is linked.
 
+### From 0.4.0 to 0.5.0
+
+- No new variable in the `.env` and no new key in `community.yml`; pages may have a new key, `updated`.
+- **«The association» is now «the community»** in every text of the software (48 of them) and in the seven
+  catalogs: whoever runs a site may be a group of volunteers with no legal form. A community whose own catalog
+  changes one of those texts has it under the old `msgid`, which no longer matches: the software's text is shown
+  until the `msgid` is renamed. `msgmerge --update` against the new `locale/django.pot` marks them
+  ([Languages](languages.md)). Names in the code, stored values (`association` among the channels a change was told
+  to) and the form field of the OpenStreetMap request stay as they were.
+- **Two migrations** (`shops.0016`, `meetups.0003`): labels and help texts of three fields, nothing in the database.
+- **A page says when it was last gone over.** `updated: 2026-11-23` in the metadata at the top of a community's page
+  puts «Updated on 23 November 2026» under its title, in the visitor's language, and gives the day to search engines
+  (`article:modified_time`, `dateModified`). For the pages that age: rules, taxes, wallets. A page without it is as
+  it was; a value that is not a day is left out and named by the new check `website.W014`
+  ([How it works](architecture.md)).
+- **The panel:** «Registers for your staff» is one name everywhere and is open at once inside «Everything, if you
+  want» (it was folded a second time, as «Register for whoever works with you»); adding a register says «Register
+  added» on the code page, and the list calls that page by its title. «The other places of your shop» has a button
+  under «Your page». A place that waits says it waits for the community, and the map of a new place opens close to
+  the shop.
+- Texts whose `msgid` changed, for a community's own catalog: the two examples of a time zone (now «Europe/Berlin or
+  America/New_York»), the two lines of a place that waits; gone: «Register for whoever works with you», «Give a
+  register to someone», «Put it on a phone».
+- For whoever writes on GitHub: forms for issues and pull requests, and a code of conduct of a few lines.
+- **No «browser» in what a merchant reads.** The texts of the register and of the panel say «the phone's menu (⋮ on
+  Android, Share on iPhone)», «this device» and «an up-to-date Chrome or Safari»; the wallets' guide says
+  «on any phone or computer, nothing to install» for a wallet on the web. Seven `msgid`s changed: a community's own
+  catalog that rewrote them needs the new ones. The texts for the team, the administration and the passkeys keep
+  the word.
+- Wording, one name for one thing: German «abbrechen» and «Blatt für Kunden», Dutch «basisdiploma» and
+  «kassadiploma», Portuguese «passe do balcão», «dono» and «dueño» for a shop's owner.
+
 ### From 0.3.0 to 0.4.0
 
 - **One migration** (`shops.0015`): ten columns more on the other places of a shop. It only adds; every place that is

@@ -18,7 +18,7 @@ What a closure changes, and what it does not:
   `reopen_today`).
 - The register is never touched: a closed shop can sell, and its money goes where it always went.
 
-The owner changes it from the panel (`shops/vacation_views.py`), the association from /admin/."""
+The owner changes it from the panel (`shops/vacation_views.py`), the community from /admin/."""
 
 import logging
 from datetime import date, timedelta
@@ -128,14 +128,14 @@ def is_closed(shop, day=None):
 def is_quiet(shop, day=None):
     """Closed for a while today: the days nobody raises an alarm for (the dashboard, the guardian). The site sees no
     sale, so it cannot tell a shop that sells while it says it is closed: the fault kept quiet is still a line for the
-    association.
+    community.
 
     With the feature turned off the site no longer says anything about closures, but a shop that is away right now (its
     owner wrote the closure while the feature was on) must not raise false alarms for the days it said it would be
     away: a closure with a day to open again still keeps the alarms quiet until that day, and not a day longer; and no
     longer than MAX_CREDIT days from its first day, so a fault never stays quiet for months. One with no end ("until I
     say so") does not: with the feature off nobody can end it, so it could silence a real fault for ever. The fault
-    kept quiet is still a line for the association in the dashboard (`closed_lightning`), and is told when the closure
+    kept quiet is still a line for the community in the dashboard (`closed_lightning`), and is told when the closure
     ends (`welcome_back`)."""
     day = day or day_of()
     if shop.closed:
@@ -159,7 +159,7 @@ def is_quiet(shop, day=None):
 
 def long_closure(shop, day=None):
     """The closure in course when it has lasted more than MAX_CREDIT days, closures one after the other counted as one:
-    the day the chain began, or None. For the association to ask whether the shop is coming back."""
+    the day the chain began, or None. For the community to ask whether the shop is coming back."""
     day = day or day_of()
     found = None if shop.closed else current(shop, day)
     if found is None:
@@ -386,7 +386,7 @@ def save(shop, data, day, now=None):
     """Writes what the form said as the shop's one closure to come or in course. Under the shop's row lock, so that
     two requests do not make two. Returns the closure, or None if the shop is open from today (a closure that would
     open and close the same day is no closure). A shop that reopens today by choice is not welcomed by message: the
-    owner is here, but the association hears about a fault of the Lightning address kept quiet meanwhile."""
+    owner is here, but the community hears about a fault of the Lightning address kept quiet meanwhile."""
     now = now or timezone.now()
     reopened = False
     with transaction.atomic():
@@ -433,7 +433,7 @@ def close_now(shop, reason, day, now=None):
 def reopen_today(shop, day, now=None):
     """The owner is back: every closure in course ends today (one that began today is dropped), one still to come is
     dropped when there is none in course. Returns what happened: "reopened", "cancelled" or None when there was nothing
-    to do. A shop that was closed hears nothing from the guardian meanwhile, so the association is told now about a fault
+    to do. A shop that was closed hears nothing from the guardian meanwhile, so the community is told now about a fault
     of its Lightning address, whichever way it reopens."""
     now = now or timezone.now()
     result, was_closed = None, False
@@ -461,7 +461,7 @@ def reopen_today(shop, day, now=None):
 
 
 def tell_association_if_broken(shop):
-    """The guardian kept the Lightning address and said nothing during the closure: the association hears about a fault at
+    """The guardian kept the Lightning address and said nothing during the closure: the community hears about a fault at
     the reopening, as it would have the day it started."""
     from . import lightning_watch
 
@@ -509,8 +509,8 @@ def welcome_back(now=None):
     """Tells the owner «welcome back, try a small payment» once for each closure that ended on its day, from WELCOME_HOUR
     of the community's morning on the day the shop reopens (or the next ones, up to three days late if a run was
     missed), by email and on the shop's Telegram chat, whichever the owner has. A fault of the Lightning address found
-    meanwhile is said in the same message and to the association. Returns the shops told. Run by check_lightning. When the
-    community turned the feature off nobody is welcomed back (the closure is marked all the same), but the association is
+    meanwhile is said in the same message and to the community. Returns the shops told. Run by check_lightning. When the
+    community turned the feature off nobody is welcomed back (the closure is marked all the same), but the community is
     still told of a fault of the address on the day the closure ends: the guardian kept quiet during it (`is_quiet`) and
     nobody else would ever say."""
     from . import lightning_watch

@@ -526,7 +526,7 @@ def onchain_texts():
         ),
         "pin_changed": _(
             "The shop's Lightning address changed: before it was {before}, now it is {after}. If you did not "
-            "change it, do not take payments and tell the association."
+            "change it, do not take payments and tell the community."
         ),
         "key_first": _(
             "First receive address of this key: {address}. Check that your wallet shows the same one, then tick "
@@ -685,7 +685,7 @@ def history_texts():
         "short": _("The passphrase must be at least {count} characters long."),
         "mismatch": _("The two passphrases are different."),
         "busy": _("Just a moment..."),
-        "no_crypto": _("This browser cannot encrypt the copy: try another browser."),
+        "no_crypto": _("This device cannot encrypt the copy: try an up-to-date Chrome or Safari."),
         "saved": _("Copy downloaded. Keep it somewhere other than this phone, and keep the passphrase too."),
         "wrong": _("Wrong passphrase, or a damaged file."),
         "newer": _("This copy comes from a newer version of the register: reload the page and try again."),

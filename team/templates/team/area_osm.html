@@ -1,7 +1,7 @@
 {% extends "team/area_base.html" %}{% load i18n %}
 {% block area %}
 <h2 id="open">{% translate "OpenStreetMap requests" %}</h2>
-<p class="muted">{% translate "The merchant asked the association to put the shop on OpenStreetMap, or to update its entry. You do it by hand on openstreetmap.org, with your own account, using the lines of the request: the site writes nothing there. Then mark it done: the merchant sees it in the panel." %}</p>
+<p class="muted">{% translate "The merchant asked the community to put the shop on OpenStreetMap, or to update its entry. You do it by hand on openstreetmap.org, with your own account, using the lines of the request: the site writes nothing there. Then mark it done: the merchant sees it in the panel." %}</p>
 {% if open %}<ol class="help-facts" aria-labelledby="open">
 {% for entry in open %}{% with row=entry.row %}<li class="help-fact help-warning" id="osm-{{ row.pk }}">
   <p><strong>{{ row.shop.name }}</strong> · {{ row.get_kind_display }}</p>

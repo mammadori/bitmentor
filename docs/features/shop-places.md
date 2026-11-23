@@ -2,8 +2,9 @@
 
 A business with several branches is one shop: one owner, one register, one Lightning address, and a point on the map
 for each place. The shop's own position is the first place; the others are written by the owner on
-«More than one place? Add the others» in the shop's page of the panel (`/shops/places/<shop>/`), up to 20, or by the
-association in the shop's page of `/admin/`. A place decides nothing about where the money goes.
+«The other places of your shop» in the panel, under «Your page», or «More than one place? Add the others» in the
+shop's own form (`/shops/places/<shop>/`), up to 20, or by the
+community in the shop's page of `/admin/`. A place decides nothing about where the money goes.
 
 ## What the owner writes
 

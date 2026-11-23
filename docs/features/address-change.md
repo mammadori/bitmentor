@@ -20,16 +20,16 @@ shop is still as the owner saw it.
 **The pace.** At most one change every `LIGHTNING_CHANGE_DAYS` days per shop (environment variable, 7 by default), to slow
 down whoever took over an account. The same wait follows the confirmation of a new recovery email
 (`Profile.email_changed`): whoever holds an open session could set an email of theirs, sign in with its link and so
-look like a recent sign-in, and the confirmation of the change would then go to that email. Sooner, only the association can help, and not by changing the address: by talking to
+look like a recent sign-in, and the confirmation of the change would then go to that email. Sooner, only the community can help, and not by changing the address: by talking to
 the merchant.
 
 **Who is told.** The change is written in the register of account changes and confirmed to the owner by email and in the
-Telegram chats of their shops, with the address short, and the association hears it in the moderation chat
-(`shops/guard.py`). The panel says it for 14 days, next to the shop, with «if it was not you, write to the association».
+Telegram chats of their shops, with the address short, and the community hears it in the moderation chat
+(`shops/guard.py`). The panel says it for 14 days, next to the shop, with «if it was not you, write to the community».
 
 **The guardian and the badge.** The guardian of the Lightning addresses starts again from scratch on the new address at
 its next run. Until it sees the new address work, a certified shop does not show the badge and its owner does not see the
-private part of the pages; `certified_month` and the association's approval are kept, since the owner did not change, and
+private part of the pages; `certified_month` and the community's approval are kept, since the owner did not change, and
 both come back on their own.
 
 **The registers.** The owner's phone remembers the address it takes payments into: on the next opening it stops and shows

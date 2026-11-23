@@ -96,7 +96,7 @@ def plain(text):
 def alert_text(text, limit=60):
     """A name chosen by someone else (a shop's, a staff register's) as an alert shows it: one line, no web address, no
     control characters, and nothing Telegram would turn into a mention of someone (@) or a bot command (/ in front).
-    `limit` characters at most: a name is short, a line a merchant writes to the association (shops/helpdesk.py) longer."""
+    `limit` characters at most: a name is short, a line a merchant writes to the community (shops/helpdesk.py) longer."""
     name = plain(re.sub(r"\s+", " ", str(text)))
     # Any web address or link to an app (tg://, ftp://…), the tg: and www. forms, and whatever looks like a domain
     name = re.sub(r"(?i)\b[a-z][a-z0-9+.-]*://\S*|\b(?:tg:|www\.)\S*|\S+\.[a-z]{2,}(?:/\S*)?", "…", name)

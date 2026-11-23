@@ -1,6 +1,6 @@
 # What customers see of a shop
 
-The site keeps a shop's details in its database, and the owner chooses which of them customers see. The association
+The site keeps a shop's details in its database, and the owner chooses which of them customers see. The community
 writes or loads them; nobody but the owner changes what is shown for a shop that has an owner.
 
 ## The details and the choices
@@ -17,7 +17,7 @@ writes or loads them; nobody but the owner changes what is shown for a shop that
 
 - The business name (`legal_name`, the name on the invoices) and the VAT number (`vat_number`, the tax number of the
   business, of whatever country) are new. The owner writes them in the shop's form, under «Business details»; the
-  association in `/admin/shops/shop/`.
+  community in `/admin/shops/shop/`.
 - A detail that is **hidden is not there at all**: not empty, not in the page's source, not a key of `/shops.json`. A
   detail that is shown but empty is no line.
 - The map and its list, `/shops.json` and the Nostr events never carry the phone, the email, the business name or the
@@ -25,8 +25,8 @@ writes or loads them; nobody but the owner changes what is shown for a shop that
   of the shop is where they are.
 - **The pin stays.** Hiding the address hides the street, not the position: the pin is where the owner put it, and the
   Nostr event keeps its geohash. A shop that wants to be off the map altogether stays off it, as agreed with the
-  community (`listed`), which only the association changes.
-- A shop the association suspended keeps its page for the sign's QR code, with no contacts: the address (if shown) and
+  community (`listed`), which only the community changes.
+- A shop the community suspended keeps its page for the sign's QR code, with no contacts: the address (if shown) and
   nothing else. Printed sheets, the sign, the card for the till, the card for customers without a wallet and the TV in the
   window say the shop's name and town, never these details.
 - A page of the community that writes `{{ shop.phone }}` (the featured shops of `community.yml` pages) gets an empty text
@@ -48,7 +48,7 @@ Kept without spaces, dots, dashes or slashes, without control or invisible chara
 the marks that reverse a line), in capitals: `it 012.345.678-97` is `IT01234567897`. The length is checked on the tidy
 number, in the owner's form and in `/admin/` alike (a capital `ß` is two letters).
 The check is light and **never blocks**: a number of a strange shape is saved as written, and the owner is told once
-(«We saved your VAT number, but it may have a mistake») with what to look at; the association decides.
+(«We saved your VAT number, but it may have a mistake») with what to look at; the community decides.
 
 Only what is known is looked at, and the software assumes no country:
 
@@ -63,9 +63,9 @@ In `/admin/shops/shop/` the filter «VAT number» has «May have a mistake», an
 tick in the list does not repeat it). The list searches the business name and the number, also when the term is written
 with dots, dashes or spaces.
 
-## What the association does
+## What the community does
 
-- For a **shop that has an owner**, the ticks are read-only in `/admin/`: the owner decides. The association writes the
+- For a **shop that has an owner**, the ticks are read-only in `/admin/`: the owner decides. The community writes the
   business name and the VAT number only to correct a mistake the owner asked about.
 - For a **shop with no owner** (loaded from a list, or moved and not claimed yet), the ticks are editable, and two
   actions on the list, «Show the phone and the email…» and «Hide the phone and the email…», work on the selected shops
@@ -87,7 +87,7 @@ Everything else starts as the table says.
 
 ## Privacy
 
-The business name and the VAT number go to the association's database, the owner's screens, the move file between two
+The business name and the VAT number go to the community's database, the owner's screens, the move file between two
 installations and the shop page when the owner turns them on. They are never in `diagnose_shop`'s text or JSON (and a
 shop is not found by them), in a log line, in a Nostr event, in the output of `import_shops`, `export_shops` or
 `import_moved_shops` (the notes say «may have a mistake», never the number), or in the record of the changes made to an

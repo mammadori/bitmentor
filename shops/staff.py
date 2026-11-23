@@ -204,8 +204,8 @@ def pairing_texts(onchain=True):
             "{before}. Open your register first and check it: no code until they are the same."
         ),
         "failed": _(
-            "The code cannot be made on this browser: try another browser, or open this page on the phone with "
-            "your register."
+            "The code cannot be made on this device: try an up-to-date Chrome or Safari, or open this page "
+            "on the phone with your register."
         ),
     }
 
@@ -248,6 +248,8 @@ def manage(request, shop):
             if not shop.register_shared:
                 shop.register_shared = timezone.now()
                 shop.save(update_fields=["register_shared"])
+            # The code page comes next: it says first that the register is there, then how to put it on a phone
+            messages.success(request, _("Register added: «%(name)s».") % {"name": register.name})
             return redirect("staff_code", shop.id, register.id)
     return list_page(request, shop, form)
 

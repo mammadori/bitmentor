@@ -1,4 +1,4 @@
-/* The association's dashboard in /admin/ (templates/admin/shops/dashboard.html): the admin's own colours, light and dark */
+/* The community's dashboard in /admin/ (templates/admin/shops/dashboard.html): the admin's own colours, light and dark */
 .dashboard { max-width: 60rem; }
 .dashboard p { margin: 0 0 .5rem; overflow-wrap: anywhere; }
 .dashboard h2 { margin: 1.5rem 0 .75rem; }

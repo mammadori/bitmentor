@@ -1,7 +1,7 @@
 """Forgets the personal data of the requests that were closed long ago, and keeps the rows for the counts.
 
 A request for help (shops/helpdesk.py) keeps, besides what counting needs (the shop, the symptom, when it was asked, when it
-was solved, whether the message to the association went out), things about a person: the line the merchant wrote, a copy of
+was solved, whether the message to the community went out), things about a person: the line the merchant wrote, a copy of
 what the site knew about the shop when they asked (the diagnosis: the Lightning address, the start of the wallet key, when the
 owner last signed in, the recovery email as m***@e***.org), the account that asked, how they wanted to be called back and the
 volunteer who solved it. A year after the merchant was answered none of it is of any use, and it is personal data: it goes.

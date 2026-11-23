@@ -94,7 +94,7 @@ class OsmFilter(admin.SimpleListFilter):
 
 
 class VatFilter(admin.SimpleListFilter):
-    """The VAT numbers that look wrong (shops/details.py): saved as they were written, for the association to check."""
+    """The VAT numbers that look wrong (shops/details.py): saved as they were written, for the community to check."""
 
     title = _("VAT number")
     parameter_name = "vat"
@@ -163,7 +163,7 @@ class PlaceInline(admin.TabularInline):
 
 
 class ClosureInline(admin.TabularInline):
-    """Closed for a while (shops/vacation.py): the association writes it for a merchant who phones. The first day may be in
+    """Closed for a while (shops/vacation.py): the community writes it for a merchant who phones. The first day may be in
     the past; the shop says it is closed until the day it opens again, and nothing else changes: the register keeps
     working."""
 
@@ -256,7 +256,7 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
     )
     inlines = (PlaceInline, ClosureInline)
     # What the community's `features` block (config/features.py) takes away from the administration. The data stays in
-    # the database; the page just does not show a feature that is off. The Closures table is never hidden here (a closure written before can still keep the alarms quiet until its day, and the association must be able
+    # the database; the page just does not show a feature that is off. The Closures table is never hidden here (a closure written before can still keep the alarms quiet until its day, and the community must be able
     # to shorten or remove it)
     CERTIFICATE_FIELDS = ("certified_month", "certified_revoked", "private_approved", "private_approved_by")
     CERTIFICATE_ACTIONS = ("revoke_certificate", "allow_certificate", "approve_private_part", "revoke_private_part")
@@ -317,7 +317,7 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
 
     @admin.display(description=_("OpenStreetMap link proposed"), ordering="osm_proposed")
     def osm_proposal_column(self, shop):
-        """The element proposed, its name, how far it is and how alike: what the association needs to confirm it from the list."""
+        """The element proposed, its name, how far it is and how alike: what the community needs to confirm it from the list."""
         if not shop.osm_proposed:
             return "–"
         proposal = osm.notes_of(shop)["proposal"]
@@ -589,7 +589,7 @@ class ShopAdmin(HidesSecrets, admin.ModelAdmin):
             )
 
     def log_each(self, request, shops, message):
-        """The association's actions on the certificate and the private part go in the admin's history of each shop."""
+        """The community's actions on the certificate and the private part go in the admin's history of each shop."""
         for shop in shops:
             self.log_change(request, shop, message)
 
@@ -896,7 +896,7 @@ class OsmStateFilter(admin.SimpleListFilter):
 
 @admin.register(OsmRequest)
 class OsmRequestAdmin(HidesSecrets, admin.ModelAdmin):
-    """The merchants' requests for the association to bring their entry on OpenStreetMap up to date, or to put the shop
+    """The merchants' requests for the community to bring their entry on OpenStreetMap up to date, or to put the shop
     there (shops/osm_views.py), newest first. A person of the staff does it (by hand in the editor, or with `manage.py
     osm_upload`) and marks it done here, or writes why it could not be done: the merchant sees both in the panel.
     The site never writes to OpenStreetMap by itself."""

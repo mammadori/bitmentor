@@ -214,6 +214,23 @@ class EditPlaces(TestCase):
         place.refresh_from_db()
         self.assertEqual(place.asked_address, "New road")
 
+    def test_the_map_of_a_new_place_opens_on_the_shop_and_close_to_it(self):
+        from unittest.mock import patch
+
+        from config.community import community
+
+        # The community's own zoom shows its whole area: a country here
+        with patch.dict(community()["map"], {"zoom": 6}):
+            page = self.client.get(self.page)
+            self.assertContains(page, 'data-lat="45.9"')
+            self.assertContains(page, 'data-zoom="13"')
+            Shop.objects.filter(pk=self.shop.pk).update(latitude=None, longitude=None)
+            self.assertContains(self.client.get(self.page), 'data-zoom="6"')
+        # A community whose own map is already closer keeps its zoom
+        with patch.dict(community()["map"], {"zoom": 16}):
+            Shop.objects.filter(pk=self.shop.pk).update(latitude=45.9, longitude=11.0)
+            self.assertContains(self.client.get(self.page), 'data-zoom="16"')
+
     def test_a_full_shop_still_changes_its_places(self):
         place = self.mine()
         ShopPlace.objects.bulk_create(
@@ -296,7 +313,7 @@ class PlaceApproval(TestCase):
 
     def test_a_new_place_waits_and_the_owner_reads_so(self):
         response = self.add()
-        self.assertContains(self.client.get(self.page), "Waiting for an approval: not on the map yet.")
+        self.assertContains(self.client.get(self.page), "Waiting for the community to approve it: not on the map yet.")
         self.assertIn("approved it", [str(m) for m in response.wsgi_request._messages][0])
         place = ShopPlace.objects.get()
         self.assertIsNone(place.approved_on)

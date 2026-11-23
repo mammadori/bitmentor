@@ -13,5 +13,6 @@
 <meta property="og:image:height" content="{{ image.height }}">
 {% endif %}<meta name="twitter:card" content="summary_large_image">
 {% else %}<meta name="twitter:card" content="summary">
+{% endif %}{% if updated %}<meta property="article:modified_time" content="{{ updated|date:'Y-m-d' }}">
 {% endif %}{% if structured %}<script type="application/ld+json">{{ structured }}</script>
 {% endif %}

@@ -1,5 +1,5 @@
 """A change of where a shop's money goes (shops/guard.py, destination_changed and deliver_destination): written in the
-register, said after the commit to the owner and the association, with the addresses short; the owner's first connection
+register, said after the commit to the owner and the community, with the addresses short; the owner's first connection
 of a wallet is only confirmed to the owner; whatever fails in telling never stops the change."""
 
 from unittest.mock import patch
@@ -167,7 +167,7 @@ class Destination(TestCase):
         mail.outbox.clear()
         with patch("shops.guard.community", return_value={k: v for k, v in guard.community().items() if k != "email"}):
             self.change(to="third@elsewhere.example")
-        self.assertIn("tell the association now", mail.outbox[0].body)
+        self.assertIn("tell the community now", mail.outbox[0].body)
 
     def test_nothing_is_said_for_a_row_that_no_longer_exists(self):
         with self.captureOnCommitCallbacks(execute=False) as callbacks:

@@ -312,7 +312,7 @@ class ClosedWhenItIsTurnedOff(Base):
             self.assertEqual(self.alarms(), ({"closed_lightning"}, 0))
             line = [item for item in dashboard.summary()["items"] if item.code == "closed_lightning"][0]
             self.assertEqual(line.level, dashboard.INFO)
-            self.assertIn("the association hears about it the day the closure ends", line.do)
+            self.assertIn("the community hears about it the day the closure ends", line.do)
             self.assertTrue(vacation.is_quiet(test_vacation.fresh(self.shop)))
             self.assertIsNone(vacation.info(test_vacation.fresh(self.shop)))
             # And the day it said it opens again, the alarms are back, as they are with the feature on

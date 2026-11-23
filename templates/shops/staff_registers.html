@@ -18,7 +18,7 @@
       </details>
     </div>
     <span class="panel-actions">
-      <a class="button button-quiet" href="{% url 'staff_code' shop.id register.id %}">{% translate "Put it on a phone" %}</a>
+      <a class="button button-quiet" href="{% url 'staff_code' shop.id register.id %}">{% blocktranslate with name=register.name %}The register for {{ name }}{% endblocktranslate %}</a>
       <form method="post" action="{% url 'staff_retire' shop.id register.id %}">{% csrf_token %}<button class="button button-quiet">{% blocktranslate with name=register.name %}Turn off «{{ name }}»{% endblocktranslate %}</button></form>
     </span>
   </div>

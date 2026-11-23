@@ -7,8 +7,9 @@ the money goes and nothing else of the owner's wallet, sales or settings, and ha
 the owner's register it keeps its sales on its own phone: the site never receives them. Always on; a shop can have
 `staff_registers_per_shop` of them turned on at once (30, [Limits](../configuration.md#limits)).
 
-In the panel, under «Register for whoever works with you», the button says how many are turned on, and under it go
-the names of the first five, newest first («…and 3 more» for the others).
+In the panel, under «Registers for your staff» (open at once inside «Everything, if you want»), the button says how
+many are turned on, and under it go the names of the first five, newest first («…and 3 more» for the others).
+Adding a register leads to its code page, which says «Register added» first.
 
 The code is in `shops/staff.py`, `static/staff-pair.js`, `static/staff-open.js` and `static/register-pairing.js`.
 

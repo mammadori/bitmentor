@@ -7,7 +7,7 @@
 
 Every change goes through the models (`user.save()`, `user.groups.add()`), as a form of the admin does, never through
 `update()` or SQL: the register of the changes to the owners' accounts (shops/guard.py) sees it, and tells the owner and
-the association, whenever the account belongs to a shop's owner. `add` refuses such an account: a staff account is a
+the community, whenever the account belongs to a shop's owner. `add` refuses such an account: a staff account is a
 visitor on every page of a shop (config/guard.py), so making a shop's owner a moderator would take the shop's panel away
 from them. `remove` accepts it, since taking rights away is always allowed, and the register says so.
 

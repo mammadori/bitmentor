@@ -383,9 +383,6 @@ msgstr "E-Mail-Adresse für die Anmeldung"
 msgid "Your shop is ready."
 msgstr "Ihr Geschäft ist bereit."
 
-msgid "Register for whoever works with you"
-msgstr "Die Kasse für alle, die bei Ihnen arbeiten"
-
 msgid "Code that opens the register"
 msgstr "Code, der die Kasse öffnet"
 
@@ -395,12 +392,8 @@ msgstr "Link kopieren"
 msgid "Link copied"
 msgstr "Link kopiert"
 
-msgid ""
-"On the shop phone, add the page to the home screen from the browser menu: it "
-"opens like an app."
-msgstr ""
-"Fügen Sie die Seite auf dem Telefon des Geschäfts über das Browsermenü zum "
-"Startbildschirm hinzu: Sie öffnet sich dann wie eine App."
+msgid "On the shop phone, add the register to the home screen from the phone's menu (⋮ on Android, Share on iPhone): it opens with one tap, like an app, with nothing to install."
+msgstr "Fügen Sie die Kasse auf dem Telefon des Geschäfts über das Menü des Telefons (⋮ bei Android, Teilen beim iPhone) zum Startbildschirm hinzu: Sie öffnet sich mit einem Tippen wie eine App, ohne etwas zu installieren."
 
 msgid "Your account"
 msgstr "Ihr Konto"
@@ -1208,8 +1201,8 @@ msgstr "das gedruckte Schild"
 msgid "the register shown to the staff"
 msgstr "die Kasse, die Ihrem Personal gezeigt wurde"
 
-msgid "The association has taken your shop off the map and the lists for now. The register still works."
-msgstr "Der Verein hat Ihr Geschäft vorerst von der Karte und aus den Listen genommen. Die Kasse funktioniert weiter."
+msgid "The community has taken your shop off the map and the lists for now. The register still works."
+msgstr "Die Gemeinschaft hat Ihr Geschäft vorerst von der Karte und aus den Listen genommen. Die Kasse funktioniert weiter."
 
 msgid "Your shop is not shown on the map or in the lists, as you chose. The register works the same."
 msgstr "Ihr Geschäft erscheint nicht auf der Karte und nicht in den Listen, wie Sie es gewählt haben. Die Kasse funktioniert genauso."
@@ -1406,14 +1399,11 @@ msgid_plural "Registers for your staff: %(counter)s turned on"
 msgstr[0] "Kassen für Ihr Personal: 1 eingeschaltet"
 msgstr[1] "Kassen für Ihr Personal: %(counter)s eingeschaltet"
 
-msgid "Give a register to someone"
-msgstr "Jemandem eine Kasse geben"
-
 msgid "Or share your own register"
 msgstr "Oder Ihre eigene Kasse teilen"
 
 msgid "Cancel this sale? If the customer has already paid, tell the owner: they give the money back."
-msgstr "Diesen Verkauf stornieren? Hat der Kunde schon bezahlt, sagen Sie es dem Inhaber: Er gibt das Geld zurück."
+msgstr "Diesen Verkauf abbrechen? Hat der Kunde schon bezahlt, sagen Sie es dem Inhaber: Er gibt das Geld zurück."
 
 msgid "Something is not right?"
 msgstr "Stimmt etwas nicht?"
@@ -1455,8 +1445,8 @@ msgstr "Öffnen Sie die Kamera des Telefons, das die Zahlungen annehmen soll, un
 msgid "Open the link and press «Open the register on this phone»."
 msgstr "Öffnen Sie den Link und drücken Sie „Kasse auf diesem Telefon öffnen“."
 
-msgid "From the browser menu, add the page to the home screen: it opens like an app."
-msgstr "Fügen Sie die Seite über das Browsermenü zum Startbildschirm hinzu: Sie öffnet sich wie eine App."
+msgid "From the phone's menu (⋮ on Android, Share on iPhone), add the register to the home screen: it opens with one tap, like an app, with nothing to install."
+msgstr "Fügen Sie die Kasse über das Menü des Telefons (⋮ bei Android, Teilen beim iPhone) zum Startbildschirm hinzu: Sie öffnet sich mit einem Tippen wie eine App, ohne etwas zu installieren."
 
 msgid "Code that puts the register on a phone"
 msgstr "Code, der die Kasse auf ein Telefon bringt"
@@ -1506,8 +1496,8 @@ msgstr "Die Kasse des Geschäfts für %(name)s. Damit kassieren Sie für das Ges
 msgid "Open the register on this phone"
 msgstr "Kasse auf diesem Telefon öffnen"
 
-msgid "The code works only once: then the register stays on this phone. Add it to the home screen from the browser menu."
-msgstr "Der Code funktioniert nur einmal: Danach bleibt die Kasse auf diesem Telefon. Fügen Sie sie über das Browsermenü zum Startbildschirm hinzu."
+msgid "The code works only once: then the register stays on this phone. Add it to the home screen from the phone's menu (⋮ on Android, Share on iPhone)."
+msgstr "Der Code funktioniert nur einmal: Danach bleibt die Kasse auf diesem Telefon. Fügen Sie sie über das Menü des Telefons (⋮ bei Android, Teilen beim iPhone) zum Startbildschirm hinzu."
 
 msgid "This code opens nothing"
 msgstr "Dieser Code öffnet nichts"
@@ -1530,9 +1520,6 @@ msgstr "Noch auf keinem Telefon geöffnet: Der Code wartet."
 
 msgid "Not opened on a phone yet."
 msgstr "Noch auf keinem Telefon geöffnet."
-
-msgid "Put it on a phone"
-msgstr "Auf ein Telefon bringen"
 
 #, python-format
 msgid "Turn off «%(name)s»"
@@ -1784,8 +1771,8 @@ msgstr "Begonnen %(when)s."
 msgid "Send the owner again the one-time link from the list of owners the import wrote. If that link is lost, the command below makes a new one for this shop only, from the same file of the import, in a new list of owners: the old link stops working, the other shops keep theirs."
 msgstr "Schicken Sie dem Inhaber den Einmal-Link noch einmal, aus der Inhaberliste, die der Import geschrieben hat. Ist dieser Link verloren, erstellt der Befehl unten einen neuen, nur für dieses Geschäft, aus derselben Datei des Imports, in einer neuen Inhaberliste: Der alte Link funktioniert nicht mehr, die anderen Geschäfte behalten ihren."
 
-msgid "in the browser"
-msgstr "im Browser"
+msgid "on any phone or computer, nothing to install"
+msgstr "auf jedem Telefon oder Computer, ohne Installation"
 
 msgid "I do not have a wallet yet: save my shop, I add the wallet afterwards"
 msgstr "Ich habe noch keine Wallet: Geschäft speichern, die Wallet füge ich danach hinzu"
@@ -2082,8 +2069,8 @@ msgstr "einen Befehl oder die Shell"
 msgid "If you know why, you do not need to do anything. If you do not, write to {email} now."
 msgstr "Wenn Sie wissen, warum, müssen Sie nichts tun. Wenn nicht, schreiben Sie jetzt an {email}."
 
-msgid "If you know why, you do not need to do anything. If you do not, tell the association now."
-msgstr "Wenn Sie wissen, warum, müssen Sie nichts tun. Wenn nicht, sagen Sie dem Verein jetzt Bescheid."
+msgid "If you know why, you do not need to do anything. If you do not, tell the community now."
+msgstr "Wenn Sie wissen, warum, müssen Sie nichts tun. Wenn nicht, sagen Sie der Gemeinschaft jetzt Bescheid."
 
 #, python-brace-format
 msgid "Someone who runs the site changed your account on {site}:"
@@ -2170,8 +2157,8 @@ msgstr "E-Mail"
 msgid "Telegram chat of the shop"
 msgstr "Telegram-Chat des Geschäfts"
 
-msgid "chat of the association"
-msgstr "Chat des Vereins"
+msgid "chat of the community"
+msgstr "Chat der Gemeinschaft"
 
 msgid "account change"
 msgstr "Kontoänderung"
@@ -2462,7 +2449,7 @@ msgid "With Lightning you pay the exact amount of the code: it cannot be too lit
 msgstr "Mit Lightning zahlen Sie genau den Betrag des Codes: zu wenig oder zu viel ist nicht möglich. Wenn Ihre Wallet etwas mehr anzeigt, ist das die Gebühr der Wallet."
 
 msgid "A Lightning payment is always the exact amount of the code. With an on-chain payment the till shows the cashier how much arrived. Too little: the sale is not paid, and the cashier asks you for the rest or cancels it. Too much: the cashier checks the shop's wallet. Agree with the shop how you get back what you paid over, or what you paid for a cancelled sale: the site holds no money and cannot return it."
-msgstr "Eine Lightning-Zahlung ist immer genau der Betrag des Codes. Bei einer On-Chain-Zahlung zeigt die Kasse dem Personal, wie viel angekommen ist. Zu wenig: der Verkauf ist nicht bezahlt, und das Personal bittet Sie um den Rest oder storniert ihn. Zu viel: das Personal prüft in der Wallet des Geschäfts. Vereinbaren Sie mit dem Geschäft, wie Sie zurückbekommen, was Sie zu viel oder für einen stornierten Verkauf gezahlt haben: die Website hält kein Geld und kann es nicht zurückgeben."
+msgstr "Eine Lightning-Zahlung ist immer genau der Betrag des Codes. Bei einer On-Chain-Zahlung zeigt die Kasse dem Personal, wie viel angekommen ist. Zu wenig: der Verkauf ist nicht bezahlt, und das Personal bittet Sie um den Rest oder bricht ihn ab. Zu viel: das Personal prüft in der Wallet des Geschäfts. Vereinbaren Sie mit dem Geschäft, wie Sie zurückbekommen, was Sie zu viel oder für einen abgebrochenen Verkauf gezahlt haben: die Website hält kein Geld und kann es nicht zurückgeben."
 
 msgid "I don't have a wallet yet"
 msgstr "Ich habe noch keine Wallet"
@@ -2746,11 +2733,11 @@ msgstr "Nichts ist kaputt: Der Inhaber hat sie ausgeschaltet. Eine ausgeschaltet
 msgid "The owner opens «Registers for your staff», chooses the register and makes a new code, then the person scans it with their phone. The code is never read out on the phone."
 msgstr "Der Inhaber öffnet „Kassen für Ihr Personal“, wählt die Kasse und erstellt einen neuen Code, dann scannt die Person ihn mit ihrem Telefon. Der Code wird am Telefon nie vorgelesen."
 
-msgid "The association has taken the certificate away from your shop: ask them why."
-msgstr "Der Verein hat Ihrem Geschäft das Zertifikat entzogen: Fragen Sie den Verein nach dem Grund."
+msgid "The community has taken the certificate away from your shop: ask them why."
+msgstr "Die Gemeinschaft hat Ihrem Geschäft das Zertifikat entzogen: Fragen Sie die Gemeinschaft nach dem Grund."
 
-msgid "It was revoked in the administration and the site will not give it again until that is undone. Ask the association before saying more."
-msgstr "Es wurde in der Verwaltung widerrufen, und die Website vergibt es nicht mehr, bis das rückgängig gemacht wird. Fragen Sie den Verein, bevor Sie mehr sagen."
+msgid "It was revoked in the administration and the site will not give it again until that is undone. Ask the community before saying more."
+msgstr "Es wurde in der Verwaltung widerrufen, und die Website vergibt es nicht mehr, bis das rückgängig gemacht wird. Fragen Sie die Gemeinschaft, bevor Sie mehr sagen."
 
 msgid "Customers who scan the card for people without a wallet see only the shop page, because nobody can pay at this shop now."
 msgstr "Kunden, die das Blatt für Leute ohne Wallet scannen, sehen nur die Seite des Geschäfts, weil derzeit niemand in diesem Geschäft zahlen kann."
@@ -2764,8 +2751,8 @@ msgstr "Vor dem ersten echten Verkauf können Sie die Kasse mit einem gespielten
 msgid "Your shop is here, but nobody has taken it yet: tell us who you are and we help you take it."
 msgstr "Ihr Geschäft ist hier, aber noch niemand hat es übernommen: Sagen Sie uns, wer Sie sind, und wir helfen Ihnen, es zu übernehmen."
 
-msgid "Nothing to fix. To change the dates the merchant uses «Change the dates» in their panel; the association edits the closure under the shop in the administration."
-msgstr "Nichts zu beheben. Um die Daten zu ändern, nutzt der Händler „Daten ändern“ in seinem Bereich; der Verein bearbeitet die Schließung unter dem Geschäft in der Verwaltung."
+msgid "Nothing to fix. To change the dates the merchant uses «Change the dates» in their panel; the community edits the closure under the shop in the administration."
+msgstr "Nichts zu beheben. Um die Daten zu ändern, nutzt der Händler „Daten ändern“ in seinem Bereich; die Gemeinschaft bearbeitet die Schließung unter dem Geschäft in der Verwaltung."
 
 msgid "You are marked as closed, but your shop is not on the map, so nobody reads the notice. The register works the same."
 msgstr "Sie sind als geschlossen eingetragen, aber Ihr Geschäft ist nicht auf der Karte, also liest niemand den Hinweis. Die Kasse funktioniert trotzdem."
@@ -2832,8 +2819,8 @@ msgstr "Ist die Person am Telefon diejenige, die das Geschäft vorher hatte und 
 msgid "Something wrong?"
 msgstr "Stimmt etwas nicht?"
 
-msgid "Tell us what is happening. We show you what the site already knows about your shop and what to do now. If it is not enough, you ask the association for help with one tap."
-msgstr "Sagen Sie uns, was passiert. Wir zeigen Ihnen, was die Website schon über Ihr Geschäft weiß und was Sie jetzt tun können. Reicht das nicht, bitten Sie den Verein mit einem Fingertipp um Hilfe."
+msgid "Tell us what is happening. We show you what the site already knows about your shop and what to do now. If it is not enough, you ask the community for help with one tap."
+msgstr "Sagen Sie uns, was passiert. Wir zeigen Ihnen, was die Website schon über Ihr Geschäft weiß und was Sie jetzt tun können. Reicht das nicht, bitten Sie die Gemeinschaft mit einem Fingertipp um Hilfe."
 
 msgid "What is happening?"
 msgstr "Was passiert?"
@@ -2841,23 +2828,23 @@ msgstr "Was passiert?"
 msgid "Your requests"
 msgstr "Ihre Anfragen"
 
-msgid "The message to the association did not go out, but the request is saved."
-msgstr "Die Nachricht an den Verein konnte nicht gesendet werden, aber die Anfrage ist gespeichert."
+msgid "The message to the community did not go out, but the request is saved."
+msgstr "Die Nachricht an die Gemeinschaft konnte nicht gesendet werden, aber die Anfrage ist gespeichert."
 
 msgid "We never ask for the secret words of your wallet, for a key or for a password. If someone asks you, it is not us."
 msgstr "Wir fragen nie nach den geheimen Wörtern Ihrer Wallet, nach einem Schlüssel oder einem Passwort. Wenn jemand danach fragt, sind wir es nicht."
 
-msgid "You asked %(when)s. Waiting for the association."
-msgstr "Sie haben %(when)s gefragt. Wartet auf den Verein."
+msgid "You asked %(when)s. Waiting for the community."
+msgstr "Sie haben %(when)s gefragt. Wartet auf die Gemeinschaft."
 
 msgid "You asked %(when)s. Solved %(solved)s."
 msgstr "Sie haben %(when)s gefragt. Gelöst %(solved)s."
 
-msgid "The association has been told."
-msgstr "Der Verein wurde benachrichtigt."
+msgid "The community has been told."
+msgstr "Die Gemeinschaft wurde benachrichtigt."
 
-msgid "The request is saved and the association will see it."
-msgstr "Die Anfrage ist gespeichert und der Verein wird sie sehen."
+msgid "The request is saved and the community will see it."
+msgstr "Die Anfrage ist gespeichert und die Gemeinschaft wird sie sehen."
 
 msgid "What the site knows about your shop"
 msgstr "Was die Website über Ihr Geschäft weiß"
@@ -2883,11 +2870,11 @@ msgstr "Diese Seite zeigt nur, was die Website schon hat. Ihre Lightning-Wallet 
 msgid "Look again, asking your Lightning wallet"
 msgstr "Noch einmal prüfen, mit Anfrage an Ihre Lightning-Wallet"
 
-msgid "Ask the association for help"
-msgstr "Den Verein um Hilfe bitten"
+msgid "Ask the community for help"
+msgstr "Die Gemeinschaft um Hilfe bitten"
 
-msgid "One tap and the association receives your request together with what you see above. We never ask for the secret words of your wallet, for a key or for a password."
-msgstr "Mit einem Fingertipp erhält der Verein Ihre Anfrage zusammen mit dem, was Sie oben sehen. Wir fragen nie nach den geheimen Wörtern Ihrer Wallet, nach einem Schlüssel oder einem Passwort."
+msgid "One tap and the community receives your request together with what you see above. We never ask for the secret words of your wallet, for a key or for a password."
+msgstr "Mit einem Fingertipp erhält die Gemeinschaft Ihre Anfrage zusammen mit dem, was Sie oben sehen. Wir fragen nie nach den geheimen Wörtern Ihrer Wallet, nach einem Schlüssel oder einem Passwort."
 
 msgid "Please look at what is marked below."
 msgstr "Bitte sehen Sie sich die Markierungen unten an."
@@ -2904,8 +2891,8 @@ msgstr "Das kann ein paar Sekunden dauern."
 msgid "You asked for help %(when)s."
 msgstr "Sie haben %(when)s um Hilfe gebeten."
 
-msgid "The request is saved and the association will see it, even if the message to them did not go out."
-msgstr "Die Anfrage ist gespeichert und der Verein wird sie sehen, auch wenn die Nachricht an ihn nicht gesendet werden konnte."
+msgid "The request is saved and the community will see it, even if the message to them did not go out."
+msgstr "Die Anfrage ist gespeichert und die Gemeinschaft wird sie sehen, auch wenn die Nachricht an sie nicht gesendet werden konnte."
 
 msgid "The payment does not go through, the register does not open, a lost phone…"
 msgstr "Die Zahlung geht nicht durch, die Kasse öffnet nicht, ein verlorenes Telefon …"
@@ -3054,25 +3041,25 @@ msgstr "Die Prüfungen haben nichts Auffälliges gefunden."
 msgid "The request and its diagnosis: {link}"
 msgstr "Die Anfrage und ihre Diagnose: {link}"
 
-msgid "You have looked many times in a short while: wait a few minutes. Meanwhile, you can ask the association for help."
-msgstr "Sie haben in kurzer Zeit oft geprüft: Warten Sie ein paar Minuten. Sie können den Verein inzwischen um Hilfe bitten."
+msgid "You have looked many times in a short while: wait a few minutes. Meanwhile, you can ask the community for help."
+msgstr "Sie haben in kurzer Zeit oft geprüft: Warten Sie ein paar Minuten. Sie können die Gemeinschaft inzwischen um Hilfe bitten."
 
 msgid "Too many requests in a short time: try again in a while."
 msgstr "Zu viele Anfragen in kurzer Zeit: Versuchen Sie es später wieder."
 
 #, python-brace-format
-msgid "You have already asked {count} times today, and the association has your requests: we answer them one by one. If it is urgent, write to {email}."
-msgstr "Sie haben heute schon {count} Mal gefragt, und der Verein hat Ihre Anfragen: Wir beantworten sie nacheinander. Wenn es dringend ist, schreiben Sie an {email}."
+msgid "You have already asked {count} times today, and the community has your requests: we answer them one by one. If it is urgent, write to {email}."
+msgstr "Sie haben heute schon {count} Mal gefragt, und die Gemeinschaft hat Ihre Anfragen: Wir beantworten sie nacheinander. Wenn es dringend ist, schreiben Sie an {email}."
 
 msgid "You asked a moment ago, and we have your request."
 msgstr "Sie haben eben gefragt, und wir haben Ihre Anfrage."
 
-msgid "We have your request. The association has been told, and has what the site knows about your shop in front of it."
-msgstr "Wir haben Ihre Anfrage. Der Verein wurde benachrichtigt und hat vor sich, was die Website über Ihr Geschäft weiß."
+msgid "We have your request. The community has been told, and has what the site knows about your shop in front of it."
+msgstr "Wir haben Ihre Anfrage. Die Gemeinschaft wurde benachrichtigt und hat vor sich, was die Website über Ihr Geschäft weiß."
 
 #, python-brace-format
-msgid "We have your request and it is saved: the association sees it in its list. The message to them did not go out right now, so if it is urgent write to {email}."
-msgstr "Wir haben Ihre Anfrage und sie ist gespeichert: Der Verein sieht sie in seiner Liste. Die Nachricht an ihn konnte jetzt nicht gesendet werden. Wenn es dringend ist, schreiben Sie an {email}."
+msgid "We have your request and it is saved: the community sees it in its list. The message to them did not go out right now, so if it is urgent write to {email}."
+msgstr "Wir haben Ihre Anfrage und sie ist gespeichert: Die Gemeinschaft sieht sie in ihrer Liste. Die Nachricht an sie konnte jetzt nicht gesendet werden. Wenn es dringend ist, schreiben Sie an {email}."
 
 msgid "They asked to be called back by email."
 msgstr "Rückruf gewünscht: per E-Mail."
@@ -3176,8 +3163,8 @@ msgstr "was der Händler geschrieben hat"
 msgid "what the site knew"
 msgstr "was die Website wusste"
 
-msgid "message to the association"
-msgstr "Nachricht an den Verein"
+msgid "message to the community"
+msgstr "Nachricht an die Gemeinschaft"
 
 msgid "solved"
 msgstr "gelöst"
@@ -3438,8 +3425,8 @@ msgstr "Die Seite so ansehen, wie Kunden sie sehen"
 msgid "Business details: name on the invoices, VAT number"
 msgstr "Angaben zum Unternehmen: Firmenname, USt-IdNr."
 
-msgid "The association keeps them. Customers do not see them unless you choose so."
-msgstr "Der Verein bewahrt sie auf. Kunden sehen sie nur, wenn Sie es so wählen."
+msgid "The community keeps them. Customers do not see them unless you choose so."
+msgstr "Die Gemeinschaft bewahrt sie auf. Kunden sehen sie nur, wenn Sie es so wählen."
 
 msgid "Choose what customers see"
 msgstr "Wählen, was Kunden sehen"
@@ -3497,8 +3484,8 @@ msgstr "Treffen in %(city)s"
 msgid "Meetup"
 msgstr "Treffen"
 
-msgid "This is not a time zone name: write it like Europe/Rome."
-msgstr "Das ist kein Zeitzonenname: Schreiben Sie es wie Europe/Rome."
+msgid "This is not a time zone name: write it like Europe/Berlin or America/New_York."
+msgstr "Das ist kein Zeitzonenname: Schreiben Sie es wie Europe/Berlin oder America/New_York."
 
 msgid "A link starts with https:// and has no spaces."
 msgstr "Ein Link beginnt mit https:// und hat keine Leerzeichen."
@@ -3545,8 +3532,8 @@ msgstr "keine Uhrzeit, nur der Tag"
 msgid "time zone"
 msgstr "Zeitzone"
 
-msgid "The time is written and shown in this zone, like Europe/Rome."
-msgstr "Die Uhrzeit wird in dieser Zone geschrieben und angezeigt, zum Beispiel Europe/Rome."
+msgid "The time is written and shown in this zone, like Europe/Berlin or America/New_York."
+msgstr "Die Uhrzeit wird in dieser Zone geschrieben und angezeigt, zum Beispiel Europe/Berlin oder America/New_York."
 
 msgid "title or topic"
 msgstr "Titel oder Thema"
@@ -3665,8 +3652,8 @@ msgstr "Sie haben geändert, wohin eines Ihrer Geschäfte bezahlt wird, auf {sit
 msgid "If it was you, you do not need to do anything. If it was not, write to {email} now."
 msgstr "Wenn Sie es waren, müssen Sie nichts tun. Wenn nicht, schreiben Sie jetzt an {email}."
 
-msgid "If it was you, you do not need to do anything. If it was not, tell the association now."
-msgstr "Wenn Sie es waren, müssen Sie nichts tun. Wenn nicht, sagen Sie dem Verein jetzt Bescheid."
+msgid "If it was you, you do not need to do anything. If it was not, tell the community now."
+msgstr "Wenn Sie es waren, müssen Sie nichts tun. Wenn nicht, sagen Sie der Gemeinschaft jetzt Bescheid."
 
 msgid "you changed where your shop gets paid"
 msgstr "Sie haben geändert, wohin Ihr Geschäft bezahlt wird"
@@ -3730,18 +3717,18 @@ msgid "The full report and the proposals: {link}"
 msgstr "Der ganze Bericht und die Vorschläge: {link}"
 
 #, python-brace-format
-msgid "{shop} asks the association to {what}."
-msgstr "{shop} bittet den Verein, {what}."
+msgid "{shop} asks the community to {what}."
+msgstr "{shop} bittet die Gemeinschaft, {what}."
 
 #, python-brace-format
 msgid "The request: {link}"
 msgstr "Die Anfrage: {link}"
 
-msgid "We have your request. A person of the association does it by hand, and you see here when it is done."
-msgstr "Wir haben Ihre Anfrage. Eine Person des Vereins macht es von Hand, und hier sehen Sie, wann es erledigt ist."
+msgid "We have your request. A person of the community does it by hand, and you see here when it is done."
+msgstr "Wir haben Ihre Anfrage. Eine Person der Gemeinschaft macht es von Hand, und hier sehen Sie, wann es erledigt ist."
 
-msgid "The association does it for me"
-msgstr "Der Verein macht es für mich"
+msgid "The community does it for me"
+msgstr "Die Gemeinschaft macht es für mich"
 
 msgid "There is nothing to send for this shop right now."
 msgstr "Für dieses Geschäft gibt es im Moment nichts zu senden."
@@ -3750,8 +3737,8 @@ msgid "Tick the box to send the request."
 msgstr "Setzen Sie das Häkchen, um die Anfrage zu senden."
 
 #, python-brace-format
-msgid "You have already asked {count} times today, and the association has your requests: we do them one by one. If it is urgent, write to {email}."
-msgstr "Sie haben heute schon {count} Mal gefragt, und der Verein hat Ihre Anfragen: wir erledigen sie eine nach der anderen. Wenn es dringend ist, schreiben Sie an {email}."
+msgid "You have already asked {count} times today, and the community has your requests: we do them one by one. If it is urgent, write to {email}."
+msgstr "Sie haben heute schon {count} Mal gefragt, und die Gemeinschaft hat Ihre Anfragen: wir erledigen sie eine nach der anderen. Wenn es dringend ist, schreiben Sie an {email}."
 
 msgid "OpenStreetMap"
 msgstr "OpenStreetMap"
@@ -3781,14 +3768,14 @@ msgstr "Nicht verknüpft"
 msgid "%(count)d requests marked as done."
 msgstr "%(count)d Anfragen als erledigt markiert."
 
-msgid "Asked the association to put the shop on OpenStreetMap."
-msgstr "Hat den Verein gebeten, das Geschäft auf OpenStreetMap einzutragen."
+msgid "Asked the community to put the shop on OpenStreetMap."
+msgstr "Hat die Gemeinschaft gebeten, das Geschäft auf OpenStreetMap einzutragen."
 
-msgid "Asked the association to update the shop's entry on OpenStreetMap."
-msgstr "Hat den Verein gebeten, den Eintrag des Geschäfts auf OpenStreetMap zu aktualisieren."
+msgid "Asked the community to update the shop's entry on OpenStreetMap."
+msgstr "Hat die Gemeinschaft gebeten, den Eintrag des Geschäfts auf OpenStreetMap zu aktualisieren."
 
-msgid "We have your request about OpenStreetMap: a person of the association does it by hand."
-msgstr "Wir haben Ihre Anfrage zu OpenStreetMap: eine Person des Vereins macht es von Hand."
+msgid "We have your request about OpenStreetMap: a person of the community does it by hand."
+msgstr "Wir haben Ihre Anfrage zu OpenStreetMap: eine Person der Gemeinschaft macht es von Hand."
 
 #, python-format
 msgid "The last reading of OpenStreetMap failed: %(reason)s."
@@ -3902,11 +3889,11 @@ msgstr "Ein Ort auf OpenStreetMap wird mit Tags beschrieben: Zeilen mit Informat
 msgid "A person does it by hand, with their own account: it can take a few days. You will see here when it is done."
 msgstr "Eine Person macht es von Hand, mit ihrem eigenen Konto: es kann einige Tage dauern. Hier sehen Sie, wann es erledigt ist."
 
-msgid "Your shop's entry on OpenStreetMap was updated by the association. Thank you."
-msgstr "Der Eintrag Ihres Geschäfts auf OpenStreetMap wurde vom Verein aktualisiert. Danke."
+msgid "Your shop's entry on OpenStreetMap was updated by the community. Thank you."
+msgstr "Der Eintrag Ihres Geschäfts auf OpenStreetMap wurde von der Gemeinschaft aktualisiert. Danke."
 
-msgid "The association could not do it."
-msgstr "Der Verein konnte es nicht erledigen."
+msgid "The community could not do it."
+msgstr "Die Gemeinschaft konnte es nicht erledigen."
 
 msgid "Your shop is on OpenStreetMap"
 msgstr "Ihr Geschäft ist auf OpenStreetMap"
@@ -3974,14 +3961,14 @@ msgstr "Zeilen kopieren"
 msgid "Press «Save», write a few words about what you changed (for example «bitcoin payments») and send it. You need a free OpenStreetMap account: the editor guides you."
 msgstr "Drücken Sie «Speichern», schreiben Sie ein paar Worte dazu, was Sie geändert haben (zum Beispiel «Bitcoin-Zahlungen»), und senden Sie ab. Sie brauchen ein kostenloses OpenStreetMap-Konto: der Editor führt Sie."
 
-msgid "Or let the association do it"
-msgstr "Oder der Verein macht es"
+msgid "Or let the community do it"
+msgstr "Oder die Gemeinschaft macht es"
 
-msgid "You have asked already: the request is waiting for a person of the association."
-msgstr "Sie haben schon gefragt: die Anfrage wartet auf eine Person des Vereins."
+msgid "You have asked already: the request is waiting for a person of the community."
+msgstr "Sie haben schon gefragt: die Anfrage wartet auf eine Person der Gemeinschaft."
 
-msgid "A person of the association does it by hand, with their own account. You do not need an account on OpenStreetMap."
-msgstr "Eine Person des Vereins macht es von Hand, mit ihrem eigenen Konto. Sie brauchen kein Konto auf OpenStreetMap."
+msgid "A person of the community does it by hand, with their own account. You do not need an account on OpenStreetMap."
+msgstr "Eine Person der Gemeinschaft macht es von Hand, mit ihrem eigenen Konto. Sie brauchen kein Konto auf OpenStreetMap."
 
 msgid "Send the request"
 msgstr "Anfrage senden"
@@ -3990,8 +3977,8 @@ msgid "OpenStreetMap is public: everything you write there can be read by everyb
 msgstr "OpenStreetMap ist öffentlich: alles, was Sie dort schreiben, kann jeder lesen. Wir fragen Sie nie nach einem Passwort von Ihnen, und wir schreiben dort nie, ohne dass eine Person es ansieht."
 
 #, python-format
-msgid "You asked the association %(when)s."
-msgstr "Sie haben den Verein %(when)s gefragt."
+msgid "You asked the community %(when)s."
+msgstr "Sie haben die Gemeinschaft %(when)s gefragt."
 
 #, python-format
 msgid "Done %(when)s."
@@ -4012,15 +3999,15 @@ msgstr "Wenn Ihr Geschäft schon dort steht, schreiben Sie an %(email)s mit der 
 msgid "A person does it by hand: you see here when it is done."
 msgstr "Eine Person macht es von Hand: hier sehen Sie, wann es erledigt ist."
 
-msgid "Your shop on OpenStreetMap: the association could not do it."
-msgstr "Ihr Geschäft auf OpenStreetMap: der Verein konnte es nicht erledigen."
+msgid "Your shop on OpenStreetMap: the community could not do it."
+msgstr "Ihr Geschäft auf OpenStreetMap: die Gemeinschaft konnte es nicht erledigen."
 
 msgid "See what the map says about you, and update it."
 msgstr "Sehen Sie nach, was die Karte über Sie sagt, und aktualisieren Sie sie."
 
 #, python-format
-msgid "You asked the association about OpenStreetMap %(when)s."
-msgstr "Sie haben den Verein %(when)s zu OpenStreetMap gefragt."
+msgid "You asked the community about OpenStreetMap %(when)s."
+msgstr "Sie haben die Gemeinschaft %(when)s zu OpenStreetMap gefragt."
 
 #, python-format
 msgid "Your shop on OpenStreetMap: done %(when)s."
@@ -4126,11 +4113,11 @@ msgstr "Vorgeschlagenes OpenStreetMap-Element"
 msgid "OpenStreetMap says that your shop does not take bitcoin any more."
 msgstr "OpenStreetMap sagt, dass Ihr Geschäft kein Bitcoin mehr annimmt."
 
-msgid "If that is not true, ask the association below: we look at it with you."
-msgstr "Wenn das nicht stimmt, fragen Sie unten den Verein: wir sehen es uns mit Ihnen an."
+msgid "If that is not true, ask the community below: we look at it with you."
+msgstr "Wenn das nicht stimmt, fragen Sie unten die Gemeinschaft: wir sehen es uns mit Ihnen an."
 
-msgid "Something on OpenStreetMap is not like on this site, and a person of the association has to look at it. You do not need to do anything."
-msgstr "Auf OpenStreetMap ist etwas anders als auf dieser Website, und eine Person des Vereins muss es ansehen. Sie müssen nichts tun."
+msgid "Something on OpenStreetMap is not like on this site, and a person of the community has to look at it. You do not need to do anything."
+msgstr "Auf OpenStreetMap ist etwas anders als auf dieser Website, und eine Person der Gemeinschaft muss es ansehen. Sie müssen nichts tun."
 
 msgid "We have not compared it for a while. These are the lines it should have:"
 msgstr "Wir haben es seit einer Weile nicht verglichen. Das sind die Zeilen, die es haben sollte:"
@@ -4473,8 +4460,8 @@ msgstr "Die Kasse ist bereit: Sie fragt Ihre Lightning-Wallet bei jeder Zahlung 
 msgid "Your Lightning wallet receives, but it does not tell the register when a payment arrives: check each payment in your wallet app before you confirm it on the register."
 msgstr "Ihre Lightning-Wallet empfängt, sagt der Kasse aber nicht, wann eine Zahlung ankommt: Prüfen Sie jede Zahlung in Ihrer Wallet-App, bevor Sie sie an der Kasse bestätigen."
 
-msgid "The register cannot take payments: write to the association."
-msgstr "Die Kasse kann keine Zahlungen annehmen: Schreiben Sie dem Verein."
+msgid "The register cannot take payments: write to the community."
+msgstr "Die Kasse kann keine Zahlungen annehmen: Schreiben Sie der Gemeinschaft."
 
 msgid "A customer paid more than the price: the extra is theirs. Give it back from your wallet."
 msgstr "Ein Kunde hat mehr als den Preis bezahlt: Der Überschuss gehört ihm. Geben Sie ihn aus Ihrer Wallet zurück."
@@ -4507,11 +4494,11 @@ msgstr "Geben Sie jeder Person ihre eigene Kasse: Sie schalten eine sofort aus, 
 msgid "Give each person who takes payments their own register. With it they can only take payments, which go to your wallet: they see where the money goes, and nothing else of your wallet, your sales or your settings."
 msgstr "Geben Sie jeder Person, die kassiert, ihre eigene Kasse. Damit kann sie nur kassieren, und das Geld geht an Ihre Wallet: Sie sieht, wohin das Geld geht, und sonst nichts von Ihrer Wallet, Ihren Verkäufen oder Ihren Einstellungen."
 
-msgid "Nothing to do now: the association hears about it the day the closure ends."
-msgstr "Jetzt ist nichts zu tun: Der Verein erfährt es an dem Tag, an dem die Schließung endet."
+msgid "Nothing to do now: the community hears about it the day the closure ends."
+msgstr "Jetzt ist nichts zu tun: Die Gemeinschaft erfährt es an dem Tag, an dem die Schließung endet."
 
-msgid "Nothing to do now: the merchant and the association hear about it the day the shop opens again."
-msgstr "Jetzt ist nichts zu tun: Der Händler und der Verein erfahren es an dem Tag, an dem das Geschäft wieder öffnet."
+msgid "Nothing to do now: the merchant and the community hear about it the day the shop opens again."
+msgstr "Jetzt ist nichts zu tun: Der Händler und die Gemeinschaft erfahren es an dem Tag, an dem das Geschäft wieder öffnet."
 
 #, python-format
 msgid "Registers: %(working)d with a Lightning address that works, %(to_look)d shops to look at."
@@ -4727,8 +4714,8 @@ msgid "This register was paired, but its pairing no longer matches the site's se
 msgstr "Diese Kasse war gekoppelt, aber die Kopplung passt nicht mehr zu den Einstellungen der Website: Sie kann nicht kassieren. Bitten Sie den Inhaber um einen neuen Kopplungscode."
 
 #, python-brace-format
-msgid "The shop's Lightning address changed: before it was {before}, now it is {after}. If you did not change it, do not take payments and tell the association."
-msgstr "Die Lightning-Adresse des Geschäfts hat sich geändert: Vorher war es {before}, jetzt ist es {after}. Wenn Sie sie nicht geändert haben, kassieren Sie nicht und sagen Sie dem Verein Bescheid."
+msgid "The shop's Lightning address changed: before it was {before}, now it is {after}. If you did not change it, do not take payments and tell the community."
+msgstr "Die Lightning-Adresse des Geschäfts hat sich geändert: Vorher war es {before}, jetzt ist es {after}. Wenn Sie sie nicht geändert haben, kassieren Sie nicht und sagen Sie der Gemeinschaft Bescheid."
 
 #, python-brace-format
 #, python-brace-format
@@ -4873,8 +4860,8 @@ msgstr "Die beiden Passwörter sind verschieden."
 msgid "Just a moment..."
 msgstr "Einen Moment..."
 
-msgid "This browser cannot encrypt the copy: try another browser."
-msgstr "Dieser Browser kann die Kopie nicht verschlüsseln: Versuchen Sie einen anderen Browser."
+msgid "This device cannot encrypt the copy: try an up-to-date Chrome or Safari."
+msgstr "Auf diesem Gerät lässt sich die Kopie nicht verschlüsseln: Versuchen Sie es mit einem aktuellen Chrome oder Safari."
 
 msgid "Copy downloaded. Keep it somewhere other than this phone, and keep the passphrase too."
 msgstr "Kopie heruntergeladen. Bewahren Sie sie woanders als auf diesem Telefon auf, und bewahren Sie auch das Passwort auf."
@@ -4968,8 +4955,8 @@ msgstr "Verkäufe werden Ihnen laufend auf Nostr geschickt, verschlüsselt für 
 msgid "The shop's Lightning address is {after}, but the register on this phone takes payments into {before}. Open your register first and check it: no code until they are the same."
 msgstr "Die Lightning-Adresse des Geschäfts ist {after}, aber die Kasse auf diesem Telefon kassiert auf {before}. Öffnen Sie zuerst Ihre Kasse und prüfen Sie das: Kein Code, solange beide nicht gleich sind."
 
-msgid "The code cannot be made on this browser: try another browser, or open this page on the phone with your register."
-msgstr "Der Code kann in diesem Browser nicht erstellt werden: Versuchen Sie einen anderen Browser oder öffnen Sie diese Seite auf dem Telefon mit Ihrer Kasse."
+msgid "The code cannot be made on this device: try an up-to-date Chrome or Safari, or open this page on the phone with your register."
+msgstr "Auf diesem Gerät lässt sich der Code nicht erstellen: Versuchen Sie es mit einem aktuellen Chrome oder Safari oder öffnen Sie diese Seite auf dem Telefon mit Ihrer Kasse."
 
 msgid "The shop's Lightning wallet does not answer: the register cannot charge."
 msgstr "Die Lightning-Wallet des Geschäfts antwortet nicht: Die Kasse kann nicht kassieren."
@@ -5049,8 +5036,8 @@ msgstr "Zeit, eine Kopie Ihrer Verkäufe herunterzuladen."
 msgid "Sales on this phone"
 msgstr "Verkäufe auf diesem Telefon"
 
-msgid "This browser may delete the sales when it needs room: keep your copies up to date."
-msgstr "Dieser Browser kann die Verkäufe löschen, wenn er Platz braucht: Halten Sie Ihre Kopien aktuell."
+msgid "This device may delete the sales when it needs room: keep your copies up to date."
+msgstr "Dieses Gerät kann die Verkäufe löschen, wenn Platz gebraucht wird: Halten Sie Ihre Kopien aktuell."
 
 msgid "End of shift"
 msgstr "Schichtende"
@@ -5471,10 +5458,10 @@ msgid "Sales already started on the old address are still recognised for a few d
 msgstr "Bereits begonnene Verkäufe auf der alten Adresse werden noch einige Tage erkannt: Behalten Sie die alte Wallet, bis sie abgeschlossen sind."
 
 #, python-format
-msgid "We send you a confirmation and tell the association. The address can be changed again after a day."
-msgid_plural "We send you a confirmation and tell the association. The address can be changed again after %(days)s days."
-msgstr[0] "Wir senden Ihnen eine Bestätigung und informieren den Verein. Die Adresse kann nach einem Tag wieder geändert werden."
-msgstr[1] "Wir senden Ihnen eine Bestätigung und informieren den Verein. Die Adresse kann nach %(days)s Tagen wieder geändert werden."
+msgid "We send you a confirmation and tell the community. The address can be changed again after a day."
+msgid_plural "We send you a confirmation and tell the community. The address can be changed again after %(days)s days."
+msgstr[0] "Wir senden Ihnen eine Bestätigung und informieren die Gemeinschaft. Die Adresse kann nach einem Tag wieder geändert werden."
+msgstr[1] "Wir senden Ihnen eine Bestätigung und informieren die Gemeinschaft. Die Adresse kann nach %(days)s Tagen wieder geändert werden."
 
 msgid "If your shop is certified, the badge comes back as soon as we see the new address work, usually within the hour."
 msgstr "Ist Ihr Geschäft zertifiziert, kommt das Abzeichen zurück, sobald wir die neue Adresse funktionieren sehen, meist innerhalb einer Stunde."
@@ -5483,8 +5470,8 @@ msgid "Change the address"
 msgstr "Adresse ändern"
 
 #, python-format
-msgid "On %(when)s you changed the Lightning address from %(before)s to %(after)s. Open each register again and confirm it; give your staff new pairing codes. The printed sign stays valid. If it was not you, write to the association now."
-msgstr "Am %(when)s haben Sie die Lightning-Adresse von %(before)s auf %(after)s geändert. Öffnen Sie jede Kasse erneut und bestätigen Sie sie; geben Sie Ihren Mitarbeitern neue Kopplungscodes. Das gedruckte Schild bleibt gültig. Wenn Sie es nicht waren, schreiben Sie sofort dem Verein."
+msgid "On %(when)s you changed the Lightning address from %(before)s to %(after)s. Open each register again and confirm it; give your staff new pairing codes. The printed sign stays valid. If it was not you, write to the community now."
+msgstr "Am %(when)s haben Sie die Lightning-Adresse von %(before)s auf %(after)s geändert. Öffnen Sie jede Kasse erneut und bestätigen Sie sie; geben Sie Ihren Mitarbeitern neue Kopplungscodes. Das gedruckte Schild bleibt gültig. Wenn Sie es nicht waren, schreiben Sie sofort der Gemeinschaft."
 
 msgid "We are checking the new address: until then the certified badge is paused."
 msgstr "Wir prüfen die neue Adresse: Bis dahin ist das Zertifikat-Abzeichen pausiert."
@@ -5596,11 +5583,11 @@ msgstr "neue Läden oder verbundene Wallets von einer Netzwerkadresse in einer S
 msgid "requests for help from one shop in a day"
 msgstr "Hilfeanfragen eines Ladens an einem Tag"
 
-msgid "This site cannot take more of this for now: the association has been told. Please try again later."
-msgstr "Die Website kann dafür im Moment nichts mehr aufnehmen: der Verein wurde informiert. Bitte versuchen Sie es später noch einmal."
+msgid "This site cannot take more of this for now: the community has been told. Please try again later."
+msgstr "Die Website kann dafür im Moment nichts mehr aufnehmen: die Gemeinschaft wurde informiert. Bitte versuchen Sie es später noch einmal."
 
-msgid "The association cannot take more requests here right now. Please write to {email}."
-msgstr "Der Verein kann hier gerade keine weiteren Anfragen annehmen. Bitte schreiben Sie an {email}."
+msgid "The community cannot take more requests here right now. Please write to {email}."
+msgstr "Die Gemeinschaft kann hier gerade keine weiteren Anfragen annehmen. Bitte schreiben Sie an {email}."
 
 msgid "%(what)s: %(used)d of %(limit)d. The limit is reached: the site refuses new ones, and keeps all it has."
 msgstr "%(what)s: %(used)d von %(limit)d. Das Limit ist erreicht: die Website lehnt neue ab und behält alles, was sie hat."
@@ -6800,8 +6787,8 @@ msgstr "Seiten"
 msgid "The editor"
 msgstr "Der Editor"
 
-msgid "The merchant asked the association to put the shop on OpenStreetMap, or to update its entry. You do it by hand on openstreetmap.org, with your own account, using the lines of the request: the site writes nothing there. Then mark it done: the merchant sees it in the panel."
-msgstr "Der Händler hat den Verein gebeten, das Geschäft auf OpenStreetMap einzutragen oder seinen Eintrag zu aktualisieren. Sie machen das von Hand auf openstreetmap.org, mit Ihrem eigenen Konto, mit den Zeilen der Anfrage: Die Website schreibt dort nichts. Markieren Sie sie danach als erledigt: Der Händler sieht es in seinem Bereich."
+msgid "The merchant asked the community to put the shop on OpenStreetMap, or to update its entry. You do it by hand on openstreetmap.org, with your own account, using the lines of the request: the site writes nothing there. Then mark it done: the merchant sees it in the panel."
+msgstr "Der Händler hat die Gemeinschaft gebeten, das Geschäft auf OpenStreetMap einzutragen oder seinen Eintrag zu aktualisieren. Sie machen das von Hand auf openstreetmap.org, mit Ihrem eigenen Konto, mit den Zeilen der Anfrage: Die Website schreibt dort nichts. Markieren Sie sie danach als erledigt: Der Händler sieht es in seinem Bereich."
 
 msgid "The shop's entry"
 msgstr "Der Eintrag des Geschäfts"
@@ -6815,8 +6802,8 @@ msgstr "Benachrichtigt:"
 msgid "What to write:"
 msgstr "Was zu schreiben ist:"
 
-msgid "What whoever runs the site changed in the accounts of shops' owners, newest first: a second pair of eyes on the people who can change them. It names who did it. If a change looks wrong, ask the merchant whether they expected it, and tell the association."
-msgstr "Was die Betreiber der Website an den Konten der Inhaber geändert haben, die neuesten zuerst: ein zweites Paar Augen auf die Personen, die sie ändern können. Es nennt, wer es getan hat. Wenn eine Änderung falsch aussieht, fragen Sie den Händler, ob er sie erwartet hat, und sagen Sie es dem Verein."
+msgid "What whoever runs the site changed in the accounts of shops' owners, newest first: a second pair of eyes on the people who can change them. It names who did it. If a change looks wrong, ask the merchant whether they expected it, and tell the community."
+msgstr "Was die Betreiber der Website an den Konten der Inhaber geändert haben, die neuesten zuerst: ein zweites Paar Augen auf die Personen, die sie ändern können. Es nennt, wer es getan hat. Wenn eine Änderung falsch aussieht, fragen Sie den Händler, ob er sie erwartet hat, und sagen Sie es der Gemeinschaft."
 
 msgid "Written %(when)s."
 msgstr "Erstellt %(when)s."
@@ -6873,7 +6860,7 @@ msgid "Try it: open the register and pay yourself a small amount from another ph
 msgstr "Probieren Sie es aus: Öffnen Sie die Kasse und zahlen Sie sich mit einem anderen Telefon einen kleinen Betrag. Das Schild zum Ausdrucken kommt, sobald die Gemeinschaft das Geschäft freigegeben hat."
 
 msgid "The sign and the card for customers come once the community has approved the shop. You will hear from us then, if your account has an email or the shop a Telegram chat."
-msgstr "Das Schild und die Karte für Kunden kommen, sobald die Gemeinschaft das Geschäft freigegeben hat. Dann hören Sie von uns, wenn Ihr Konto eine E-Mail oder das Geschäft einen Telegram-Chat hat."
+msgstr "Das Schild und das Blatt für Kunden kommen, sobald die Gemeinschaft das Geschäft freigegeben hat. Dann hören Sie von uns, wenn Ihr Konto eine E-Mail oder das Geschäft einen Telegram-Chat hat."
 
 msgid "Wait for the community to approve the shop: then print the sign for the door or the counter. The card for whoever stands at the till you can print now."
 msgstr "Warten Sie, bis die Gemeinschaft das Geschäft freigibt: Drucken Sie dann das Schild für die Tür oder die Theke. Die Karte für alle, die an der Kasse stehen, können Sie schon jetzt drucken."
@@ -6885,7 +6872,7 @@ msgid "The sign of %(name)s"
 msgstr "Das Schild von %(name)s"
 
 msgid "The community looks at every new shop before it goes on the map. The codes of the sign and of the card for customers open pages that show how to pay only once the shop is approved: both come then. You will hear from us, if your account has an email or the shop a Telegram chat."
-msgstr "Die Gemeinschaft sieht sich jedes neue Geschäft an, bevor es auf die Karte kommt. Die Codes des Schilds und der Karte für Kunden öffnen Seiten, die erst nach der Freigabe zeigen, wie man bezahlt: Dann kommen beide. Sie hören von uns, wenn Ihr Konto eine E-Mail oder das Geschäft einen Telegram-Chat hat."
+msgstr "Die Gemeinschaft sieht sich jedes neue Geschäft an, bevor es auf die Karte kommt. Die Codes des Schilds und des Blatts für Kunden öffnen Seiten, die erst nach der Freigabe zeigen, wie man bezahlt: Dann kommen beide. Sie hören von uns, wenn Ihr Konto eine E-Mail oder das Geschäft einen Telegram-Chat hat."
 
 msgid "The register already works, and so does the card for the till."
 msgstr "Die Kasse funktioniert schon, und die Karte für die Kasse auch."
@@ -6984,7 +6971,7 @@ msgid "It goes on the map as soon as its position is in its details: you can add
 msgstr "Es kommt auf die Karte, sobald seine Position in seinen Angaben steht: Sie können sie in Ihrem Bereich hinzufügen."
 
 msgid "The card for customers of %(name)s"
-msgstr "Die Karte für Kunden von %(name)s"
+msgstr "Das Blatt für Kunden von %(name)s"
 
 msgid "A few short modules, a few minutes. Meanwhile the practice register works."
 msgstr "Ein paar kurze Module, wenige Minuten. Inzwischen funktioniert die Übungskasse."
@@ -7449,11 +7436,12 @@ msgstr "Noch nicht von Muttersprachlern gelesen."
 msgid "A new place, or a new address of one, goes on the map when someone of the community has approved it. The phone, and whether a place is on the map, are yours to change at once."
 msgstr "Ein neuer Standort oder eine neue Adresse eines Standorts kommt auf die Karte, sobald jemand aus der Gemeinschaft ihn freigegeben hat. Das Telefon und ob ein Standort auf der Karte ist, ändern Sie selbst sofort."
 
-msgid "Waiting for an approval: not on the map yet."
-msgstr "Wartet auf die Freigabe: noch nicht auf der Karte."
+msgid "Waiting for the community to approve it: not on the map yet."
+msgstr "Wartet auf die Freigabe durch die Gemeinschaft: noch nicht auf der Karte."
 
-msgid "New address waiting for an approval: %(address)s"
-msgstr "Neue Adresse wartet auf die Freigabe: %(address)s"
+#, python-format
+msgid "New address, waiting for the community to approve it: %(address)s"
+msgstr "Neue Adresse, wartet auf die Freigabe durch die Gemeinschaft: %(address)s"
 
 msgid "Not on the map: you chose so."
 msgstr "Nicht auf der Karte: Sie haben es so gewählt."
@@ -7533,3 +7521,11 @@ msgstr "%(name)s hat seine Standorte geändert, während Sie gelesen haben: Sehe
 
 msgid "Write the number alone: digits, spaces and the signs + ( ) . / -"
 msgstr "Schreiben Sie nur die Nummer: Ziffern, Leerzeichen und die Zeichen + ( ) . / -"
+
+#, python-format
+msgid "Register added: «%(name)s»."
+msgstr "Kasse hinzugefügt: „%(name)s“."
+
+#, python-format
+msgid "Updated on %(day)s"
+msgstr "Aktualisiert am %(day)s"

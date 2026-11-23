@@ -1,4 +1,4 @@
-{% load i18n %}{% translate "Payment received" as paid %}{% translate "Register for whoever works with you" as handover %}
+{% load i18n %}{% translate "Payment received" as paid %}{% translate "Registers for your staff" as handover %}
 <details class="first-day" id="first-day-{{ shop.id }}"{% if not day.complete %} open{% endif %} data-count="{{ first_day_count }}" data-complete="{% translate 'The first day: all done' %}">
   <summary>{{ day.title }}</summary>
   <ol class="first-steps">

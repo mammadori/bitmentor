@@ -13,7 +13,7 @@ What the community writes, in the `training` block of `community.yml` (off when 
 What the site keeps, in the database: the quiz of each module (`ModuleResult`), and for each statement ticked a
 `Declaration` row: which statement, the hash of its text (the version), the text as it was shown, the date, the account and
 the shop. No address of the connection. A changed text is a new version and is asked again; the old rows stay. The
-association reads them in /admin/ and exports them: it is the written proof that the merchant was informed.
+community reads them in /admin/ and exports them: it is the written proof that the merchant was informed.
 
 The basic pass (`Trainee.base_earned`) is earned once all the modules that count for it (and the community's terms, if it
 has any) are done. From then on the merchant is «formed»; the pass is not taken back, only a review is asked every
@@ -709,7 +709,7 @@ def answer_quiz(user, module, post, now=None):
 
 
 def masked(name):
-    """A name as the association's export shows it: the first letter and no more, so the proof says who without handing the
+    """A name as the community's export shows it: the first letter and no more, so the proof says who without handing the
     name of a person to whoever opens the file. The row in the database keeps the whole name."""
     name = (name or "").strip()
     return f"{name[:1]}***" if name else ""
@@ -897,7 +897,7 @@ def quick_start(shop, user, now=None):
 
 @dataclass
 class Stuck:
-    """An owner the association could call: `waiting` when the real register of `shops` is locked by the pass now, else
+    """An owner the community could call: `waiting` when the real register of `shops` is locked by the pass now, else
     they stopped half-way through the basic modules. `since` is when the wait began or they last moved (a datetime);
     `step` the title of the next module of the basic pass, in the page's language, or ''."""
 

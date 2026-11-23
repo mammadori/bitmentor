@@ -122,6 +122,6 @@ class Command(BaseCommand):
                         approved_on=timezone.now(), approved_by="import"
                     )
                 elif not created and "closed_on" in values:
-                    # The association decides "historic" even for a claimed shop: the rest belongs to the owner
+                    # The community decides "historic" even for a claimed shop: the rest belongs to the owner
                     Shop.objects.filter(pk=shop.pk).update(closed_on=values["closed_on"])
         self.stdout.write(f"{Shop.objects.filter(owner=None).count()} unclaimed shops")

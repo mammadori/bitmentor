@@ -2,7 +2,7 @@
 
 A merchant at the till, with a customer in front of them, who sees the payment not going through has nothing to look at
 and nobody to ask but a phone call, and whoever answers must run `diagnose_shop` from a terminal. «Something wrong?»
-puts the diagnosis in the merchant's hands, in their words, and, when it is not enough, one tap sends the association a
+puts the diagnosis in the merchant's hands, in their words, and, when it is not enough, one tap sends the community a
 request that already carries it.
 
 ## What the merchant sees
@@ -32,7 +32,7 @@ provider. «Look again, asking your Lightning wallet» (a POST, up to 20 seconds
 `diagnosis.LIGHTNING_SECONDS`, 15 for the wallet's answer, and `diagnosis.TOTAL_SECONDS`, 40 in all) adds the check that needs it, and says so. It is limited to 6 per shop per hour and 30
 per person, since the Lightning check asks the merchant's provider for a real invoice that nobody pays.
 
-## Asking the association
+## Asking the community
 
 On the same page: «Ask for help». A line of plain text, optional (up to 200 characters; a private key or a seed phrase
 is refused, and one line only), and how to be called back, among what the shop has: the recovery email (shown masked),
@@ -44,7 +44,7 @@ The request (`HelpRequest`, `shops/helpdesk.py`):
    same symptom asked twice within two minutes by the same person is one request (a double tap); a second line written
    in the second tap is added to the first request;
 2. is saved at once, so that nothing is lost whatever happens next;
-3. gets its **diagnosis**: the checks of the symptom, the one that asks the Lightning provider too, in the association's
+3. gets its **diagnosis**: the checks of the symptom, the one that asks the Lightning provider too, in the community's
    language and within 10 seconds (`ASK_SECONDS`); as with `diagnose_shop`, the Lightning check asks the merchant's
    provider for an invoice that nobody pays. If the provider does not answer that is itself what the diagnosis says. A
    diagnosis that breaks never loses the request;
@@ -63,7 +63,7 @@ If Telegram is not set up, refuses or does not answer, the request stays: it is 
 merchant is told that the message did not go out and that the request is saved (with the community's email for an
 emergency). `HelpRequest.delivery` says which: `sent`, `refused`, `off` (no bot or no chat), `failed`.
 
-## What the association sees
+## What the community sees
 
 - **`/admin/today/`**: the requests not yet solved are on top of everything else, the oldest first, as a problem: the
   symptom, since when, the merchant's line, how to call back, the `diagnose_shop` command and the links to the request
@@ -76,7 +76,7 @@ emergency). `HelpRequest.delivery` says which: `sent`, `refused`, `off` (no bot 
   (`resolved_by`, `resolved`); **Mark as waiting again** undoes it.
 
 The request keeps who asked (`asked_by`): after a change of owner the new owner does not read the old one's requests, which
-the association still sees.
+the community still sees.
 
 **Permissions.** The requests have their own permissions in `/admin/` (`view_helprequest`, and `change_helprequest` for the
 two actions). Both are in the **Moderators** group, which the site makes and keeps right by itself at every start (`migrate`),
@@ -110,7 +110,7 @@ solved none of that is of any use, so `manage.py forget_old_requests` puts it aw
   does nothing. `--dry-run` says how many ([the handbook](../operations.md#forget-old-requests-for-help)). If the machine's clock looks
   wrong (the guardian's last probe of a Lightning address is more than two days old, or in the future) it forgets nothing and says so.
 
-A forgotten request is no longer in the merchant's history (it is no longer tied to their account) and the association still sees it,
+A forgotten request is no longer in the merchant's history (it is no longer tied to their account) and the community still sees it,
 solved, in `/admin/shops/helprequest/`.
 
 **What it does not reach.** The merchant's line is also in the message the moderators' Telegram chat received when the request was made:
@@ -119,10 +119,10 @@ destination keeps them: by default the first copy of each month for 12 months, s
 
 ## Limits, on purpose
 
-- The merchant cannot write more than a line, and the answer does not come back through the site: the association calls
+- The merchant cannot write more than a line, and the answer does not come back through the site: the community calls
   back, and marks the request solved. There is no chat, no ticket thread.
 - Nothing here changes the register, the sign, the staff registers or **where the money goes**: «Something wrong?»
   never offers to set an address or a key, and the steps never ask for one. A merchant who changed wallet is told to ask
-  for help, and the association shows them how: only they connect the new wallet.
+  for help, and the community shows them how: only they connect the new wallet.
 - The page is an aid, not a monitor: it says what the site knows now. What happened at the till stays in the merchant's
   eyes: the steps start from there.

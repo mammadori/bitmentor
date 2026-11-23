@@ -1,6 +1,6 @@
 """The merchant's training, the «pass» (shops/training.py): the modules the community writes, the quiz, the declarations that
 are the written proof of the information, the badges, the unlock of the real till from the day the community wrote, the three rules of
-a staff register and the export for the association. The community's `training` block is the example one of
+a staff register and the export for the community. The community's `training` block is the example one of
 examples/community/community.yml, read back from its comments, so the example is tested too."""
 
 import csv

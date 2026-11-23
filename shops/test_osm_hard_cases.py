@@ -165,7 +165,7 @@ class HardCases(TestCase):
         self.assertEqual((mine.website, mine.phone, mine.address, mine.city), ("", "", "", ""))
         self.assertEqual((report["filled"], report["offers"], report["proposals"]), ([], [], []))
         self.assertEqual([item["ref"] for item in report["link_proposals"]], ["node/77"])
-        # Confirmed by the association: the address by itself, the contacts only offered
+        # Confirmed by the community: the address by itself, the contacts only offered
         self.assertTrue(osm.confirm_link(mine))
         mine.refresh_from_db()
         again = osm.synchronize(config(), read(answer(fake)))

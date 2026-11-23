@@ -1,5 +1,5 @@
 """The edges of the guardian of the Lightning addresses (shops/lightning_watch.py): the number of failures that makes a
-fault, and every sentence of the message to the association."""
+fault, and every sentence of the message to the community."""
 
 from datetime import timedelta
 from unittest.mock import patch

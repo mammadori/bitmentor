@@ -11,7 +11,7 @@ does anything:
   the practice step of the training counts as done.
 - `private_ok(user) -> bool`: this account sees the private part of the pages (website/visibility.py), asked only when
   the software's own rule said no.
-- `dashboard_items() -> list`: more lines for the association's list of the day (shops/dashboard.py): dictionaries
+- `dashboard_items() -> list`: more lines for the community's list of the day (shops/dashboard.py): dictionaries
   with `what` and `do` (texts), and optionally `level` ("problem", "warning" or "info", the default), `code` and
   `links` (`{"text", "url"}`).
 

@@ -1,6 +1,6 @@
 """A temporary password is changed at the first sign-in.
 
-The association creates the accounts of the staff and hands the password over in person (docs/operations.md). Django does
+The community creates the accounts of the staff and hands the password over in person (docs/operations.md). Django does
 not ask the person who gets it to change it. Here it does, without anything to remember.
 
 **The mark.** `manage.py temporary_password <username>` writes in `Profile.temporary_password` the hash that

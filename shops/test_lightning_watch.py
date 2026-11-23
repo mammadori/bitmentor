@@ -664,7 +664,7 @@ class Panel(TestCase):
         self.assertRedirects(response, f"{PANEL}#lightning-{self.shop.id}", fetch_redirect_response=False)
         self.shop.refresh_from_db()
         self.assertEqual(self.shop.lightning_status, "ok")
-        # The merchant sees it in the panel: no email; the association hears it
+        # The merchant sees it in the panel: no email; the community hears it
         self.assertEqual(mail.outbox, [])
         self.assertIn("works again", post.call_args.kwargs["json"]["text"])
         page = self.page()

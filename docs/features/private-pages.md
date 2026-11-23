@@ -39,7 +39,7 @@ Who has the private view is decided by the server at every request:
   loopback networks (except `127.0.0.1` and `::1`) and networks wider than /24 or /48;
 - with `TEAM_ACCESS=on`, on a site under construction, a browser with a valid team pass: it counts as an allowed
   address ([Team access with a Lightning wallet](team-access.md));
-- the owner of a certified shop that a person of the association approved by hand in `/admin/` (`shops/certified.py`,
+- the owner of a certified shop that a person of the community approved by hand in `/admin/` (`shops/certified.py`,
   `sees_private_part`; see [Certified shops](certified-shops.md)): the badge alone gives nothing;
 - an account the community's own code lets in (`private_ok`,
   [The community's own code](../architecture.md#the-communitys-own-code)), asked only when the two above say no.

@@ -67,7 +67,7 @@ people there; check the law of your own country): read [Privacy and data protect
 
 | You are | Read |
 |---|---|
-| A volunteer who runs the site | [The association's handbook](docs/operations.md): what to do every day, every week, before a release, and when something breaks |
+| A volunteer who runs the site | [The community's handbook](docs/operations.md): what to do every day, every week, before a release, and when something breaks |
 | The person who answers a merchant's call | [When a merchant calls](docs/helpdesk.md) (start from the requests in `/admin/today/`), and [a training site in five minutes](docs/features/demo.md) to practise first |
 | Installing a new site | [Three ways to run it](#three-ways-to-run-it): usually [one machine](docs/single-machine.md) |
 | Going to mainnet | [Going to mainnet](docs/mainnet.md): a new installation, and [Backup and restore](docs/backup.md) |
@@ -76,7 +76,7 @@ people there; check the law of your own country): read [Privacy and data protect
 
 ## Documents
 
-- [The association's handbook](docs/operations.md): the tasks by frequency, with the commands.
+- [The community's handbook](docs/operations.md): the tasks by frequency, with the commands.
 - [When a merchant calls](docs/helpdesk.md): `manage.py diagnose_shop`, the calls and what to say.
 - [One machine, from the sources](docs/single-machine.md): the simple installation, without a registry or a CI.
 - [Advanced installation](docs/installation.md): images, CI and `deploy/install.sh`.
@@ -99,7 +99,7 @@ people there; check the law of your own country): read [Privacy and data protect
   - [The guardian of the Lightning addresses](docs/features/lightning-guardian.md);
   - [The customer at the till](docs/features/customer-path.md), with no wallet or no idea how to pay;
   - [Certified shops](docs/features/certified-shops.md);
-  - [What to do today](docs/features/dashboard.md), the association's list in `/admin/today/`, sent every morning when there is something to do;
+  - [What to do today](docs/features/dashboard.md), the community's list in `/admin/today/`, sent every morning when there is something to do;
   - [The merchant's training, the «pass»](docs/features/merchant-training.md): modules the community writes, a quiz with no
     penalty, declarations kept as the written proof, badges, and the real till that opens with the basic pass;
   - [History and day closing](docs/features/end-of-day.md): the till's history, day closing and end of shift, worked
@@ -115,11 +115,11 @@ people there; check the law of your own country): read [Privacy and data protect
   - [Closed for a while](docs/features/vacation.md): holidays, works, an illness, with no alarms and no fading icons;
   - [Meetups](docs/features/meetups.md): the board of the community's get-togethers, by the staff and from Nostr, with a calendar feed;
   - [Something wrong?](docs/features/help.md): the merchant sees what the site knows and what to do, and asks the
-    association for help with one tap, with the diagnosis attached;
+    community for help with one tap, with the diagnosis attached;
   - [Staff and shops kept apart](docs/features/staff-and-shops.md): what the people who run the site can and cannot do
     to a shop, and the register of what they change in an owner's account;
   - [OpenStreetMap](docs/features/openstreetmap.md): the shops linked to their entries on the free map (a link the
-    association confirms), read once a month to fill what the shops have empty, with the tags to propose back, written
+    community confirms), read once a month to fill what the shops have empty, with the tags to propose back, written
     only by a person, and the merchant's page «Your shop on OpenStreetMap»;
   - [The moderators](docs/operations.md#the-moderators): the volunteers' group in `/admin/`, with only the rights its
     work asks, and `manage.py moderators`;

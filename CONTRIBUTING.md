@@ -16,3 +16,5 @@ Sign every commit with `git commit -s` (a `Signed-off-by:` line): it says you ag
 
 Write in English (code, comments, messages, documents); translations go in `locale/`. No community's name in the
 software: themes, texts and data live in the community package (`COMMUNITY_DIR`).
+
+How we talk to each other: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). It is short.

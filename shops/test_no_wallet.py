@@ -104,7 +104,7 @@ class OffTheMap(Base):
         self.assertContains(panel, f'href="/en/shops/wallet/{shop.id}/"')
         self.assertNotContains(panel, "No register: payments for this shop are not set up on this site.")
         self.assertNotContains(panel, f"/en/shops/sign/{shop.id}/")
-        self.assertNotContains(panel, "Register for whoever works with you")
+        self.assertNotContains(panel, 'class="handover"')
 
     def test_the_edit_page_points_to_the_wallet(self):
         shop = self.waiting()
@@ -321,7 +321,7 @@ class MovedShop(Base):
         self.assertContains(panel, "Your shop has arrived here")
         self.assertNotContains(panel, "Last step: the wallet.")
         self.assertContains(panel, f'href="/en/shops/connect/{self.shop.id}/"')
-        self.assertNotContains(panel, "Register for whoever works with you")
+        self.assertNotContains(panel, 'class="handover"')
         self.assertContains(self.client.get(f"/en/shops/connect/{self.shop.id}/"), 'id="step-choose"')
 
     def test_historic_is_on_the_map_with_its_pin_and_may_still_connect_its_wallet(self):

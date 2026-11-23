@@ -84,7 +84,7 @@ footer_menu:
 # links:
 #   - label: Mastodon
 #     url: https://mastodon.example/@example
-# Donations to the association, shown on the home page with a QR code each: a label and what the code holds.
+# Donations to the community, shown on the home page with a QR code each: a label and what the code holds.
 # donations:
 #   Lightning: donate@example.org
 # A read-only Blossom server for the theme's files, on the hosts of BLOSSOM_HOSTS (docs/features/blossom.md).
@@ -169,7 +169,7 @@ footer_menu:
 #         - text: {en: "Your phone falls in the sea. What brings your money back?", it: "Il telefono cade in mare. Che cosa ti ridà i soldi?"}
 #           options:
 #             - {en: "The recovery words on paper", it: "Le parole di recupero su carta"}
-#             - {en: "A call to the association", it: "Una telefonata all'associazione"}
+#             - {en: "A call to the community", it: "Una telefonata all'associazione"}
 #             - {en: "The register's link", it: "Il link della cassa"}
 #             - {en: "Nothing: it is saved on the site", it: "Niente: è salvato sul sito"}
 #           answer: 1
@@ -178,7 +178,7 @@ footer_menu:
 #         - id: words-mine
 #           text: {en: "The recovery words of my wallet stay with me only. I wrote them on paper and I know where it is.", it: "Le parole di recupero del mio wallet le tengo solo io. Le ho scritte su carta e so dov'è."}
 #         - id: nobody-restores
-#           text: {en: "I know that the site and the association hold no funds and no keys: if I lose my words, nobody can get my money back.", it: "So che il sito e l'associazione non tengono né soldi né chiavi: se perdo le parole, nessuno può restituirmi i soldi."}
+#           text: {en: "I know that the site and the community hold no funds and no keys: if I lose my words, nobody can get my money back.", it: "So che il sito e l'associazione non tengono né soldi né chiavi: se perdo le parole, nessuno può restituirmi i soldi."}
 #     - id: paid
 #       title: {en: "When a sale is paid", it: "Quando una vendita è pagata"}
 #       page: about/
@@ -194,9 +194,9 @@ footer_menu:
 #           options:
 #             - {en: "Keep the difference", it: "Tieni la differenza"}
 #             - {en: "Give it back from your wallet: the register's history shows how much", it: "La restituisci dal tuo wallet: lo storico della cassa dice quanto"}
-#             - {en: "Tell them to ask the association", it: "Gli dici di chiedere all'associazione"}
+#             - {en: "Tell them to ask the community", it: "Gli dici di chiedere all'associazione"}
 #           answer: 2
-#           explain: {en: "The money is yours to give back: the association holds none. The register's history shows how much.", it: "I soldi li hai tu, quindi li restituisci tu: l'associazione non ne tiene. Lo storico della cassa dice quanto."}
+#           explain: {en: "The money is yours to give back: the community holds none. The register's history shows how much.", it: "I soldi li hai tu, quindi li restituisci tu: l'associazione non ne tiene. Lo storico della cassa dice quanto."}
 #       declarations:
 #         - id: paid-in-wallet
 #           text: {en: "I know that «paid» counts only when I see it in my wallet.", it: "So che «pagato» vale solo quando lo vedo nel mio wallet."}
@@ -213,14 +213,14 @@ footer_menu:
 #           explain: {en: "A code you did not print can send the money elsewhere. Look at the sign at your till often.", it: "Un codice che non hai stampato tu può mandare i soldi altrove. Guarda spesso il cartello alla cassa."}
 #         - text: {en: "Your wallet keeps its own keys. What do you do with the recovery words?", it: "Il tuo wallet tiene le sue chiavi. Che cosa fai con le parole di recupero?"}
 #           options:
-#             - {en: "Send them to the association, to be safe", it: "Le mandi all'associazione, per sicurezza"}
+#             - {en: "Send them to the community, to be safe", it: "Le mandi all'associazione, per sicurezza"}
 #             - {en: "Write them on paper and keep them where only you find them", it: "Le scrivi su carta e le tieni dove le trovi solo tu"}
 #             - {en: "Skip them: the phone is enough", it: "Le salti: basta il telefono"}
 #           answer: 2
 #           explain: {en: "With a self-custodial wallet the money is yours alone: if the phone is lost, the words bring it back. Nobody else may ever see them.", it: "Con un wallet che tiene le tue chiavi i soldi sono solo tuoi: se perdi il telefono, le parole li riportano indietro. Nessun altro deve mai vederle."}
 #       declarations:
 #         - id: recovery-words
-#           text: {en: "I know that my wallet's recovery words are the money: I keep them on paper, and I never give them to anyone, the association included.", it: "So che le parole di recupero del mio wallet sono i soldi: le tengo su carta e non le do mai a nessuno, associazione compresa."}
+#           text: {en: "I know that my wallet's recovery words are the money: I keep them on paper, and I never give them to anyone, the community included.", it: "So che le parole di recupero del mio wallet sono i soldi: le tengo su carta e non le do mai a nessuno, associazione compresa."}
 #         - id: daily-check
 #           text: {en: "I check my sales against my wallet every day, with «Close the day».", it: "Controllo ogni giorno le vendite con il mio wallet, con «Chiudi la giornata»."}
 #         - id: qr-watch
@@ -343,7 +343,7 @@ route:
 #   picture: /theme/logo.png
 # OpenStreetMap, in both directions (docs/features/openstreetmap.md): off without this section. Once a month the site reads the
 # elements of the area that carry bitcoin tags, proposes a link for the shops that are beyond doubt the same place (the
-# association confirms it in /admin/), fills the address, town and position of the confirmed ones, offers their website and
+# community confirms it in /admin/), fills the address, town and position of the confirmed ones, offers their website and
 # phone, and prepares the tags OpenStreetMap should have. It never writes there by itself: a person changes them by hand, or
 # runs `manage.py osm_upload`, which asks first and is an experimental feature, off unless turned on (`experimental` above).
 # `bbox` is south, west, north, east; the rest are the defaults or optional.

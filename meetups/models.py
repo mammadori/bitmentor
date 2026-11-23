@@ -17,7 +17,9 @@ def valid_zone(name):
     try:
         zoneinfo.ZoneInfo(name)
     except (zoneinfo.ZoneInfoNotFoundError, ValueError, OSError):
-        raise ValidationError(_("This is not a time zone name: write it like Europe/Rome."), code="zone") from None
+        raise ValidationError(
+            _("This is not a time zone name: write it like Europe/Berlin or America/New_York."), code="zone"
+        ) from None
 
 
 def default_zone():
@@ -92,7 +94,7 @@ class Meetup(models.Model):
         max_length=64,
         default=default_zone,
         validators=[valid_zone],
-        help_text=_("The time is written and shown in this zone, like Europe/Rome."),
+        help_text=_("The time is written and shown in this zone, like Europe/Berlin or America/New_York."),
     )
     city = models.CharField(_("city"), max_length=100, blank=True)
     place = models.CharField(_("place"), max_length=200, blank=True)

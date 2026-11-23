@@ -1,4 +1,4 @@
-"""The private part opened by hand by the association to a certified shop, and one Lightning address for one owner
+"""The private part opened by hand by the community to a certified shop, and one Lightning address for one owner
 (shops/certified.py, shops/admin.py, shops/forms.py, shops/dashboard.py)."""
 
 from datetime import date, datetime

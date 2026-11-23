@@ -1,6 +1,6 @@
 # When a merchant calls
 
-A merchant phones the association: "the register does not work", "the customer paid but it says waiting". Whoever
+A merchant phones the community: "the register does not work", "the customer paid but it says waiting". Whoever
 answers does not need to know Lightning: one command tells, in plain words, what matters about
 that shop's register, what is wrong and what to say.
 
@@ -91,10 +91,10 @@ payments, how many shops to look at, how many are closed for a while. The same l
 | `limit_<name>` | Problem at the limit, to look at near it | A total of the site (shops, requests, emails…) is at 80% of its limit or at it: clear what nobody needs, or raise `limits.<name>` in `community.yml`. Spam or growth: look before raising |
 | `approve` | To look at | A new shop waits for an approval. Under "Check before approving" it looks like a copy of a shop already there: do what its block says before ticking the box ([What to do today](features/dashboard.md)) |
 | `private_waiting` | To look at | A certified shop waits for a person to open the private part to its owner ([Certified shops](features/certified-shops.md)) |
-| `training_register_waits`, `training_stopped` | To look at | An owner stuck in the merchant's training for more than `training.nudge_days` days: their real register waits for the basic pass, or they stopped half-way through the basic modules. Call them: the line says the step they stopped at ([The merchant's training](features/merchant-training.md#what-the-association-sees-and-exports)) |
+| `training_register_waits`, `training_stopped` | To look at | An owner stuck in the merchant's training for more than `training.nudge_days` days: their real register waits for the basic pass, or they stopped half-way through the basic modules. Call them: the line says the step they stopped at ([The merchant's training](features/merchant-training.md#what-the-community-sees-and-exports)) |
 | `emails_one_address` | To look at | Some addresses received more emails today than `limits.emails_per_address_day`: a shop in trouble, or someone using the sign-in against an address |
 | `guardian_late` | To look at | `check_lightning` has not run for a while: the Lightning lines may be old |
-| `osm_request` | To look at, on top | The merchant asked the association to put the shop on OpenStreetMap ([OpenStreetMap](features/openstreetmap.md)) |
+| `osm_request` | To look at, on top | The merchant asked the community to put the shop on OpenStreetMap ([OpenStreetMap](features/openstreetmap.md)) |
 | `closed_lightning` | To know | A shop closed for a while whose Lightning address does not work: nobody is told until it opens again |
 | `closed_long` | To know | A shop closed for a while for over three months: ask whether it is coming back, or mark it as historic (the icons forgive at most 92 closed days in a year) |
 | `no_position` | To know | Not on the map: the merchant adds the address in the shop page |
@@ -156,7 +156,7 @@ The site keeps no sales and cannot see these: the register's history on the phon
 has the money. Say: "Open the history in your register: it shows the sale, how much was asked and what arrived." The
 merchant gives money back from their own wallet, to an address the customer gives them, and notes it in the history.
 
-Do not: make the refund yourself, or promise one in the association's name.
+Do not: make the refund yourself, or promise one in the community's name.
 
 ### 4. "I changed wallet"
 
@@ -203,16 +203,16 @@ off in «Registers for your staff».
 
 Nothing to run. The merchant deletes the shop from its page: the register stops and the shop leaves the map. The money
 already received stays in their wallet. For a shop that closed for good but should stay in the community's history,
-the association writes its last day of trading in `closed_on` in `/admin/` (needs an administrator). Up to and including
+the community writes its last day of trading in `closed_on` in `/admin/` (needs an administrator). Up to and including
 that day nothing changes and the shop says «Closes on …» (`shop_closing`); from the day after it is historic
 (`shop_historic`): it stays on the map with its own marker, no longer a place to pay. The register, the staff
 registers, the wallet connection and the change of the Lightning address stay with the owner with no end: the site does
 not decide when a merchant stops taking payments. The guardian of the Lightning address and `/admin/today/` leave a
 historic shop alone.
-`shop_suspended` means the association took the shop off the map; the register still works.
+`shop_suspended` means the community took the shop off the map; the register still works.
 
 For a while only (holidays, works, an illness): the merchant uses "Closing for a while?" in the panel, or, if they phone, the
-association adds a closure under the shop in `/admin/` (needs an administrator; "Closures": the first day may be in the past, and the day it opens
+community adds a closure under the shop in `/admin/` (needs an administrator; "Closures": the first day may be in the past, and the day it opens
 again may be left empty). The shop stays on the map saying "Closed for holidays · back on …", the register keeps working, and
 the dashboard says nothing about it until it opens again ([Closed for a while](features/vacation.md)); call 10 reads what the map says.
 
@@ -303,7 +303,7 @@ Look at `moved_unclaimed`, `moved_no_owner`, `moved_no_wallet` and `shop_waiting
 
 Look at `account_changed`. It reads the register of `/admin/` ("Account changes"): the last 14 days of changes to the
 account that owns the shop now (the 20 latest), with what changed, by which page
-or command, by whom, and who was told (email, Telegram chat of the shop, the association's chat). The sentence is the one
+or command, by whom, and who was told (email, Telegram chat of the shop, the community's chat). The sentence is the one
 the owner got in the email. It is a problem when the change touches who can sign in, who owns the shop, where its
 Lightning payments go or who gets its notices (the sign-in name, the owner, the Lightning address, the shop's chat,
 staff rights, deletion), a warning for the rest (password, switched on or off, groups).
@@ -327,7 +327,7 @@ the address it has now) and the owner has the basic pass of the training ([Certi
 - `certificate_waiting` says which of the two is missing; the sentence under the arrow is the rule itself, to read.
 - `certificate_ready`: both are there; the guardian's next check gives the certificate.
 - `certificate_done`: certified, since the month it says.
-- `certificate_revoked`: the association revoked it in `/admin/` (Shop list action "Revoke the certificate", done by
+- `certificate_revoked`: the community revoked it in `/admin/` (Shop list action "Revoke the certificate", done by
   an administrator); ask them before saying more.
 
 ## Every line
@@ -335,7 +335,7 @@ the address it has now) and the owner has the basic pass of the training ([Certi
 | Code | Sign | What it means |
 |---|---|---|
 | `shop_visible` | ✓ | The shop is on the map (not while it waits for its wallet) |
-| `shop_suspended` | ! | Taken off maps and lists by the association; the register works |
+| `shop_suspended` | ! | Taken off maps and lists by the community; the register works |
 | `shop_historic` | ! | Historic: its closing day (`closed_on`) has passed |
 | `shop_closing` | ! | A closing day still to come: until then an ordinary place to pay |
 | `shop_unlisted` | ! | The owner chose not to be on the map |
@@ -371,7 +371,7 @@ the address it has now) and the owner has the basic pass of the training ([Certi
 | `certificate_done` | ✓ | Certified since a month |
 | `certificate_ready` | ✓ | Everything for the certificate; the guardian's next check gives it |
 | `certificate_waiting` | ✓ | What the certificate still waits for |
-| `certificate_revoked` | ! | Revoked by the association |
+| `certificate_revoked` | ! | Revoked by the community |
 | `customer_path_ok` | ✓ | The customers' guide has wallets for the way the shop gets paid |
 | `customer_wallets_empty` | ! | No wallet to suggest to a customer |
 | `customer_path_off` | ! | Suspended or historic: the card leads to the shop page |

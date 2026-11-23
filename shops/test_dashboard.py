@@ -1,4 +1,4 @@
-"""The association's dashboard (shops/dashboard.py, /admin/today/, manage.py dashboard): each thing to do with its
+"""The community's dashboard (shops/dashboard.py, /admin/today/, manage.py dashboard): each thing to do with its
 level and date, the order, the numbers on top, who may open the page, and a page that only reads the database, with
 the same number of queries for two shops or for forty."""
 

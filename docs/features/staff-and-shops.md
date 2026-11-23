@@ -64,9 +64,9 @@ only another person's eyes help.
 **Where the money goes.** The Lightning address is never written from `/admin/`: it is read-only for everybody, superusers included, and a write that comes from a page
 of the administration (any module, any action, a hand-made POST) is refused. Every change of that column, from a `save()`,
 an `update()` or a `bulk_update()`, from a command or a shell, is written in the register of account changes and said to the
-owner (email and the chats of their shops) and to the association; the owner's first connection of a wallet from the
+owner (email and the chats of their shops) and to the community; the owner's first connection of a wallet from the
 panel is only confirmed to the owner, and the owner's change of an existing address from the panel
-([Changing a shop's Lightning address](address-change.md)) is confirmed to the owner and told to the association. The notices carry the Lightning address short
+([Changing a shop's Lightning address](address-change.md)) is confirmed to the owner and told to the community. The notices carry the Lightning address short
 (`ma…@provider`), never whole. At the till, the register of the owner and of the staff and the card for the till say
 «Paying to:» with the Lightning address whole, so that whoever
 stands there sees where the money goes; the plain link of a register, which opens for whoever knows the shop's number, says
@@ -144,11 +144,11 @@ Each change does four things, in the same transaction as the change:
 3. **Tells the owner**, once the change is saved for good: an email to the recovery email, and a message in the Telegram
    chats of each of their shops, one by one (a shop can have up to three; for a changed chat, the chats it *left*). Of an owner with more than five chats in all,
    only the first five are written to, and the register says «not told» for Telegram: the email still goes. In the community's first language, with the
-   sentence in everyday words and what to do: «if you know why, nothing; if not, write to the association now».
-4. **Tells the association**, in `TELEGRAM_MODERATION_CHAT`, with the link to the register. Without the chat, or without
+   sentence in everyday words and what to do: «if you know why, nothing; if not, write to the community now».
+4. **Tells the community**, in `TELEGRAM_MODERATION_CHAT`, with the link to the register. Without the chat, or without
    the bot, it only stays in the register; the register says so («not told»).
 
-The association is told first, then the owner's email, then the owner's chats. «Told» means that the server took the
+The community is told first, then the owner's email, then the owner's chats. «Told» means that the server took the
 message: Telegram that refuses it (a wrong chat, a blocked bot), does not answer, or is left without time counts as not
 told, and so do the chats beyond the first five of an owner with many shops (counted chat by chat, not shop by shop);
 one chat that does not take it makes the owner's Telegram «not told». A round of messages starts no new attempt
@@ -159,7 +159,7 @@ Telegram never fails the change; the register says what did not arrive. An owner
 the **panel**: for two weeks it opens with the date and the sentences of what changed. **The panel does not reach an
 owner the change put out:** a replaced `username` (their wallet now opens an empty account), an account switched off,
 one that became staff, or a new password that ends their session cannot see the panel. For them the email and the chat
-are the only messages, and the association has to call.
+are the only messages, and the community has to call.
 
 **The register** is `/admin/shops/accountchange/`, newest first, in sentences: «The account of Red Bar was changed
 from the admin by boss.» It is read only: nobody adds, changes or deletes a row there, not even a superuser. The
@@ -175,7 +175,7 @@ go, handing a shop over, adding an email) can ask more care while an account is 
 from shops import guard
 
 if guard.recently_changed(request.user):   # the last two weeks; recently_changed(user, timedelta(days=3)) for another window
-    ...  # ask for the link by email again, or wait, or send it to the association
+    ...  # ask for the link by email again, or wait, or send it to the community
 ```
 
 ### What it does not see
@@ -191,7 +191,7 @@ writes a row. Who the moderators are is checked by looking, with `manage.py mode
 
 ### When the message arrives
 
-For the association: open the register. If it was a volunteer doing what was agreed, nothing. If nobody knows: first
+For the community: open the register. If it was a volunteer doing what was agreed, nothing. If nobody knows: first
 look at who has staff accounts (`/admin/auth/user/`), change their passwords, and ask the owner by a channel the
 account's change did not touch (a phone call to the number of the shop). Then check the shop's Lightning address with
 the owner.

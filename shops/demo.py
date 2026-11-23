@@ -1,4 +1,4 @@
-"""A training site in one command: a small, made-up community in every state a merchant or the association meets.
+"""A training site in one command: a small, made-up community in every state a merchant or the community meets.
 
 An installation starts empty: no shops, no certificates, an empty dashboard. Nearly everything the site does for the
 people who run it (the dashboard `/admin/today/`, the staff registers, the moved shops, the shops without a wallet, the

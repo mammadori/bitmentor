@@ -171,7 +171,7 @@ def check_shop(run):
         run.add(
             "shop_suspended",
             WARNING,
-            _("The association has taken your shop off the map and the lists for now. The register still works."),
+            _("The community has taken your shop off the map and the lists for now. The register still works."),
             "suspended=True",
         )
     if shop.needs_approval and shop.set_aside_on:
@@ -361,7 +361,7 @@ def check_register(run):
             if len(options()["sources"]) < 2
             else "the Lightning address in the site database cannot be used by the register"
         )
-        run.add("register_unavailable", PROBLEM, _("The register cannot take payments: write to the association."), why)
+        run.add("register_unavailable", PROBLEM, _("The register cannot take payments: write to the community."), why)
         return
     run.add(
         "register_ready",
@@ -525,7 +525,7 @@ def closure_lines(run, shop):
             closure_line(current),
             _(
                 "Nothing to fix. To change the dates the merchant uses «Change the dates» in their panel; the "
-                "association edits the closure under the shop in the administration."
+                "community edits the closure under the shop in the administration."
             ),
         )
         if hidden_from_map(shop, timezone.now()):
@@ -772,11 +772,11 @@ def check_certificate(run):
         run.add(
             "certificate_revoked",
             WARNING,
-            _("The association has taken the certificate away from your shop: ask them why."),
+            _("The community has taken the certificate away from your shop: ask them why."),
             "certified_revoked=True",
             _(
                 "It was revoked in the administration and the site will not give it again until that is undone. "
-                "Ask the association before saying more."
+                "Ask the community before saying more."
             ),
         )
         return

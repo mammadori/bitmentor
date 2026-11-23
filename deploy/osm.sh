@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The monthly reading of OpenStreetMap: manage.py osm_sync --send in the running web container.
 # bitmentor-osm@<project>.timer runs it once a month. It READS OpenStreetMap, proposes a link for the shops that are beyond
-# doubt the same place (the association confirms it in /admin/), fills the address, town and position of the confirmed ones,
+# doubt the same place (the community confirms it in /admin/), fills the address, town and position of the confirmed ones,
 # prepares the changes to propose, and sends a short summary to TELEGRAM_MODERATION_CHAT (or the community's email) when
 # there is something new to look at. It never writes to OpenStreetMap:
 # that is manage.py osm_upload, by hand. Exit 10 means "summary sent", which the unit counts as a success; 1 is a reading

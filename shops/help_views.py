@@ -1,5 +1,5 @@
 """The merchant's pages of «Something wrong?» (shops/helpdesk.py): the symptoms, what the site knows for each one, «Look
-again» (the checks that ask the Lightning provider), and «Ask the association for help». Only the shop's owner; the pages
+again» (the checks that ask the Lightning provider), and «Ask the community for help». Only the shop's owner; the pages
 that change anything are POSTs with the CSRF token and a limit of requests; nothing here touches the register or where
 the money goes. The staff and the sessions of /admin/ are visitors here (config/guard.py)."""
 
@@ -98,7 +98,7 @@ def again(request, shop, slug):
             request,
             _(
                 "You have looked many times in a short while: wait a few minutes. Meanwhile, you "
-                "can ask the association for help."
+                "can ask the community for help."
             ),
         )
         return redirect("help_symptom", shop.pk, found.key)
@@ -128,7 +128,7 @@ def ask(request, shop):
         messages.error(
             request,
             _(
-                "You have already asked {count} times today, and the association has your "
+                "You have already asked {count} times today, and the community has your "
                 "requests: we answer them one by one. If it is urgent, write to {email}."
             ).format(count=limits.get("help_requests_per_shop_day"), email=community()["email"]),
         )
@@ -136,7 +136,7 @@ def ask(request, shop):
     except helpdesk.Full:
         messages.error(
             request,
-            _("The association cannot take more requests here right now. Please write to {email}.").format(
+            _("The community cannot take more requests here right now. Please write to {email}.").format(
                 email=community()["email"]
             ),
         )
@@ -157,7 +157,7 @@ def ask(request, shop):
         messages.success(
             request,
             _(
-                "We have your request. The association has been told, and has what the site knows "
+                "We have your request. The community has been told, and has what the site knows "
                 "about your shop in front of it."
             ),
         )
@@ -165,7 +165,7 @@ def ask(request, shop):
         messages.success(
             request,
             _(
-                "We have your request and it is saved: the association sees it in its list. The "
+                "We have your request and it is saved: the community sees it in its list. The "
                 "message to them did not go out right now, so if it is urgent write to {email}."
             ).format(email=community()["email"]),
         )

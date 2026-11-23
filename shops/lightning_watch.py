@@ -1,11 +1,11 @@
 """The guardian of the Lightning addresses: every shop with a register that takes Lightning has its address probed again
 from time to time, the way the register will use it (`lnaddress.probe`, the same probe as when the shop was created),
 so that a provider that changed, an address deleted or a wallet that stopped confirming payments is found by the
-merchant and the association, not by a customer at the counter.
+merchant and the community, not by a customer at the counter.
 
 It only reads: it never changes where a shop's money goes and never talks to a payment server. Its findings stay on the shop
 (`lightning_*` fields), a fault counts only after two failed probes in a row some time apart, and the merchant (email, and
-the shop's own Telegram chats) and the association (Telegram) hear about it only when the status changes. The register is never blocked by it."""
+the shop's own Telegram chats) and the community (Telegram) hear about it only when the status changes. The register is never blocked by it."""
 
 import logging
 import socket
@@ -50,9 +50,9 @@ FIXED = "fixed"
 # its time. It changes nothing on the shop: the next run tries again
 UNSURE = "unsure"
 # More than half of the shops of a run failing, out of at least this many, is the server's network or a big provider:
-# nothing counts, and only the association hears about it
+# nothing counts, and only the community hears about it
 MASS_FAILURE_MIN = 4
-# Against an address that goes up and down: at most this many emails to a merchant, and lines to the association, a day
+# Against an address that goes up and down: at most this many emails to a merchant, and lines to the community, a day
 ALERTS_PER_DAY = 4
 # Whether this server resolves names at all (network_ok): seconds for each name, and for all of them
 NAME_SECONDS = 4
@@ -242,7 +242,7 @@ def record(pk, address, result):
 
 def check(pk):
     """Probes one watched shop, saves what it found and tells the merchant (email, the shop's chats) when the status
-    changes. Returns (shop, change); (None, None) for a shop that is gone or not watched. The association is told by the
+    changes. Returns (shop, change); (None, None) for a shop that is gone or not watched. The community is told by the
     caller."""
     found = probe_shop(pk)
     if found is None:
@@ -482,7 +482,7 @@ def tell_owner(shop, change):
 
 
 def tell_association(changes, mass=None):
-    """One Telegram message to the association for the changes of a run: a provider that goes down for many shops at
+    """One Telegram message to the community for the changes of a run: a provider that goes down for many shops at
     once makes one message, not one per shop. TELEGRAM_MODERATION_CHAT, the chat of the people who look after the site.
     `mass` is (failed, probed) for a run where most
     addresses failed at once and nothing was counted."""
@@ -529,4 +529,4 @@ def tell_association(changes, mass=None):
     try:
         telegram(settings.TELEGRAM_MODERATION_CHAT, "\n".join(lines))
     except NotificationFailed:
-        logger.error("Lightning address alert to the association not delivered")
+        logger.error("Lightning address alert to the community not delivered")

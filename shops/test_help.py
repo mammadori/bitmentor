@@ -1,5 +1,5 @@
 """«Something wrong?» (shops/helpdesk.py, shops/help_views.py): who may open the pages, what the page says from the
-database alone (no other server asked while it loads), «Look again» with its limits, the request to the association
+database alone (no other server asked while it loads), «Look again» with its limits, the request to the community
 (the limit, the double tap, hostile text, Telegram that refuses or is not there), what the dashboard and the panel say
 about it, the administration, and the diagnosis that stays the same."""
 
@@ -693,13 +693,13 @@ class Asking(Base):
             helpdesk.create(self.shop, "pay", "", "page", self.owner)
         lock.assert_called_once()
 
-    # --- What the merchant and the association see afterwards -----------------------------------------------------
+    # --- What the merchant and the community see afterwards -----------------------------------------------------
 
     def test_the_merchant_sees_the_time_in_the_panel_and_then_solved(self):
         self.go("pay", "", "page")
         panel = self.client.get(reverse("shops")).content.decode()
         self.assertRegex(panel, r"You asked for help today at \d\d:\d\d\.")
-        self.assertIn("The association has been told.", panel)
+        self.assertIn("The community has been told.", panel)
         row = HelpRequest.objects.get()
         row.resolved = timezone.now()
         row.resolved_by = "volunteer"
@@ -790,7 +790,7 @@ class Asking(Base):
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-# The association: the dashboard and the administration
+# The community: the dashboard and the administration
 # ---------------------------------------------------------------------------------------------------------------------
 
 
@@ -966,7 +966,7 @@ class Association(Base):
             page = self.client.get(url).content.decode()
             self.assertNotIn("the old owner", page)
             self.assertNotIn("You asked for help", page)
-        # The association still sees it
+        # The community still sees it
         self.assertEqual(dashboard.summary()["items"][0].wrote, "the old owner's line")
 
     def test_a_staff_account_without_the_permission_cannot_see_them(self):
@@ -1066,7 +1066,7 @@ class Translations(TestCase):
         self.assertIn("Il cliente non riesce a pagare", page)
         self.assertNotIn("What is happening?", page)
         symptom = self.client.get(f"/it/shops/help/{shop.pk}/waiting/").content.decode()
-        for english in ("What to do now", "Ask the association for help", "Do not ask the customer to pay again"):
+        for english in ("What to do now", "Ask the community for help", "Do not ask the customer to pay again"):
             self.assertNotIn(english, symptom)
         self.assertIn("Non chiedere al cliente di pagare di nuovo", symptom)
         # The example community has no German site: the strings are the ones the communities that have it will show

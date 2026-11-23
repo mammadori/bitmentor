@@ -12,7 +12,7 @@
   runs `manage.py osm_upload`, which is experimental and off by default. A shop that stops taking bitcoin stays marked
   as taking it there until somebody does. The tags come from what the site knows (the last
   time the shop's Lightning address answered, the closing day), not from a visit. A match between a shop and an element
-  is decided by the name and the distance; a doubtful one waits for the association. See
+  is decided by the name and the distance; a doubtful one waits for the community. See
   [OpenStreetMap](features/openstreetmap.md).
 - On-chain at the register is experimental and off by default ([Experimental features](features/README.md#experimental-features)):
   the register takes Lightning only unless the community turns it on. Turned on, it needs a public explorer that answers
@@ -37,7 +37,7 @@
   sign-in code only on the device they are signing in on. A code lasts five minutes. Whoever got in can change the
   shop's Lightning address, once in seven days: the register's phone remembers the address and stops when the site gives another
   one, until the owner confirms it there, and the change is told to the owner by email and in the shop's Telegram
-  chats, and to the association ([Changing a shop's Lightning address](features/address-change.md)).
+  chats, and to the community ([Changing a shop's Lightning address](features/address-change.md)).
   The same holds for the code that connects a wallet to an account («Sign in with a wallet too»): whoever scans it first
   is the wallet the page offers to connect, and a merchant shown someone else's connecting code would sign in to that
   person's account from then on. The page asks the owner to confirm, and the wallet's holder is asked at the first

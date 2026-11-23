@@ -10,7 +10,7 @@ Where the money goes is the most sensitive thing an account holds, so the change
   "one address, one owner" (`certified.address_taken`);
 - at most one change every `settings.LIGHTNING_CHANGE_DAYS` days per shop: whoever took the access cannot keep moving it;
 - the guardian writes it in its register (`AccountChange`) and tells the owner (email, the shop's chats) and the
-  association (shops/guard.py, `destination_changed`); the panel says it for `NOTICE`;
+  community (shops/guard.py, `destination_changed`); the panel says it for `NOTICE`;
 - the guardian of the addresses (shops/lightning_watch.py) starts again from scratch on the new address, and the badge
   and the private part of the pages wait for it to see the new address work (`models.address_pending()`; never for a historic shop, which nobody watches): the certificate
   and the approval themselves are kept, they belong to the owner, who did not change;

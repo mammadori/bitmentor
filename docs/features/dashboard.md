@@ -28,7 +28,7 @@ means a summary was sent, and the unit counts it as a success; 0, none was neede
 unit tries again every 10 minutes, four times, then stays failed and `check.sh` alerts
 (`journalctl -u bitmentor-dashboard@<project>`).
 
-**Requests for help.** A merchant who asked the association for help from the panel ([Something wrong?](help.md)) is a
+**Requests for help.** A merchant who asked the community for help from the panel ([Something wrong?](help.md)) is a
 line on top of everything else, whatever else is wrong, the oldest first, as a problem: the symptom, since when, the
 line they wrote (on the page and in `manage.py dashboard`, never in the morning message, which names the shop and the
 symptom), how they want to be called back, the command and the links to the request and to the shop. The line stays
@@ -40,12 +40,12 @@ an owner stuck in the path for more than `training.nudge_days` days (3 unless wr
 at, one per owner with their shops: their real register waits for the basic pass, or they stopped half-way through the
 basic modules. The line says to call them and the step they stopped at; nothing is sent to the merchant.
 
-**OpenStreetMap.** A merchant who asked the association to do their entry on OpenStreetMap ("The association does it for
+**OpenStreetMap.** A merchant who asked the community to do their entry on OpenStreetMap ("The community does it for
 me", [OpenStreetMap](openstreetmap.md)) is a line after the requests for help: the shop, since when, what to do, the
 link to the request in `/admin/shops/osmrequest/`, until someone marks it done there. For a community that uses
 OpenStreetMap there is also a line to know while tags of its shops there are not what the site knows, for a person to
 change by hand (where the community turned on `osm_upload`, an experimental command that is off by default, the two
-lines name it: for an update, and for the changes that wait for a person to send them), one for the links proposed and one for the contacts offered that wait for the association to
+lines name it: for an update, and for the changes that wait for a person to send them), one for the links proposed and one for the contacts offered that wait for the community to
 confirm or accept them, and one when the last reading failed or none worked for 45 days. The site never sends them by
 itself.
 
@@ -89,7 +89,7 @@ When the signals cannot be computed (an error, written in the log), every waitin
 run", asks whoever runs the site to look at the log, and is approved one by one with the box "The checks could not be
 run: I looked at this shop myself" (its history says so); the admin action and `approval.approve()` without
 `confirmed=True` approve nothing, and the action says why. The shop's history records the approval with the signals that were there ("Shop
-approved; signals: namesake, same_contact"): for the association, the tick means a person looked and it is on record.
+approved; signals: namesake, same_contact"): for the community, the tick means a person looked and it is on record.
 The shop's page in `/admin/` lists the same signals; the list of shops does not. The moderators' message about a new
 shop starts with "⚠ Check before approving" and the signals' sentences, with the shops' names only. The owner is told
 nothing about them.
@@ -136,5 +136,5 @@ requests for help, meetups from Nostr), for example `37/500` shops, and whether 
 `community.yml`. From 80% a total is a line to look at; at the limit it is a problem, since the site refuses what would add
 one more. Nothing is ever deleted for it. `manage.py dashboard` and the morning message carry those lines like the others.
 
-What each line means, and where to go on: [helpdesk.md](../helpdesk.md#before-the-phone-rings). How the association
+What each line means, and where to go on: [helpdesk.md](../helpdesk.md#before-the-phone-rings). How the community
 uses it every day: [the handbook](../operations.md#every-day).
