@@ -8,7 +8,8 @@ the owner's register it keeps its sales on its own phone: the site never receive
 `staff_registers_per_shop` of them turned on at once (30, [Limits](../configuration.md#limits)).
 
 In the panel, under «Registers for your staff» (open at once inside «Everything, if you want»), the button says how
-many are turned on, and under it go the names of the first five, newest first («…and 3 more» for the others).
+many are turned on, and under it go the names of the first five, newest first («…and 3 more» for the others). The
+owner's register leads there too, from its menu, for the owner signed in.
 Adding a register leads to its code page, which says «Register added» first.
 
 The code is in `shops/staff.py`, `static/staff-pair.js`, `static/staff-open.js` and `static/register-pairing.js`.
@@ -29,6 +30,15 @@ The code is in `shops/staff.py`, `static/staff-pair.js`, `static/staff-open.js` 
    opens nothing. The same address may try 30 codes in ten minutes.
 4. **The register stays on that phone**, at `/shops/register/p/<register>/?k=<key>`: the person adds the page to the
    home screen and opens it like an app.
+
+**On an iPhone** a page added to the home screen has its own storage, apart from Safari's: it would start without the
+pairing that Safari took from the code, and scanning the code again only opens Safari. So in Safari on an iPhone the
+paired register shows «Copy the pairing», and a staff register that has no usable pairing (none, or one for an old
+Lightning address) shows a field to paste it into, with «Pair this register». The person copies it, adds the page to the
+home screen, opens it from there and pastes. A person far away can paste instead the link the owner sent in a chat: the
+one-time code in it is already used, the pairing after `#pair=` is what counts. The pasted text (the pairing, or a link
+with it after `#pair=`) is checked as the code in the link is, and it never goes to the site. Where the clipboard does
+not answer, the pairing shows in a field to copy by hand.
 
 **How long a code works.** 24 hours by default; `staff_code_hours` in the `limits` of `community.yml` sets it from 1
 to 72 hours ([Limits](../configuration.md#limits)), for the codes made from then on. It is still one-time, and turning

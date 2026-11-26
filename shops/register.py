@@ -520,6 +520,8 @@ def onchain_texts():
         "paired_chain": _("On-chain: yes."),
         "paired_now": _("Register paired. Payments go to {address}."),
         "pairing_wrong": _("This pairing code cannot be used: ask the owner for a new one."),
+        "pairing_copied": _("Copied. Now add the page to the home screen, open it from there and paste the pairing."),
+        "pairing_copy_failed": _("It could not be copied by itself: select the text in the field and copy it."),
         "pairing_unreadable": _(
             "This register was paired, but its pairing no longer matches the site's settings: it "
             "cannot take payments. Ask the owner for a new pairing code."

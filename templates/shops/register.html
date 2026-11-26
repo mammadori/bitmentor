@@ -24,8 +24,14 @@
 <section id="keypad" class="register-screen keypad">
   <h1 class="visually-hidden">{{ shop.name }}{% if staff %} · {{ staff.name }}{% endif %}</h1>
   <div id="blocked" class="notice blocked" role="alert" hidden><p id="blocked-text"></p>
-    <button type="button" id="pin-ok" class="button button-quiet" hidden>{% translate "I changed it: use the new address" %}</button></div>
+    <button type="button" id="pin-ok" class="button button-quiet" hidden>{% translate "I changed it: use the new address" %}</button>
+    {% if staff and not practice %}<form id="pair-paste" class="pair-paste" hidden><p class="field"><label for="pair-code">{% translate "Opened from the home screen of an iPhone? Paste here the pairing you copied in Safari, or the link the owner sent you." %}</label>
+      <input id="pair-code" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="3000"></p>
+      <button class="button">{% translate "Pair this register" %}</button></form>{% endif %}</div>
   <p id="note" class="register-note" hidden></p>
+  {% if staff and not practice %}<div id="pair-copy-box" class="notice pair-copy" hidden><p>{% translate "To open the register from the home screen: copy its pairing, add the page to the home screen (Share, then «Add to Home Screen»), open it from there and paste the pairing. The home screen does not see what Safari keeps." %}</p>
+    <button type="button" id="pair-copy" class="button button-quiet">{% translate "Copy the pairing" %}</button> <span id="pair-copy-done" role="status"></span>
+    <input id="pair-copy-text" class="pair-copy-text" readonly hidden aria-label="{% translate 'The pairing of this register' %}"></div>{% endif %}
   {% block exercise_now %}{% endblock %}
   <div class="amount-box">
     <output id="amount" tabindex="-1">0.00 {{ currency }}</output>
@@ -55,6 +61,7 @@
     <label class="sheet-item sheet-check"><input type="checkbox" id="sound-on"> {% translate "Sound when a payment arrives" %}</label>
     <button type="button" class="sheet-item" data-history>{% if staff %}{% translate "History and end of shift" %}{% else %}{% translate "History and day closing" %}{% endif %}</button>
     {% if not staff and not practice %}<button type="button" class="sheet-item" id="settings-open">{% translate "Settings" %}</button>{% endif %}
+    {% if not staff and not practice and user.is_authenticated and shop.owner_id == user.pk %}<a class="sheet-item" href="{% url 'staff_registers' shop.id %}">{% translate "Registers for your staff" %}</a>{% endif %}
     {% block practice_link %}{% if urls.practice %}<a class="sheet-item practice-link" href="{{ urls.practice }}">{% translate "Practise without money" %}</a>{% endif %}{% endblock %}
     {% block owner_links %}{% if owner %}<a class="sheet-item" href="{% url 'training' %}">{% translate "Training" %}</a>
     <a class="sheet-item" href="{% url 'help_home' shop.id %}">{% translate "Something wrong?" %}</a>

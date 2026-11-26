@@ -492,6 +492,20 @@ class StaffRegisterPage(TestCase):
         self.assertIn("owner", data["texts"]["no_check"])
         self.assertNotContains(page, "Paid into")
 
+    def test_the_owner_s_register_menu_leads_to_the_staff_registers(self):
+        # The owner looks for them where the register is used every day, not only in the panel
+        link = f'href="/en/shops/registers/{self.shop.id}/"'
+        owner_page = f"/en/shops/register/{self.shop.id}/"
+        self.client.force_login(self.owner)
+        self.assertContains(self.client.get(owner_page), link)
+        # Not for someone else signed in, nor signed out, nor on a staff register's page
+        self.client.force_login(get_user_model().objects.create(username="other"))
+        self.assertNotContains(self.client.get(owner_page), link)
+        self.client.logout()
+        self.assertNotContains(self.client.get(owner_page), link)
+        self.client.force_login(self.owner)
+        self.assertNotContains(self.client.get(staff_page(self.register)), link)
+
     def retire(self, minutes_ago):
         StaffRegister.objects.filter(pk=self.register.pk).update(
             retired=timezone.now() - timedelta(minutes=minutes_ago)

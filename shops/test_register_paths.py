@@ -619,6 +619,53 @@ class StaffPairing(Paths):
                 # Read once: it does not wait on the phone for a later opening
                 self.assertIn(out["pending"], (None, "null"))
 
+    def paste(self, text, kept=None):
+        dataset = {"ledger": f"shop-1:{REGISTER}", "shop": "shop-1", "staff": REGISTER, "tillName": "Anna"}
+        return self.run_register(
+            dataset,
+            kept or {},
+            discount=0,
+            script=f"""
+          await wait(50);
+          const shown = !element("pair-paste").hidden;
+          element("pair-code").value = {json.dumps(text)};
+          for (const fn of listeners["pair-paste:submit"]) await fn({{ preventDefault() {{}} }});
+          await wait(50);
+          return {{ shown, blocked: element("blocked-text").textContent, error: element("error").textContent,
+            paired: Boolean(kept.get(`register-pairing:${{given.dataset.ledger}}`)), field: element("pair-code").value,
+            after: !element("pair-paste").hidden, copy: !element("pair-copy-box").hidden }};""",
+        )
+
+    def test_a_pairing_pasted_on_the_home_screen_pairs_the_register(self):
+        # On an iPhone the home screen does not see Safari's storage: the pairing copied there is pasted here
+        mine = self.code(REGISTER)
+        for name, text in (("the pairing", mine), ("a link with it", f"https://example.org/x/#pair={mine}\n")):
+            with self.subTest(name):
+                out = self.paste(text)
+                self.assertEqual((out["shown"], out["paired"], out["blocked"], out["after"]), (True, True, "", False))
+                self.assertIn("Register paired", out["error"])
+                self.assertEqual(out["field"], "")
+                # Outside Safari on an iPhone there is nothing to copy
+                self.assertFalse(out["copy"])
+        # Paired for an old Lightning address: a new pairing pasted pairs it again
+        old = {
+            f"register-pairing:shop-1:{REGISTER}": json.dumps(
+                {"code": self.code(REGISTER, "old@ln.example.org"), "at": 1}
+            )
+        }
+        out = self.paste(mine, old)
+        self.assertEqual((out["shown"], out["paired"], out["blocked"], out["after"]), (True, True, "", False))
+        for name, text in (
+            ("another register's", self.code("0000aaaa-0000-4000-8000-000000000009")),
+            ("not a pairing", "hello"),
+            ("damaged", mine[:-4]),
+        ):
+            with self.subTest(name):
+                out = self.paste(text)
+                self.assertFalse(out["paired"])
+                self.assertIn("not paired yet", out["blocked"])
+                self.assertIn("cannot be used", out["error"])
+
     def test_a_changed_lightning_address_stops_the_paired_register(self):
         out = self.open(
             {"register": REGISTER, "at": time.time() * 1000, "code": self.code(REGISTER, "old@ln.example.org")}

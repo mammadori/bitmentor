@@ -7433,3 +7433,27 @@ msgstr "Cassa aggiunta: «%(name)s»."
 #, python-format
 msgid "Updated on %(day)s"
 msgstr "Aggiornata il %(day)s"
+
+msgid "Opened from the home screen of an iPhone? Paste here the pairing you copied in Safari, or the link the owner sent you."
+msgstr "Aperta dalla schermata Home di un iPhone? Incolla qui l'abbinamento che hai copiato in Safari, o il link che ti ha mandato il titolare."
+
+msgid "Pair this register"
+msgstr "Abbina questa cassa"
+
+msgid "To open the register from the home screen: copy its pairing, add the page to the home screen (Share, then «Add to Home Screen»), open it from there and paste the pairing. The home screen does not see what Safari keeps."
+msgstr "Per aprire la cassa dalla schermata Home: copia il suo abbinamento, aggiungi la pagina alla schermata Home (Condividi, poi «Aggiungi alla schermata Home»), aprila da lì e incolla l'abbinamento. La schermata Home non vede quello che tiene Safari."
+
+msgid "Copy the pairing"
+msgstr "Copia l'abbinamento"
+
+msgid "The pairing of this register"
+msgstr "L'abbinamento di questa cassa"
+
+msgid "Copied. Now add the page to the home screen, open it from there and paste the pairing."
+msgstr "Copiato. Ora aggiungi la pagina alla schermata Home, aprila da lì e incolla l'abbinamento."
+
+msgid "It could not be copied by itself: select the text in the field and copy it."
+msgstr "Non si è potuto copiare da solo: seleziona il testo nel campo e copialo."
+
+msgid "On an iPhone, press «Copy the pairing» on the register before adding it to the home screen: opened from there the first time, it asks you to paste it."
+msgstr "Su iPhone, premi «Copia l'abbinamento» sulla cassa prima di aggiungerla alla schermata Home: aperta da lì la prima volta, ti chiede di incollarlo."

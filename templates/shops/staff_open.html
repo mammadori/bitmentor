@@ -7,6 +7,7 @@
 <form method="post" action="{% url 'staff_open' %}" data-register="{{ register.id }}">{% csrf_token %}<input type="hidden" name="code" value="{{ code }}"><button class="button">{% translate "Open the register on this phone" %}</button></form>
 <p class="muted">{% translate "The code works only once: then the register stays on this phone. Add it to the home screen from the phone's menu (⋮ on Android, Share on iPhone)." %}</p>
 <p class="muted">{% translate "On an iPhone, if the page opened inside Gmail or another app, first open it in Safari (the share button, then «Open in Safari»), then add it to the home screen from there." %}</p>
+<p class="muted">{% translate "On an iPhone, press «Copy the pairing» on the register before adding it to the home screen: opened from there the first time, it asks you to paste it." %}</p>
 <script src="{% static 'staff-open.js' %}"></script>
 {% else %}<header class="page-head"><h1>{% translate "This code opens nothing" %}</h1></header>
 <p>{% translate "It was already used, it expired, or the register was turned off. Ask the owner of the shop for a new code." %}</p>

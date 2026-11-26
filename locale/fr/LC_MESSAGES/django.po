@@ -10913,3 +10913,27 @@ msgstr "Caisse ajoutée : « %(name)s »."
 #, python-format
 msgid "Updated on %(day)s"
 msgstr "Mise à jour le %(day)s"
+
+msgid "Opened from the home screen of an iPhone? Paste here the pairing you copied in Safari, or the link the owner sent you."
+msgstr "Ouverte depuis l'écran d'accueil d'un iPhone ? Collez ici l'appairage que vous avez copié dans Safari, ou le lien que le titulaire vous a envoyé."
+
+msgid "Pair this register"
+msgstr "Appairer cette caisse"
+
+msgid "To open the register from the home screen: copy its pairing, add the page to the home screen (Share, then «Add to Home Screen»), open it from there and paste the pairing. The home screen does not see what Safari keeps."
+msgstr "Pour ouvrir la caisse depuis l'écran d'accueil : copiez son appairage, ajoutez la page à l'écran d'accueil (Partager, puis « Sur l'écran d'accueil »), ouvrez-la depuis là et collez l'appairage. L'écran d'accueil ne voit pas ce que garde Safari."
+
+msgid "Copy the pairing"
+msgstr "Copier l'appairage"
+
+msgid "The pairing of this register"
+msgstr "L'appairage de cette caisse"
+
+msgid "Copied. Now add the page to the home screen, open it from there and paste the pairing."
+msgstr "Copié. Ajoutez maintenant la page à l'écran d'accueil, ouvrez-la depuis là et collez l'appairage."
+
+msgid "It could not be copied by itself: select the text in the field and copy it."
+msgstr "La copie automatique n'a pas marché : sélectionnez le texte du champ et copiez-le."
+
+msgid "On an iPhone, press «Copy the pairing» on the register before adding it to the home screen: opened from there the first time, it asks you to paste it."
+msgstr "Sur iPhone, appuyez sur « Copier l'appairage » dans la caisse avant de l'ajouter à l'écran d'accueil : ouverte de là la première fois, elle vous demande de le coller."

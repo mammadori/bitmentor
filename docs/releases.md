@@ -205,6 +205,19 @@ Read them from a machine you trust, right after the CI pipeline of the tag, and 
   ([Copies on Nostr](features/nostr-copies.md#turning-it-on)). Every address written before means what it meant.
 - An example git hook, `examples/git-hooks/commit-msg`, for whoever works on the code: off until it is linked.
 
+### From 0.5.0 to 0.5.1
+
+- No new variable in the `.env`, no new key in `community.yml`, no migration.
+- **The image takes `libzstd1` from Debian's security repository** (CVE-2026-124851).
+- **A staff register on an iPhone's home screen keeps working.** On an iPhone the page added to the home screen has
+  its own storage, apart from Safari's, and started without the pairing that Safari took from the owner's code. In
+  Safari the paired register now offers «Copy the pairing», and an unpaired staff register a field to paste it into
+  ([Registers for the staff](features/staff-registers.md)). The pairing still never reaches the site. The code page
+  and the page the code opens say so to the person. Eight new texts, in the seven catalogs.
+- **The staff registers are easier to find:** the menu of the owner's register leads to them («Registers for your
+  staff»), for the owner signed in. Before, they were only in the panel, inside «Everything, if you want» while the
+  stages show.
+
 ### From 0.4.0 to 0.5.0
 
 - No new variable in the `.env` and no new key in `community.yml`; pages may have a new key, `updated`.

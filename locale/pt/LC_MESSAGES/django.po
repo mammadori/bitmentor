@@ -10552,3 +10552,27 @@ msgstr "Caixa adicionada: «%(name)s»."
 #, python-format
 msgid "Updated on %(day)s"
 msgstr "Atualizada a %(day)s"
+
+msgid "Opened from the home screen of an iPhone? Paste here the pairing you copied in Safari, or the link the owner sent you."
+msgstr "Aberta a partir do ecrã principal de um iPhone? Cola aqui o emparelhamento que copiaste no Safari, ou o link que o titular te enviou."
+
+msgid "Pair this register"
+msgstr "Emparelhar esta caixa"
+
+msgid "To open the register from the home screen: copy its pairing, add the page to the home screen (Share, then «Add to Home Screen»), open it from there and paste the pairing. The home screen does not see what Safari keeps."
+msgstr "Para abrir a caixa a partir do ecrã principal: copia o emparelhamento, adiciona a página ao ecrã principal (Partilhar, depois «Adicionar ao ecrã principal»), abre-a a partir daí e cola o emparelhamento. O ecrã principal não vê o que o Safari guarda."
+
+msgid "Copy the pairing"
+msgstr "Copiar o emparelhamento"
+
+msgid "The pairing of this register"
+msgstr "O emparelhamento desta caixa"
+
+msgid "Copied. Now add the page to the home screen, open it from there and paste the pairing."
+msgstr "Copiado. Agora adiciona a página ao ecrã principal, abre-a a partir daí e cola o emparelhamento."
+
+msgid "It could not be copied by itself: select the text in the field and copy it."
+msgstr "Não foi possível copiar sozinho: seleciona o texto do campo e copia-o."
+
+msgid "On an iPhone, press «Copy the pairing» on the register before adding it to the home screen: opened from there the first time, it asks you to paste it."
+msgstr "No iPhone, carrega em «Copiar o emparelhamento» na caixa antes de a adicionar ao ecrã principal: aberta a partir daí pela primeira vez, pede-te para o colar."

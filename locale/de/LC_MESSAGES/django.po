@@ -7529,3 +7529,27 @@ msgstr "Kasse hinzugefügt: „%(name)s“."
 #, python-format
 msgid "Updated on %(day)s"
 msgstr "Aktualisiert am %(day)s"
+
+msgid "Opened from the home screen of an iPhone? Paste here the pairing you copied in Safari, or the link the owner sent you."
+msgstr "Vom Home-Bildschirm eines iPhones geöffnet? Fügen Sie hier die Kopplung ein, die Sie in Safari kopiert haben oder den Link, den der Inhaber Ihnen geschickt hat."
+
+msgid "Pair this register"
+msgstr "Diese Kasse koppeln"
+
+msgid "To open the register from the home screen: copy its pairing, add the page to the home screen (Share, then «Add to Home Screen»), open it from there and paste the pairing. The home screen does not see what Safari keeps."
+msgstr "Um die Kasse vom Home-Bildschirm zu öffnen: Kopieren Sie ihre Kopplung, fügen Sie die Seite zum Home-Bildschirm hinzu (Teilen, dann „Zum Home-Bildschirm“), öffnen Sie sie von dort und fügen Sie die Kopplung ein. Der Home-Bildschirm sieht nicht, was Safari speichert."
+
+msgid "Copy the pairing"
+msgstr "Kopplung kopieren"
+
+msgid "The pairing of this register"
+msgstr "Die Kopplung dieser Kasse"
+
+msgid "Copied. Now add the page to the home screen, open it from there and paste the pairing."
+msgstr "Kopiert. Fügen Sie die Seite jetzt zum Home-Bildschirm hinzu, öffnen Sie sie von dort und fügen Sie die Kopplung ein."
+
+msgid "It could not be copied by itself: select the text in the field and copy it."
+msgstr "Das automatische Kopieren ging nicht: Markieren Sie den Text im Feld und kopieren Sie ihn."
+
+msgid "On an iPhone, press «Copy the pairing» on the register before adding it to the home screen: opened from there the first time, it asks you to paste it."
+msgstr "Auf dem iPhone drücken Sie an der Kasse „Kopplung kopieren“, bevor Sie sie zum Home-Bildschirm hinzufügen: Beim ersten Öffnen von dort fragt sie danach."

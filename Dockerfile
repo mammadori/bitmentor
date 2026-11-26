@@ -19,7 +19,7 @@ COPY requirements.lock .
 # hides which ones are asked for, and nobody on the way can hold back the index). The stage above and Dockerfile.test
 # do the same
 RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|' /etc/apt/sources.list.d/debian.sources \
-    && apt-get update && apt-get install -y --no-install-recommends gettext zlib1g && rm -rf /var/lib/apt/lists/*
+    && apt-get update && apt-get install -y --no-install-recommends gettext zlib1g libzstd1 && rm -rf /var/lib/apt/lists/*
 # pip itself: the one of the base image carries old copies of msgpack and urllib3 inside (CVE-2026-114613,
 # CVE-2026-97687, CVE-2026-97689). Take the line away when the base image's digest above has this pip or a newer one
 RUN printf 'pip==26.3 --hash=sha256:f3b60b20ffaadd4415ed7957212a38ac63fa4c5fa375bd0f4a797777940fad13\n' > /tmp/pip.lock \

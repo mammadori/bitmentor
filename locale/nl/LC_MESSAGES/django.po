@@ -10764,3 +10764,27 @@ msgstr "Kassa toegevoegd: “%(name)s”."
 #, python-format
 msgid "Updated on %(day)s"
 msgstr "Bijgewerkt op %(day)s"
+
+msgid "Opened from the home screen of an iPhone? Paste here the pairing you copied in Safari, or the link the owner sent you."
+msgstr "Geopend vanaf het beginscherm van een iPhone? Plak hier de koppeling die je in Safari hebt gekopieerd, of de link die de eigenaar je stuurde."
+
+msgid "Pair this register"
+msgstr "Deze kassa koppelen"
+
+msgid "To open the register from the home screen: copy its pairing, add the page to the home screen (Share, then «Add to Home Screen»), open it from there and paste the pairing. The home screen does not see what Safari keeps."
+msgstr "Om de kassa vanaf het beginscherm te openen: kopieer de koppeling, zet de pagina op het beginscherm (Deel, dan “Zet op beginscherm”), open ze van daar en plak de koppeling. Het beginscherm ziet niet wat Safari bewaart."
+
+msgid "Copy the pairing"
+msgstr "Koppeling kopiëren"
+
+msgid "The pairing of this register"
+msgstr "De koppeling van deze kassa"
+
+msgid "Copied. Now add the page to the home screen, open it from there and paste the pairing."
+msgstr "Gekopieerd. Zet de pagina nu op het beginscherm, open ze van daar en plak de koppeling."
+
+msgid "It could not be copied by itself: select the text in the field and copy it."
+msgstr "Automatisch kopiëren lukte niet: selecteer de tekst in het veld en kopieer hem."
+
+msgid "On an iPhone, press «Copy the pairing» on the register before adding it to the home screen: opened from there the first time, it asks you to paste it."
+msgstr "Op een iPhone: druk op de kassa op “Koppeling kopiëren” voor je ze op het beginscherm zet; de eerste keer dat ze van daar opent, vraagt ze die te plakken."

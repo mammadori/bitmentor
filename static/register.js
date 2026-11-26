@@ -376,15 +376,11 @@
     showPreferences();
   }
 
-  // A pairing code just opened on this phone (static/staff-open.js keeps it for a moment): it becomes this register's
-  // only if it is for this register, recent, and whole. Returns what to tell, or ""
-  async function takePending() {
-    const pending = load(PENDING, null);
-    if (!pending || !staff || practice) return "";
-    store(PENDING, null);
-    if (pending.register !== staff || !(Date.now() - pending.at < PENDING_LIFETIME)) return "";
+  // A pairing code becomes this register's only if it is for this register and whole: it is checked as at every
+  // opening, and its keys are read once. Returns what to tell
+  async function adopt(code) {
     try {
-      const found = pairing.decode(pending.code, serverSources, data.public_relays || []);
+      const found = pairing.decode(code, serverSources, data.public_relays || []);
       if (found.register !== staff) throw new Error("register");
       await need("derive", "chain", "nostr", "relays");
       if (found.onchain?.key) await derive.parseKey(found.onchain.key, data.network);
@@ -393,11 +389,67 @@
         nostr.readPublic(found.nostr.owner);
         nostr.readSecret(found.nostr.secret);
       }
-      store(PAIRED, { code: pending.code, at: Date.now() });
+      store(PAIRED, { code, at: Date.now() });
       return say(words.paired_now, { address: found.lightning });
     } catch {
       return words.pairing_wrong;
     }
+  }
+
+  // A pairing code just opened on this phone (static/staff-open.js keeps it for a moment): it becomes this register's
+  // only if it is for this register, recent, and whole. Returns what to tell, or ""
+  async function takePending() {
+    const pending = load(PENDING, null);
+    if (!pending || !staff || practice) return "";
+    store(PENDING, null);
+    if (pending.register !== staff || !(Date.now() - pending.at < PENDING_LIFETIME)) return "";
+    return adopt(pending.code);
+  }
+
+  // On an iPhone the register added to the home screen has its own storage, apart from Safari's: it starts without the
+  // pairing that Safari took from the owner's code, and the camera opens a new code in Safari again. So Safari offers
+  // the pairing to copy, and the unpaired register a field to paste it into. The text is the pairing itself, or a link
+  // with it after #pair=; it is checked as the code in the link is. `navigator.standalone` is false only in Safari on
+  // an iPhone or iPad, outside the home screen
+  const IN_IOS_SAFARI = navigator.standalone === false;
+  function pastedCode(value) {
+    const text = String(value || "").trim();
+    const fromLink = /#pair=([0-9A-Za-z._-]{1,2400})$/.exec(text);
+    return fromLink ? fromLink[1] : text;
+  }
+
+  function showPairing() {
+    // A staff register is blocked only by its pairing (none, unreadable, or for an old Lightning address): a new one
+    // pasted here pairs it again, as a new code scanned would
+    if ($("pair-paste")) $("pair-paste").hidden = !staff || practice || !blocked || Boolean(data.retired);
+    if ($("pair-copy-box")) $("pair-copy-box").hidden = !IN_IOS_SAFARI || !paired || Boolean(blocked);
+  }
+
+  if ($("pair-paste")) {
+    $("pair-paste").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const message = await adopt(pastedCode($("pair-code").value));
+      $("pair-code").value = "";
+      setUp();
+      showNostr();
+      warn(message);
+    });
+  }
+  if ($("pair-copy")) {
+    $("pair-copy").addEventListener("click", async () => {
+      const kept = load(PAIRED, null);
+      if (typeof kept?.code !== "string") return;
+      try {
+        await navigator.clipboard.writeText(kept.code);
+        $("pair-copy-done").textContent = words.pairing_copied;
+      } catch {
+        // Without the clipboard the pairing shows in a field, selected, to copy by hand
+        $("pair-copy-text").value = kept.code;
+        $("pair-copy-text").hidden = false;
+        $("pair-copy-text").select();
+        $("pair-copy-done").textContent = words.pairing_copy_failed;
+      }
+    });
   }
 
   function showPreferences() {
@@ -427,6 +479,7 @@
     discountOn = prefs.discount > 0;
     render();
     showGap();
+    showPairing();
   }
 
   // --- The exchange rate ---
