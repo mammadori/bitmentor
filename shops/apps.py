@@ -110,6 +110,16 @@ def wrong_register_numbers(app_configs, **kwargs):
     ]
 
 
+def wrong_staff_groups(app_configs, **kwargs):
+    """`staff_groups` names a bundle or a right a group cannot have: it is skipped, the rest of the group is made."""
+    from .staff_groups import problems
+
+    return [
+        checks.Warning(problem, hint="The bundles are in docs/features/staff-groups.md", id="shops.W017")
+        for problem in problems()
+    ]
+
+
 def wrong_hooks(app_configs, **kwargs):
     """`COMMUNITY_HOOKS` names a module that cannot be imported, or one of its hooks is not a function: nothing is
     called, and `manage.py check` and the log of `web` say so."""
@@ -179,6 +189,7 @@ class ShopsConfig(AppConfig):
         checks.register(wrong_features)
         checks.register(wrong_experimental)
         checks.register(wrong_limits)
+        checks.register(wrong_staff_groups)
         checks.register(limits_near, checks.Tags.database)
         checks.register(wrong_privacy)
         checks.register(wrong_training)
@@ -198,13 +209,14 @@ class ShopsConfig(AppConfig):
             address_change,  # noqa: F401  (every sign-in writes its time: the change asks a recent one)
             guard,  # noqa: F401  (its signals watch the accounts of the shops' owners)
         )
-        from .moderators import on_post_migrate
         from .public_cache import connect as public_list_cache
+        from .staff_groups import on_post_migrate
 
         # A shop saved or deleted rebuilds the public list of shops at the next request (shops/public_cache.py)
         public_list_cache()
 
-        # The moderators' group is made, and put right, at the end of every migrate (shops/moderators.py)
+        # The staff groups of community.yml (by default the moderators' group) are made, and put right, at the end of
+        # every migrate (shops/staff_groups.py)
         post_migrate.connect(on_post_migrate, sender=self, dispatch_uid="shops.moderators")
         # The rule on delete of every foreign key, in the database too, at the end of every migrate (shops/going_back.py)
         from .going_back import on_post_migrate as foreign_keys_on_delete

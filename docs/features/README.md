@@ -36,6 +36,7 @@ Two are experimental, and off unless a community turns them on: see [Experimenta
 | Diagnosis of a shop for whoever answers a merchant's call | `manage.py diagnose_shop`: see [helpdesk.md](../helpdesk.md) |
 | Staff and shops kept apart: the staff cannot pass for a merchant | Always on: see [Staff and shops kept apart](staff-and-shops.md) |
 | The moderators' group, with only the rights its work needs | `manage.py moderators add <name>`: see [The moderators](../operations.md#the-moderators) |
+| Staff groups named by the community, with bundles of rights (moderation, meetups) or single rights of them | `staff_groups` in `community.yml`; without it, the Moderators group: see [The staff groups](staff-groups.md) |
 | Meetups of the community, with a calendar feed (`/meetups.ics?city=<name>` for one city) | `meetups` in `community.yml`: see [Meetups](meetups.md) |
 | OpenStreetMap: shops linked to the free map, read once a month, with the tags it should have for a person to change by hand | `osm` in `community.yml`: see [OpenStreetMap](openstreetmap.md) |
 | Writing to OpenStreetMap: `manage.py osm_upload`, run by a person, sends those tags | **Experimental, off by default.** `experimental: {osm_upload: true}` in `community.yml`: see [Automatic edits](openstreetmap.md#automatic-edits) |

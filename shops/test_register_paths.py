@@ -672,3 +672,67 @@ class StaffPairing(Paths):
         )
         self.assertTrue(out["paired"])
         self.assertIn("changed after this register was paired", out["blocked"])
+
+
+class DiscountAsked(Paths):
+    """The owner's register asks once about the discount the site suggests, instead of giving it silently, and the
+    payment screen says what the discount took off."""
+
+    LOOK = """
+      const box = () => ({ hidden: element("discount-ask").hidden, text: element("discount-ask-text").textContent,
+        yes: element("discount-yes").textContent });
+      const kept = () => JSON.parse(localStorage.getItem("register-settings:shop-1"));
+    """
+
+    def test_the_first_opening_asks_and_yes_keeps_the_suggested_discount(self):
+        out = self.steps(
+            self.LOOK
+            + """
+            const before = box();
+            element("discount-yes").click();
+            for (const k of "1000") key(k);
+            return { before, after: box(), discount: kept().discount, fixed: element("discount-fixed").textContent };""",
+            discount=10,
+        )
+        self.assertFalse(out["before"]["hidden"])
+        self.assertIn("The suggested one is −10%", out["before"]["text"])
+        self.assertEqual(out["before"]["yes"], "Yes, −10%")
+        self.assertTrue(out["after"]["hidden"])
+        self.assertEqual(out["discount"], 10)
+        self.assertIn("9.00", out["fixed"])
+
+    def test_no_keeps_no_discount(self):
+        out = self.steps(
+            self.LOOK
+            + """
+            element("discount-no").click();
+            for (const k of "1000") key(k);
+            return { after: box(), discount: kept().discount, fixed: element("discount-fixed").hidden };""",
+            discount=10,
+        )
+        self.assertTrue(out["after"]["hidden"])
+        self.assertEqual(out["discount"], 0)
+        self.assertTrue(out["fixed"])
+
+    def test_settings_with_a_discount_or_no_suggestion_ask_nothing(self):
+        chosen = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "discount": 5})}
+        self.assertTrue(self.steps(self.LOOK + "return box();", chosen, discount=10)["hidden"])
+        self.assertTrue(self.steps(self.LOOK + "return box();", discount=0)["hidden"])
+
+    def test_the_payment_screen_shows_the_price_and_what_the_discount_took_off(self):
+        chosen = {"register-settings:shop-1": json.dumps({"lightning": ADDRESS, "discount": 10})}
+        out = self.lightning(
+            """
+            await sell("1000");
+            return { line: element("pay-discount").textContent, hidden: element("pay-discount").hidden };""",
+            storage=chosen,
+            sats=9000,
+        )
+        self.assertFalse(out["hidden"])
+        self.assertIn("Price 10.00", out["line"])
+        self.assertIn("bitcoin discount −10%", out["line"])
+        self.assertIn("to pay 9.00", out["line"])
+
+    def test_no_line_without_a_discount(self):
+        out = self.lightning('await sell("1000"); return element("pay-discount").hidden;')
+        self.assertTrue(out)

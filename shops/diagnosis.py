@@ -375,6 +375,7 @@ def first_day_names():
     return {
         "sale": _("a first paid sale"),
         "map": _("the position on the map"),
+        "card": _("the card for the till printed"),
         "sign": _("the sign printed"),
         "staff": _("the register shown to the staff"),
     }

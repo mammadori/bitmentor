@@ -29,6 +29,8 @@
       <input id="pair-code" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="3000"></p>
       <button class="button">{% translate "Pair this register" %}</button></form>{% endif %}</div>
   <p id="note" class="register-note" hidden></p>
+  {% if not staff and not practice %}<div id="discount-ask" class="notice discount-ask" role="region" aria-labelledby="discount-ask-text" hidden><p id="discount-ask-text"></p>
+    <button type="button" id="discount-yes" class="button">{% translate "Yes, give the discount" %}</button> <button type="button" id="discount-no" class="button button-quiet">{% translate "No discount" %}</button></div>{% endif %}
   {% if staff and not practice %}<div id="pair-copy-box" class="notice pair-copy" hidden><p>{% translate "To open the register from the home screen: copy its pairing, add the page to the home screen (Share, then «Add to Home Screen»), open it from there and paste the pairing. The home screen does not see what Safari keeps." %}</p>
     <button type="button" id="pair-copy" class="button button-quiet">{% translate "Copy the pairing" %}</button> <span id="pair-copy-done" role="status"></span>
     <input id="pair-copy-text" class="pair-copy-text" readonly hidden aria-label="{% translate 'The pairing of this register' %}"></div>{% endif %}
@@ -230,6 +232,7 @@
 <section id="pay" class="register-screen" hidden>
   <h1 class="visually-hidden">{{ shop.name }}{% if staff %} · {{ staff.name }}{% endif %}</h1>
   <p id="due" class="due"></p>
+  <p id="pay-discount" class="muted pay-discount" hidden></p>
   <p id="rate-used" class="muted"></p>
   <p id="to" class="muted"></p>
   <div class="qr-box"><img id="qr" class="qr" tabindex="-1" alt="{% block qr_alt %}{% translate 'Code for the customer to scan' %}{% endblock %}"></div>

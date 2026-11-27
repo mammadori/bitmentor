@@ -410,6 +410,19 @@ class Panel(TestCase):
         )
         self.assertRedirects(response, f"/en/shops/#stage-{self.shop.id}", fetch_redirect_response=False)
 
+    def test_the_sign_ticked_on_the_stage_ticks_the_card_too(self):
+        """The stage shows the sign and the card as one thing to print; the first day has them apart."""
+        url = f"/en/shops/first-day/{self.shop.id}/"
+        self.client.post(url, {"step": "sign", "done": "1", "back": "stage"})
+        self.shop.refresh_from_db()
+        self.assertIsNotNone(self.shop.card_printed)
+        self.assertEqual(self.shop.card_printed, self.shop.sign_printed)
+        # From the first day each is its own: ticking the sign there leaves the card as it is
+        Shop.objects.filter(pk=self.shop.pk).update(card_printed=None, sign_printed=None)
+        self.client.post(url, {"step": "sign", "done": "1"})
+        self.shop.refresh_from_db()
+        self.assertIsNone(self.shop.card_printed)
+
     def test_the_rest_is_closed_under_each_shop(self):
         top = self.split(self.page())[0]
         self.assertIn(f'<details class="stage-rest" id="stage-rest-{self.shop.id}">', top)

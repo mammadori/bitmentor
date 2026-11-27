@@ -477,9 +477,28 @@
         .filter(Boolean).join(" ") : "";
     }
     discountOn = prefs.discount > 0;
+    askDiscount();
     render();
     showGap();
     showPairing();
+  }
+
+  // The first opening of the owner's register asks about the discount the site suggests, instead of giving it
+  // silently: «Yes» is the first button, so whoever is in a hurry presses it and goes on. The answer stays in the
+  // settings, where it can be changed; a register whose settings already have a discount is not asked
+  function askDiscount() {
+    const box = $("discount-ask");
+    if (!box) return;
+    box.hidden = staff || practice || Boolean(blocked) || Boolean(data.retired) || !(data.discount > 0)
+      || Number.isInteger(ownerSettings().discount);
+    if (box.hidden) return;
+    $("discount-ask-text").textContent = say(words.discount_ask, { percent: data.discount });
+    $("discount-yes").textContent = say(words.discount_yes, { percent: data.discount });
+  }
+
+  function answerDiscount(percent) {
+    store(SETTINGS, { ...ownerSettings(), discount: percent });
+    setUp();
   }
 
   // --- The exchange rate ---
@@ -2440,6 +2459,11 @@
 
   function pay(entry) {
     $("due").textContent = `${entry.label} · ${sats(entry.sats)}`;
+    // With the discount, what it was before and what it takes off: the customer sees why the amount is lower
+    const off = Number.isInteger(entry.list) && entry.list !== entry.cents;
+    $("pay-discount").hidden = !off;
+    $("pay-discount").textContent = off ? say(words.pay_discount, { list: moneyOf(entry.list), percent: entry.discount,
+      amount: entry.label }) : "";
     $("rate-used").textContent = say(words.agreed, { rate: fiat(entry.rate), sources: sourceNames(entry.sources || []) });
     const onchain = entry.method === "onchain";
     // Where the money goes, written out: the merchant recognises their address, or notices it is not theirs
@@ -2778,6 +2802,10 @@
   }
   $("later").addEventListener("click", later);
   $("chain-ok")?.addEventListener("click", () => confirmAmount("onchain"));
+  if ($("discount-ask")) {
+    $("discount-yes").addEventListener("click", () => answerDiscount(data.discount));
+    $("discount-no").addEventListener("click", () => answerDiscount(0));
+  }
   $("discount").addEventListener("click", () => {
     if (!prefs.discountRemovable) return;
     discountOn = !discountOn;

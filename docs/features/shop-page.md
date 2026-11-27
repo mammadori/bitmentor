@@ -95,13 +95,14 @@ with `register: true` and arrives on the other site waiting for its wallet too.
 The sign's QR code opens the shop's page, and the page shows «How to pay here» only once the community has approved the
 shop; the card for customers without a wallet leads there too. So while a shop waits for its approval both wait:
 `/<lang>/shops/sign/<id>/` and `/<lang>/shops/customer-card/<id>/` answer with a small page that says why and when, the
-panel shows a line in place of their buttons, and the first day's step about the sign says to wait. This follows
-`approved_on`, as the public lists do, whatever `features.approval` says: a shop saved while the approval was on and
-still waiting when the community turned it off is still off the map, and its sign waits too (a shop saved with the
-approval off is approved at once and never waits). The owner hears of the approval by email and in the shop's Telegram
-chats ([Features](README.md), the approval row), and from then on both are there as before. The register and the card
-for the till never wait: the register works from the first minute. A sign already ticked as printed stays ticked. With
-[the panel by stages](panel-stages.md) the sign is the step of «On the map», which opens with the approval.
+panel shows a line in place of their buttons, and the first day's step about the sign shows greyed, «after the approval»
+(the card for the till is a step of its own, to do at once). This follows `approved_on`, as the public lists do,
+whatever `features.approval` says: a shop saved while the approval was on and still waiting when the community turned it
+off is still off the map, and its sign waits too (a shop saved with the approval off is approved at once and never
+waits). The owner hears of the approval by email and in the shop's Telegram chats ([Features](README.md), the approval
+row), and from then on both are there as before. The register and the card for the till never wait: the register works
+from the first minute. A sign already ticked as printed stays ticked. With [the panel by stages](panel-stages.md) the
+sign is the step of «On the map», which opens with the approval.
 
 The wallets the guide offers come from the community, never from the software. Only open source, non-custodial and
 free wallets may be suggested (MiCAR: never an exchange or a custodial wallet), and the software cannot check that: the

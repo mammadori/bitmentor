@@ -7553,3 +7553,49 @@ msgstr "Das automatische Kopieren ging nicht: Markieren Sie den Text im Feld und
 
 msgid "On an iPhone, press «Copy the pairing» on the register before adding it to the home screen: opened from there the first time, it asks you to paste it."
 msgstr "Auf dem iPhone drücken Sie an der Kasse „Kopplung kopieren“, bevor Sie sie zum Home-Bildschirm hinzufügen: Beim ersten Öffnen von dort fragt sie danach."
+
+msgid "The card for the till"
+msgstr "Die Karte für die Kasse"
+
+msgid "The sign"
+msgstr "Das Schild"
+
+msgid "Printed. You can print it again whenever you like."
+msgstr "Gedruckt. Sie können jederzeit erneut drucken."
+
+msgid "Print the card for whoever stands at the till, then mark it done: the site cannot see what you print."
+msgstr "Drucken Sie die Karte für die Person an der Kasse und markieren Sie den Schritt dann als erledigt: Die Website sieht nicht, was Sie drucken."
+
+msgid "The sign is only for shops on the map."
+msgstr "Das Schild gibt es nur für Geschäfte auf der Karte."
+
+msgid "Wait for the community to approve the shop: then print the sign for the door or the counter."
+msgstr "Warten Sie, bis die Gemeinschaft das Geschäft freigibt: Drucken Sie dann das Schild für die Tür oder die Theke."
+
+msgid "Print the sign for the door or the counter, then mark it done: the site cannot see what you print."
+msgstr "Drucken Sie das Schild für die Tür oder die Theke und markieren Sie den Schritt dann als erledigt: Die Website sieht nicht, was Sie drucken."
+
+msgid "after the approval"
+msgstr "nach der Freigabe"
+
+msgid "the card for the till printed"
+msgstr "die Karte für die Kasse gedruckt"
+
+msgid "No discount"
+msgstr "Kein Rabatt"
+
+msgid "Price {list} · bitcoin discount −{percent}% · to pay {amount}"
+msgstr "Preis {list} · Bitcoin-Rabatt −{percent}% · zu zahlen {amount}"
+
+msgid "Give a discount to customers who pay in bitcoin? The suggested one is −{percent}%. You can change it any time in the settings."
+msgstr "Kunden, die in Bitcoin zahlen, einen Rabatt geben? Vorgeschlagen sind −{percent}%. Sie können ihn jederzeit in den Einstellungen ändern."
+
+msgid "Yes, −{percent}%"
+msgstr "Ja, −{percent}%"
+
+msgid "Yes, give the discount"
+msgstr "Ja, Rabatt geben"
+
+#, python-format
+msgid "We suggest %(discount)s%%. If you give no discount, write 0."
+msgstr "Wir schlagen %(discount)s%% vor. Wenn Sie keinen Rabatt geben, schreiben Sie 0."

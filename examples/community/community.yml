@@ -21,7 +21,8 @@ currency: EUR
 # - `price_sources`: the public sources of the exchange rate, two of which must agree (kraken, coinbase, bitstamp, mempool,
 #   coingecko, blockchain); `tolerance` in % (1, at most 20) and `max_rate_age` in minutes (120); `manage.py check` warns
 #   about a value it cannot use (`shops.W008`).
-# - `discount`: the discount for paying in bitcoin, in %, that the register suggests to a shop that has none (0).
+# - `discount`: the discount for paying in bitcoin, in %, that the form of a new shop starts from (0); the owner can
+#   change it, and 0 is no discount.
 # - `confirm_above`: an on-chain sale above this amount, in the currency, waits for a confirmation; 0 (the default) is
 #   every sale. Each merchant changes it on the phone.
 # - `explorers`: where the register sees on-chain payments: mempool.space's API or an instance of it, one list or one
@@ -376,3 +377,7 @@ route:
 #   help_requests_per_shop_day: 3    # requests for help from one shop in a day
 #   staff_code_hours: 24             # hours a staff register's one-time pairing code works, 1 to 72 (not 0): longer is
 #                                    # longer of use to whoever finds a photo or a forwarded link before the person scans it
+# The staff groups (docs/features/staff-groups.md): each name gets bundles (moderation, meetups) or single rights of
+# them, and nothing else; made and put right at every start. Without the key, the group Moderators with `moderation`.
+# staff_groups:
+#   Curators: [moderation, meetups]

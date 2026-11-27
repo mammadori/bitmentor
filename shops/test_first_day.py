@@ -42,8 +42,10 @@ class Panel(TestCase):
     def test_a_new_shop_starts_with_every_step_to_do(self):
         block = first_day_block(self.panel(), self.shop)
         self.assertIn(" open ", block.split(">")[0] + " ")
-        self.assertEqual(states(block), {"sale": "todo", "map": "todo", "sign": "todo", "staff": "todo"})
-        self.assertIn("The first day: 0 of 4 done", block)
+        self.assertEqual(
+            states(block), {"sale": "todo", "map": "todo", "card": "todo", "sign": "todo", "staff": "todo"}
+        )
+        self.assertIn("The first day: 0 of 5 done", block)
         self.assertIn("When it says “Payment received”, the register works.", block)
         self.assertIn(f'href="/en/shops/register/{self.shop.id}/"', block)
         self.assertIn(f'href="/en/shops/card/{self.shop.id}/"', block)
@@ -51,7 +53,7 @@ class Panel(TestCase):
     def test_a_complete_shop_folds_into_one_line(self):
         now = timezone.now()
         Shop.objects.filter(pk=self.shop.pk).update(
-            first_sale=now, sign_printed=now, register_shared=now, latitude=1, longitude=2
+            first_sale=now, card_printed=now, sign_printed=now, register_shared=now, latitude=1, longitude=2
         )
         block = first_day_block(self.panel(), self.shop)
         self.assertNotIn(" open", block.split(">")[0])
@@ -79,7 +81,7 @@ class Panel(TestCase):
     def test_a_shop_off_the_map_is_not_held_back_by_the_map(self):
         now = timezone.now()
         Shop.objects.filter(pk=self.shop.pk).update(
-            first_sale=now, sign_printed=now, register_shared=now, suspended=True
+            first_sale=now, card_printed=now, sign_printed=now, register_shared=now, suspended=True
         )
         block = first_day_block(self.panel(), self.shop)
         self.assertEqual(states(block)["map"], "off")
@@ -88,11 +90,11 @@ class Panel(TestCase):
         Shop.objects.filter(pk=self.shop.pk).update(suspended=False, listed=False, register_shared=None)
         block = first_day_block(self.panel(), self.shop)
         self.assertIn("as agreed with the community", block)
-        self.assertIn("The first day: 2 of 3 done", block)
+        self.assertIn("The first day: 3 of 4 done", block)
 
     def test_the_panel_speaks_the_language(self):
         block = first_day_block(self.panel("it"), self.shop)
-        self.assertIn("Il primo giorno: 0 passi fatti su 4", block)
+        self.assertIn("Il primo giorno: 0 passi fatti su 5", block)
         self.assertIn("Quando dice «Pagamento ricevuto», la cassa funziona.", block)
 
 
@@ -144,7 +146,7 @@ class Ticks(TestCase):
         page = self.client.get(PANEL).content.decode()
         forms = re.findall(rf'<form method="post" action="{self.url}" class="step-tick">.*?</form>', page)
         # The three steps of the first day, and the trial on top of the panel (shops/stages.py) ticking the first sale
-        self.assertEqual(len(forms), 4)
+        self.assertEqual(len(forms), 5)
         for form in forms:
             self.assertIn("csrfmiddlewaretoken", form)
 

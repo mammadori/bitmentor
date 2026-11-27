@@ -85,7 +85,7 @@ class Milestones(TestCase):
     def test_the_first_day_is_one_milestone(self):
         now = timezone.now()
         self.watch_ok()
-        Shop.objects.filter(pk=self.shop.pk).update(first_sale=now, sign_printed=now)
+        Shop.objects.filter(pk=self.shop.pk).update(first_sale=now, card_printed=now, sign_printed=now)
         self.shop.refresh_from_db()
         path, states = self.steps()
         self.assertEqual(states["first_day"], "todo")
@@ -192,7 +192,7 @@ class Panel(TestCase):
         self.assertIn("<strong>Bar</strong>", html)
         # The first day sits inside its milestone, with its forms: the panel works without JavaScript
         self.assertIn(f'id="first-day-{self.shop.id}"', html)
-        self.assertEqual(html.count('class="step-tick"'), 3)
+        self.assertEqual(html.count('class="step-tick"'), 4)
         # The block starts inside the path's own <details>: the one left is the first day's
         self.assertEqual(html.count("<details"), 1)
 
@@ -200,6 +200,7 @@ class Panel(TestCase):
         now = timezone.now()
         Shop.objects.filter(pk=self.shop.pk).update(
             first_sale=now,
+            card_printed=now,
             sign_printed=now,
             register_shared=now,
             lightning_status=LightningStatus.OK,

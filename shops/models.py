@@ -428,6 +428,7 @@ class Shop(models.Model):
     # sale. In the database, not in the browser: the shop is often set up on a computer and run from a phone, the ticks
     # follow the account, and the panel works without JavaScript.
     first_sale = models.DateTimeField(null=True, blank=True)
+    card_printed = models.DateTimeField(null=True, blank=True)
     sign_printed = models.DateTimeField(null=True, blank=True)
     register_shared = models.DateTimeField(null=True, blank=True)
     # The owner's own explorer (an Esplora or mempool API, https): the registers ask it before the community's. The site

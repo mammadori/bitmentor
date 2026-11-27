@@ -15,7 +15,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from . import moderators
+from . import moderators, staff_groups
 from .models import AccountChange, Closure, HelpRequest, Profile, Shop
 from .test_dashboard import nobody_outside, register
 from .test_guard import Base, sign_in_as_staff_session
@@ -114,7 +114,7 @@ class TheGroup(TestCase):
             Permission.objects.get(codename="change_shop"), Permission.objects.get(codename="change_user")
         )
         handed = []
-        logger, handlers = logging.getLogger("shops.moderators"), []
+        logger, handlers = logging.getLogger("shops.staff_groups"), []
         while logger:
             handlers += logger.handlers
             logger = logger.parent if logger.propagate else None
@@ -171,7 +171,7 @@ class TheGroup(TestCase):
         invented = (*moderators.PERMISSIONS, ("shops", "fly_shop", "A right that does not exist"))
         with (
             patch.object(moderators, "PERMISSIONS", invented),
-            self.assertLogs("shops.moderators", logging.ERROR) as logs,
+            self.assertLogs("shops.staff_groups", logging.ERROR) as logs,
         ):
             moderators.sync()
         self.assertIn("shops.fly_shop", logs.output[0])
@@ -179,13 +179,14 @@ class TheGroup(TestCase):
 
     def test_a_failure_while_migrating_is_logged_and_does_not_stop_the_start(self):
         with (
-            patch.object(moderators, "sync", side_effect=RuntimeError("no database")),
-            self.assertLogs("shops.moderators", logging.ERROR),
+            patch.object(staff_groups, "sync", side_effect=RuntimeError("no database")),
+            self.assertLogs("shops.staff_groups", logging.ERROR),
         ):
-            moderators.on_post_migrate(sender=None)
+            staff_groups.on_post_migrate(sender=None)
 
     def test_migrate_runs_it_for_the_shops_app_only_and_once(self):
-        with patch.object(moderators, "sync") as sync:
+        # Through the staff groups of community.yml (shops/staff_groups.py), whose default is this group
+        with patch.object(staff_groups, "sync") as sync:
             call_command("migrate", verbosity=0, interactive=False)
         self.assertEqual(sync.call_count, 1)
 

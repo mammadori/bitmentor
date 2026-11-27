@@ -968,7 +968,12 @@ def first_day_tick(request, shop):
         messages.error(request, _("You saved many times in a short while: wait a few minutes and try again."))
         return redirect(f"{reverse('shops')}#first-day-{shop.id}")
     setattr(shop, field, timezone.now() if request.POST.get("done") == "1" else None)
-    shop.save(update_fields=[field])
+    fields = [field]
+    if request.POST.get("back") == "stage" and field == "sign_printed" and shop.sign_printed and not shop.card_printed:
+        # The stage "on the map" (shops/stages.py) shows the sign and the card for the till as one thing to print
+        shop.card_printed = shop.sign_printed
+        fields.append("card_printed")
+    shop.save(update_fields=fields)
     # Ticked from the shop's stage on top of the panel (shops/stages.py): back there
     return redirect(f"{reverse('shops')}#{'stage' if request.POST.get('back') == 'stage' else 'first-day'}-{shop.id}")
 

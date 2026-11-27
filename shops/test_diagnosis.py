@@ -60,6 +60,7 @@ class Base(TestCase):
             telegram_chat="12345",
             latitude=41.9,
             longitude=12.5,
+            card_printed=timezone.now(),
             sign_printed=timezone.now(),
             register_shared=timezone.now(),
             first_sale=timezone.now(),

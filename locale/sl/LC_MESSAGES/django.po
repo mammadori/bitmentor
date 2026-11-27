@@ -10708,13 +10708,13 @@ msgid "Opened from the home screen of an iPhone? Paste here the pairing you copi
 msgstr "Odprta z začetnega zaslona iPhona? Sem prilepite seznanitev, ki ste jo kopirali v Safariju ali povezavo, ki vam jo je poslal lastnik."
 
 msgid "Pair this register"
-msgstr "Seznani to blagajno"
+msgstr "Seznanite to blagajno"
 
 msgid "To open the register from the home screen: copy its pairing, add the page to the home screen (Share, then «Add to Home Screen»), open it from there and paste the pairing. The home screen does not see what Safari keeps."
 msgstr "Da odprete blagajno z začetnega zaslona: kopirajte njeno seznanitev, dodajte stran na začetni zaslon (Deli, nato »Dodaj na začetni zaslon«), jo odprite od tam in prilepite seznanitev. Začetni zaslon ne vidi tega, kar hrani Safari."
 
 msgid "Copy the pairing"
-msgstr "Kopiraj seznanitev"
+msgstr "Kopirajte seznanitev"
 
 msgid "The pairing of this register"
 msgstr "Seznanitev te blagajne"
@@ -10726,4 +10726,50 @@ msgid "It could not be copied by itself: select the text in the field and copy i
 msgstr "Samodejno kopiranje ni uspelo: označite besedilo v polju in ga kopirajte."
 
 msgid "On an iPhone, press «Copy the pairing» on the register before adding it to the home screen: opened from there the first time, it asks you to paste it."
-msgstr "Na iPhonu na blagajni pritisnite »Kopiraj seznanitev«, preden jo dodate na začetni zaslon: ko jo prvič odprete od tam, vas prosi, da jo prilepite."
+msgstr "Na iPhonu na blagajni pritisnite »Kopirajte seznanitev«, preden jo dodate na začetni zaslon: ko jo prvič odprete od tam, vas prosi, da jo prilepite."
+
+msgid "The card for the till"
+msgstr "Kartica za blagajno"
+
+msgid "The sign"
+msgstr "Tabla"
+
+msgid "Printed. You can print it again whenever you like."
+msgstr "Opravljeno. Kadar koli lahko natisnete znova."
+
+msgid "Print the card for whoever stands at the till, then mark it done: the site cannot see what you print."
+msgstr "Natisnite kartico za tistega, ki je za blagajno, nato korak označite kot opravljen: spletno mesto ne vidi, kaj natisnete."
+
+msgid "The sign is only for shops on the map."
+msgstr "Tabla je samo za trgovine na zemljevidu."
+
+msgid "Wait for the community to approve the shop: then print the sign for the door or the counter."
+msgstr "Počakajte, da skupnost odobri trgovino: nato natisnite tablo za vrata ali pult."
+
+msgid "Print the sign for the door or the counter, then mark it done: the site cannot see what you print."
+msgstr "Natisnite tablo za vrata ali pult, nato korak označite kot opravljen: spletno mesto ne vidi, kaj natisnete."
+
+msgid "after the approval"
+msgstr "po odobritvi"
+
+msgid "the card for the till printed"
+msgstr "kartica za blagajno natisnjena"
+
+msgid "No discount"
+msgstr "Brez popusta"
+
+msgid "Price {list} · bitcoin discount −{percent}% · to pay {amount}"
+msgstr "Cena {list} · bitcoin popust −{percent} % · za plačilo {amount}"
+
+msgid "Give a discount to customers who pay in bitcoin? The suggested one is −{percent}%. You can change it any time in the settings."
+msgstr "Ali želite dati popust strankam, ki plačajo v bitcoinih? Predlagani je −{percent} %. Kadar koli ga lahko spremenite v nastavitvah."
+
+msgid "Yes, −{percent}%"
+msgstr "Da, −{percent} %"
+
+msgid "Yes, give the discount"
+msgstr "Da, dajte popust"
+
+#, python-format
+msgid "We suggest %(discount)s%%. If you give no discount, write 0."
+msgstr "Predlagamo %(discount)s %%. Če ne dajete popusta, napišite 0."

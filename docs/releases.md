@@ -205,6 +205,34 @@ Read them from a machine you trust, right after the CI pipeline of the tag, and 
   ([Copies on Nostr](features/nostr-copies.md#turning-it-on)). Every address written before means what it meant.
 - An example git hook, `examples/git-hooks/commit-msg`, for whoever works on the code: off until it is linked.
 
+### From 0.5.1 to 0.6.0
+
+- No new variable in the `.env`; one new key in `community.yml`, `staff_groups`, optional. **One migration**,
+  `shops.0017_card_printed`: a new nullable column, `card_printed`, filled from `sign_printed` for the shops that had
+  ticked the old step. Going back to 0.5.1 leaves it there, unused.
+- **The first day has five steps.** «The sign and the card for the till» was one step, and while the shop waited for
+  the approval it had nothing to tick: the card for the till printed in that time never showed as done. Now «The card
+  for the till» is a step of its own, to print and mark done at once; «The sign» shows greyed («Printable sign · after
+  the approval») until the community approves the shop, then has its link and its «Mark as done». Both texts say that
+  the site cannot see what is printed. «Mark as done» on the stage «On the map», on top of the panel, ticks both. The
+  old texts of the single step are gone: a community catalog that reworded them should reword the new ones.
+- **The discount shows, and is asked.** The payment screen says under the amount «Price · bitcoin discount −10% · to
+  pay», for a sale with the discount. The owner's register no longer gives the suggested discount silently: at its
+  first opening, while its settings have no discount, it asks, with «Yes, −10%» first and «No discount»
+  ([The register's settings](features/register-settings.md)). An owner who already saved the settings is not asked.
+- **A discount of 0 is no discount.** The shop's form said «Leave it at 0 if you do not offer one», but the register
+  gave such a shop the community's suggestion (`register.discount`). Now the register takes the shop's discount as it
+  is, and the suggestion starts the field of a new shop instead («We suggest 10%. If you give no discount, write 0.»).
+  A shop saved with 0 whose register never saved its settings takes payments without the discount from this release:
+  communities with `register.discount` may want to tell those owners.
+- **Staff groups named by the community** (`staff_groups` in `community.yml`, [The staff
+  groups](features/staff-groups.md)): each group gets bundles of rights (`moderation`, `meetups`) or single rights of
+  them, and bitmentor makes them and keeps their rights at every start. Without the key nothing changes: the
+  Moderators group as before. With it, Moderators is no longer kept: move its members to the new group, then delete it
+  in `/admin/`.
+- Spanish and Slovenian: two button texts of 0.5.1 in the form the rest uses. Fifteen new texts, in the seven
+  catalogs.
+
 ### From 0.5.0 to 0.5.1
 
 - No new variable in the `.env`, no new key in `community.yml`, no migration.

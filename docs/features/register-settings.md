@@ -8,8 +8,13 @@ the rest under «Advanced» (the price sources, Nostr). Each field has at most o
 open under a small summary; a field is checked when it is left (and again as it is typed while it is wrong), and its
 error shows next to it, as on Save.
 
-- **Discount for paying in bitcoin.** It starts from the shop's discount, or the community's suggestion
-  (`register.discount`) when the shop has none. It is on at every sale, shown with the amount to pay. Only when the owner
+- **Discount for paying in bitcoin.** It starts from the shop's discount, as the owner wrote it in the shop's form: 0 is
+  no discount. The community's suggestion (`register.discount`) is only where the field of a new shop starts, with a
+  help that says to write 0 for none. The owner's register does not give it silently: at its first opening, while its
+  settings have no discount yet and the shop has one, it asks «Give a discount to customers who pay in bitcoin?», with «Yes, −10%»
+  (the suggested percentage) first and «No discount»; the answer goes in the settings, where it can be changed. It is
+  on at every sale, shown with the amount to pay, and the payment screen says it again under the amount: «Price 10.00
+  EUR · bitcoin discount −10% · to pay 9.00 EUR». Only when the owner
   ticks «Let the registers remove the discount on a sale» (`discountRemovable`, off by default; `dr` in the pairing
   code) is the line a button whose tap removes it for that sale, on the owner's register and the staff ones alike;
   otherwise it is a line to read. The sale keeps the price before the discount and the percentage. With «Round the

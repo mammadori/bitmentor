@@ -94,10 +94,11 @@ class RegisterPolicy(OnChain, TestCase):
         self.assertFalse([origin for origin in connect if "evil" in origin])
         self.assertEqual(register_data(response.content.decode())["explorers"], ["https://ours.example.org/api"])
 
-    def test_the_owner_starts_from_the_shop_discount_or_the_community_suggestion(self):
+    def test_the_owner_starts_from_the_shop_discount_and_0_is_no_discount(self):
+        # The community's suggestion starts the form of a new shop (shops/forms.py): at the register 0 is no discount
         with with_register(discount=10, confirm_above=50):
             data = register_data(self.client.get(self.url).content.decode())
-        self.assertEqual((data["discount"], data["confirm_above"]), (10, 5000))
+        self.assertEqual((data["discount"], data["confirm_above"]), (0, 5000))
         self.assertEqual(data["shop"], {"name": "Bar", "town": "Example", "colour": community().get("theme_color")})
         Shop.objects.filter(pk=self.shop.pk).update(discount=5)
         with with_register(discount="a lot", confirm_above=-1):

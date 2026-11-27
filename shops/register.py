@@ -46,7 +46,8 @@ EXPLORERS = {
     "signet": ["https://mempool.space/signet/api"],
 }
 EXPLORER_PATH = re.compile(r"(?:/[A-Za-z0-9._~-]+)*/?\Z")
-# The discount for paying in bitcoin the register suggests to a shop that has none (`register.discount`), and the amount,
+# The discount for paying in bitcoin the community suggests (`register.discount`): the starting value of the field in the
+# form of a new shop, never applied by itself (0 means no discount), and the amount,
 # in the register's currency, above which an on-chain sale waits for a confirmation (`register.confirm_above`; 0: always)
 DISCOUNT = 0
 CONFIRM_ABOVE = 0
@@ -278,14 +279,24 @@ def number(data, name, default, least, most):
     return value if least <= value <= most else default
 
 
+def register_settings():
+    data = community().get("register", {})
+    return data if isinstance(data, dict) else {}
+
+
+def suggested_discount():
+    """The community's suggestion for the discount (`register.discount`), from 0 to 100."""
+    return number(register_settings(), "discount", DISCOUNT, 0, 100)
+
+
 def preferences(shop):
     """What the owner's register starts from, before the owner changes anything (it keeps the changes on the phone): the
-    discount of the shop, or the community's suggestion; the threshold for a confirmation, in cents; who the shop is."""
-    data = community().get("register", {})
-    data = data if isinstance(data, dict) else {}
+    discount of the shop as the owner wrote it (0: none; the community's suggestion is only the starting value of the
+    form, shops/forms.py); the threshold for a confirmation, in cents; who the shop is."""
+    data = register_settings()
     colour = community().get("theme_color", "")
     return {
-        "discount": shop.discount or number(data, "discount", DISCOUNT, 0, 100),
+        "discount": shop.discount,
         "confirm_above": number(data, "confirm_above", CONFIRM_ABOVE, 0, 10**7) * 100,
         "shop": {
             "name": shop.name[:120],
@@ -503,6 +514,12 @@ def onchain_texts():
         "discount_on": _("Bitcoin discount −{percent}%: {amount} to pay. Tap to remove it for this sale."),
         "discount_off": _("No discount on this sale. Tap to give the −{percent}% bitcoin discount."),
         "discount_fixed": _("Bitcoin discount −{percent}%: {amount} to pay."),
+        "pay_discount": _("Price {list} · bitcoin discount −{percent}% · to pay {amount}"),
+        "discount_ask": _(
+            "Give a discount to customers who pay in bitcoin? The suggested one is −{percent}%. You can change it any "
+            "time in the settings."
+        ),
+        "discount_yes": _("Yes, −{percent}%"),
         "bad_discount": _("Write the discount as a whole number from 0 to 100."),
         "scan_checking": _("Looking for the first unused address of your wallet…"),
         "scan_far": _("Your wallet has used many addresses: the register would start at number {index}."),

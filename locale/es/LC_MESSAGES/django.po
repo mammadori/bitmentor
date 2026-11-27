@@ -1705,7 +1705,7 @@ msgid ""
 msgstr "Abre la cámara del móvil que va a cobrar y apunta a este código."
 
 msgid "Open the link and press «Open the register on this phone»."
-msgstr "Abre el enlace y pulsa «Abre la caja en este móvil»."
+msgstr "Abre el enlace y pulsa «Abrir la caja en este móvil»."
 
 msgid "From the phone's menu (⋮ on Android, Share on iPhone), add the register to the home screen: it opens with one tap, like an app, with nothing to install."
 msgstr "Desde el menú del teléfono (⋮ en Android, Compartir en iPhone), añade la caja a la pantalla de inicio: se abre con un toque, como una app, sin instalar nada."
@@ -1772,7 +1772,7 @@ msgstr ""
 "dinero va al dueño."
 
 msgid "Open the register on this phone"
-msgstr "Abre la caja en este móvil"
+msgstr "Abrir la caja en este móvil"
 
 msgid "The code works only once: then the register stays on this phone. Add it to the home screen from the phone's menu (⋮ on Android, Share on iPhone)."
 msgstr "El código funciona una sola vez: después la caja se queda en este teléfono. Añádela a la pantalla de inicio desde el menú del teléfono (⋮ en Android, Compartir en iPhone)."
@@ -10603,3 +10603,49 @@ msgstr "No se pudo copiar solo: selecciona el texto del campo y cópialo."
 
 msgid "On an iPhone, press «Copy the pairing» on the register before adding it to the home screen: opened from there the first time, it asks you to paste it."
 msgstr "En iPhone, pulsa «Copiar el emparejamiento» en la caja antes de añadirla a la pantalla de inicio: abierta desde allí la primera vez, te pide que lo pegues."
+
+msgid "The card for the till"
+msgstr "La ficha para la caja"
+
+msgid "The sign"
+msgstr "El cartel"
+
+msgid "Printed. You can print it again whenever you like."
+msgstr "Hecho. Puedes volver a imprimir cuando quieras."
+
+msgid "Print the card for whoever stands at the till, then mark it done: the site cannot see what you print."
+msgstr "Imprime la ficha para quien está en la caja y luego márcalo como hecho: el sitio no ve lo que imprimes."
+
+msgid "The sign is only for shops on the map."
+msgstr "El cartel es solo para los comercios en el mapa."
+
+msgid "Wait for the community to approve the shop: then print the sign for the door or the counter."
+msgstr "Espera a que la comunidad apruebe el comercio: luego imprime el cartel para la puerta o el mostrador."
+
+msgid "Print the sign for the door or the counter, then mark it done: the site cannot see what you print."
+msgstr "Imprime el cartel para la puerta o el mostrador y luego márcalo como hecho: el sitio no ve lo que imprimes."
+
+msgid "after the approval"
+msgstr "después de la aprobación"
+
+msgid "the card for the till printed"
+msgstr "la ficha para la caja impresa"
+
+msgid "No discount"
+msgstr "Sin descuento"
+
+msgid "Price {list} · bitcoin discount −{percent}% · to pay {amount}"
+msgstr "Precio {list} · descuento bitcoin −{percent}% · a pagar {amount}"
+
+msgid "Give a discount to customers who pay in bitcoin? The suggested one is −{percent}%. You can change it any time in the settings."
+msgstr "¿Hacer un descuento a quien paga en bitcoin? El sugerido es −{percent}%. Puedes cambiarlo cuando quieras en los ajustes."
+
+msgid "Yes, −{percent}%"
+msgstr "Sí, −{percent}%"
+
+msgid "Yes, give the discount"
+msgstr "Sí, hacer el descuento"
+
+#, python-format
+msgid "We suggest %(discount)s%%. If you give no discount, write 0."
+msgstr "Te sugerimos el %(discount)s%%. Si no haces descuento, escribe 0."

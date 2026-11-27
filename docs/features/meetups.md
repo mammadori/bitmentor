@@ -79,9 +79,8 @@ is named only when it is not the community's.
 | Status | *Confirmed*, *Cancelled*, *Postponed* (with the day it moves to, if known), *Informal get-together* |
 | Shown on the site | Untick to take it off the board and the calendar without deleting it |
 
-The list has actions to mark meetups confirmed or cancelled and to show or hide them. The group *Site staff* gets the
-permissions to keep meetups and the list of trusted authors when the update that brings this feature runs, **if the group
-exists**; the update does not create it, and a site without it is left alone.
+The list has actions to mark meetups confirmed or cancelled and to show or hide them. No group gets the permissions by
+itself: name a group with the `meetups` bundle in `staff_groups` ([The staff groups](staff-groups.md)).
 
 Everything the staff writes keeps its author (`entered_by`), seen only in `/admin/`, never on the site.
 

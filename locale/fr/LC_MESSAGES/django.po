@@ -10937,3 +10937,49 @@ msgstr "La copie automatique n'a pas marché : sélectionnez le texte du champ
 
 msgid "On an iPhone, press «Copy the pairing» on the register before adding it to the home screen: opened from there the first time, it asks you to paste it."
 msgstr "Sur iPhone, appuyez sur « Copier l'appairage » dans la caisse avant de l'ajouter à l'écran d'accueil : ouverte de là la première fois, elle vous demande de le coller."
+
+msgid "The card for the till"
+msgstr "La fiche pour la caisse"
+
+msgid "The sign"
+msgstr "L'affiche"
+
+msgid "Printed. You can print it again whenever you like."
+msgstr "C'est fait. Vous pouvez réimprimer quand vous voulez."
+
+msgid "Print the card for whoever stands at the till, then mark it done: the site cannot see what you print."
+msgstr "Imprimez la fiche pour la personne à la caisse, puis marquez l'étape comme faite : le site ne voit pas ce que vous imprimez."
+
+msgid "The sign is only for shops on the map."
+msgstr "L'affiche est réservée aux commerces sur la carte."
+
+msgid "Wait for the community to approve the shop: then print the sign for the door or the counter."
+msgstr "Attendez que la communauté approuve le commerce : imprimez ensuite l'affiche pour la porte ou le comptoir."
+
+msgid "Print the sign for the door or the counter, then mark it done: the site cannot see what you print."
+msgstr "Imprimez l'affiche pour la porte ou le comptoir, puis marquez l'étape comme faite : le site ne voit pas ce que vous imprimez."
+
+msgid "after the approval"
+msgstr "après l'approbation"
+
+msgid "the card for the till printed"
+msgstr "la fiche pour la caisse imprimée"
+
+msgid "No discount"
+msgstr "Pas de remise"
+
+msgid "Price {list} · bitcoin discount −{percent}% · to pay {amount}"
+msgstr "Prix {list} · remise bitcoin −{percent} % · à payer {amount}"
+
+msgid "Give a discount to customers who pay in bitcoin? The suggested one is −{percent}%. You can change it any time in the settings."
+msgstr "Faire une remise aux clients qui paient en bitcoin ? Celle proposée est de −{percent} %. Vous pouvez la changer à tout moment dans les réglages."
+
+msgid "Yes, −{percent}%"
+msgstr "Oui, −{percent} %"
+
+msgid "Yes, give the discount"
+msgstr "Oui, faire la remise"
+
+#, python-format
+msgid "We suggest %(discount)s%%. If you give no discount, write 0."
+msgstr "Nous suggérons %(discount)s %%. Si vous ne faites pas de remise, écrivez 0."

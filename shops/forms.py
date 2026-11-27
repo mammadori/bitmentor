@@ -264,6 +264,17 @@ class ShopDetailsForm(VatNumberMixin, forms.ModelForm):
         super().__init__(*args, **kwargs)
         if "discount" in self.fields:
             self.fields["discount"].required = False
+            from .register import suggested_discount
+
+            # The community's suggestion starts the field of a new shop: 0 means no discount, at the register too
+            suggested = suggested_discount()
+            if suggested:
+                self.fields["discount"].help_text = _(
+                    "We suggest %(discount)s%%. If you give no discount, write 0."
+                ) % {"discount": suggested}
+                # The instance's own 0 is in self.initial too: only what the caller proposed (the prefill) wins
+                if self.instance._state.adding and "discount" not in (kwargs.get("initial") or {}):
+                    self.initial["discount"] = suggested
 
     def clean_discount(self):
         return self.cleaned_data["discount"] or 0

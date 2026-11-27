@@ -59,6 +59,12 @@ class Command(BaseCommand):
         return list(Shop.objects.filter(owner=user).order_by("name").values_list("name", flat=True))
 
     def show(self, username):
+        if moderators.listed() is None:
+            self.stdout.write(
+                f"community.yml has `staff_groups` without {moderators.GROUP}: nobody keeps that group any more, "
+                "`manage.py migrate` neither makes it nor takes its rights away. Its groups are in /admin/ (Groups)."
+            )
+            return
         group = Group.objects.filter(name=moderators.GROUP).first()
         if group is None:
             self.stdout.write(
@@ -74,6 +80,10 @@ class Command(BaseCommand):
                 self.stdout.write(f"  MISSING  {label}.{codename}: {what}")
             elif (label, codename) in have:
                 self.stdout.write(f"  {label}.{codename}: {what}")
+        described = {(label, codename) for label, codename, _what in moderators.PERMISSIONS}
+        for label, codename in sorted(have - described):
+            # Given by `staff_groups` in community.yml beyond the moderators' own list
+            self.stdout.write(f"  {label}.{codename}: from `staff_groups`")
         for label, codename in sorted(extra):
             self.stdout.write(f"  NOT ON THE LIST  {label}.{codename}: `manage.py migrate` takes it away")
         members = list(group.user_set.order_by("username"))
@@ -101,6 +111,16 @@ class Command(BaseCommand):
             self.stdout.write(f"  {plain(user.get_username())}" + (f"  ({'; '.join(notes)})" if notes else ""))
 
     def sync(self, username):
+        from shops import staff_groups
+
+        if moderators.GROUP not in staff_groups.configured()[0]:
+            # community.yml names its own groups: the moderators' group is no longer kept, and must not come back
+            staff_groups.sync()
+            self.stdout.write(
+                f"community.yml has `staff_groups` without {moderators.GROUP}: its groups were put right, as `migrate` "
+                f"does; {moderators.GROUP} was left as it is, and nobody keeps it."
+            )
+            return
         group = Group.objects.filter(name=moderators.GROUP).first()
         missing, extra = moderators.difference(group) if group else (moderators.wanted(), set())
         moderators.sync()
@@ -118,6 +138,14 @@ class Command(BaseCommand):
             )
 
     def add(self, username):
+        from shops import staff_groups
+
+        if moderators.GROUP not in staff_groups.configured()[0]:
+            # The group is no longer kept: an account must not join a group whose rights nobody puts right
+            raise CommandError(
+                f"community.yml has `staff_groups` without {moderators.GROUP}: put the account in one of its groups in "
+                "/admin/ (Users, the account, Groups). Nothing changed."
+            )
         user = self.account(username)
         name = plain(user.get_username())
         owned = self.shops(user)

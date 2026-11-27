@@ -59,6 +59,24 @@ class SignWaits(TestCase):
         self.assertIn("Wait for the community to approve the shop", panel)
         self.assertIn("print the sign once the community has approved the shop", panel)
 
+    def test_the_first_day_greys_the_sign_and_lets_the_card_be_ticked(self):
+        """The card for the till is a step of its own, done at once; the sign waits greyed, with nothing to tick."""
+        panel = self.client.get("/en/shops/").content.decode()
+        start = panel.index(f'id="first-day-{self.shop.id}"')
+        block = panel[start : panel.index("</details>", start)]
+        sign = block[block.index('data-step="sign"') : block.index('data-step="staff"')]
+        card = block[block.index('data-step="card"') : block.index('data-step="sign"')]
+        self.assertIn('class="step-later">Printable sign · after the approval</span>', sign)
+        self.assertNotIn('name="step" value="sign"', sign)
+        self.assertNotIn(f'href="{self.sign}"', sign)
+        self.assertIn(f'href="/en/shops/card/{self.shop.id}/"', card)
+        self.assertIn('name="step" value="card"', card)
+        response = self.client.post(f"/en/shops/first-day/{self.shop.id}/", {"step": "card", "done": "1"})
+        self.assertEqual(response.status_code, 302)
+        self.shop.refresh_from_db()
+        self.assertIsNotNone(self.shop.card_printed)
+        self.assertIsNone(self.shop.sign_printed)
+
     def test_the_new_shop_notice_says_to_wait(self):
         panel = self.client.get("/en/shops/?saved").content.decode()
         self.assertIn("The sign to print comes once the community has approved the shop.", panel)

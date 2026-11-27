@@ -242,3 +242,5 @@
   .register:not(.practising) .qr { width: min(600px, 46vw, calc(100dvh - 150px)); }
   .register:not(.practising) #pay .due { font-size: 56px; }
 }
+.pay-discount { margin: 0; }
+.discount-ask button { margin-top: .4em; }

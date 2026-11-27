@@ -227,6 +227,8 @@ blockquote { margin: 32px 0; padding: 0 0 0 20px; border-left: 4px solid var(--h
 [data-state="done"] > .step-mark::after { content: ""; display: block; box-sizing: border-box; width: 7px; height: 12px; margin: 3px auto 0; border: solid var(--on-primary); border-width: 0 3px 3px 0; transform: rotate(45deg); }
 [data-state="unknown"] > .step-mark { border-style: dashed; }
 [data-state="off"] > .step-mark { border-style: dotted; }
+.step-later { color: var(--muted); padding: .4em .8em; border: 1px dashed var(--muted); border-radius: 6px; }
+[data-step="sign"]:has(.step-later) .step-head { color: var(--muted); }
 .step-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 0; }
 .step-state { color: var(--muted); font-size: 15px; }
 [data-state="done"] .step-state { color: var(--primary); font-weight: 700; }

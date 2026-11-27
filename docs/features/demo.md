@@ -49,7 +49,7 @@ docker compose exec web python manage.py demo_data --remove
 |---|---|---|
 | The Daily Loaf | A shop where everything works: certified, its Lightning address answering, a staff register | The map and its page: the badge and the full icon. The owner's panel: every step of the path done. [Staff and shops kept apart](staff-and-shops.md) |
 | Blue Door Cafe | The Lightning address works; the certificate waits for the owner's basic pass. Its owner has two shops | The panel: the certificate's milestone and what is missing |
-| Paper & Ink Books | The first day half done: register ready, sign printed, the first sale not ticked yet. Same owner as the café | The first day in the panel. The practice register: see [The practice register](practice.md) |
+| Paper & Ink Books | The first day half done: register ready, card and sign printed, the first sale not ticked yet. Same owner as the café | The first day in the panel. The practice register: see [The practice register](practice.md) |
 | Petal Flowers | Just signed up, no wallet yet: the page is ready, the shop is not on the map | The panel, «connect your wallet». The customer's side: [The customer at the till](customer-path.md) |
 | Hardware Hub | Certified long ago | The map: the badge, and the icon of how recently the address answered |
 | Moonlight Gelato | The Lightning address stopped answering three days ago | `/admin/today/`: a problem, with what to say. The owner's panel says the same in plain words. [The guardian](lightning-guardian.md) |

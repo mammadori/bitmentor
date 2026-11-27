@@ -13,7 +13,8 @@ details (what customers see of them is the owner's choice, [see here](shop-detai
 **The moderators' group.** Whoever only looks after the shops (reads the day's list, answers the requests for help) needs none of the rights that change a shop. They belong to the **Moderators**
 group, which the site makes by itself with exactly the rights that work asks and no right to change a shop, an owner, an
 account, a key or an address; the rights to change shops, to make accounts and to give groups stay with the few who
-run the site ([The moderators](../operations.md#the-moderators)). The actions that revoke or allow a certificate ask for
+run the site ([The moderators](../operations.md#the-moderators); a community can name its own groups instead, with the same
+limits: [The staff groups](staff-groups.md)). The actions that revoke or allow a certificate ask for
 the right to change a shop too.
 
 **Not even there:** the shop's destination (its Lightning address) can be *seen* in `/admin/` by whoever can see a shop,

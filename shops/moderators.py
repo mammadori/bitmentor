@@ -25,12 +25,9 @@ for the people who have all the rights (docs/features/staff-and-shops.md).
 """
 
 import logging
-from functools import reduce
-from operator import or_
 
 from django.apps import apps as global_apps
-from django.db import DEFAULT_DB_ALIAS, router, transaction
-from django.db.models import Q
+from django.db import DEFAULT_DB_ALIAS, router
 
 logger = logging.getLogger(__name__)
 
@@ -50,68 +47,37 @@ PERMISSIONS = (
 )
 
 
+def listed():
+    """The rights the group should have: the list above, or what `staff_groups` in community.yml gives it
+    (shops/staff_groups.py). None when community.yml names other groups and not this one: then nobody keeps it."""
+    from . import staff_groups
+
+    groups = staff_groups.configured()[0]
+    if GROUP not in groups:
+        return None
+    return groups[GROUP]
+
+
 def wanted(apps=global_apps):
     """The rights of the list that this installation can give: the ones of apps it has."""
-    found = set()
-    for label, codename, _what in PERMISSIONS:
-        try:
-            apps.get_app_config(label)
-        except LookupError:
-            continue
-        found.add((label, codename))
-    return found
+    from . import staff_groups
+
+    return staff_groups.wanted(listed() or set(), apps)
 
 
 def sync(apps=global_apps, using=DEFAULT_DB_ALIAS):
-    """Makes the group, and gives it exactly the rights of PERMISSIONS that this installation has. Returns the rights it
-    now has, as a set of (app, right), or None if the database has no accounts' tables to put them in.
+    """Makes the group and gives it exactly the rights it should have (`listed`), as `migrate` does. Returns the rights
+    it now has, or None without the accounts' tables or when community.yml no longer keeps this group."""
+    from . import staff_groups
 
-    `apps` is the registry whose models are used: the one `migrate` passes at its end (the state of the migrations), or
-    the real one."""
     try:
         Group = apps.get_model("auth", "Group")
-        Permission = apps.get_model("auth", "Permission")
+        apps.get_model("auth", "Permission")
     except LookupError:
         return None
-    if not router.allow_migrate_model(using, Group):
+    if not router.allow_migrate_model(using, Group) or listed() is None:
         return None
-    from django.contrib.auth.management import create_permissions
-
-    expected = wanted(apps)
-    # The rights of a model are made after the migrations, app by app: ask the apps of the list for theirs, so that
-    # it does not matter which comes first
-    for label in sorted({label for label, _codename in expected}):
-        # The app's own configuration, as the signal passes it: the registry of `migrate` holds only stubs of them
-        create_permissions(global_apps.get_app_config(label), verbosity=0, using=using, apps=apps)
-    rights = Permission.objects.using(using).filter(
-        reduce(or_, (Q(content_type__app_label=label, codename=codename) for label, codename in expected), Q(pk__in=[]))
-    )
-    found = {(right.content_type.app_label, right.codename) for right in rights.select_related("content_type")}
-    for label, codename in sorted(expected - found):
-        # A right the app should have and does not: a mistake in the list, which the tests catch. It must not stop
-        # the site from starting
-        logger.error("The right %s.%s of the moderators' group does not exist", label, codename)
-    with transaction.atomic(using=using):
-        group, _made = Group.objects.using(using).get_or_create(name=GROUP)
-        before = set(group.permissions.values_list("content_type__app_label", "codename"))
-        group.permissions.set(rights)
-    if before - found:
-        # Somebody gave the group more than the work asks: it is taken away, and the log says so, as an error: it is
-        # one for whoever runs the site
-        logger.error(
-            "Rights taken away from the moderators' group, which are not on the list: %s",
-            ", ".join(f"{label}.{codename}" for label, codename in sorted(before - found)),
-        )
-    return found
-
-
-def on_post_migrate(sender, apps=global_apps, using=DEFAULT_DB_ALIAS, **kwargs):
-    """`migrate` ends: the group is made or put right. A failure is logged and does not stop the start of the site, which
-    an error here would do at every start: the group stays as it was, which gives nobody more than it did."""
-    try:
-        sync(apps=apps, using=using)
-    except Exception:
-        logger.exception("The moderators' group could not be updated")
+    return staff_groups.sync_group(GROUP, wanted(apps), apps, using)
 
 
 def difference(group):

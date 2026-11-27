@@ -2629,3 +2629,23 @@ class RequestLimits(TestCase):
         ):
             self.assertFalse(ratelimit.over_limit("cleanup", 5, 86400))
             self.assertFalse(ratelimit.over_limit("cleanup", 5, 86400))
+
+
+class DiscountSuggested(TestCase):
+    """The community's suggestion starts the discount of a new shop; 0 written by the owner stays 0."""
+
+    def test_a_new_shop_starts_from_the_suggestion(self):
+        with patch("shops.register.suggested_discount", return_value=10):
+            form = ShopForm()
+            self.assertEqual(form.initial["discount"], 10)
+            self.assertIn("We suggest 10%. If you give no discount, write 0.", str(form["discount"].help_text))
+            self.assertEqual(ShopForm(initial={"discount": 3}).initial["discount"], 3)
+            saved = Shop(name="Bar", discount=0)
+            saved.save()
+            self.assertEqual(ShopForm(instance=saved).initial["discount"], 0)
+
+    def test_without_a_suggestion_the_old_help(self):
+        with patch("shops.register.suggested_discount", return_value=0):
+            form = ShopForm()
+        self.assertEqual(str(form["discount"].help_text), "Leave it at 0 if you do not offer one.")
+        self.assertNotIn("discount", form.initial)

@@ -338,6 +338,9 @@ no single shop was found.
 
 ## The moderators
 
+A community can name its own staff groups instead, with `staff_groups` in `community.yml`: see [The staff
+groups](features/staff-groups.md). This section is about the default group.
+
 A moderator is a volunteer who looks after the shops day by day: reads the list in `/admin/today/`, answers the requests
 for help. They do all of it without being able to change a shop, its
 owner, an account, a key or an address. They sign in at `/admin/` with a staff account in the **Moderators** group.
